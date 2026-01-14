@@ -84,7 +84,7 @@ function displayHalls(halls, venueName) {
                         <h5 class="card-title">${escapeHtml(hall.name)}</h5>
                         <div class="mb-3">
                             <span class="capacity-badge">
-                                <i class="fas fa-users"></i> ${parseInt(hall.capacity) || 0} pax
+                                <i class="fas fa-users"></i> ${parseInt(hall.capacity, 10) || 0} pax
                             </span>
                             <span class="badge bg-info ms-2">${escapeHtml(hall.indoor_outdoor)}</span>
                         </div>
@@ -96,11 +96,11 @@ function displayHalls(halls, venueName) {
                         </div>
                         ${hall.available ? 
                             `<button class="btn btn-success w-100 select-hall-btn" 
-                                     data-hall-id="${parseInt(hall.id) || 0}" 
+                                     data-hall-id="${parseInt(hall.id, 10) || 0}" 
                                      data-hall-name="${hall.name || ''}" 
                                      data-venue-name="${venueName || ''}" 
                                      data-base-price="${parseFloat(hall.base_price) || 0}" 
-                                     data-capacity="${parseInt(hall.capacity) || 0}">
+                                     data-capacity="${parseInt(hall.capacity, 10) || 0}">
                                 <i class="fas fa-check"></i> Select This Hall
                             </button>` :
                             `<button class="btn btn-secondary w-100" disabled>
@@ -120,11 +120,11 @@ function displayHalls(halls, venueName) {
     // Add event listeners to select buttons using event delegation
     hallsContainer.querySelectorAll('.select-hall-btn').forEach(button => {
         button.addEventListener('click', function() {
-            const hallId = parseInt(this.getAttribute('data-hall-id'));
+            const hallId = parseInt(this.getAttribute('data-hall-id'), 10);
             const hallName = this.getAttribute('data-hall-name') || '';
             const venueName = this.getAttribute('data-venue-name') || '';
             const basePrice = parseFloat(this.getAttribute('data-base-price'));
-            const capacity = parseInt(this.getAttribute('data-capacity'));
+            const capacity = parseInt(this.getAttribute('data-capacity'), 10);
             
             // Validate numeric values are valid and positive
             if (isNaN(hallId) || hallId <= 0 || isNaN(basePrice) || basePrice < 0 || isNaN(capacity) || capacity <= 0) {
