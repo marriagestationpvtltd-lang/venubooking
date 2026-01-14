@@ -95,7 +95,7 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
                     }
                     // Use placeholder if no valid image
                     if (empty($venue_image_url)) {
-                        $venue_image_url = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23e9ecef" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236c757d" font-size="24" font-family="Arial"%3ENo Image%3C/text%3E%3C/svg%3E';
+                        $venue_image_url = getPlaceholderImageUrl();
                     }
                 ?>
                     <div class="col-md-6 col-lg-4">

@@ -120,22 +120,40 @@ function getAvailableVenues($date, $shift) {
     $stmt->execute();
     $venues = $stmt->fetchAll();
     
-    // Get venue images from site_images as fallback
-    $venue_images = getImagesBySection('venue');
+    // Check if any venue needs fallback image
+    $needs_fallback = false;
+    foreach ($venues as $venue) {
+        if (empty($venue['image']) || !file_exists(UPLOAD_PATH . basename($venue['image']))) {
+            $needs_fallback = true;
+            break;
+        }
+    }
+    
+    // Only fetch gallery images if needed
+    $venue_images = [];
     $venue_image_index = 0;
+    if ($needs_fallback) {
+        $venue_images = getImagesBySection('venue');
+    }
     
     // Process each venue to ensure it has an image
     foreach ($venues as &$venue) {
+        // Sanitize filename to prevent path traversal
+        $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
+        
         // If venue doesn't have an image or image file doesn't exist
-        if (empty($venue['image']) || !file_exists(UPLOAD_PATH . $venue['image'])) {
+        if (empty($safe_filename) || !file_exists(UPLOAD_PATH . $safe_filename)) {
             // Use fallback from site_images
             if (!empty($venue_images) && isset($venue_images[$venue_image_index])) {
                 $venue['image'] = $venue_images[$venue_image_index]['image_path'];
                 $venue_image_index = ($venue_image_index + 1) % count($venue_images);
             } else {
-                // Use placeholder if no images available
-                $venue['image'] = 'placeholder-venue.jpg';
+                // Use empty string to trigger SVG placeholder in frontend
+                $venue['image'] = '';
             }
+        } else {
+            // Ensure we use the sanitized filename
+            $venue['image'] = $safe_filename;
         }
     }
     
@@ -584,4 +602,14 @@ function displayImagePreview($image_filename, $alt_text = 'Current image') {
         <img src="' . $escaped_url . '" alt="' . $escaped_alt . '" class="img-thumbnail" style="max-width: 200px;">
         <p class="text-muted small mt-1">Current image</p>
     </div>';
+}
+
+/**
+ * Get placeholder image data URL for missing images
+ * Returns an inline SVG as a data URL
+ * 
+ * @return string Data URL for placeholder SVG
+ */
+function getPlaceholderImageUrl() {
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23e9ecef" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236c757d" font-size="24" font-family="Arial"%3ENo Image%3C/text%3E%3C/svg%3E';
 }
