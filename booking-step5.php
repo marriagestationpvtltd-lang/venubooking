@@ -30,11 +30,13 @@ if (!empty($selected_menus)) {
     $stmt->execute($selected_menus);
     $menu_details = $stmt->fetchAll();
     
-    // Get menu items for each menu
-    foreach ($menu_details as &$menu) {
-        $stmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
-        $stmt->execute([$menu['id']]);
-        $menu['items'] = $stmt->fetchAll();
+    // Get menu items for each menu (prepare statement once for efficiency)
+    if (!empty($menu_details)) {
+        $itemsStmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
+        foreach ($menu_details as &$menu) {
+            $itemsStmt->execute([$menu['id']]);
+            $menu['items'] = $itemsStmt->fetchAll();
+        }
     }
 }
 

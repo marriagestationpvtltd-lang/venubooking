@@ -148,9 +148,10 @@ if (!$booking) {
                                 <td>
                                     <?php echo htmlspecialchars($menu['menu_name']); ?>
                                     <?php if (!empty($menu['items'])): ?>
+                                        <?php $safeMenuId = intval($menu['menu_id']); ?>
                                         <button class="btn btn-sm btn-link p-0 ms-2" type="button" 
                                                 data-bs-toggle="collapse" 
-                                                data-bs-target="#menu-items-<?php echo htmlspecialchars($menu['menu_id']); ?>" 
+                                                data-bs-target="#menu-items-<?php echo $safeMenuId; ?>" 
                                                 aria-expanded="false">
                                             <i class="fas fa-list"></i> View Items
                                         </button>
@@ -161,7 +162,7 @@ if (!$booking) {
                                 <td><?php echo formatCurrency($menu['total_price']); ?></td>
                             </tr>
                             <?php if (!empty($menu['items'])): ?>
-                            <tr class="collapse" id="menu-items-<?php echo htmlspecialchars($menu['menu_id']); ?>">
+                            <tr class="collapse" id="menu-items-<?php echo $safeMenuId; ?>">
                                 <td colspan="4" class="bg-light">
                                     <div class="p-2">
                                         <strong class="small">Menu Items:</strong>

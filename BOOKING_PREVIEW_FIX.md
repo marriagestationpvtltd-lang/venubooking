@@ -13,7 +13,7 @@ The booking preview and PDF were not showing complete booking details, specifica
 ```php
 // Get menu items for each menu
 foreach ($booking['menus'] as &$menu) {
-    $stmt = $db->prepare("SELECT * FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
+    $stmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
     $stmt->execute([$menu['menu_id']]);
     $menu['items'] = $stmt->fetchAll();
 }
