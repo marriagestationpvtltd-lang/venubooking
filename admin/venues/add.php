@@ -21,34 +21,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please fill in all required fields.';
     } else {
         try {
-            $sql = "INSERT INTO venues (name, location, address, description, contact_phone, contact_email, status) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)";
+            // Handle image upload
+            $image_filename = null;
+            if (isset($_FILES['venue_image']) && $_FILES['venue_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['venue_image'], 'venue');
+                
+                if ($upload_result['success']) {
+                    $image_filename = $upload_result['filename'];
+                } else {
+                    $error_message = $upload_result['message'];
+                }
+            }
             
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([
-                $name,
-                $location,
-                $address,
-                $description,
-                $contact_phone,
-                $contact_email,
-                $status
-            ]);
+            if (empty($error_message)) {
+                $sql = "INSERT INTO venues (name, location, address, description, image, contact_phone, contact_email, status) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    $name,
+                    $location,
+                    $address,
+                    $description,
+                    $image_filename,
+                    $contact_phone,
+                    $contact_email,
+                    $status
+                ]);
 
-            if ($result) {
-                $venue_id = $db->lastInsertId();
-                
-                // Log activity
-                logActivity($current_user['id'], 'Added new venue', 'venues', $venue_id, "Added venue: $name");
-                
-                $success_message = 'Venue added successfully!';
-                
-                // Clear form
-                $_POST = [];
-            } else {
-                $error_message = 'Failed to add venue. Please try again.';
+                if ($result) {
+                    $venue_id = $db->lastInsertId();
+                    
+                    // Log activity
+                    logActivity($current_user['id'], 'Added new venue', 'venues', $venue_id, "Added venue: $name");
+                    
+                    $success_message = 'Venue added successfully!';
+                    
+                    // Clear form
+                    $_POST = [];
+                } else {
+                    // Delete uploaded image if database insert fails
+                    if ($image_filename) {
+                        deleteUploadedFile($image_filename);
+                    }
+                    $error_message = 'Failed to add venue. Please try again.';
+                }
             }
         } catch (Exception $e) {
+            // Delete uploaded image on exception
+            if (isset($image_filename) && $image_filename) {
+                deleteUploadedFile($image_filename);
+            }
             $error_message = 'Error: ' . $e->getMessage();
         }
     }
@@ -80,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -131,6 +154,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3" 
                                   placeholder="Describe the venue, its facilities, and unique features..."><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="venue_image" class="form-label">Venue Image (Optional)</label>
+                        <input type="file" class="form-control" id="venue_image" name="venue_image" accept="image/*">
+                        <small class="text-muted">Upload an image for this venue. JPG, PNG, GIF, or WebP. Max 5MB</small>
                     </div>
 
                     <div class="mb-3">

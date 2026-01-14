@@ -18,31 +18,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
         try {
-            $sql = "INSERT INTO menus (name, description, price_per_person, status) 
-                    VALUES (?, ?, ?, ?)";
+            // Handle image upload
+            $image_filename = null;
+            if (isset($_FILES['menu_image']) && $_FILES['menu_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['menu_image'], 'menu');
+                
+                if ($upload_result['success']) {
+                    $image_filename = $upload_result['filename'];
+                } else {
+                    $error_message = $upload_result['message'];
+                }
+            }
             
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([
-                $name,
-                $description,
-                $price_per_person,
-                $status
-            ]);
+            if (empty($error_message)) {
+                $sql = "INSERT INTO menus (name, description, price_per_person, image, status) 
+                        VALUES (?, ?, ?, ?, ?)";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    $name,
+                    $description,
+                    $price_per_person,
+                    $image_filename,
+                    $status
+                ]);
 
-            if ($result) {
-                $menu_id = $db->lastInsertId();
-                
-                // Log activity
-                logActivity($current_user['id'], 'Added new menu', 'menus', $menu_id, "Added menu: $name");
-                
-                $success_message = 'Menu added successfully!';
-                
-                // Clear form
-                $_POST = [];
-            } else {
-                $error_message = 'Failed to add menu. Please try again.';
+                if ($result) {
+                    $menu_id = $db->lastInsertId();
+                    
+                    // Log activity
+                    logActivity($current_user['id'], 'Added new menu', 'menus', $menu_id, "Added menu: $name");
+                    
+                    $success_message = 'Menu added successfully!';
+                    
+                    // Clear form
+                    $_POST = [];
+                } else {
+                    // Delete uploaded image if database insert fails
+                    if ($image_filename) {
+                        deleteUploadedFile($image_filename);
+                    }
+                    $error_message = 'Failed to add menu. Please try again.';
+                }
             }
         } catch (Exception $e) {
+            // Delete uploaded image on exception
+            if (isset($image_filename) && $image_filename) {
+                deleteUploadedFile($image_filename);
+            }
             $error_message = 'Error: ' . $e->getMessage();
         }
     }
@@ -74,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -100,6 +123,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3" 
                                   placeholder="Describe the menu, its items, and what makes it special..."><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="menu_image" class="form-label">Menu Image (Optional)</label>
+                        <input type="file" class="form-control" id="menu_image" name="menu_image" accept="image/*">
+                        <small class="text-muted">Upload an image for this menu. JPG, PNG, GIF, or WebP. Max 5MB</small>
                     </div>
 
                     <div class="mb-3">

@@ -52,6 +52,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result) {
                 $hall_id = $db->lastInsertId();
                 
+                // Handle image upload if provided
+                if (isset($_FILES['hall_image']) && $_FILES['hall_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                    $upload_result = handleImageUpload($_FILES['hall_image'], 'hall');
+                    
+                    if ($upload_result['success']) {
+                        try {
+                            $sql = "INSERT INTO hall_images (hall_id, image_path, is_primary, display_order) VALUES (?, ?, 1, 0)";
+                            $stmt = $db->prepare($sql);
+                            $stmt->execute([$hall_id, $upload_result['filename']]);
+                            
+                            logActivity($current_user['id'], 'Uploaded hall image', 'hall_images', $db->lastInsertId(), "Uploaded image for hall: $name");
+                        } catch (Exception $e) {
+                            deleteUploadedFile($upload_result['filename']);
+                            // Don't fail the whole operation if image upload fails
+                        }
+                    }
+                }
+                
                 // Log activity
                 logActivity($current_user['id'], 'Added new hall', 'halls', $hall_id, "Added hall: $name");
                 
@@ -95,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -187,6 +205,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <textarea class="form-control" id="features" name="features" rows="2" 
                                   placeholder="e.g., Air conditioning, Stage, Sound system, LED screens, Wi-Fi"><?php echo isset($_POST['features']) ? htmlspecialchars($_POST['features']) : ''; ?></textarea>
                         <small class="text-muted">Separate features with commas</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="hall_image" class="form-label">Hall Image (Optional)</label>
+                        <input type="file" class="form-control" id="hall_image" name="hall_image" accept="image/*">
+                        <small class="text-muted">Upload a primary image for this hall. JPG, PNG, GIF, or WebP. Max 5MB</small>
                     </div>
 
                     <div class="d-flex justify-content-between">

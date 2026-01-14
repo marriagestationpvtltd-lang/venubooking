@@ -404,3 +404,163 @@ function getFirstImage($section) {
     $images = getImagesBySection($section, 1);
     return !empty($images) ? $images[0] : null;
 }
+
+/**
+ * Handle file upload for images
+ * 
+ * @param array $file The $_FILES array element
+ * @param string $prefix Prefix for the filename (e.g., 'hall', 'venue', 'menu')
+ * @return array Array with 'success' boolean and 'message' or 'filename'
+ */
+function handleImageUpload($file, $prefix = 'image') {
+    $result = ['success' => false, 'message' => ''];
+    
+    // Check if file was uploaded
+    if ($file['error'] == UPLOAD_ERR_NO_FILE) {
+        $result['message'] = 'No file uploaded.';
+        return $result;
+    }
+    
+    // Check for upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $result['message'] = 'Error uploading file. Please try again.';
+        return $result;
+    }
+    
+    // Validate file type using MIME type (basic check)
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($file['type'], $allowed_types)) {
+        $result['message'] = 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.';
+        return $result;
+    }
+    
+    // Validate actual image content using getimagesize (security check)
+    $image_info = getimagesize($file['tmp_name']);
+    if ($image_info === false) {
+        $result['message'] = 'Invalid image file. The file does not appear to be a valid image.';
+        return $result;
+    }
+    
+    // Double-check MIME type from getimagesize and map to extension
+    $mime_to_ext = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp'
+    ];
+    
+    if (!isset($mime_to_ext[$image_info['mime']])) {
+        $result['message'] = 'Invalid image type detected. Only JPG, PNG, GIF, and WebP images are allowed.';
+        return $result;
+    }
+    
+    // Use extension based on actual MIME type, not client-provided filename
+    $extension = $mime_to_ext[$image_info['mime']];
+    
+    // Validate file size (5MB max)
+    $max_size = 5 * 1024 * 1024;
+    if ($file['size'] > $max_size) {
+        $result['message'] = 'File is too large. Maximum size is 5MB.';
+        return $result;
+    }
+    
+    // Generate unique filename with validation
+    $filename = basename($prefix . '_' . time() . '_' . uniqid() . '.' . $extension);
+    
+    // Additional safety check: ensure filename contains no directory separators
+    if (strpos($filename, '/') !== false || strpos($filename, '\\') !== false || strpos($filename, '..') !== false) {
+        $result['message'] = 'Invalid filename generated.';
+        return $result;
+    }
+    
+    $upload_path = UPLOAD_PATH . $filename;
+    
+    // Create uploads directory if it doesn't exist with error handling
+    if (!is_dir(UPLOAD_PATH)) {
+        if (!mkdir(UPLOAD_PATH, 0755, true)) {
+            $result['message'] = 'Failed to create upload directory. Please check server permissions.';
+            return $result;
+        }
+    }
+    
+    // Move uploaded file
+    if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+        $result['success'] = true;
+        $result['filename'] = $filename;
+    } else {
+        $result['message'] = 'Failed to upload file. Please check directory permissions.';
+    }
+    
+    return $result;
+}
+
+/**
+ * Delete an uploaded file
+ * 
+ * @param string $filename The filename to delete
+ * @return boolean True if file was deleted or doesn't exist, false on error
+ */
+function deleteUploadedFile($filename) {
+    if (empty($filename)) {
+        return true;
+    }
+    
+    // Validate filename to prevent directory traversal
+    if (strpos($filename, '/') !== false || strpos($filename, '\\') !== false || strpos($filename, '..') !== false) {
+        return false; // Invalid filename
+    }
+    
+    // Use basename as additional safety measure
+    $filename = basename($filename);
+    
+    $filepath = UPLOAD_PATH . $filename;
+    
+    // Ensure the file path is within the upload directory before attempting deletion
+    // Use realpath on the directory and manually construct the expected path
+    $real_upload_path = realpath(UPLOAD_PATH);
+    if ($real_upload_path === false) {
+        return false; // Upload directory doesn't exist or is inaccessible
+    }
+    
+    // Construct expected path
+    $expected_path = $real_upload_path . DIRECTORY_SEPARATOR . $filename;
+    
+    // If file exists, verify its real path matches expected path
+    if (file_exists($filepath)) {
+        $real_file_path = realpath($filepath);
+        if ($real_file_path === false || $real_file_path !== $expected_path) {
+            return false; // File path doesn't match expected location
+        }
+        return unlink($filepath);
+    }
+    
+    return true; // File doesn't exist, consider it deleted
+}
+
+/**
+ * Display current image preview HTML
+ * 
+ * @param string $image_filename The image filename
+ * @param string $alt_text Alternative text for the image
+ * @return string HTML for image preview or empty string if no image
+ */
+function displayImagePreview($image_filename, $alt_text = 'Current image') {
+    if (empty($image_filename)) {
+        return '';
+    }
+    
+    $image_path = UPLOAD_PATH . $image_filename;
+    if (!file_exists($image_path)) {
+        return '';
+    }
+    
+    // URL encode the filename and escape for HTML
+    $image_url = UPLOAD_URL . rawurlencode($image_filename);
+    $escaped_url = htmlspecialchars($image_url, ENT_QUOTES, 'UTF-8');
+    $escaped_alt = htmlspecialchars($alt_text, ENT_QUOTES, 'UTF-8');
+    
+    return '<div class="mb-2">
+        <img src="' . $escaped_url . '" alt="' . $escaped_alt . '" class="img-thumbnail" style="max-width: 200px;">
+        <p class="text-muted small mt-1">Current image</p>
+    </div>';
+}

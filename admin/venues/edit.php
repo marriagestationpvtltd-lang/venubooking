@@ -66,40 +66,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please fill in all required fields.';
     } else {
         try {
-            $sql = "UPDATE venues SET 
-                    name = ?,
-                    location = ?,
-                    address = ?,
-                    description = ?,
-                    contact_phone = ?,
-                    contact_email = ?,
-                    status = ?
-                    WHERE id = ?";
+            // Handle image upload
+            $image_filename = $venue['image'];
+            if (isset($_FILES['venue_image']) && $_FILES['venue_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['venue_image'], 'venue');
+                
+                if ($upload_result['success']) {
+                    // Delete old image if exists
+                    if (!empty($venue['image'])) {
+                        deleteUploadedFile($venue['image']);
+                    }
+                    $image_filename = $upload_result['filename'];
+                } else {
+                    $error_message = $upload_result['message'];
+                }
+            }
             
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([
-                $name,
-                $location,
-                $address,
-                $description,
-                $contact_phone,
-                $contact_email,
-                $status,
-                $venue_id
-            ]);
+            if (empty($error_message)) {
+                $sql = "UPDATE venues SET 
+                        name = ?,
+                        location = ?,
+                        address = ?,
+                        description = ?,
+                        image = ?,
+                        contact_phone = ?,
+                        contact_email = ?,
+                        status = ?
+                        WHERE id = ?";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    $name,
+                    $location,
+                    $address,
+                    $description,
+                    $image_filename,
+                    $contact_phone,
+                    $contact_email,
+                    $status,
+                    $venue_id
+                ]);
 
-            if ($result) {
-                // Log activity
-                logActivity($current_user['id'], 'Updated venue', 'venues', $venue_id, "Updated venue: $name");
-                
-                $success_message = 'Venue updated successfully!';
-                
-                // Refresh venue data
-                $stmt = $db->prepare("SELECT * FROM venues WHERE id = ?");
-                $stmt->execute([$venue_id]);
-                $venue = $stmt->fetch();
-            } else {
-                $error_message = 'Failed to update venue. Please try again.';
+                if ($result) {
+                    // Log activity
+                    logActivity($current_user['id'], 'Updated venue', 'venues', $venue_id, "Updated venue: $name");
+                    
+                    $success_message = 'Venue updated successfully!';
+                    
+                    // Refresh venue data
+                    $stmt = $db->prepare("SELECT * FROM venues WHERE id = ?");
+                    $stmt->execute([$venue_id]);
+                    $venue = $stmt->fetch();
+                } else {
+                    $error_message = 'Failed to update venue. Please try again.';
+                }
             }
         } catch (Exception $e) {
             $error_message = 'Error: ' . $e->getMessage();
@@ -137,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -188,6 +208,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3" 
                                   placeholder="Describe the venue, its facilities, and unique features..."><?php echo htmlspecialchars($venue['description']); ?></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="venue_image" class="form-label">Venue Image</label>
+                        <?php echo displayImagePreview($venue['image'], 'Current venue image'); ?>
+                        <input type="file" class="form-control" id="venue_image" name="venue_image" accept="image/*">
+                        <small class="text-muted">Upload a new image to replace the current one. JPG, PNG, GIF, or WebP. Max 5MB</small>
                     </div>
 
                     <div class="mb-3">
