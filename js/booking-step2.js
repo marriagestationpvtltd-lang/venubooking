@@ -84,7 +84,7 @@ function displayHalls(halls, venueName) {
                         <h5 class="card-title">${escapeHtml(hall.name)}</h5>
                         <div class="mb-3">
                             <span class="capacity-badge">
-                                <i class="fas fa-users"></i> ${escapeHtml(hall.capacity)} pax
+                                <i class="fas fa-users"></i> ${parseInt(hall.capacity) || 0} pax
                             </span>
                             <span class="badge bg-info ms-2">${escapeHtml(hall.indoor_outdoor)}</span>
                         </div>
@@ -125,6 +125,13 @@ function displayHalls(halls, venueName) {
             const venueName = this.getAttribute('data-venue-name');
             const basePrice = parseFloat(this.getAttribute('data-base-price'));
             const capacity = parseInt(this.getAttribute('data-capacity'));
+            
+            // Validate numeric values before proceeding
+            if (isNaN(hallId) || isNaN(basePrice) || isNaN(capacity)) {
+                showError('Invalid hall data. Please try again.');
+                return;
+            }
+            
             selectHall(hallId, hallName, venueName, basePrice, capacity);
         });
     });
