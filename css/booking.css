@@ -278,6 +278,102 @@
     color: var(--primary-green);
 }
 
+/* Booking Step 4 - Enhanced Typography */
+section .container h2 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: -0.5px;
+    margin-bottom: 1rem;
+}
+
+section .container .lead {
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-bottom: 2rem;
+}
+
+/* Service Category Headers */
+section .mb-4 h4 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--dark-green);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid var(--light-green);
+    letter-spacing: -0.3px;
+}
+
+/* Service Card Typography */
+.service-card .card-body {
+    padding: 1.5rem;
+}
+
+.service-card .card-title h5 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.service-card .form-check-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    line-height: 1.4;
+    cursor: pointer;
+    padding-left: 0.25rem;
+}
+
+.service-card .card-text {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.service-card .h5 {
+    font-size: 1.375rem;
+    font-weight: 700;
+}
+
+/* Improve spacing and readability */
+.service-card .d-flex {
+    gap: 1rem;
+}
+
+.service-card {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.service-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Alert styling improvement */
+.alert {
+    font-size: 1rem;
+    line-height: 1.6;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+}
+
+.alert i {
+    margin-right: 0.5rem;
+}
+
+/* Navigation button improvements */
+.btn-lg {
+    font-size: 1.125rem;
+    font-weight: 600;
+    padding: 0.875rem 1.5rem;
+    letter-spacing: 0.3px;
+}
+
 /* Print Styles */
 @media print {
     .booking-progress,
