@@ -25,18 +25,30 @@ if (!$menu) {
 }
 
 // Handle delete item
-if (isset($_GET['delete_item'])) {
-    $item_id = intval($_GET['delete_item']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
+    $item_id = intval($_POST['delete_item']);
     try {
         $stmt = $db->prepare("DELETE FROM menu_items WHERE id = ? AND menu_id = ?");
         if ($stmt->execute([$item_id, $menu_id])) {
             logActivity($current_user['id'], 'Deleted menu item', 'menu_items', $item_id, "Deleted item from menu: {$menu['name']}");
-            $success_message = 'Menu item deleted successfully!';
+            $_SESSION['success_message'] = 'Menu item deleted successfully!';
+        } else {
+            $_SESSION['error_message'] = 'Failed to delete menu item.';
         }
     } catch (Exception $e) {
-        $error_message = 'Error deleting item: ' . $e->getMessage();
+        $_SESSION['error_message'] = 'Error deleting item: ' . $e->getMessage();
     }
+    // Redirect to prevent refresh resubmission
+    header("Location: items.php?id=$menu_id");
+    exit;
 }
+
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+
+// Clear session messages after displaying
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 
 // Handle add item
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_item'])) {
@@ -45,20 +57,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_item'])) {
     $display_order = intval($_POST['display_order']);
 
     if (empty($item_name)) {
-        $error_message = 'Item name is required.';
+        $_SESSION['error_message'] = 'Item name is required.';
     } else {
         try {
             $sql = "INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES (?, ?, ?, ?)";
             $stmt = $db->prepare($sql);
             if ($stmt->execute([$menu_id, $item_name, $category, $display_order])) {
                 logActivity($current_user['id'], 'Added menu item', 'menu_items', $db->lastInsertId(), "Added item to menu: {$menu['name']}");
-                $success_message = 'Menu item added successfully!';
-                $_POST = [];
+                $_SESSION['success_message'] = 'Menu item added successfully!';
+            } else {
+                $_SESSION['error_message'] = 'Failed to add menu item.';
             }
         } catch (Exception $e) {
-            $error_message = 'Error adding item: ' . $e->getMessage();
+            $_SESSION['error_message'] = 'Error adding item: ' . $e->getMessage();
         }
     }
+    // Redirect to prevent refresh resubmission
+    header("Location: items.php?id=$menu_id");
+    exit;
 }
 
 // Fetch menu items
@@ -188,9 +204,12 @@ foreach ($menu_items as $item) {
                                             <br>
                                             <small class="text-muted">Order: <?php echo $item['display_order']; ?></small>
                                         </div>
-                                        <button class="btn btn-sm btn-danger" onclick="confirmDelete(<?php echo $item['id']; ?>, <?php echo json_encode($item['item_name']); ?>)">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <form method="POST" action="" style="display: inline;">
+                                            <input type="hidden" name="delete_item" value="<?php echo $item['id']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete <?php echo addslashes($item['item_name']); ?>?');">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -205,13 +224,5 @@ foreach ($menu_items as $item) {
         </div>
     </div>
 </div>
-
-<script>
-function confirmDelete(itemId, itemName) {
-    if (confirm('Are you sure you want to delete "' + itemName + '"?')) {
-        window.location.href = 'items.php?id=<?php echo intval($menu_id); ?>&delete_item=' + itemId;
-    }
-}
-</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
