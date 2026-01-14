@@ -347,7 +347,7 @@ section.py-5 .mb-4 > h4 {
 
 .service-card {
     border-radius: 12px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .service-card:hover {
