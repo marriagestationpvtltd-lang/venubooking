@@ -390,6 +390,15 @@ function getBookingDetails($booking_id) {
         $stmt->execute([$booking_id]);
         $booking['menus'] = $stmt->fetchAll();
         
+        // Get menu items for each menu (prepare statement once for efficiency)
+        if (!empty($booking['menus'])) {
+            $itemsStmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
+            foreach ($booking['menus'] as &$menu) {
+                $itemsStmt->execute([$menu['menu_id']]);
+                $menu['items'] = $itemsStmt->fetchAll();
+            }
+        }
+        
         // Get services
         $stmt = $db->prepare("SELECT * FROM booking_services WHERE booking_id = ?");
         $stmt->execute([$booking_id]);

@@ -29,6 +29,15 @@ if (!empty($selected_menus)) {
     $stmt = $db->prepare("SELECT * FROM menus WHERE id IN ($placeholders)");
     $stmt->execute($selected_menus);
     $menu_details = $stmt->fetchAll();
+    
+    // Get menu items for each menu (prepare statement once for efficiency)
+    if (!empty($menu_details)) {
+        $itemsStmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
+        foreach ($menu_details as &$menu) {
+            $itemsStmt->execute([$menu['id']]);
+            $menu['items'] = $itemsStmt->fetchAll();
+        }
+    }
 }
 
 // Get service details
@@ -220,9 +229,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                         <?php if (!empty($menu_details)): ?>
                             <h6 class="mb-3">Selected Menus</h6>
                             <?php foreach ($menu_details as $menu): ?>
-                                <div class="mb-2">
-                                    <small><?php echo sanitize($menu['name']); ?></small><br>
+                                <div class="mb-3">
+                                    <small><strong><?php echo sanitize($menu['name']); ?></strong></small><br>
                                     <small class="text-muted"><?php echo formatCurrency($menu['price_per_person']); ?>/pax</small>
+                                    
+                                    <?php if (!empty($menu['items'])): ?>
+                                        <div class="mt-1 ms-2">
+                                            <small class="text-muted d-block">Menu Items:</small>
+                                            <ul class="small mb-0 mt-1" style="list-style-type: disc; padding-left: 20px;">
+                                                <?php 
+                                                $items_by_category = [];
+                                                foreach ($menu['items'] as $item) {
+                                                    $category = !empty($item['category']) ? $item['category'] : 'Other';
+                                                    $items_by_category[$category][] = $item;
+                                                }
+                                                
+                                                foreach ($items_by_category as $category => $items): 
+                                                ?>
+                                                    <?php if (count($items_by_category) > 1): ?>
+                                                        <li><strong><?php echo sanitize($category); ?>:</strong>
+                                                            <ul style="list-style-type: circle;">
+                                                                <?php foreach ($items as $item): ?>
+                                                                    <li><?php echo sanitize($item['item_name']); ?></li>
+                                                                <?php endforeach; ?>
+                                                            </ul>
+                                                        </li>
+                                                    <?php else: ?>
+                                                        <?php foreach ($items as $item): ?>
+                                                            <li><?php echo sanitize($item['item_name']); ?></li>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                             <hr>
