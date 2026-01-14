@@ -206,7 +206,7 @@ foreach ($menu_items as $item) {
                                         </div>
                                         <form method="POST" action="" style="display: inline;">
                                             <input type="hidden" name="delete_item" value="<?php echo $item['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete <?php echo addslashes($item['item_name']); ?>?');">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(<?php echo json_encode('Are you sure you want to delete ' . $item['item_name'] . '?'); ?>);">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>

@@ -50,11 +50,6 @@ try {
     $stmt = $db->prepare("DELETE FROM hall_menus WHERE menu_id = ?");
     $stmt->execute([$menu_id]);
     
-    // Delete the menu image if exists
-    if (!empty($menu['image'])) {
-        deleteUploadedFile($menu['image']);
-    }
-    
     // Delete the menu
     $stmt = $db->prepare("DELETE FROM menus WHERE id = ?");
     if ($stmt->execute([$menu_id])) {
@@ -63,6 +58,11 @@ try {
         
         // Log activity
         logActivity($current_user['id'], 'Deleted menu', 'menus', $menu_id, "Deleted menu: {$menu['name']}");
+        
+        // Delete the menu image if exists (after successful commit)
+        if (!empty($menu['image'])) {
+            deleteUploadedFile($menu['image']);
+        }
         
         $_SESSION['success_message'] = 'Menu deleted successfully!';
     } else {

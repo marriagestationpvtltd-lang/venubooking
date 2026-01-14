@@ -52,8 +52,10 @@ try {
     if ($db->inTransaction()) {
         $db->rollBack();
     }
-    $_SESSION['error_message'] = 'Error deleting booking. Please try again.';
-    error_log('Booking deletion error: ' . $e->getMessage());
+    // Log detailed error for debugging (server-side only)
+    error_log('Booking deletion error for booking ID ' . $booking_id . ': ' . $e->getMessage());
+    // Show generic error to user
+    $_SESSION['error_message'] = 'Error deleting booking. Please try again or contact support.';
 }
 
 header('Location: index.php');

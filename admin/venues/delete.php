@@ -39,15 +39,15 @@ try {
         exit;
     }
     
-    // Delete the venue image if exists
-    if (!empty($venue['image'])) {
-        deleteUploadedFile($venue['image']);
-    }
-    
     $stmt = $db->prepare("DELETE FROM venues WHERE id = ?");
     if ($stmt->execute([$venue_id])) {
         // Log activity
         logActivity($current_user['id'], 'Deleted venue', 'venues', $venue_id, "Deleted venue: {$venue['name']}");
+        
+        // Delete the venue image if exists (after successful DB delete)
+        if (!empty($venue['image'])) {
+            deleteUploadedFile($venue['image']);
+        }
         
         $_SESSION['success_message'] = 'Venue deleted successfully!';
     } else {
