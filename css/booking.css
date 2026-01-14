@@ -279,7 +279,8 @@
 }
 
 /* Booking Step 4 - Enhanced Typography */
-section .container h2 {
+/* Apply to all booking steps for consistency */
+section.py-5 .container h2.mb-4 {
     font-size: 2.25rem;
     font-weight: 700;
     color: var(--text-dark);
@@ -287,7 +288,7 @@ section .container h2 {
     margin-bottom: 1rem;
 }
 
-section .container .lead {
+section.py-5 .container .lead {
     font-size: 1.15rem;
     line-height: 1.7;
     color: var(--text-muted);
@@ -296,7 +297,7 @@ section .container .lead {
 }
 
 /* Service Category Headers */
-section .mb-4 h4 {
+section.py-5 .mb-4 > h4 {
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--dark-green);
