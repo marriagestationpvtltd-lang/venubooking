@@ -5,8 +5,14 @@ require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 
 $success_message = '';
+$error_message = '';
+
 if (isset($_GET['deleted'])) {
     $success_message = 'Booking deleted successfully!';
+}
+
+if (isset($_GET['error'])) {
+    $error_message = $_GET['error'];
 }
 
 // Get all bookings
@@ -22,6 +28,13 @@ $bookings = $stmt->fetchAll();
 <?php if ($success_message): ?>
     <div class="alert alert-success alert-dismissible fade show">
         <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
+
+<?php if ($error_message): ?>
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>

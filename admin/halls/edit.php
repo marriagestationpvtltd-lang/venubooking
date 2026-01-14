@@ -33,36 +33,39 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         $result = $check_stmt->fetch();
         
         if ($result['count'] > 0) {
-            $error_message = 'Cannot delete hall. It has ' . $result['count'] . ' associated booking(s). You can set it to inactive instead.';
+            header('Location: index.php?error=' . urlencode('Cannot delete hall. It has ' . $result['count'] . ' associated booking(s). You can set it to inactive instead.'));
+            exit;
+        }
+        
+        // Delete hall images first
+        $images_stmt = $db->prepare("SELECT image_path FROM hall_images WHERE hall_id = ?");
+        $images_stmt->execute([$hall_id]);
+        $images = $images_stmt->fetchAll();
+        
+        foreach ($images as $image) {
+            deleteUploadedFile($image['image_path']);
+        }
+        
+        $db->prepare("DELETE FROM hall_images WHERE hall_id = ?")->execute([$hall_id]);
+        
+        // Delete hall_menus associations
+        $db->prepare("DELETE FROM hall_menus WHERE hall_id = ?")->execute([$hall_id]);
+        
+        // Delete the hall
+        $stmt = $db->prepare("DELETE FROM halls WHERE id = ?");
+        if ($stmt->execute([$hall_id])) {
+            // Log activity
+            logActivity($current_user['id'], 'Deleted hall', 'halls', $hall_id, "Deleted hall: {$hall['name']}");
+            
+            header('Location: index.php?deleted=1');
+            exit;
         } else {
-            // Delete hall images first
-            $images_stmt = $db->prepare("SELECT image_path FROM hall_images WHERE hall_id = ?");
-            $images_stmt->execute([$hall_id]);
-            $images = $images_stmt->fetchAll();
-            
-            foreach ($images as $image) {
-                deleteUploadedFile($image['image_path']);
-            }
-            
-            $db->prepare("DELETE FROM hall_images WHERE hall_id = ?")->execute([$hall_id]);
-            
-            // Delete hall_menus associations
-            $db->prepare("DELETE FROM hall_menus WHERE hall_id = ?")->execute([$hall_id]);
-            
-            // Delete the hall
-            $stmt = $db->prepare("DELETE FROM halls WHERE id = ?");
-            if ($stmt->execute([$hall_id])) {
-                // Log activity
-                logActivity($current_user['id'], 'Deleted hall', 'halls', $hall_id, "Deleted hall: {$hall['name']}");
-                
-                header('Location: index.php?deleted=1');
-                exit;
-            } else {
-                $error_message = 'Failed to delete hall. Please try again.';
-            }
+            header('Location: index.php?error=' . urlencode('Failed to delete hall. Please try again.'));
+            exit;
         }
     } catch (Exception $e) {
-        $error_message = 'Error: ' . $e->getMessage();
+        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
+        exit;
     }
 }
 

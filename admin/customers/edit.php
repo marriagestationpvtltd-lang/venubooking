@@ -33,21 +33,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         $result = $check_stmt->fetch();
         
         if ($result['count'] > 0) {
-            $error_message = 'Cannot delete customer. They have existing bookings in the system.';
+            header('Location: index.php?error=' . urlencode('Cannot delete customer. They have existing bookings in the system.'));
+            exit;
+        }
+        
+        $stmt = $db->prepare("DELETE FROM customers WHERE id = ?");
+        if ($stmt->execute([$customer_id])) {
+            // Log activity
+            logActivity($current_user['id'], 'Deleted customer', 'customers', $customer_id, "Deleted customer: {$customer['full_name']}");
+            
+            header('Location: index.php?deleted=1');
+            exit;
         } else {
-            $stmt = $db->prepare("DELETE FROM customers WHERE id = ?");
-            if ($stmt->execute([$customer_id])) {
-                // Log activity
-                logActivity($current_user['id'], 'Deleted customer', 'customers', $customer_id, "Deleted customer: {$customer['full_name']}");
-                
-                header('Location: index.php?deleted=1');
-                exit;
-            } else {
-                $error_message = 'Failed to delete customer. Please try again.';
-            }
+            header('Location: index.php?error=' . urlencode('Failed to delete customer. Please try again.'));
+            exit;
         }
     } catch (Exception $e) {
-        $error_message = 'Error: ' . $e->getMessage();
+        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
+        exit;
     }
 }
 

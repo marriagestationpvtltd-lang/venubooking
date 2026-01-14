@@ -33,30 +33,33 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         $result = $check_stmt->fetch();
         
         if ($result['count'] > 0) {
-            $error_message = 'Cannot delete menu. It is associated with existing bookings. You can set it to inactive instead.';
+            header('Location: index.php?error=' . urlencode('Cannot delete menu. It is associated with existing bookings. You can set it to inactive instead.'));
+            exit;
+        }
+        
+        // Delete menu items first
+        $stmt = $db->prepare("DELETE FROM menu_items WHERE menu_id = ?");
+        $stmt->execute([$menu_id]);
+        
+        // Delete hall_menus associations
+        $stmt = $db->prepare("DELETE FROM hall_menus WHERE menu_id = ?");
+        $stmt->execute([$menu_id]);
+        
+        // Delete the menu
+        $stmt = $db->prepare("DELETE FROM menus WHERE id = ?");
+        if ($stmt->execute([$menu_id])) {
+            // Log activity
+            logActivity($current_user['id'], 'Deleted menu', 'menus', $menu_id, "Deleted menu: {$menu['name']}");
+            
+            header('Location: index.php?deleted=1');
+            exit;
         } else {
-            // Delete menu items first
-            $stmt = $db->prepare("DELETE FROM menu_items WHERE menu_id = ?");
-            $stmt->execute([$menu_id]);
-            
-            // Delete hall_menus associations
-            $stmt = $db->prepare("DELETE FROM hall_menus WHERE menu_id = ?");
-            $stmt->execute([$menu_id]);
-            
-            // Delete the menu
-            $stmt = $db->prepare("DELETE FROM menus WHERE id = ?");
-            if ($stmt->execute([$menu_id])) {
-                // Log activity
-                logActivity($current_user['id'], 'Deleted menu', 'menus', $menu_id, "Deleted menu: {$menu['name']}");
-                
-                header('Location: index.php?deleted=1');
-                exit;
-            } else {
-                $error_message = 'Failed to delete menu. Please try again.';
-            }
+            header('Location: index.php?error=' . urlencode('Failed to delete menu. Please try again.'));
+            exit;
         }
     } catch (Exception $e) {
-        $error_message = 'Error: ' . $e->getMessage();
+        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
+        exit;
     }
 }
 

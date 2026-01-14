@@ -51,12 +51,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
             header('Location: index.php?deleted=1');
             exit;
         } else {
-            $error_message = 'Failed to delete booking. Please try again.';
+            header('Location: index.php?error=' . urlencode('Failed to delete booking. Please try again.'));
+            exit;
         }
     } catch (Exception $e) {
         // Log the error for debugging
         error_log('Booking deletion error: ' . $e->getMessage());
-        $error_message = 'Error deleting booking. Please try again or contact support.';
+        header('Location: index.php?error=' . urlencode('Error deleting booking. Please try again or contact support.'));
+        exit;
     }
 }
 
