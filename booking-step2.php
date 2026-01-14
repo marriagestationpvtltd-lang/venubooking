@@ -85,16 +85,11 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
         <?php else: ?>
             <div class="row g-4" id="venuesContainer">
                 <?php foreach ($venues as $venue): 
-                    // Build image URL with fallback
-                    $venue_image_url = '';
+                    // Get image URL (already validated in getAvailableVenues)
                     if (!empty($venue['image'])) {
-                        $image_path = UPLOAD_PATH . $venue['image'];
-                        if (file_exists($image_path)) {
-                            $venue_image_url = UPLOAD_URL . htmlspecialchars($venue['image'], ENT_QUOTES, 'UTF-8');
-                        }
-                    }
-                    // Use placeholder if no valid image
-                    if (empty($venue_image_url)) {
+                        $venue_image_url = UPLOAD_URL . htmlspecialchars($venue['image'], ENT_QUOTES, 'UTF-8');
+                    } else {
+                        // Use placeholder for venues without images
                         $venue_image_url = getPlaceholderImageUrl();
                     }
                 ?>

@@ -126,6 +126,13 @@ function getAvailableVenues($date, $shift) {
     
     foreach ($venues as $venue) {
         $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
+        
+        // Additional filename validation: only allow safe characters
+        // Allow alphanumeric, dots, hyphens, underscores
+        if (!empty($safe_filename) && !preg_match('/^[a-zA-Z0-9._-]+$/', $safe_filename)) {
+            $safe_filename = ''; // Invalid filename, treat as empty
+        }
+        
         $exists = !empty($safe_filename) && file_exists(UPLOAD_PATH . $safe_filename);
         $file_exists_cache[$venue['id']] = ['filename' => $safe_filename, 'exists' => $exists];
         
@@ -615,5 +622,13 @@ function displayImagePreview($image_filename, $alt_text = 'Current image') {
  * @return string Data URL for placeholder SVG
  */
 function getPlaceholderImageUrl() {
-    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23e9ecef" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236c757d" font-size="24" font-family="Arial"%3ENo Image%3C/text%3E%3C/svg%3E';
+    // Build SVG placeholder for better readability
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' .
+           '<rect fill="#e9ecef" width="400" height="300"/>' .
+           '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" ' .
+           'fill="#6c757d" font-size="24" font-family="Arial">No Image</text>' .
+           '</svg>';
+    
+    // URL encode for use in data URL
+    return 'data:image/svg+xml,' . rawurlencode($svg);
 }
