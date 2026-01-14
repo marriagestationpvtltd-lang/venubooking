@@ -152,7 +152,8 @@ if (!$booking) {
                                         <button class="btn btn-sm btn-link p-0 ms-2" type="button" 
                                                 data-bs-toggle="collapse" 
                                                 data-bs-target="#menu-items-<?php echo $safeMenuId; ?>" 
-                                                aria-expanded="false">
+                                                aria-expanded="false"
+                                                aria-controls="menu-items-<?php echo $safeMenuId; ?>">
                                             <i class="fas fa-list"></i> View Items
                                         </button>
                                     <?php endif; ?>
