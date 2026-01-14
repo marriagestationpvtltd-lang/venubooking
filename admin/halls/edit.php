@@ -62,9 +62,9 @@ if (isset($_POST['upload_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Handle image deletion
-if (isset($_GET['delete_image'])) {
-    $image_id = intval($_GET['delete_image']);
+// Handle image deletion via POST
+if (isset($_POST['delete_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $image_id = intval($_POST['delete_image']);
     try {
         $stmt = $db->prepare("SELECT * FROM hall_images WHERE id = ? AND hall_id = ?");
         $stmt->execute([$image_id, $hall_id]);
@@ -405,11 +405,13 @@ $images = $images_stmt->fetchAll();
                                             <span class="badge bg-primary mb-2">Primary Image</span>
                                         <?php endif; ?>
                                         <div>
-                                            <a href="?id=<?php echo $hall_id; ?>&delete_image=<?php echo $image['id']; ?>" 
-                                               class="btn btn-danger btn-sm" 
-                                               onclick="return confirm('Are you sure you want to delete this image?')">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </a>
+                                            <form method="POST" action="" style="display: inline;">
+                                                <input type="hidden" name="delete_image" value="<?php echo $image['id']; ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm" 
+                                                        onclick="return confirm('Are you sure you want to delete this image?')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>

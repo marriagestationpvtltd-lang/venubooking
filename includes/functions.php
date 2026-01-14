@@ -435,7 +435,7 @@ function handleImageUpload($file, $prefix = 'image') {
     }
     
     // Validate actual image content using getimagesize (security check)
-    $image_info = @getimagesize($file['tmp_name']);
+    $image_info = getimagesize($file['tmp_name']);
     if ($image_info === false) {
         $result['message'] = 'Invalid image file. The file does not appear to be a valid image.';
         return $result;
@@ -454,9 +454,16 @@ function handleImageUpload($file, $prefix = 'image') {
         return $result;
     }
     
-    // Generate unique filename
-    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $filename = $prefix . '_' . time() . '_' . uniqid() . '.' . $extension;
+    // Generate unique filename with validation
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    // Validate extension against allowed list
+    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    if (!in_array($extension, $allowed_extensions)) {
+        $result['message'] = 'Invalid file extension.';
+        return $result;
+    }
+    
+    $filename = basename($prefix . '_' . time() . '_' . uniqid() . '.' . $extension);
     $upload_path = UPLOAD_PATH . $filename;
     
     // Create uploads directory if it doesn't exist
