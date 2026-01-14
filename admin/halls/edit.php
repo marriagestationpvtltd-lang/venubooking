@@ -64,22 +64,27 @@ if (isset($_POST['upload_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Handle image deletion via POST
 if (isset($_POST['delete_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $image_id = intval($_POST['delete_image']);
-    try {
-        $stmt = $db->prepare("SELECT * FROM hall_images WHERE id = ? AND hall_id = ?");
-        $stmt->execute([$image_id, $hall_id]);
-        $image = $stmt->fetch();
-        
-        if ($image) {
-            deleteUploadedFile($image['image_path']);
-            $db->prepare("DELETE FROM hall_images WHERE id = ?")->execute([$image_id]);
+    // Verify CSRF token
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
+        $image_id = intval($_POST['delete_image']);
+        try {
+            $stmt = $db->prepare("SELECT * FROM hall_images WHERE id = ? AND hall_id = ?");
+            $stmt->execute([$image_id, $hall_id]);
+            $image = $stmt->fetch();
             
-            logActivity($current_user['id'], 'Deleted hall image', 'hall_images', $image_id, "Deleted image for hall: {$hall['name']}");
-            
-            $success_message = 'Image deleted successfully!';
+            if ($image) {
+                deleteUploadedFile($image['image_path']);
+                $db->prepare("DELETE FROM hall_images WHERE id = ?")->execute([$image_id]);
+                
+                logActivity($current_user['id'], 'Deleted hall image', 'hall_images', $image_id, "Deleted image for hall: {$hall['name']}");
+                
+                $success_message = 'Image deleted successfully!';
+            }
+        } catch (Exception $e) {
+            $error_message = 'Error deleting image: ' . $e->getMessage();
         }
-    } catch (Exception $e) {
-        $error_message = 'Error deleting image: ' . $e->getMessage();
     }
 }
 
@@ -406,6 +411,7 @@ $images = $images_stmt->fetchAll();
                                         <?php endif; ?>
                                         <div>
                                             <form method="POST" action="" style="display: inline;">
+                                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                                 <input type="hidden" name="delete_image" value="<?php echo $image['id']; ?>">
                                                 <button type="submit" class="btn btn-danger btn-sm" 
                                                         onclick="return confirm('Are you sure you want to delete this image?')">

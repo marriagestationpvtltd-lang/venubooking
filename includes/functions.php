@@ -441,11 +441,21 @@ function handleImageUpload($file, $prefix = 'image') {
         return $result;
     }
     
-    // Double-check MIME type from getimagesize
-    if (!in_array($image_info['mime'], $allowed_types)) {
+    // Double-check MIME type from getimagesize and map to extension
+    $mime_to_ext = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp'
+    ];
+    
+    if (!isset($mime_to_ext[$image_info['mime']])) {
         $result['message'] = 'Invalid image type detected. Only JPG, PNG, GIF, and WebP images are allowed.';
         return $result;
     }
+    
+    // Use extension based on actual MIME type, not client-provided filename
+    $extension = $mime_to_ext[$image_info['mime']];
     
     // Validate file size (5MB max)
     $max_size = 5 * 1024 * 1024;
@@ -455,20 +465,22 @@ function handleImageUpload($file, $prefix = 'image') {
     }
     
     // Generate unique filename with validation
-    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    // Validate extension against allowed list
-    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    if (!in_array($extension, $allowed_extensions)) {
-        $result['message'] = 'Invalid file extension.';
+    $filename = basename($prefix . '_' . time() . '_' . uniqid() . '.' . $extension);
+    
+    // Additional safety check: ensure filename contains no directory separators
+    if (strpos($filename, '/') !== false || strpos($filename, '\\') !== false || strpos($filename, '..') !== false) {
+        $result['message'] = 'Invalid filename generated.';
         return $result;
     }
     
-    $filename = basename($prefix . '_' . time() . '_' . uniqid() . '.' . $extension);
     $upload_path = UPLOAD_PATH . $filename;
     
-    // Create uploads directory if it doesn't exist
+    // Create uploads directory if it doesn't exist with error handling
     if (!is_dir(UPLOAD_PATH)) {
-        mkdir(UPLOAD_PATH, 0755, true);
+        if (!mkdir(UPLOAD_PATH, 0755, true)) {
+            $result['message'] = 'Failed to create upload directory. Please check server permissions.';
+            return $result;
+        }
     }
     
     // Move uploaded file
@@ -493,7 +505,24 @@ function deleteUploadedFile($filename) {
         return true;
     }
     
+    // Validate filename to prevent directory traversal
+    if (strpos($filename, '/') !== false || strpos($filename, '\\') !== false || strpos($filename, '..') !== false) {
+        return false; // Invalid filename
+    }
+    
+    // Use basename as additional safety measure
+    $filename = basename($filename);
+    
     $filepath = UPLOAD_PATH . $filename;
+    
+    // Ensure the file is within the upload directory
+    $real_upload_path = realpath(UPLOAD_PATH);
+    $real_file_path = realpath($filepath);
+    
+    if ($real_file_path && strpos($real_file_path, $real_upload_path) !== 0) {
+        return false; // File is outside upload directory
+    }
+    
     if (file_exists($filepath)) {
         return unlink($filepath);
     }
