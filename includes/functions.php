@@ -404,3 +404,79 @@ function getFirstImage($section) {
     $images = getImagesBySection($section, 1);
     return !empty($images) ? $images[0] : null;
 }
+
+/**
+ * Handle file upload for images
+ * 
+ * @param array $file The $_FILES array element
+ * @param string $prefix Prefix for the filename (e.g., 'hall', 'venue', 'menu')
+ * @return array Array with 'success' boolean and 'message' or 'filename'
+ */
+function handleImageUpload($file, $prefix = 'image') {
+    $result = ['success' => false, 'message' => ''];
+    
+    // Check if file was uploaded
+    if (!isset($file) || $file['error'] == UPLOAD_ERR_NO_FILE) {
+        $result['message'] = 'No file uploaded.';
+        return $result;
+    }
+    
+    // Check for upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $result['message'] = 'Error uploading file. Please try again.';
+        return $result;
+    }
+    
+    // Validate file type
+    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($file['type'], $allowed_types)) {
+        $result['message'] = 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.';
+        return $result;
+    }
+    
+    // Validate file size (5MB max)
+    $max_size = 5 * 1024 * 1024;
+    if ($file['size'] > $max_size) {
+        $result['message'] = 'File is too large. Maximum size is 5MB.';
+        return $result;
+    }
+    
+    // Generate unique filename
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $filename = $prefix . '_' . time() . '_' . uniqid() . '.' . $extension;
+    $upload_path = UPLOAD_PATH . $filename;
+    
+    // Create uploads directory if it doesn't exist
+    if (!is_dir(UPLOAD_PATH)) {
+        mkdir(UPLOAD_PATH, 0755, true);
+    }
+    
+    // Move uploaded file
+    if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+        $result['success'] = true;
+        $result['filename'] = $filename;
+    } else {
+        $result['message'] = 'Failed to upload file. Please check directory permissions.';
+    }
+    
+    return $result;
+}
+
+/**
+ * Delete an uploaded file
+ * 
+ * @param string $filename The filename to delete
+ * @return boolean True if file was deleted or doesn't exist, false on error
+ */
+function deleteUploadedFile($filename) {
+    if (empty($filename)) {
+        return true;
+    }
+    
+    $filepath = UPLOAD_PATH . $filename;
+    if (file_exists($filepath)) {
+        return unlink($filepath);
+    }
+    
+    return true; // File doesn't exist, consider it deleted
+}

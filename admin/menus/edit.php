@@ -72,34 +72,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
         try {
-            $sql = "UPDATE menus SET 
-                    name = ?,
-                    description = ?,
-                    price_per_person = ?,
-                    status = ?
-                    WHERE id = ?";
+            // Handle image upload
+            $image_filename = $menu['image'];
+            if (isset($_FILES['menu_image']) && $_FILES['menu_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['menu_image'], 'menu');
+                
+                if ($upload_result['success']) {
+                    // Delete old image if exists
+                    if (!empty($menu['image'])) {
+                        deleteUploadedFile($menu['image']);
+                    }
+                    $image_filename = $upload_result['filename'];
+                } else {
+                    $error_message = $upload_result['message'];
+                }
+            }
             
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([
-                $name,
-                $description,
-                $price_per_person,
-                $status,
-                $menu_id
-            ]);
+            if (empty($error_message)) {
+                $sql = "UPDATE menus SET 
+                        name = ?,
+                        description = ?,
+                        price_per_person = ?,
+                        image = ?,
+                        status = ?
+                        WHERE id = ?";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    $name,
+                    $description,
+                    $price_per_person,
+                    $image_filename,
+                    $status,
+                    $menu_id
+                ]);
 
-            if ($result) {
-                // Log activity
-                logActivity($current_user['id'], 'Updated menu', 'menus', $menu_id, "Updated menu: $name");
-                
-                $success_message = 'Menu updated successfully!';
-                
-                // Refresh menu data
-                $stmt = $db->prepare("SELECT * FROM menus WHERE id = ?");
-                $stmt->execute([$menu_id]);
-                $menu = $stmt->fetch();
-            } else {
-                $error_message = 'Failed to update menu. Please try again.';
+                if ($result) {
+                    // Log activity
+                    logActivity($current_user['id'], 'Updated menu', 'menus', $menu_id, "Updated menu: $name");
+                    
+                    $success_message = 'Menu updated successfully!';
+                    
+                    // Refresh menu data
+                    $stmt = $db->prepare("SELECT * FROM menus WHERE id = ?");
+                    $stmt->execute([$menu_id]);
+                    $menu = $stmt->fetch();
+                } else {
+                    $error_message = 'Failed to update menu. Please try again.';
+                }
             }
         } catch (Exception $e) {
             $error_message = 'Error: ' . $e->getMessage();
@@ -140,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -166,6 +186,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3" 
                                   placeholder="Describe the menu, its items, and what makes it special..."><?php echo htmlspecialchars($menu['description']); ?></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="menu_image" class="form-label">Menu Image</label>
+                        <?php if (!empty($menu['image'])): 
+                            $image_path = UPLOAD_PATH . $menu['image'];
+                            if (file_exists($image_path)): ?>
+                            <div class="mb-2">
+                                <img src="<?php echo UPLOAD_URL . $menu['image']; ?>" alt="Current menu image" class="img-thumbnail" style="max-width: 200px;">
+                                <p class="text-muted small mt-1">Current image</p>
+                            </div>
+                        <?php endif; endif; ?>
+                        <input type="file" class="form-control" id="menu_image" name="menu_image" accept="image/*">
+                        <small class="text-muted">Upload a new image to replace the current one. JPG, PNG, GIF, or WebP. Max 5MB</small>
                     </div>
 
                     <div class="mb-3">
