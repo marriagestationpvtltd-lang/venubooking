@@ -42,15 +42,12 @@ try {
     // Start transaction for atomic deletion
     $db->beginTransaction();
     
-    // Delete hall images first
+    // Get hall images paths before deletion
     $images_stmt = $db->prepare("SELECT image_path FROM hall_images WHERE hall_id = ?");
     $images_stmt->execute([$hall_id]);
     $images = $images_stmt->fetchAll();
     
-    foreach ($images as $image) {
-        deleteUploadedFile($image['image_path']);
-    }
-    
+    // Delete hall images records
     $db->prepare("DELETE FROM hall_images WHERE hall_id = ?")->execute([$hall_id]);
     
     // Delete hall_menus associations
@@ -61,6 +58,11 @@ try {
     if ($stmt->execute([$hall_id])) {
         // Commit transaction
         $db->commit();
+        
+        // Delete physical image files after successful commit
+        foreach ($images as $image) {
+            deleteUploadedFile($image['image_path']);
+        }
         
         // Log activity
         logActivity($current_user['id'], 'Deleted hall', 'halls', $hall_id, "Deleted hall: {$hall['name']}");
