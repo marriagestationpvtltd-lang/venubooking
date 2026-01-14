@@ -201,6 +201,22 @@ CREATE TABLE activity_logs (
 INSERT INTO users (username, password, full_name, email, role, status) 
 VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
 
+-- Table: site_images (for dynamic image management)
+CREATE TABLE site_images (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    image_path VARCHAR(255) NOT NULL,
+    section VARCHAR(100) NOT NULL,
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_section (section),
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
 ('site_name', 'Venue Booking System', 'text'),
