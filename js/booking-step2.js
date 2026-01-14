@@ -76,10 +76,14 @@ function displayHalls(halls, venueName) {
     let hallsHtml = '';
     
     halls.forEach(hall => {
+        // Always show an image - either the actual hall image or placeholder
+        // The API now returns a placeholder URL if no image exists
+        const imageUrl = hall.image_url || '';
+        
         const hallCard = `
             <div class="col-md-6 col-lg-4">
                 <div class="hall-card card h-100">
-                    ${hall.image_url ? `<img src="${escapeHtml(hall.image_url)}" class="card-img-top hall-image" alt="${escapeHtml(hall.name)}">` : ''}
+                    ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" class="card-img-top hall-image" alt="${escapeHtml(hall.name)}" onerror="this.src='https://via.placeholder.com/400x250?text=No+Image'">` : `<div class="card-img-top hall-image bg-secondary d-flex align-items-center justify-content-center"><i class="fas fa-image fa-3x text-white"></i></div>`}
                     <div class="card-body">
                         <h5 class="card-title">${escapeHtml(hall.name)}</h5>
                         <div class="mb-3">

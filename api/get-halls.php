@@ -29,13 +29,23 @@ try {
         $stmt->execute([$hall['id']]);
         $image = $stmt->fetch();
         
-        // Return full image URL for consistency with other APIs
-        if ($image && $image['image_path']) {
-            $hall['image'] = $image['image_path'];
-            $hall['image_url'] = UPLOAD_URL . $image['image_path'];
+        // Return full image URL with proper URL encoding
+        if ($image && !empty($image['image_path'])) {
+            // Validate that the image file actually exists
+            $image_file_path = UPLOAD_PATH . $image['image_path'];
+            if (file_exists($image_file_path) && is_file($image_file_path)) {
+                $hall['image'] = $image['image_path'];
+                // Properly URL-encode the filename for safe URL construction
+                $hall['image_url'] = UPLOAD_URL . rawurlencode($image['image_path']);
+            } else {
+                // Image record exists but file is missing - use placeholder
+                $hall['image'] = null;
+                $hall['image_url'] = getPlaceholderImageUrl();
+            }
         } else {
+            // No image uploaded - use placeholder
             $hall['image'] = null;
-            $hall['image_url'] = null;
+            $hall['image_url'] = getPlaceholderImageUrl();
         }
     }
     
