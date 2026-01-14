@@ -367,3 +367,40 @@ function logActivity($user_id, $action, $table_name = '', $record_id = null, $de
     $stmt = $db->prepare("INSERT INTO activity_logs (user_id, action, table_name, record_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->execute([$user_id, $action, $table_name, $record_id, $details, $ip_address]);
 }
+
+/**
+ * Get images by section
+ * Returns active images for a specific section, ordered by display_order
+ */
+function getImagesBySection($section, $limit = null) {
+    $db = getDB();
+    
+    $sql = "SELECT id, title, description, image_path, section, display_order 
+            FROM site_images 
+            WHERE section = ? AND status = 'active' 
+            ORDER BY display_order, created_at DESC";
+    
+    if ($limit !== null) {
+        $sql .= " LIMIT " . intval($limit);
+    }
+    
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$section]);
+    $images = $stmt->fetchAll();
+    
+    // Add full URL to each image
+    foreach ($images as &$image) {
+        $image['image_url'] = UPLOAD_URL . $image['image_path'];
+    }
+    
+    return $images;
+}
+
+/**
+ * Get first image from a section
+ * Convenience function to get just the first image
+ */
+function getFirstImage($section) {
+    $images = getImagesBySection($section, 1);
+    return !empty($images) ? $images[0] : null;
+}
