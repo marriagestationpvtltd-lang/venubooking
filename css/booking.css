@@ -356,19 +356,19 @@ section.py-5 .mb-4 > h4 {
 }
 
 /* Alert styling improvement */
-.alert {
+section.py-5 .alert {
     font-size: 1rem;
     line-height: 1.6;
     padding: 1rem 1.25rem;
     border-radius: 10px;
 }
 
-.alert i {
+section.py-5 .alert i {
     margin-right: 0.5rem;
 }
 
 /* Navigation button improvements */
-.btn-lg {
+section.py-5 .btn-lg {
     font-size: 1.125rem;
     font-weight: 600;
     padding: 0.875rem 1.5rem;
