@@ -1,0 +1,300 @@
+/* Booking Flow Specific Styles */
+
+/* Price Display */
+.price-tag {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-green);
+}
+
+.price-breakdown {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.price-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.price-line:last-child {
+    border-bottom: none;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+/* Hall Details */
+.hall-details {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+}
+
+.hall-feature {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    margin: 0.25rem;
+    background: #e8f5e9;
+    color: var(--dark-green);
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.capacity-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--primary-green);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* Gallery */
+.hall-gallery {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+.hall-gallery img {
+    height: 100px;
+    width: 150px;
+    object-fit: cover;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.hall-gallery img:hover {
+    transform: scale(1.05);
+}
+
+/* Menu Item Categories */
+.menu-category {
+    margin-bottom: 1rem;
+}
+
+.menu-category-title {
+    font-weight: 600;
+    color: var(--primary-green);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid var(--light-green);
+}
+
+/* Availability Indicator */
+.availability-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.available {
+    background: #4caf50;
+    color: white;
+}
+
+.unavailable {
+    background: #f44336;
+    color: white;
+}
+
+/* Loading State */
+.loading-spinner {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+}
+
+/* Filter Section */
+.filter-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.filter-group {
+    margin-bottom: 1rem;
+}
+
+.filter-group label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* Selection Indicator */
+.selected-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--primary-green);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 50%;
+    font-size: 1.2rem;
+}
+
+/* Tooltip Enhancement */
+.tooltip-info {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tooltip-info .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip-info:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Image Placeholder */
+.img-placeholder {
+    background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 3rem;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 1rem;
+}
+
+.action-buttons .btn {
+    flex: 1;
+}
+
+/* Modal Customization */
+.modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    border-bottom: 2px solid var(--primary-green);
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Booking Timeline */
+.booking-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.booking-timeline:before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--primary-green);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary-green);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--primary-green);
+}
+
+/* Customer Info Form Enhancement */
+.form-floating {
+    margin-bottom: 1rem;
+}
+
+.form-floating > .form-control:focus ~ label {
+    color: var(--primary-green);
+}
+
+/* Print Styles */
+@media print {
+    .booking-progress,
+    .booking-summary-bar,
+    .navbar,
+    footer,
+    .btn,
+    .action-buttons {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    body {
+        background: white;
+    }
+}

@@ -1,0 +1,283 @@
+/* Responsive Design */
+
+/* Extra Large Devices (desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1200px;
+    }
+}
+
+/* Large Devices (desktops, 992px and up) */
+@media (max-width: 1199px) {
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
+    
+    .booking-card {
+        padding: 2rem;
+    }
+}
+
+/* Medium Devices (tablets, 768px and up) */
+@media (max-width: 991px) {
+    .hero-section {
+        min-height: auto;
+        padding: 3rem 0;
+    }
+    
+    .hero-overlay {
+        min-height: auto;
+    }
+    
+    .progress-steps {
+        font-size: 0.85rem;
+    }
+    
+    .step-number {
+        width: 35px;
+        height: 35px;
+        line-height: 35px;
+        font-size: 0.9rem;
+    }
+    
+    .step-label {
+        font-size: 0.75rem;
+    }
+    
+    .booking-summary-bar {
+        font-size: 0.9rem;
+    }
+    
+    .booking-summary-bar .col-md-8,
+    .booking-summary-bar .col-md-4 {
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Small Devices (landscape phones, 576px and up) */
+@media (max-width: 767px) {
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-section .lead {
+        font-size: 1rem;
+    }
+    
+    .booking-card {
+        padding: 1.5rem;
+    }
+    
+    .booking-card h3 {
+        font-size: 1.25rem;
+    }
+    
+    .feature-card {
+        margin-bottom: 1rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    /* Stack progress steps vertically */
+    .progress-steps {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 0;
+    }
+    
+    .step:not(:last-child):after {
+        display: none;
+    }
+    
+    .step-number {
+        margin-right: 10px;
+        margin-bottom: 0;
+    }
+    
+    .step-label {
+        display: inline;
+        font-size: 0.9rem;
+    }
+    
+    /* Booking Summary Bar */
+    .booking-summary-bar {
+        font-size: 0.85rem;
+    }
+    
+    .booking-summary-bar .mx-2 {
+        display: block;
+        margin: 0.25rem 0 !important;
+    }
+    
+    /* Hall Cards */
+    .hall-card .card-body {
+        padding: 1rem;
+    }
+    
+    .hall-image {
+        height: 200px;
+    }
+    
+    /* Menu Cards */
+    .menu-card .card-body {
+        padding: 1rem;
+    }
+    
+    .menu-items {
+        font-size: 0.85rem;
+    }
+    
+    /* Service Cards */
+    .service-card .card-body {
+        padding: 1rem;
+    }
+    
+    /* Forms */
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Sticky elements on mobile */
+    .sticky-top {
+        position: relative !important;
+        margin-top: 2rem;
+    }
+}
+
+/* Extra Small Devices (portrait phones, less than 576px) */
+@media (max-width: 575px) {
+    .hero-section h1 {
+        font-size: 1.75rem;
+    }
+    
+    .booking-card {
+        padding: 1rem;
+    }
+    
+    .btn {
+        font-size: 0.9rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    /* Price Display */
+    .price-tag {
+        font-size: 1.25rem;
+    }
+    
+    /* Venue Cards */
+    .venue-image {
+        height: 150px;
+    }
+    
+    /* Tables */
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+    
+    /* Modal */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    /* Footer */
+    footer .col-md-4 {
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    /* Hide some elements on very small screens */
+    .d-xs-none {
+        display: none !important;
+    }
+}
+
+/* Print Media Query */
+@media print {
+    /* Hide navigation and unnecessary elements */
+    .navbar,
+    .booking-progress,
+    .booking-summary-bar,
+    footer,
+    .btn,
+    .form-check-input {
+        display: none !important;
+    }
+    
+    /* Ensure proper page breaks */
+    .card {
+        page-break-inside: avoid;
+    }
+    
+    /* Remove shadows and backgrounds */
+    .card,
+    .booking-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd;
+    }
+    
+    body {
+        background: white !important;
+    }
+    
+    /* Adjust colors for print */
+    .text-success,
+    .bg-success {
+        color: #000 !important;
+        background-color: #f0f0f0 !important;
+    }
+}
+
+/* Orientation specific */
+@media (orientation: landscape) and (max-width: 991px) {
+    .hero-section {
+        min-height: 100vh;
+    }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .venue-image,
+    .hall-image {
+        image-rendering: -webkit-optimize-contrast;
+    }
+}
+
+/* Accessibility - Reduce Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Dark Mode Support (if needed in future) */
+@media (prefers-color-scheme: dark) {
+    /* Can be implemented later if needed */
+}
