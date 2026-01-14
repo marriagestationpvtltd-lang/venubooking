@@ -1,1 +1,1 @@
-# Venue Booking System
+# Venue Booking System - Initial Setup
