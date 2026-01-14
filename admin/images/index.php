@@ -1,7 +1,10 @@
 <?php
-$page_title = 'Manage Images';
-require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/functions.php';
 
+requireLogin();
+$current_user = getCurrentUser();
 $db = getDB();
 
 // Handle delete request
@@ -34,6 +37,9 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     header('Location: index.php');
     exit;
 }
+
+$page_title = 'Manage Images';
+require_once __DIR__ . '/../includes/header.php';
 
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
 $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
