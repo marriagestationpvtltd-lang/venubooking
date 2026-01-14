@@ -4,7 +4,19 @@ require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 $stmt = $db->query("SELECT c.*, COUNT(b.id) as booking_count FROM customers c LEFT JOIN bookings b ON c.id = b.customer_id GROUP BY c.id ORDER BY c.created_at DESC");
 $customers = $stmt->fetchAll();
+
+$success_message = '';
+if (isset($_GET['deleted'])) {
+    $success_message = 'Customer deleted successfully!';
+}
 ?>
+
+<?php if ($success_message): ?>
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-header bg-white">
@@ -33,6 +45,7 @@ $customers = $stmt->fetchAll();
                             <td><?php echo $customer['booking_count']; ?></td>
                             <td>
                                 <a href="view.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                                <a href="edit.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

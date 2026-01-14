@@ -4,6 +4,11 @@ require_once __DIR__ . '/../includes/header.php';
 
 $db = getDB();
 
+$success_message = '';
+if (isset($_GET['deleted'])) {
+    $success_message = 'Booking deleted successfully!';
+}
+
 // Get all bookings
 $stmt = $db->query("SELECT b.*, c.full_name, c.phone, h.name as hall_name, v.name as venue_name 
                     FROM bookings b
@@ -13,6 +18,13 @@ $stmt = $db->query("SELECT b.*, c.full_name, c.phone, h.name as hall_name, v.nam
                     ORDER BY b.created_at DESC");
 $bookings = $stmt->fetchAll();
 ?>
+
+<?php if ($success_message): ?>
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
