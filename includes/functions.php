@@ -277,11 +277,14 @@ function getCurrentUser() {
 /**
  * Log activity
  */
-function logActivity($action, $table_name = null, $record_id = null, $old_values = null, $new_values = null) {
+function logActivity($user_id, $action, $table_name = null, $record_id = null, $old_values = null, $new_values = null) {
     $db = getDB();
-    $user_id = $_SESSION['user_id'] ?? null;
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
     $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+    
+    // Convert arrays to JSON
+    $old_values_json = $old_values ? json_encode($old_values) : null;
+    $new_values_json = $new_values ? json_encode($new_values) : null;
     
     $sql = "INSERT INTO activity_logs (user_id, action, table_name, record_id, old_values, new_values, ip_address, user_agent) 
             VALUES (:user_id, :action, :table_name, :record_id, :old_values, :new_values, :ip_address, :user_agent)";
@@ -291,12 +294,30 @@ function logActivity($action, $table_name = null, $record_id = null, $old_values
     $stmt->bindParam(':action', $action);
     $stmt->bindParam(':table_name', $table_name);
     $stmt->bindParam(':record_id', $record_id, PDO::PARAM_INT);
-    $stmt->bindParam(':old_values', $old_values);
-    $stmt->bindParam(':new_values', $new_values);
+    $stmt->bindParam(':old_values', $old_values_json);
+    $stmt->bindParam(':new_values', $new_values_json);
     $stmt->bindParam(':ip_address', $ip_address);
     $stmt->bindParam(':user_agent', $user_agent);
     
     return $stmt->execute();
+}
+
+/**
+ * Display flash message
+ */
+function displayFlashMessage() {
+    if (isset($_SESSION['flash'])) {
+        foreach ($_SESSION['flash'] as $type => $message) {
+            $alertClass = $type === 'error' ? 'danger' : $type;
+            echo '<div class="alert alert-' . $alertClass . ' alert-dismissible fade show" role="alert">';
+            echo clean($message);
+            echo '<button type="button" class="close" data-dismiss="alert" aria-label="Close">';
+            echo '<span aria-hidden="true">&times;</span>';
+            echo '</button>';
+            echo '</div>';
+        }
+        unset($_SESSION['flash']);
+    }
 }
 
 /**

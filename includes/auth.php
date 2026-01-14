@@ -22,6 +22,7 @@ function loginUser($username, $password) {
     if ($user && password_verify($password, $user['password'])) {
         // Set session variables
         $_SESSION['user_id'] = $user['id'];
+        $_SESSION['admin_id'] = $user['id']; // For admin pages
         $_SESSION['username'] = $user['username'];
         $_SESSION['full_name'] = $user['full_name'];
         $_SESSION['email'] = $user['email'];
@@ -34,7 +35,7 @@ function loginUser($username, $password) {
         $updateStmt->execute();
         
         // Log activity
-        logActivity('User Login', 'users', $user['id']);
+        logActivity($user['id'], 'login', 'users', $user['id']);
         
         return ['success' => true, 'user' => $user];
     }
@@ -46,8 +47,9 @@ function loginUser($username, $password) {
  * Logout user
  */
 function logoutUser() {
-    if (isLoggedIn()) {
-        logActivity('User Logout');
+    $user_id = $_SESSION['user_id'] ?? null;
+    if (isLoggedIn() && $user_id) {
+        logActivity($user_id, 'logout');
     }
     
     // Destroy session
@@ -138,7 +140,10 @@ function createUser($username, $password, $full_name, $email, $role = 'staff') {
     
     if ($stmt->execute()) {
         $userId = $db->lastInsertId();
-        logActivity('User Created', 'users', $userId);
+        $currentUserId = $_SESSION['user_id'] ?? null;
+        if ($currentUserId) {
+            logActivity($currentUserId, 'create', 'users', $userId, null, ['username' => $username]);
+        }
         return ['success' => true, 'user_id' => $userId];
     }
     
@@ -158,7 +163,7 @@ function updateUserPassword($user_id, $new_password) {
     $stmt->bindParam(':id', $user_id, PDO::PARAM_INT);
     
     if ($stmt->execute()) {
-        logActivity('Password Changed', 'users', $user_id);
+        logActivity($user_id, 'update_password', 'users', $user_id);
         return ['success' => true];
     }
     
