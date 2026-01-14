@@ -6,6 +6,13 @@
 require_once __DIR__ . '/db.php';
 
 /**
+ * Filename validation pattern for image uploads
+ * Requires: alphanumeric name, single separators (._-), and file extension
+ * Blocks: consecutive separators, leading/trailing separators, special chars
+ */
+define('SAFE_FILENAME_PATTERN', '/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]+$/');
+
+/**
  * Sanitize input to prevent XSS
  */
 function sanitize($data) {
@@ -127,10 +134,10 @@ function getAvailableVenues($date, $shift) {
     foreach ($venues as $venue) {
         $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
         
-        // Additional filename validation: proper filename structure
-        // Must be alphanumeric with single dots, hyphens, or underscores between parts
+        // Validate filename structure using pattern defined at top of file
         // Pattern ensures: name.ext or name-part.ext or name_part.ext
-        if (!empty($safe_filename) && !preg_match('/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]+$/', $safe_filename)) {
+        // Blocks: consecutive dots, leading/trailing separators, special chars
+        if (!empty($safe_filename) && !preg_match(SAFE_FILENAME_PATTERN, $safe_filename)) {
             $safe_filename = ''; // Invalid filename structure
         }
         
