@@ -199,7 +199,7 @@ CREATE TABLE activity_logs (
 
 -- Insert default admin user (password: Admin@123)
 INSERT INTO users (username, password, full_name, email, role, status) 
-VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
+VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
 
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
