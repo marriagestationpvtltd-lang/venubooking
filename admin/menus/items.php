@@ -204,9 +204,9 @@ foreach ($menu_items as $item) {
                                             <br>
                                             <small class="text-muted">Order: <?php echo $item['display_order']; ?></small>
                                         </div>
-                                        <form method="POST" action="" style="display: inline;">
+                                        <form method="POST" action="" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this item? This action cannot be undone.');">
                                             <input type="hidden" name="delete_item" value="<?php echo $item['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(<?php echo htmlspecialchars(json_encode('Are you sure you want to delete ' . $item['item_name'] . '?'), ENT_QUOTES, 'UTF-8'); ?>);">
+                                            <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>

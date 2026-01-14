@@ -61,7 +61,9 @@ try {
         
         // Delete physical image files after successful commit
         foreach ($images as $image) {
-            deleteUploadedFile($image['image_path']);
+            if (!deleteUploadedFile($image['image_path'])) {
+                error_log("Failed to delete hall image file: " . $image['image_path']);
+            }
         }
         
         // Log activity

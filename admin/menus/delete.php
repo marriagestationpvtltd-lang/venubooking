@@ -61,7 +61,9 @@ try {
         
         // Delete the menu image if exists (after successful commit)
         if (!empty($menu['image'])) {
-            deleteUploadedFile($menu['image']);
+            if (!deleteUploadedFile($menu['image'])) {
+                error_log("Failed to delete menu image file: " . $menu['image']);
+            }
         }
         
         $_SESSION['success_message'] = 'Menu deleted successfully!';

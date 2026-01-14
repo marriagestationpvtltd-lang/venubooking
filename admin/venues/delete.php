@@ -46,7 +46,9 @@ try {
         
         // Delete the venue image if exists (after successful DB delete)
         if (!empty($venue['image'])) {
-            deleteUploadedFile($venue['image']);
+            if (!deleteUploadedFile($venue['image'])) {
+                error_log("Failed to delete venue image file: " . $venue['image']);
+            }
         }
         
         $_SESSION['success_message'] = 'Venue deleted successfully!';
