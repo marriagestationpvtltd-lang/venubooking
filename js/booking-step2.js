@@ -4,12 +4,15 @@
 
 let currentVenueId = null;
 
-// Escape HTML to prevent XSS
+// Escape HTML to prevent XSS - safer implementation
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 // Show halls for selected venue
@@ -69,6 +72,9 @@ function displayHalls(halls, venueName) {
     
     hallsContainer.innerHTML = '';
     
+    // Build all hall cards HTML first for better performance
+    let hallsHtml = '';
+    
     halls.forEach(hall => {
         const hallCard = `
             <div class="col-md-6 col-lg-4">
@@ -89,7 +95,12 @@ function displayHalls(halls, venueName) {
                             <h5 class="text-success mb-0">${formatCurrency(hall.base_price)}</h5>
                         </div>
                         ${hall.available ? 
-                            `<button class="btn btn-success w-100" onclick="selectHall(${parseInt(hall.id)}, '${escapeHtml(hall.name).replace(/'/g, "\\'")}', '${escapeHtml(venueName).replace(/'/g, "\\'")}', ${parseFloat(hall.base_price)}, ${parseInt(hall.capacity)})">
+                            `<button class="btn btn-success w-100 select-hall-btn" 
+                                     data-hall-id="${parseInt(hall.id)}" 
+                                     data-hall-name="${escapeHtml(hall.name)}" 
+                                     data-venue-name="${escapeHtml(venueName)}" 
+                                     data-base-price="${parseFloat(hall.base_price)}" 
+                                     data-capacity="${parseInt(hall.capacity)}">
                                 <i class="fas fa-check"></i> Select This Hall
                             </button>` :
                             `<button class="btn btn-secondary w-100" disabled>
@@ -100,7 +111,22 @@ function displayHalls(halls, venueName) {
                 </div>
             </div>
         `;
-        hallsContainer.innerHTML += hallCard;
+        hallsHtml += hallCard;
+    });
+    
+    // Set innerHTML once for better performance
+    hallsContainer.innerHTML = hallsHtml;
+    
+    // Add event listeners to select buttons using event delegation
+    hallsContainer.querySelectorAll('.select-hall-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const hallId = parseInt(this.getAttribute('data-hall-id'));
+            const hallName = this.getAttribute('data-hall-name');
+            const venueName = this.getAttribute('data-venue-name');
+            const basePrice = parseFloat(this.getAttribute('data-base-price'));
+            const capacity = parseInt(this.getAttribute('data-capacity'));
+            selectHall(hallId, hallName, venueName, basePrice, capacity);
+        });
     });
     
     // Scroll to halls section
