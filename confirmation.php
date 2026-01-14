@@ -101,16 +101,47 @@ unset($_SESSION['booking_completed']);
 
                             <!-- Menus -->
                             <?php if (!empty($booking['menus'])): ?>
-                                <div class="col-md-6 mb-4">
+                                <div class="col-md-12 mb-4">
                                     <h6 class="text-success mb-3">Selected Menus</h6>
                                     <?php foreach ($booking['menus'] as $menu): ?>
-                                        <div class="mb-2">
+                                        <div class="mb-3">
                                             <strong><?php echo sanitize($menu['menu_name']); ?></strong><br>
                                             <small class="text-muted">
                                                 <?php echo formatCurrency($menu['price_per_person']); ?>/pax × 
                                                 <?php echo $menu['number_of_guests']; ?> = 
                                                 <?php echo formatCurrency($menu['total_price']); ?>
                                             </small>
+                                            
+                                            <?php if (!empty($menu['items'])): ?>
+                                                <div class="mt-2 ms-3">
+                                                    <strong class="small">Menu Items:</strong>
+                                                    <ul class="mb-0 mt-1">
+                                                        <?php 
+                                                        $items_by_category = [];
+                                                        foreach ($menu['items'] as $item) {
+                                                            $category = !empty($item['category']) ? $item['category'] : 'Other';
+                                                            $items_by_category[$category][] = $item;
+                                                        }
+                                                        
+                                                        foreach ($items_by_category as $category => $items): 
+                                                        ?>
+                                                            <?php if (count($items_by_category) > 1): ?>
+                                                                <li class="small"><strong><?php echo sanitize($category); ?>:</strong>
+                                                                    <ul>
+                                                                        <?php foreach ($items as $item): ?>
+                                                                            <li class="small"><?php echo sanitize($item['item_name']); ?></li>
+                                                                        <?php endforeach; ?>
+                                                                    </ul>
+                                                                </li>
+                                                            <?php else: ?>
+                                                                <?php foreach ($items as $item): ?>
+                                                                    <li class="small"><?php echo sanitize($item['item_name']); ?></li>
+                                                                <?php endforeach; ?>
+                                                            <?php endif; ?>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>

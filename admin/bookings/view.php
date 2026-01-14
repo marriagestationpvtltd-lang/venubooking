@@ -145,11 +145,55 @@ if (!$booking) {
                         <tbody>
                             <?php foreach ($booking['menus'] as $menu): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($menu['menu_name']); ?></td>
+                                <td>
+                                    <?php echo htmlspecialchars($menu['menu_name']); ?>
+                                    <?php if (!empty($menu['items'])): ?>
+                                        <button class="btn btn-sm btn-link p-0 ms-2" type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#menu-items-<?php echo $menu['menu_id']; ?>" 
+                                                aria-expanded="false">
+                                            <i class="fas fa-list"></i> View Items
+                                        </button>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo formatCurrency($menu['price_per_person']); ?></td>
                                 <td><?php echo $menu['number_of_guests']; ?></td>
                                 <td><?php echo formatCurrency($menu['total_price']); ?></td>
                             </tr>
+                            <?php if (!empty($menu['items'])): ?>
+                            <tr class="collapse" id="menu-items-<?php echo $menu['menu_id']; ?>">
+                                <td colspan="4" class="bg-light">
+                                    <div class="p-2">
+                                        <strong class="small">Menu Items:</strong>
+                                        <ul class="mb-0 mt-2">
+                                            <?php 
+                                            $items_by_category = [];
+                                            foreach ($menu['items'] as $item) {
+                                                $category = !empty($item['category']) ? $item['category'] : 'Other';
+                                                $items_by_category[$category][] = $item;
+                                            }
+                                            
+                                            foreach ($items_by_category as $category => $items): 
+                                            ?>
+                                                <?php if (count($items_by_category) > 1): ?>
+                                                    <li class="small"><strong><?php echo htmlspecialchars($category); ?>:</strong>
+                                                        <ul>
+                                                            <?php foreach ($items as $item): ?>
+                                                                <li class="small"><?php echo htmlspecialchars($item['item_name']); ?></li>
+                                                            <?php endforeach; ?>
+                                                        </ul>
+                                                    </li>
+                                                <?php else: ?>
+                                                    <?php foreach ($items as $item): ?>
+                                                        <li class="small"><?php echo htmlspecialchars($item['item_name']); ?></li>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
                             <?php endforeach; ?>
                         </tbody>
                     </table>

@@ -390,6 +390,13 @@ function getBookingDetails($booking_id) {
         $stmt->execute([$booking_id]);
         $booking['menus'] = $stmt->fetchAll();
         
+        // Get menu items for each menu
+        foreach ($booking['menus'] as &$menu) {
+            $stmt = $db->prepare("SELECT * FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
+            $stmt->execute([$menu['menu_id']]);
+            $menu['items'] = $stmt->fetchAll();
+        }
+        
         // Get services
         $stmt = $db->prepare("SELECT * FROM booking_services WHERE booking_id = ?");
         $stmt->execute([$booking_id]);
