@@ -484,7 +484,7 @@ $images = $images_stmt->fetchAll();
 <script>
 function confirmDelete() {
     if (confirm('Are you sure you want to delete this hall? This action cannot be undone.')) {
-        window.location.href = 'edit.php?id=<?php echo $hall_id; ?>&action=delete';
+        window.location.href = 'edit.php?id=<?php echo intval($hall_id); ?>&action=delete';
     }
 }
 </script>
