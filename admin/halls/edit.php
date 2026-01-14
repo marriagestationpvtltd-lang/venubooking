@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status'];
 
     // Validation
-    if (empty($name) || $capacity <= 0 || $base_price <= 0) {
+    if (empty($name) || $venue_id <= 0 || $capacity <= 0 || $base_price <= 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
         try {

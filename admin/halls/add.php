@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label for="hall_type" class="form-label">Hall Type <span class="text-danger">*</span></label>
                                 <select class="form-select" id="hall_type" name="hall_type" required>
-                                    <option value="single" <?php echo (isset($_POST['hall_type']) && $_POST['hall_type'] == 'single') ? 'selected' : 'selected'; ?>>Single</option>
+                                    <option value="single" <?php echo (!isset($_POST['hall_type']) || $_POST['hall_type'] == 'single') ? 'selected' : ''; ?>>Single</option>
                                     <option value="multiple" <?php echo (isset($_POST['hall_type']) && $_POST['hall_type'] == 'multiple') ? 'selected' : ''; ?>>Multiple</option>
                                 </select>
                             </div>
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label for="indoor_outdoor" class="form-label">Indoor/Outdoor <span class="text-danger">*</span></label>
                                 <select class="form-select" id="indoor_outdoor" name="indoor_outdoor" required>
-                                    <option value="indoor" <?php echo (isset($_POST['indoor_outdoor']) && $_POST['indoor_outdoor'] == 'indoor') ? 'selected' : 'selected'; ?>>Indoor</option>
+                                    <option value="indoor" <?php echo (!isset($_POST['indoor_outdoor']) || $_POST['indoor_outdoor'] == 'indoor') ? 'selected' : ''; ?>>Indoor</option>
                                     <option value="outdoor" <?php echo (isset($_POST['indoor_outdoor']) && $_POST['indoor_outdoor'] == 'outdoor') ? 'selected' : ''; ?>>Outdoor</option>
                                     <option value="both" <?php echo (isset($_POST['indoor_outdoor']) && $_POST['indoor_outdoor'] == 'both') ? 'selected' : ''; ?>>Both</option>
                                 </select>
@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                                 <select class="form-select" id="status" name="status" required>
-                                    <option value="active" <?php echo (isset($_POST['status']) && $_POST['status'] == 'active') ? 'selected' : 'selected'; ?>>Active</option>
+                                    <option value="active" <?php echo (!isset($_POST['status']) || $_POST['status'] == 'active') ? 'selected' : ''; ?>>Active</option>
                                     <option value="inactive" <?php echo (isset($_POST['status']) && $_POST['status'] == 'inactive') ? 'selected' : ''; ?>>Inactive</option>
                                 </select>
                             </div>
