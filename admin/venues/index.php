@@ -47,6 +47,8 @@ if (isset($_GET['deleted'])) {
                             <td>
                                 <a href="view.php?id=<?php echo $venue['id']; ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
                                 <a href="edit.php?id=<?php echo $venue['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                <a href="edit.php?id=<?php echo $venue['id']; ?>&action=delete" class="btn btn-sm btn-danger" 
+                                   onclick="return confirm('Are you sure you want to delete this venue? This action cannot be undone.');"><i class="fas fa-trash"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -24,6 +24,48 @@ if (!$hall) {
     exit;
 }
 
+// Handle delete request
+if (isset($_GET['action']) && $_GET['action'] === 'delete') {
+    try {
+        // Check if hall has bookings
+        $check_stmt = $db->prepare("SELECT COUNT(*) as count FROM bookings WHERE hall_id = ?");
+        $check_stmt->execute([$hall_id]);
+        $result = $check_stmt->fetch();
+        
+        if ($result['count'] > 0) {
+            $error_message = 'Cannot delete hall. It has ' . $result['count'] . ' associated booking(s). You can set it to inactive instead.';
+        } else {
+            // Delete hall images first
+            $images_stmt = $db->prepare("SELECT image_path FROM hall_images WHERE hall_id = ?");
+            $images_stmt->execute([$hall_id]);
+            $images = $images_stmt->fetchAll();
+            
+            foreach ($images as $image) {
+                deleteUploadedFile($image['image_path']);
+            }
+            
+            $db->prepare("DELETE FROM hall_images WHERE hall_id = ?")->execute([$hall_id]);
+            
+            // Delete hall_menus associations
+            $db->prepare("DELETE FROM hall_menus WHERE hall_id = ?")->execute([$hall_id]);
+            
+            // Delete the hall
+            $stmt = $db->prepare("DELETE FROM halls WHERE id = ?");
+            if ($stmt->execute([$hall_id])) {
+                // Log activity
+                logActivity($current_user['id'], 'Deleted hall', 'halls', $hall_id, "Deleted hall: {$hall['name']}");
+                
+                header('Location: index.php?deleted=1');
+                exit;
+            } else {
+                $error_message = 'Failed to delete hall. Please try again.';
+            }
+        }
+    } catch (Exception $e) {
+        $error_message = 'Error: ' . $e->getMessage();
+    }
+}
+
 // Fetch all venues for dropdown
 $venues_stmt = $db->query("SELECT id, name FROM venues WHERE status = 'active' ORDER BY name");
 $venues = $venues_stmt->fetchAll();
@@ -271,12 +313,17 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <a href="index.php" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                        <button type="submit" name="update_hall" class="btn btn-success">
-                            <i class="fas fa-save"></i> Update Hall
+                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                            <i class="fas fa-trash"></i> Delete Hall
                         </button>
+                        <div>
+                            <a href="index.php" class="btn btn-secondary me-2">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" name="update_hall" class="btn btn-success">
+                                <i class="fas fa-save"></i> Update Hall
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -433,5 +480,13 @@ $images = $images_stmt->fetchAll();
         </div>
     </div>
 </div>
+
+<script>
+function confirmDelete() {
+    if (confirm('Are you sure you want to delete this hall? This action cannot be undone.')) {
+        window.location.href = 'edit.php?id=<?php echo $hall_id; ?>&action=delete';
+    }
+}
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
