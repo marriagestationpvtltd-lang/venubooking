@@ -1,6 +1,11 @@
 <?php
-$page_title = 'Manage Menu Items';
-require_once __DIR__ . '/../includes/header.php';
+// Initialize dependencies first (before any output)
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/functions.php';
+
+requireLogin();
+$current_user = getCurrentUser();
 
 $db = getDB();
 $success_message = '';
@@ -97,6 +102,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
     header("Location: items.php?id=$menu_id");
     exit;
 }
+
+// Now include header for HTML output
+$page_title = 'Manage Menu Items';
+require_once __DIR__ . '/../includes/header.php';
 
 // Retrieve and clear session messages (only runs on GET requests after redirect)
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
