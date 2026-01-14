@@ -4,6 +4,14 @@
 
 let currentVenueId = null;
 
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Show halls for selected venue
 function showHalls(venueId, venueName) {
     currentVenueId = venueId;
@@ -65,23 +73,23 @@ function displayHalls(halls, venueName) {
         const hallCard = `
             <div class="col-md-6 col-lg-4">
                 <div class="hall-card card h-100">
-                    ${hall.image ? `<img src="${baseUrl}/uploads/${hall.image}" class="card-img-top hall-image" alt="${hall.name}">` : ''}
+                    ${hall.image ? `<img src="${baseUrl}/uploads/${escapeHtml(hall.image)}" class="card-img-top hall-image" alt="${escapeHtml(hall.name)}">` : ''}
                     <div class="card-body">
-                        <h5 class="card-title">${hall.name}</h5>
+                        <h5 class="card-title">${escapeHtml(hall.name)}</h5>
                         <div class="mb-3">
                             <span class="capacity-badge">
-                                <i class="fas fa-users"></i> ${hall.capacity} pax
+                                <i class="fas fa-users"></i> ${escapeHtml(hall.capacity)} pax
                             </span>
-                            <span class="badge bg-info ms-2">${hall.indoor_outdoor}</span>
+                            <span class="badge bg-info ms-2">${escapeHtml(hall.indoor_outdoor)}</span>
                         </div>
-                        <p class="card-text text-muted">${hall.description || ''}</p>
-                        ${hall.features ? `<p class="small"><strong>Features:</strong> ${hall.features}</p>` : ''}
+                        <p class="card-text text-muted">${escapeHtml(hall.description || '')}</p>
+                        ${hall.features ? `<p class="small"><strong>Features:</strong> ${escapeHtml(hall.features)}</p>` : ''}
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="text-muted">Base Price:</span>
                             <h5 class="text-success mb-0">${formatCurrency(hall.base_price)}</h5>
                         </div>
                         ${hall.available ? 
-                            `<button class="btn btn-success w-100" onclick="selectHall(${hall.id}, '${hall.name}', '${venueName}', ${hall.base_price}, ${hall.capacity})">
+                            `<button class="btn btn-success w-100" onclick="selectHall(${parseInt(hall.id)}, '${escapeHtml(hall.name).replace(/'/g, "\\'")}', '${escapeHtml(venueName).replace(/'/g, "\\'")}', ${parseFloat(hall.base_price)}, ${parseInt(hall.capacity)})">
                                 <i class="fas fa-check"></i> Select This Hall
                             </button>` :
                             `<button class="btn btn-secondary w-100" disabled>
