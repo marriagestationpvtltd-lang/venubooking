@@ -85,12 +85,14 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
         <?php else: ?>
             <div class="row g-4" id="venuesContainer">
                 <?php foreach ($venues as $venue): 
-                    // Get image URL (already validated in getAvailableVenues)
+                    // Get image URL (already validated and sanitized in getAvailableVenues)
+                    // The image filename is already safe, just need to build the URL
                     if (!empty($venue['image'])) {
-                        $venue_image_url = UPLOAD_URL . htmlspecialchars($venue['image'], ENT_QUOTES, 'UTF-8');
+                        // Use htmlspecialchars only for HTML attribute context, not URL encoding
+                        $venue_image_url = htmlspecialchars(UPLOAD_URL . $venue['image'], ENT_QUOTES, 'UTF-8');
                     } else {
                         // Use placeholder for venues without images
-                        $venue_image_url = getPlaceholderImageUrl();
+                        $venue_image_url = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
                     }
                 ?>
                     <div class="col-md-6 col-lg-4">

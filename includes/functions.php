@@ -127,10 +127,11 @@ function getAvailableVenues($date, $shift) {
     foreach ($venues as $venue) {
         $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
         
-        // Additional filename validation: only allow safe characters
-        // Allow alphanumeric, dots, hyphens, underscores
-        if (!empty($safe_filename) && !preg_match('/^[a-zA-Z0-9._-]+$/', $safe_filename)) {
-            $safe_filename = ''; // Invalid filename, treat as empty
+        // Additional filename validation: proper filename structure
+        // Must be alphanumeric with single dots, hyphens, or underscores between parts
+        // Pattern ensures: name.ext or name-part.ext or name_part.ext
+        if (!empty($safe_filename) && !preg_match('/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]+$/', $safe_filename)) {
+            $safe_filename = ''; // Invalid filename structure
         }
         
         $exists = !empty($safe_filename) && file_exists(UPLOAD_PATH . $safe_filename);
@@ -149,15 +150,17 @@ function getAvailableVenues($date, $shift) {
     }
     
     // Process each venue to ensure it has an image
+    $venue_images_count = count($venue_images);
+    
     foreach ($venues as &$venue) {
         $cache = $file_exists_cache[$venue['id']];
         
         // If venue doesn't have a valid image
         if (!$cache['exists']) {
             // Use fallback from site_images
-            if (!empty($venue_images) && isset($venue_images[$venue_image_index])) {
+            if ($venue_images_count > 0 && isset($venue_images[$venue_image_index])) {
                 $venue['image'] = $venue_images[$venue_image_index]['image_path'];
-                $venue_image_index = ($venue_image_index + 1) % count($venue_images);
+                $venue_image_index = ($venue_image_index + 1) % $venue_images_count;
             } else {
                 // Use empty string to trigger SVG placeholder in frontend
                 $venue['image'] = '';
