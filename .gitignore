@@ -1,0 +1,58 @@
+# Environment configuration
+.env
+
+# Uploaded files (keep directory structure but ignore content)
+uploads/**/*
+!uploads/.gitkeep
+!uploads/venues/.gitkeep
+!uploads/halls/.gitkeep
+!uploads/menus/.gitkeep
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+error_log
+access_log
+
+# Cache and temporary files
+*.cache
+*.tmp
+*.bak
+*.swp
+*~
+
+# Vendor directories (if using Composer)
+vendor/
+composer.lock
+
+# Node modules (if using npm)
+node_modules/
+package-lock.json
+
+# Build artifacts
+dist/
+build/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Database dumps
+*.sql.gz
+*.sql.zip
+backup/
+
+# PHP
+.php_cs.cache
