@@ -37,6 +37,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
             exit;
         }
         
+        // Start transaction for atomic deletion
+        $db->beginTransaction();
+        
         // Delete menu items first
         $stmt = $db->prepare("DELETE FROM menu_items WHERE menu_id = ?");
         $stmt->execute([$menu_id]);
@@ -48,16 +51,23 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         // Delete the menu
         $stmt = $db->prepare("DELETE FROM menus WHERE id = ?");
         if ($stmt->execute([$menu_id])) {
+            // Commit transaction
+            $db->commit();
+            
             // Log activity
             logActivity($current_user['id'], 'Deleted menu', 'menus', $menu_id, "Deleted menu: {$menu['name']}");
             
             header('Location: index.php?deleted=1');
             exit;
         } else {
+            $db->rollBack();
             header('Location: index.php?error=' . urlencode('Failed to delete menu. Please try again.'));
             exit;
         }
     } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
         header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
         exit;
     }
