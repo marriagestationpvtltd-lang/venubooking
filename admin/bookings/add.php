@@ -126,7 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             } catch (Exception $e) {
                 $db->rollBack();
-                $error_message = 'Error: ' . $e->getMessage();
+                // Log the error for debugging
+                error_log('Booking creation error: ' . $e->getMessage());
+                $error_message = 'Error creating booking. Please try again or contact support.';
             }
         }
     }

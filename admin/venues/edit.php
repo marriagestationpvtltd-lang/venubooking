@@ -33,7 +33,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         $result = $check_stmt->fetch();
         
         if ($result['count'] > 0) {
-            $error_message = 'Cannot delete venue. It has associated halls. Please delete or reassign the halls first.';
+            $error_message = 'Cannot delete venue. It has ' . $result['count'] . ' associated hall(s). Please delete the halls first.';
         } else {
             $stmt = $db->prepare("DELETE FROM venues WHERE id = ?");
             if ($stmt->execute([$venue_id])) {

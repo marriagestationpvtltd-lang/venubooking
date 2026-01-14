@@ -188,7 +188,7 @@ foreach ($menu_items as $item) {
                                             <br>
                                             <small class="text-muted">Order: <?php echo $item['display_order']; ?></small>
                                         </div>
-                                        <button class="btn btn-sm btn-danger" onclick="confirmDelete(<?php echo $item['id']; ?>, '<?php echo htmlspecialchars($item['item_name'], ENT_QUOTES); ?>')">
+                                        <button class="btn btn-sm btn-danger" onclick="confirmDelete(<?php echo $item['id']; ?>, <?php echo json_encode($item['item_name']); ?>)">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>

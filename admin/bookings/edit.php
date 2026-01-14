@@ -54,7 +54,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
             $error_message = 'Failed to delete booking. Please try again.';
         }
     } catch (Exception $e) {
-        $error_message = 'Error: ' . $e->getMessage();
+        // Log the error for debugging
+        error_log('Booking deletion error: ' . $e->getMessage());
+        $error_message = 'Error deleting booking. Please try again or contact support.';
     }
 }
 
@@ -177,7 +179,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             } catch (Exception $e) {
                 $db->rollBack();
-                $error_message = 'Error: ' . $e->getMessage();
+                // Log the error for debugging
+                error_log('Booking update error: ' . $e->getMessage());
+                $error_message = 'Error updating booking. Please try again or contact support.';
             }
         }
     }
