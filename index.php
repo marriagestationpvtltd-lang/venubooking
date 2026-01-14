@@ -8,7 +8,7 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
 ?>
 
 <!-- Hero Section -->
-<section class="hero-section" <?php if ($banner_image): ?>style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('<?php echo htmlspecialchars($banner_image['image_url']); ?>'); background-size: cover; background-position: center; background-repeat: no-repeat;"<?php endif; ?>>
+<section class="hero-section<?php if ($banner_image): ?> with-banner-image<?php endif; ?>" <?php if ($banner_image): ?>style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('<?php echo htmlspecialchars($banner_image['image_url']); ?>');"<?php endif; ?>>
     <div class="hero-overlay">
         <div class="container">
             <div class="row align-items-center min-vh-100">
