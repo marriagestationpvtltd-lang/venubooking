@@ -76,10 +76,15 @@
                     <?php if (!empty($whatsapp_number)): ?>
                         <p class="mb-1">
                             <i class="fab fa-whatsapp"></i> 
-                            <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp_number); ?>" 
+                            <?php 
+                            $clean_whatsapp = preg_replace('/[^0-9]/', '', $whatsapp_number);
+                            if (!empty($clean_whatsapp)): 
+                            ?>
+                            <a href="https://wa.me/<?php echo htmlspecialchars($clean_whatsapp); ?>" 
                                target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none">
                                 WhatsApp Us
                             </a>
+                            <?php endif; ?>
                         </p>
                     <?php endif; ?>
                     

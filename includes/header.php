@@ -32,8 +32,8 @@ if (!empty($meta_title)) {
     <?php endif; ?>
     
     <?php if (!empty($site_favicon)): ?>
-    <link rel="icon" type="image/x-icon" href="<?php echo UPLOAD_URL . htmlspecialchars($site_favicon); ?>">
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo UPLOAD_URL . htmlspecialchars($site_favicon); ?>">
+    <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(UPLOAD_URL . $site_favicon); ?>">
+    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars(UPLOAD_URL . $site_favicon); ?>">
     <?php endif; ?>
     
     <!-- Bootstrap 5 CSS -->
@@ -55,7 +55,7 @@ if (!empty($meta_title)) {
         <div class="container">
             <a class="navbar-brand fw-bold" href="<?php echo BASE_URL; ?>/index.php">
                 <?php if (!empty($site_logo)): ?>
-                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($site_logo); ?>" 
+                    <img src="<?php echo htmlspecialchars(UPLOAD_URL . $site_logo); ?>" 
                          alt="<?php echo htmlspecialchars($site_name); ?>" 
                          style="max-height: 40px; max-width: 200px;">
                 <?php else: ?>

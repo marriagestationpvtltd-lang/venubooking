@@ -54,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
                     $stmt->execute([$value, $setting_key]);
                 } else {
-                    // Insert new setting
-                    $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)");
+                    // Insert new setting with default type
+                    $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value, setting_type) VALUES (?, ?, 'text')");
                     $stmt->execute([$setting_key, $value]);
                 }
             }
@@ -412,16 +412,22 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 <script>
 // Auto-save warning before leaving page with unsaved changes
 let formChanged = false;
-document.getElementById('settingsForm').addEventListener('change', function() {
-    formChanged = true;
+let formSubmitting = false;
+
+document.getElementById('settingsForm').addEventListener('change', function(e) {
+    // Only track user-initiated changes, not programmatic ones
+    if (e.isTrusted) {
+        formChanged = true;
+    }
 });
 
 document.getElementById('settingsForm').addEventListener('submit', function() {
     formChanged = false;
+    formSubmitting = true;
 });
 
 window.addEventListener('beforeunload', function(e) {
-    if (formChanged) {
+    if (formChanged && !formSubmitting) {
         e.preventDefault();
         e.returnValue = '';
     }
