@@ -28,13 +28,12 @@ define('TAX_RATE', $_ENV['TAX_RATE'] ?? 13);
 
 // Base URL configuration
 // Calculate the base URL by finding the application root directory
-$scriptPath = $_SERVER['SCRIPT_NAME'];
+$scriptPath = $_SERVER['SCRIPT_NAME'] ?? '/';
 $scriptDir = dirname($scriptPath);
 
-// Remove /admin or any subdirectory from the path to get the application root
+// Remove /admin or /api subdirectories from the path to get the application root
 // This handles cases where script is in /admin/dashboard.php or /admin/venues/index.php
-$basePath = preg_replace('#/admin(/.*)?$#', '', $scriptDir);
-$basePath = preg_replace('#/api(/.*)?$#', '', $basePath);
+$basePath = preg_replace('#/(admin|api)(/.*)?$#', '', $scriptDir);
 
 define('BASE_URL', rtrim($basePath, '/'));
 define('UPLOAD_PATH', __DIR__ . '/../uploads/');
