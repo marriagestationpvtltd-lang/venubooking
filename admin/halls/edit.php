@@ -394,25 +394,25 @@ $images = $images_stmt->fetchAll();
                             <div class="col-md-3 mb-3">
                                 <div class="card h-100">
                                     <?php 
-                                    $image_url = UPLOAD_URL . $image['image_path'];
+                                    $image_url = UPLOAD_URL . rawurlencode($image['image_path']);
                                     $image_file = UPLOAD_PATH . $image['image_path'];
                                     ?>
                                     <?php if (file_exists($image_file)): ?>
-                                        <img src="<?php echo $image_url; ?>" class="card-img-top" alt="Hall image" style="height: 200px; object-fit: cover;">
+                                        <img src="<?php echo htmlspecialchars($image_url, ENT_QUOTES, 'UTF-8'); ?>" class="card-img-top" alt="Hall image" style="height: 200px; object-fit: cover;">
                                     <?php else: ?>
                                         <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;">
                                             <i class="fas fa-image fa-3x text-white"></i>
                                         </div>
                                     <?php endif; ?>
                                     <div class="card-body text-center">
-                                        <p class="mb-1 small text-muted">Order: <?php echo $image['display_order']; ?></p>
+                                        <p class="mb-1 small text-muted">Order: <?php echo htmlspecialchars($image['display_order'], ENT_QUOTES, 'UTF-8'); ?></p>
                                         <?php if ($image['is_primary']): ?>
                                             <span class="badge bg-primary mb-2">Primary Image</span>
                                         <?php endif; ?>
                                         <div>
                                             <form method="POST" action="" style="display: inline;">
-                                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-                                                <input type="hidden" name="delete_image" value="<?php echo $image['id']; ?>">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                                                <input type="hidden" name="delete_image" value="<?php echo htmlspecialchars($image['id'], ENT_QUOTES, 'UTF-8'); ?>">
                                                 <button type="submit" class="btn btn-danger btn-sm" 
                                                         onclick="return confirm('Are you sure you want to delete this image?')">
                                                     <i class="fas fa-trash"></i> Delete

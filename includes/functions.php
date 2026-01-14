@@ -515,15 +515,22 @@ function deleteUploadedFile($filename) {
     
     $filepath = UPLOAD_PATH . $filename;
     
-    // Ensure the file is within the upload directory
+    // Ensure the file path is within the upload directory before attempting deletion
+    // Use realpath on the directory and manually construct the expected path
     $real_upload_path = realpath(UPLOAD_PATH);
-    $real_file_path = realpath($filepath);
-    
-    if ($real_file_path && strpos($real_file_path, $real_upload_path) !== 0) {
-        return false; // File is outside upload directory
+    if ($real_upload_path === false) {
+        return false; // Upload directory doesn't exist or is inaccessible
     }
     
+    // Construct expected path
+    $expected_path = $real_upload_path . DIRECTORY_SEPARATOR . $filename;
+    
+    // If file exists, verify its real path matches expected path
     if (file_exists($filepath)) {
+        $real_file_path = realpath($filepath);
+        if ($real_file_path === false || $real_file_path !== $expected_path) {
+            return false; // File path doesn't match expected location
+        }
         return unlink($filepath);
     }
     
@@ -547,9 +554,13 @@ function displayImagePreview($image_filename, $alt_text = 'Current image') {
         return '';
     }
     
-    $image_url = UPLOAD_URL . $image_filename;
+    // URL encode the filename and escape for HTML
+    $image_url = UPLOAD_URL . rawurlencode($image_filename);
+    $escaped_url = htmlspecialchars($image_url, ENT_QUOTES, 'UTF-8');
+    $escaped_alt = htmlspecialchars($alt_text, ENT_QUOTES, 'UTF-8');
+    
     return '<div class="mb-2">
-        <img src="' . htmlspecialchars($image_url) . '" alt="' . htmlspecialchars($alt_text) . '" class="img-thumbnail" style="max-width: 200px;">
+        <img src="' . $escaped_url . '" alt="' . $escaped_alt . '" class="img-thumbnail" style="max-width: 200px;">
         <p class="text-muted small mt-1">Current image</p>
     </div>';
 }
