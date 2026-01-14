@@ -39,14 +39,28 @@ A complete, production-ready venue booking system built with PHP, MySQL, and Boo
 
 ## 🚀 Installation
 
-### Step 1: Clone or Download
+### For cPanel Shared Hosting
+
+**📘 [Complete cPanel Installation Guide](CPANEL_INSTALLATION.md)**
+
+If you're using cPanel shared hosting, please follow the detailed step-by-step guide in [CPANEL_INSTALLATION.md](CPANEL_INSTALLATION.md) which covers:
+- Uploading files via File Manager or FTP
+- Creating MySQL database with cPanel
+- Importing database using phpMyAdmin
+- Configuring .env file
+- Setting file permissions
+- Common troubleshooting issues
+
+### For Local/VPS Installation
+
+#### Step 1: Clone or Download
 
 ```bash
 git clone https://github.com/marriagestationpvtltd-lang/venubooking.git
 cd venubooking
 ```
 
-### Step 2: Database Setup
+#### Step 2: Database Setup
 
 1. Create a new MySQL database:
 ```sql
@@ -63,7 +77,7 @@ mysql -u your_username -p venubooking < database/schema.sql
 mysql -u your_username -p venubooking < database/sample-data.sql
 ```
 
-### Step 3: Configuration
+#### Step 3: Configuration
 
 1. Copy the environment configuration file:
 ```bash
@@ -80,7 +94,7 @@ DB_PASS=your_password
 
 3. Configure other settings as needed.
 
-### Step 4: File Permissions
+#### Step 4: File Permissions
 
 Ensure the uploads directory is writable:
 ```bash
@@ -88,7 +102,7 @@ chmod -R 775 uploads/
 chown -R www-data:www-data uploads/
 ```
 
-### Step 5: Access the System
+#### Step 5: Access the System
 
 1. **Frontend**: http://localhost/venubooking/
 2. **Admin Panel**: http://localhost/venubooking/admin/
