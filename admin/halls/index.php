@@ -4,7 +4,19 @@ require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 $stmt = $db->query("SELECT h.*, v.name as venue_name FROM halls h INNER JOIN venues v ON h.venue_id = v.id ORDER BY v.name, h.name");
 $halls = $stmt->fetchAll();
+
+$success_message = '';
+if (isset($_GET['deleted'])) {
+    $success_message = 'Hall deleted successfully!';
+}
 ?>
+
+<?php if ($success_message): ?>
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -39,6 +51,8 @@ $halls = $stmt->fetchAll();
                             <td>
                                 <a href="view.php?id=<?php echo $hall['id']; ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
                                 <a href="edit.php?id=<?php echo $hall['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                <a href="edit.php?id=<?php echo $hall['id']; ?>&action=delete" class="btn btn-sm btn-danger" 
+                                   onclick="return confirm('Are you sure you want to delete this hall? This action cannot be undone.');"><i class="fas fa-trash"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

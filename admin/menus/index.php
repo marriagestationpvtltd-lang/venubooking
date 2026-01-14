@@ -46,6 +46,8 @@ if (isset($_GET['deleted'])) {
                                 <a href="view.php?id=<?php echo $menu['id']; ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
                                 <a href="edit.php?id=<?php echo $menu['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
                                 <a href="items.php?id=<?php echo $menu['id']; ?>" class="btn btn-sm btn-primary"><i class="fas fa-list"></i> Items</a>
+                                <a href="edit.php?id=<?php echo $menu['id']; ?>&action=delete" class="btn btn-sm btn-danger" 
+                                   onclick="return confirm('Are you sure you want to delete this menu? This will also delete all menu items. This action cannot be undone.');"><i class="fas fa-trash"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

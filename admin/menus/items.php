@@ -209,7 +209,7 @@ foreach ($menu_items as $item) {
 <script>
 function confirmDelete(itemId, itemName) {
     if (confirm('Are you sure you want to delete "' + itemName + '"?')) {
-        window.location.href = 'items.php?id=<?php echo $menu_id; ?>&delete_item=' + itemId;
+        window.location.href = 'items.php?id=<?php echo intval($menu_id); ?>&delete_item=' + itemId;
     }
 }
 </script>
