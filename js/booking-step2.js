@@ -92,15 +92,15 @@ function displayHalls(halls, venueName) {
                         ${hall.features ? `<p class="small"><strong>Features:</strong> ${escapeHtml(hall.features)}</p>` : ''}
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="text-muted">Base Price:</span>
-                            <h5 class="text-success mb-0">${formatCurrency(hall.base_price)}</h5>
+                            <h5 class="text-success mb-0">${formatCurrency(parseFloat(hall.base_price) || 0)}</h5>
                         </div>
                         ${hall.available ? 
                             `<button class="btn btn-success w-100 select-hall-btn" 
-                                     data-hall-id="${parseInt(hall.id)}" 
-                                     data-hall-name="${escapeHtml(hall.name)}" 
-                                     data-venue-name="${escapeHtml(venueName)}" 
-                                     data-base-price="${parseFloat(hall.base_price)}" 
-                                     data-capacity="${parseInt(hall.capacity)}">
+                                     data-hall-id="${parseInt(hall.id) || 0}" 
+                                     data-hall-name="${hall.name || ''}" 
+                                     data-venue-name="${venueName || ''}" 
+                                     data-base-price="${parseFloat(hall.base_price) || 0}" 
+                                     data-capacity="${parseInt(hall.capacity) || 0}">
                                 <i class="fas fa-check"></i> Select This Hall
                             </button>` :
                             `<button class="btn btn-secondary w-100" disabled>
@@ -121,13 +121,13 @@ function displayHalls(halls, venueName) {
     hallsContainer.querySelectorAll('.select-hall-btn').forEach(button => {
         button.addEventListener('click', function() {
             const hallId = parseInt(this.getAttribute('data-hall-id'));
-            const hallName = this.getAttribute('data-hall-name');
-            const venueName = this.getAttribute('data-venue-name');
+            const hallName = this.getAttribute('data-hall-name') || '';
+            const venueName = this.getAttribute('data-venue-name') || '';
             const basePrice = parseFloat(this.getAttribute('data-base-price'));
             const capacity = parseInt(this.getAttribute('data-capacity'));
             
-            // Validate numeric values before proceeding
-            if (isNaN(hallId) || isNaN(basePrice) || isNaN(capacity)) {
+            // Validate numeric values are valid and positive
+            if (isNaN(hallId) || hallId <= 0 || isNaN(basePrice) || basePrice < 0 || isNaN(capacity) || capacity <= 0) {
                 showError('Invalid hall data. Please try again.');
                 return;
             }
