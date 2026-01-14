@@ -84,10 +84,20 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
             </div>
         <?php else: ?>
             <div class="row g-4" id="venuesContainer">
-                <?php foreach ($venues as $venue): ?>
+                <?php foreach ($venues as $venue): 
+                    // Get image URL (already validated and sanitized in getAvailableVenues)
+                    // The image filename is already safe, but we URL-encode it for proper URL construction
+                    if (!empty($venue['image'])) {
+                        $safe_url = UPLOAD_URL . rawurlencode($venue['image']);
+                        $venue_image_url = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
+                    } else {
+                        // Use placeholder for venues without images
+                        $venue_image_url = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                    }
+                ?>
                     <div class="col-md-6 col-lg-4">
                         <div class="venue-card card h-100 shadow-sm">
-                            <div class="card-img-top venue-image" style="background-image: url('<?php echo UPLOAD_URL . htmlspecialchars($venue['image'], ENT_QUOTES, 'UTF-8'); ?>');">
+                            <div class="card-img-top venue-image" style="background-image: url('<?php echo $venue_image_url; ?>');">
                             </div>
                             <div class="card-body">
                                 <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>

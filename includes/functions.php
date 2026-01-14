@@ -6,6 +6,13 @@
 require_once __DIR__ . '/db.php';
 
 /**
+ * Filename validation pattern for image uploads
+ * Requires: alphanumeric name, single separators (._-), and file extension
+ * Blocks: consecutive separators, leading/trailing separators, special chars
+ */
+define('SAFE_FILENAME_PATTERN', '/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]+$/');
+
+/**
  * Sanitize input to prevent XSS
  */
 function sanitize($data) {
@@ -118,7 +125,60 @@ function getAvailableVenues($date, $shift) {
     
     $stmt = $db->prepare($sql);
     $stmt->execute();
-    return $stmt->fetchAll();
+    $venues = $stmt->fetchAll();
+    
+    // Check file existence once and cache results
+    $file_exists_cache = [];
+    $needs_fallback = false;
+    
+    foreach ($venues as $venue) {
+        $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
+        
+        // Validate filename structure using pattern defined at top of file
+        // Pattern ensures: name.ext or name-part.ext or name_part.ext
+        // Blocks: consecutive dots, leading/trailing separators, special chars
+        if (!empty($safe_filename) && !preg_match(SAFE_FILENAME_PATTERN, $safe_filename)) {
+            $safe_filename = ''; // Invalid filename structure
+        }
+        
+        $exists = !empty($safe_filename) && file_exists(UPLOAD_PATH . $safe_filename);
+        $file_exists_cache[$venue['id']] = ['filename' => $safe_filename, 'exists' => $exists];
+        
+        if (!$exists) {
+            $needs_fallback = true;
+        }
+    }
+    
+    // Only fetch gallery images if needed
+    $venue_images = [];
+    $venue_image_index = 0;
+    if ($needs_fallback) {
+        $venue_images = getImagesBySection('venue');
+    }
+    
+    // Process each venue to ensure it has an image
+    $venue_images_count = count($venue_images);
+    
+    foreach ($venues as &$venue) {
+        $cache = $file_exists_cache[$venue['id']];
+        
+        // If venue doesn't have a valid image
+        if (!$cache['exists']) {
+            // Use fallback from site_images
+            if ($venue_images_count > 0 && isset($venue_images[$venue_image_index])) {
+                $venue['image'] = $venue_images[$venue_image_index]['image_path'];
+                $venue_image_index = ($venue_image_index + 1) % $venue_images_count;
+            } else {
+                // Use empty string to trigger SVG placeholder in frontend
+                $venue['image'] = '';
+            }
+        } else {
+            // Ensure we use the sanitized filename
+            $venue['image'] = $cache['filename'];
+        }
+    }
+    
+    return $venues;
 }
 
 /**
@@ -563,4 +623,22 @@ function displayImagePreview($image_filename, $alt_text = 'Current image') {
         <img src="' . $escaped_url . '" alt="' . $escaped_alt . '" class="img-thumbnail" style="max-width: 200px;">
         <p class="text-muted small mt-1">Current image</p>
     </div>';
+}
+
+/**
+ * Get placeholder image data URL for missing images
+ * Returns an inline SVG as a data URL
+ * 
+ * @return string Data URL for placeholder SVG
+ */
+function getPlaceholderImageUrl() {
+    // Build SVG placeholder for better readability
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' .
+           '<rect fill="#e9ecef" width="400" height="300"/>' .
+           '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" ' .
+           'fill="#6c757d" font-size="24" font-family="Arial">No Image</text>' .
+           '</svg>';
+    
+    // URL encode for use in data URL
+    return 'data:image/svg+xml,' . rawurlencode($svg);
 }
