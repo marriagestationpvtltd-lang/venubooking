@@ -26,6 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name) || $venue_id <= 0 || $capacity <= 0 || $base_price <= 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
+        // Verify venue exists
+        $venue_check = $db->prepare("SELECT id FROM venues WHERE id = ?");
+        $venue_check->execute([$venue_id]);
+        if (!$venue_check->fetch()) {
+            $error_message = 'Selected venue does not exist.';
+        } else {
         try {
             $sql = "INSERT INTO halls (venue_id, name, capacity, hall_type, indoor_outdoor, base_price, description, features, status) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -58,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (Exception $e) {
             $error_message = 'Error: ' . $e->getMessage();
+        }
         }
     }
 }
