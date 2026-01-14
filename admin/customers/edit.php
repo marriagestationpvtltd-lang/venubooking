@@ -24,36 +24,6 @@ if (!$customer) {
     exit;
 }
 
-// Handle delete request
-if (isset($_GET['action']) && $_GET['action'] === 'delete') {
-    try {
-        // Check if customer has bookings
-        $check_stmt = $db->prepare("SELECT COUNT(*) as count FROM bookings WHERE customer_id = ?");
-        $check_stmt->execute([$customer_id]);
-        $result = $check_stmt->fetch();
-        
-        if ($result['count'] > 0) {
-            header('Location: index.php?error=' . urlencode('Cannot delete customer. They have existing bookings in the system.'));
-            exit;
-        }
-        
-        $stmt = $db->prepare("DELETE FROM customers WHERE id = ?");
-        if ($stmt->execute([$customer_id])) {
-            // Log activity
-            logActivity($current_user['id'], 'Deleted customer', 'customers', $customer_id, "Deleted customer: {$customer['full_name']}");
-            
-            header('Location: index.php?deleted=1');
-            exit;
-        } else {
-            header('Location: index.php?error=' . urlencode('Failed to delete customer. Please try again.'));
-            exit;
-        }
-    } catch (Exception $e) {
-        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
-        exit;
-    }
-}
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = trim($_POST['full_name']);
@@ -173,9 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
-                            <i class="fas fa-trash"></i> Delete Customer
-                        </button>
+                        <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this customer? This action cannot be undone.');">
+                            <input type="hidden" name="id" value="<?php echo $customer_id; ?>">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Delete Customer
+                            </button>
+                        </form>
                         <div>
                             <a href="index.php" class="btn btn-secondary me-2">
                                 <i class="fas fa-times"></i> Cancel
@@ -190,13 +163,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
-
-<script>
-function confirmDelete() {
-    if (confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
-        window.location.href = 'edit.php?id=<?php echo $customer_id; ?>&action=delete';
-    }
-}
-</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

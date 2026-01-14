@@ -24,55 +24,6 @@ if (!$menu) {
     exit;
 }
 
-// Handle delete request
-if (isset($_GET['action']) && $_GET['action'] === 'delete') {
-    try {
-        // Check if menu is used in any bookings
-        $check_stmt = $db->prepare("SELECT COUNT(*) as count FROM booking_menus WHERE menu_id = ?");
-        $check_stmt->execute([$menu_id]);
-        $result = $check_stmt->fetch();
-        
-        if ($result['count'] > 0) {
-            header('Location: index.php?error=' . urlencode('Cannot delete menu. It is associated with existing bookings. You can set it to inactive instead.'));
-            exit;
-        }
-        
-        // Start transaction for atomic deletion
-        $db->beginTransaction();
-        
-        // Delete menu items first
-        $stmt = $db->prepare("DELETE FROM menu_items WHERE menu_id = ?");
-        $stmt->execute([$menu_id]);
-        
-        // Delete hall_menus associations
-        $stmt = $db->prepare("DELETE FROM hall_menus WHERE menu_id = ?");
-        $stmt->execute([$menu_id]);
-        
-        // Delete the menu
-        $stmt = $db->prepare("DELETE FROM menus WHERE id = ?");
-        if ($stmt->execute([$menu_id])) {
-            // Commit transaction
-            $db->commit();
-            
-            // Log activity
-            logActivity($current_user['id'], 'Deleted menu', 'menus', $menu_id, "Deleted menu: {$menu['name']}");
-            
-            header('Location: index.php?deleted=1');
-            exit;
-        } else {
-            $db->rollBack();
-            header('Location: index.php?error=' . urlencode('Failed to delete menu. Please try again.'));
-            exit;
-        }
-    } catch (Exception $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
-        }
-        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
-        exit;
-    }
-}
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
@@ -217,9 +168,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
-                            <i class="fas fa-trash"></i> Delete Menu
-                        </button>
+                        <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this menu? This will also delete all menu items. This action cannot be undone.');">
+                            <input type="hidden" name="id" value="<?php echo $menu_id; ?>">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Delete Menu
+                            </button>
+                        </form>
                         <div>
                             <a href="index.php" class="btn btn-secondary me-2">
                                 <i class="fas fa-times"></i> Cancel
@@ -234,13 +188,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
-
-<script>
-function confirmDelete() {
-    if (confirm('Are you sure you want to delete this menu? This will also delete all menu items. This action cannot be undone.')) {
-        window.location.href = 'edit.php?id=<?php echo $menu_id; ?>&action=delete';
-    }
-}
-</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
