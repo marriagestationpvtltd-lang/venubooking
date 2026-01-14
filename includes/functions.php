@@ -118,7 +118,28 @@ function getAvailableVenues($date, $shift) {
     
     $stmt = $db->prepare($sql);
     $stmt->execute();
-    return $stmt->fetchAll();
+    $venues = $stmt->fetchAll();
+    
+    // Get venue images from site_images as fallback
+    $venue_images = getImagesBySection('venue');
+    $venue_image_index = 0;
+    
+    // Process each venue to ensure it has an image
+    foreach ($venues as &$venue) {
+        // If venue doesn't have an image or image file doesn't exist
+        if (empty($venue['image']) || !file_exists(UPLOAD_PATH . $venue['image'])) {
+            // Use fallback from site_images
+            if (!empty($venue_images) && isset($venue_images[$venue_image_index])) {
+                $venue['image'] = $venue_images[$venue_image_index]['image_path'];
+                $venue_image_index = ($venue_image_index + 1) % count($venue_images);
+            } else {
+                // Use placeholder if no images available
+                $venue['image'] = 'placeholder-venue.jpg';
+            }
+        }
+    }
+    
+    return $venues;
 }
 
 /**

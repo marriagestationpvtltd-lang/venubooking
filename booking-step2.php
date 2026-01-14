@@ -84,10 +84,23 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
             </div>
         <?php else: ?>
             <div class="row g-4" id="venuesContainer">
-                <?php foreach ($venues as $venue): ?>
+                <?php foreach ($venues as $venue): 
+                    // Build image URL with fallback
+                    $venue_image_url = '';
+                    if (!empty($venue['image'])) {
+                        $image_path = UPLOAD_PATH . $venue['image'];
+                        if (file_exists($image_path)) {
+                            $venue_image_url = UPLOAD_URL . htmlspecialchars($venue['image'], ENT_QUOTES, 'UTF-8');
+                        }
+                    }
+                    // Use placeholder if no valid image
+                    if (empty($venue_image_url)) {
+                        $venue_image_url = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23e9ecef" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236c757d" font-size="24" font-family="Arial"%3ENo Image%3C/text%3E%3C/svg%3E';
+                    }
+                ?>
                     <div class="col-md-6 col-lg-4">
                         <div class="venue-card card h-100 shadow-sm">
-                            <div class="card-img-top venue-image" style="background-image: url('<?php echo UPLOAD_URL . htmlspecialchars($venue['image'], ENT_QUOTES, 'UTF-8'); ?>');">
+                            <div class="card-img-top venue-image" style="background-image: url('<?php echo $venue_image_url; ?>');">
                             </div>
                             <div class="card-body">
                                 <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
