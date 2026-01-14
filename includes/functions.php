@@ -120,12 +120,17 @@ function getAvailableVenues($date, $shift) {
     $stmt->execute();
     $venues = $stmt->fetchAll();
     
-    // Check if any venue needs fallback image
+    // Check file existence once and cache results
+    $file_exists_cache = [];
     $needs_fallback = false;
+    
     foreach ($venues as $venue) {
-        if (empty($venue['image']) || !file_exists(UPLOAD_PATH . basename($venue['image']))) {
+        $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
+        $exists = !empty($safe_filename) && file_exists(UPLOAD_PATH . $safe_filename);
+        $file_exists_cache[$venue['id']] = ['filename' => $safe_filename, 'exists' => $exists];
+        
+        if (!$exists) {
             $needs_fallback = true;
-            break;
         }
     }
     
@@ -138,11 +143,10 @@ function getAvailableVenues($date, $shift) {
     
     // Process each venue to ensure it has an image
     foreach ($venues as &$venue) {
-        // Sanitize filename to prevent path traversal
-        $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
+        $cache = $file_exists_cache[$venue['id']];
         
-        // If venue doesn't have an image or image file doesn't exist
-        if (empty($safe_filename) || !file_exists(UPLOAD_PATH . $safe_filename)) {
+        // If venue doesn't have a valid image
+        if (!$cache['exists']) {
             // Use fallback from site_images
             if (!empty($venue_images) && isset($venue_images[$venue_image_index])) {
                 $venue['image'] = $venue_images[$venue_image_index]['image_path'];
@@ -153,7 +157,7 @@ function getAvailableVenues($date, $shift) {
             }
         } else {
             // Ensure we use the sanitized filename
-            $venue['image'] = $safe_filename;
+            $venue['image'] = $cache['filename'];
         }
     }
     
