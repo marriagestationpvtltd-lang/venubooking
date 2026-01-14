@@ -3,62 +3,435 @@ $page_title = 'Settings';
 require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 
+$success = '';
+$error = '';
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    foreach ($_POST as $key => $value) {
-        if (strpos($key, 'setting_') === 0) {
-            $setting_key = str_replace('setting_', '', $key);
-            $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
-            $stmt->execute([$value, $setting_key]);
+    try {
+        $db->beginTransaction();
+        
+        // Handle file uploads (logo and favicon)
+        if (isset($_FILES['setting_site_logo']) && $_FILES['setting_site_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_result = handleImageUpload($_FILES['setting_site_logo'], 'logo');
+            if ($upload_result['success']) {
+                // Delete old logo if exists
+                $old_logo = getSetting('site_logo', '');
+                if (!empty($old_logo)) {
+                    deleteUploadedFile($old_logo);
+                }
+                $_POST['setting_site_logo'] = $upload_result['filename'];
+            } else {
+                throw new Exception('Logo upload failed: ' . $upload_result['message']);
+            }
         }
+        
+        if (isset($_FILES['setting_site_favicon']) && $_FILES['setting_site_favicon']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_result = handleImageUpload($_FILES['setting_site_favicon'], 'favicon');
+            if ($upload_result['success']) {
+                // Delete old favicon if exists
+                $old_favicon = getSetting('site_favicon', '');
+                if (!empty($old_favicon)) {
+                    deleteUploadedFile($old_favicon);
+                }
+                $_POST['setting_site_favicon'] = $upload_result['filename'];
+            } else {
+                throw new Exception('Favicon upload failed: ' . $upload_result['message']);
+            }
+        }
+        
+        // Update all settings
+        foreach ($_POST as $key => $value) {
+            if (strpos($key, 'setting_') === 0) {
+                $setting_key = str_replace('setting_', '', $key);
+                
+                // Check if setting exists
+                $stmt = $db->prepare("SELECT id FROM settings WHERE setting_key = ?");
+                $stmt->execute([$setting_key]);
+                
+                if ($stmt->fetch()) {
+                    // Update existing setting
+                    $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
+                    $stmt->execute([$value, $setting_key]);
+                } else {
+                    // Insert new setting with default type
+                    $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value, setting_type) VALUES (?, ?, 'text')");
+                    $stmt->execute([$setting_key, $value]);
+                }
+            }
+        }
+        
+        $db->commit();
+        $success = 'Settings updated successfully!';
+    } catch (Exception $e) {
+        $db->rollBack();
+        $error = 'Failed to update settings: ' . $e->getMessage();
     }
-    $success = 'Settings updated successfully!';
 }
 
 // Get all settings
-$stmt = $db->query("SELECT * FROM settings");
+$stmt = $db->query("SELECT setting_key, setting_value FROM settings");
 $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 ?>
 
-<?php if (isset($success)): ?>
-    <div class="alert alert-success"><?php echo $success; ?></div>
+<style>
+    .nav-tabs .nav-link {
+        color: #6c757d;
+    }
+    .nav-tabs .nav-link.active {
+        color: #4CAF50;
+        font-weight: 600;
+    }
+    .settings-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    .form-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    .image-preview {
+        margin-top: 0.5rem;
+    }
+    .image-preview img {
+        max-width: 150px;
+        max-height: 150px;
+        object-fit: contain;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 0.25rem;
+    }
+</style>
+
+<?php if ($success): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
+
+<?php if ($error): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 <?php endif; ?>
 
 <div class="card">
     <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="fas fa-cog"></i> System Settings</h5>
+        <h5 class="mb-0"><i class="fas fa-cog"></i> Website Settings</h5>
+        <small class="text-muted">Manage all website settings from this central control panel</small>
     </div>
     <div class="card-body">
-        <form method="POST">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Site Name</label>
-                    <input type="text" class="form-control" name="setting_site_name" value="<?php echo htmlspecialchars($settings['site_name'] ?? ''); ?>">
+        <form method="POST" enctype="multipart/form-data" id="settingsForm">
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#basic">
+                        <i class="fas fa-home"></i> Basic Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#content">
+                        <i class="fas fa-file-alt"></i> Content
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#booking">
+                        <i class="fas fa-calendar-check"></i> Booking
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#seo">
+                        <i class="fas fa-search"></i> SEO & Meta
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#social">
+                        <i class="fas fa-share-alt"></i> Social Media
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Basic Settings Tab -->
+                <div class="tab-pane fade show active" id="basic">
+                    <h6 class="mb-3 text-success"><i class="fas fa-info-circle"></i> Basic Website Information</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Website Name *</label>
+                            <input type="text" class="form-control" name="setting_site_name" 
+                                   value="<?php echo htmlspecialchars($settings['site_name'] ?? ''); ?>" required>
+                            <div class="form-text">The name displayed across the website</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Email *</label>
+                            <input type="email" class="form-control" name="setting_contact_email" 
+                                   value="<?php echo htmlspecialchars($settings['contact_email'] ?? ''); ?>" required>
+                            <div class="form-text">Main contact email address</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Phone *</label>
+                            <input type="text" class="form-control" name="setting_contact_phone" 
+                                   value="<?php echo htmlspecialchars($settings['contact_phone'] ?? ''); ?>" required>
+                            <div class="form-text">Main contact phone number</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">WhatsApp Number</label>
+                            <input type="text" class="form-control" name="setting_whatsapp_number" 
+                                   value="<?php echo htmlspecialchars($settings['whatsapp_number'] ?? ''); ?>">
+                            <div class="form-text">WhatsApp contact number (with country code)</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Business Address</label>
+                            <textarea class="form-control" name="setting_contact_address" rows="3"><?php echo htmlspecialchars($settings['contact_address'] ?? ''); ?></textarea>
+                            <div class="form-text">Full business address</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Business Hours</label>
+                            <textarea class="form-control" name="setting_business_hours" rows="3"><?php echo htmlspecialchars($settings['business_hours'] ?? ''); ?></textarea>
+                            <div class="form-text">Operating hours (e.g., Mon-Fri: 9 AM - 6 PM)</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Google Maps URL</label>
+                            <input type="url" class="form-control" name="setting_contact_map_url" 
+                                   value="<?php echo htmlspecialchars($settings['contact_map_url'] ?? ''); ?>">
+                            <div class="form-text">Google Maps embed or link URL</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Website Logo</label>
+                            <input type="file" class="form-control" name="setting_site_logo" accept="image/*">
+                            <div class="form-text">Recommended: 250x60px, PNG with transparent background</div>
+                            <?php if (!empty($settings['site_logo'])): ?>
+                                <div class="image-preview">
+                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($settings['site_logo']); ?>" alt="Current Logo">
+                                    <p class="text-muted small mt-1">Current logo</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Website Favicon</label>
+                            <input type="file" class="form-control" name="setting_site_favicon" accept="image/*">
+                            <div class="form-text">Recommended: 32x32px or 64x64px, ICO or PNG format</div>
+                            <?php if (!empty($settings['site_favicon'])): ?>
+                                <div class="image-preview">
+                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($settings['site_favicon']); ?>" alt="Current Favicon">
+                                    <p class="text-muted small mt-1">Current favicon</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Currency</label>
+                            <input type="text" class="form-control" name="setting_currency" 
+                                   value="<?php echo htmlspecialchars($settings['currency'] ?? 'NPR'); ?>">
+                            <div class="form-text">Currency symbol or code (e.g., NPR, $, €)</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tax Rate (%)</label>
+                            <input type="number" class="form-control" name="setting_tax_rate" 
+                                   value="<?php echo htmlspecialchars($settings['tax_rate'] ?? '13'); ?>" step="0.01" min="0">
+                            <div class="form-text">Default tax rate percentage</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Contact Email</label>
-                    <input type="email" class="form-control" name="setting_contact_email" value="<?php echo htmlspecialchars($settings['contact_email'] ?? ''); ?>">
+
+                <!-- Content Settings Tab -->
+                <div class="tab-pane fade" id="content">
+                    <h6 class="mb-3 text-success"><i class="fas fa-file-alt"></i> Frontend Content</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Footer About Text</label>
+                            <textarea class="form-control" name="setting_footer_about" rows="3"><?php echo htmlspecialchars($settings['footer_about'] ?? ''); ?></textarea>
+                            <div class="form-text">Brief description shown in footer</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Footer Copyright Text</label>
+                            <input type="text" class="form-control" name="setting_footer_copyright" 
+                                   value="<?php echo htmlspecialchars($settings['footer_copyright'] ?? ''); ?>">
+                            <div class="form-text">Custom copyright text (leave empty for auto-generated)</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Contact Phone</label>
-                    <input type="text" class="form-control" name="setting_contact_phone" value="<?php echo htmlspecialchars($settings['contact_phone'] ?? ''); ?>">
+
+                <!-- Booking Settings Tab -->
+                <div class="tab-pane fade" id="booking">
+                    <h6 class="mb-3 text-success"><i class="fas fa-calendar-check"></i> Booking & System Settings</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Advance Payment (%)</label>
+                            <input type="number" class="form-control" name="setting_advance_payment_percentage" 
+                                   value="<?php echo htmlspecialchars($settings['advance_payment_percentage'] ?? '30'); ?>" min="0" max="100">
+                            <div class="form-text">Percentage of advance payment required</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Minimum Advance Booking (Days)</label>
+                            <input type="number" class="form-control" name="setting_booking_min_advance_days" 
+                                   value="<?php echo htmlspecialchars($settings['booking_min_advance_days'] ?? '1'); ?>" min="0">
+                            <div class="form-text">Minimum days in advance for booking</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cancellation Notice (Hours)</label>
+                            <input type="number" class="form-control" name="setting_booking_cancellation_hours" 
+                                   value="<?php echo htmlspecialchars($settings['booking_cancellation_hours'] ?? '24'); ?>" min="0">
+                            <div class="form-text">Hours before event for cancellation</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Default Booking Status</label>
+                            <select class="form-select" name="setting_default_booking_status">
+                                <option value="pending" <?php echo ($settings['default_booking_status'] ?? 'pending') == 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                <option value="confirmed" <?php echo ($settings['default_booking_status'] ?? '') == 'confirmed' ? 'selected' : ''; ?>>Confirmed</option>
+                            </select>
+                            <div class="form-text">Initial status for new bookings</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Enable Online Payment</label>
+                            <select class="form-select" name="setting_enable_online_payment">
+                                <option value="0" <?php echo ($settings['enable_online_payment'] ?? '0') == '0' ? 'selected' : ''; ?>>Disabled</option>
+                                <option value="1" <?php echo ($settings['enable_online_payment'] ?? '0') == '1' ? 'selected' : ''; ?>>Enabled</option>
+                            </select>
+                            <div class="form-text">Allow customers to pay online</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Currency</label>
-                    <input type="text" class="form-control" name="setting_currency" value="<?php echo htmlspecialchars($settings['currency'] ?? 'NPR'); ?>">
+
+                <!-- SEO Settings Tab -->
+                <div class="tab-pane fade" id="seo">
+                    <h6 class="mb-3 text-success"><i class="fas fa-search"></i> SEO & Meta Tags</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Meta Title</label>
+                            <input type="text" class="form-control" name="setting_meta_title" 
+                                   value="<?php echo htmlspecialchars($settings['meta_title'] ?? ''); ?>" maxlength="60">
+                            <div class="form-text">Page title shown in search results (50-60 characters)</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Meta Description</label>
+                            <textarea class="form-control" name="setting_meta_description" rows="3" maxlength="160"><?php echo htmlspecialchars($settings['meta_description'] ?? ''); ?></textarea>
+                            <div class="form-text">Description shown in search results (150-160 characters)</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Meta Keywords</label>
+                            <textarea class="form-control" name="setting_meta_keywords" rows="2"><?php echo htmlspecialchars($settings['meta_keywords'] ?? ''); ?></textarea>
+                            <div class="form-text">Comma-separated keywords (e.g., venue booking, event venue, wedding hall)</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Tax Rate (%)</label>
-                    <input type="number" class="form-control" name="setting_tax_rate" value="<?php echo htmlspecialchars($settings['tax_rate'] ?? '13'); ?>" step="0.01">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Advance Payment (%)</label>
-                    <input type="number" class="form-control" name="setting_advance_payment_percentage" value="<?php echo htmlspecialchars($settings['advance_payment_percentage'] ?? '30'); ?>">
+
+                <!-- Social Media Tab -->
+                <div class="tab-pane fade" id="social">
+                    <h6 class="mb-3 text-success"><i class="fas fa-share-alt"></i> Social Media & External Links</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-facebook"></i> Facebook URL</label>
+                            <input type="url" class="form-control" name="setting_social_facebook" 
+                                   value="<?php echo htmlspecialchars($settings['social_facebook'] ?? ''); ?>"
+                                   placeholder="https://facebook.com/yourpage">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-instagram"></i> Instagram URL</label>
+                            <input type="url" class="form-control" name="setting_social_instagram" 
+                                   value="<?php echo htmlspecialchars($settings['social_instagram'] ?? ''); ?>"
+                                   placeholder="https://instagram.com/yourprofile">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-tiktok"></i> TikTok URL</label>
+                            <input type="url" class="form-control" name="setting_social_tiktok" 
+                                   value="<?php echo htmlspecialchars($settings['social_tiktok'] ?? ''); ?>"
+                                   placeholder="https://tiktok.com/@yourprofile">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-twitter"></i> Twitter URL</label>
+                            <input type="url" class="form-control" name="setting_social_twitter" 
+                                   value="<?php echo htmlspecialchars($settings['social_twitter'] ?? ''); ?>"
+                                   placeholder="https://twitter.com/yourprofile">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-youtube"></i> YouTube URL</label>
+                            <input type="url" class="form-control" name="setting_social_youtube" 
+                                   value="<?php echo htmlspecialchars($settings['social_youtube'] ?? ''); ?>"
+                                   placeholder="https://youtube.com/channel/yourchannel">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-linkedin"></i> LinkedIn URL</label>
+                            <input type="url" class="form-control" name="setting_social_linkedin" 
+                                   value="<?php echo htmlspecialchars($settings['social_linkedin'] ?? ''); ?>"
+                                   placeholder="https://linkedin.com/company/yourcompany">
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Settings</button>
+
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-save"></i> Save All Settings
+                </button>
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i> Changes will reflect immediately on the website
+                </small>
+            </div>
         </form>
     </div>
 </div>
+
+<script>
+// Auto-save warning before leaving page with unsaved changes
+let formChanged = false;
+let formSubmitting = false;
+
+document.getElementById('settingsForm').addEventListener('change', function(e) {
+    // Only track user-initiated changes, not programmatic ones
+    if (e.isTrusted) {
+        formChanged = true;
+    }
+});
+
+document.getElementById('settingsForm').addEventListener('submit', function() {
+    formChanged = false;
+    formSubmitting = true;
+});
+
+window.addEventListener('beforeunload', function(e) {
+    if (formChanged && !formSubmitting) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

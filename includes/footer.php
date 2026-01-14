@@ -2,26 +2,112 @@
     <footer class="bg-dark text-white py-4 mt-5">
         <div class="container">
             <div class="row">
-                <div class="col-md-4">
-                    <h5>Venue Booking System</h5>
-                    <p>Your perfect venue for every occasion</p>
+                <div class="col-md-4 mb-3">
+                    <h5><?php echo htmlspecialchars(getSetting('site_name', 'Venue Booking System')); ?></h5>
+                    <p><?php echo htmlspecialchars(getSetting('footer_about', 'Your perfect venue for every occasion')); ?></p>
+                    
+                    <?php
+                    // Get social media links
+                    $social_links = [
+                        'facebook' => ['icon' => 'fab fa-facebook', 'url' => getSetting('social_facebook', '')],
+                        'instagram' => ['icon' => 'fab fa-instagram', 'url' => getSetting('social_instagram', '')],
+                        'tiktok' => ['icon' => 'fab fa-tiktok', 'url' => getSetting('social_tiktok', '')],
+                        'twitter' => ['icon' => 'fab fa-twitter', 'url' => getSetting('social_twitter', '')],
+                        'youtube' => ['icon' => 'fab fa-youtube', 'url' => getSetting('social_youtube', '')],
+                        'linkedin' => ['icon' => 'fab fa-linkedin', 'url' => getSetting('social_linkedin', '')],
+                    ];
+                    
+                    $has_social = false;
+                    foreach ($social_links as $link) {
+                        if (!empty($link['url'])) {
+                            $has_social = true;
+                            break;
+                        }
+                    }
+                    
+                    if ($has_social):
+                    ?>
+                    <div class="social-links mt-3">
+                        <?php foreach ($social_links as $platform => $link): ?>
+                            <?php if (!empty($link['url'])): ?>
+                                <a href="<?php echo htmlspecialchars($link['url']); ?>" target="_blank" rel="noopener noreferrer" 
+                                   class="text-white me-3" title="<?php echo ucfirst($platform); ?>">
+                                    <i class="<?php echo $link['icon']; ?> fa-lg"></i>
+                                </a>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 mb-3">
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="<?php echo BASE_URL; ?>/index.php" class="text-white-50">Home</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>/admin/login.php" class="text-white-50">Admin</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>/index.php" class="text-white-50 text-decoration-none">Home</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>/admin/login.php" class="text-white-50 text-decoration-none">Admin</a></li>
                     </ul>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 mb-3">
                     <h5>Contact</h5>
-                    <p class="mb-1"><i class="fas fa-phone"></i> <?php echo getSetting('contact_phone', '+977 1234567890'); ?></p>
-                    <p><i class="fas fa-envelope"></i> <?php echo getSetting('contact_email', 'info@venubooking.com'); ?></p>
+                    <?php 
+                    $contact_phone = getSetting('contact_phone', '');
+                    $contact_email = getSetting('contact_email', '');
+                    $contact_address = getSetting('contact_address', '');
+                    $whatsapp_number = getSetting('whatsapp_number', '');
+                    ?>
+                    
+                    <?php if (!empty($contact_phone)): ?>
+                        <p class="mb-1">
+                            <i class="fas fa-phone"></i> 
+                            <a href="tel:<?php echo htmlspecialchars($contact_phone); ?>" class="text-white-50 text-decoration-none">
+                                <?php echo htmlspecialchars($contact_phone); ?>
+                            </a>
+                        </p>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($contact_email)): ?>
+                        <p class="mb-1">
+                            <i class="fas fa-envelope"></i> 
+                            <a href="mailto:<?php echo htmlspecialchars($contact_email); ?>" class="text-white-50 text-decoration-none">
+                                <?php echo htmlspecialchars($contact_email); ?>
+                            </a>
+                        </p>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($whatsapp_number)): ?>
+                        <p class="mb-1">
+                            <i class="fab fa-whatsapp"></i> 
+                            <?php 
+                            $clean_whatsapp = preg_replace('/[^0-9]/', '', $whatsapp_number);
+                            if (!empty($clean_whatsapp)): 
+                            ?>
+                            <a href="https://wa.me/<?php echo htmlspecialchars($clean_whatsapp); ?>" 
+                               target="_blank" rel="noopener noreferrer" class="text-white-50 text-decoration-none">
+                                WhatsApp Us
+                            </a>
+                            <?php endif; ?>
+                        </p>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($contact_address)): ?>
+                        <p class="mb-1">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            <?php echo nl2br(htmlspecialchars($contact_address)); ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
             </div>
             <hr class="bg-white">
             <div class="text-center">
-                <p class="mb-0">&copy; <?php echo date('Y'); ?> Venue Booking System. All rights reserved.</p>
+                <p class="mb-0">
+                    <?php 
+                    $copyright_text = getSetting('footer_copyright', '');
+                    if (!empty($copyright_text)) {
+                        echo htmlspecialchars($copyright_text);
+                    } else {
+                        echo '&copy; ' . date('Y') . ' ' . htmlspecialchars(getSetting('site_name', 'Venue Booking System')) . '. All rights reserved.';
+                    }
+                    ?>
+                </p>
             </div>
         </div>
     </footer>
