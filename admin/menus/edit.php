@@ -190,14 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="mb-3">
                         <label for="menu_image" class="form-label">Menu Image</label>
-                        <?php if (!empty($menu['image'])): 
-                            $image_path = UPLOAD_PATH . $menu['image'];
-                            if (file_exists($image_path)): ?>
-                            <div class="mb-2">
-                                <img src="<?php echo UPLOAD_URL . $menu['image']; ?>" alt="Current menu image" class="img-thumbnail" style="max-width: 200px;">
-                                <p class="text-muted small mt-1">Current image</p>
-                            </div>
-                        <?php endif; endif; ?>
+                        <?php echo displayImagePreview($menu['image'], 'Current menu image'); ?>
                         <input type="file" class="form-control" id="menu_image" name="menu_image" accept="image/*">
                         <small class="text-muted">Upload a new image to replace the current one. JPG, PNG, GIF, or WebP. Max 5MB</small>
                     </div>

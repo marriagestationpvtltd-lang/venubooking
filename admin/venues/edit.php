@@ -212,14 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="mb-3">
                         <label for="venue_image" class="form-label">Venue Image</label>
-                        <?php if (!empty($venue['image'])): 
-                            $image_path = UPLOAD_PATH . $venue['image'];
-                            if (file_exists($image_path)): ?>
-                            <div class="mb-2">
-                                <img src="<?php echo UPLOAD_URL . $venue['image']; ?>" alt="Current venue image" class="img-thumbnail" style="max-width: 200px;">
-                                <p class="text-muted small mt-1">Current image</p>
-                            </div>
-                        <?php endif; endif; ?>
+                        <?php echo displayImagePreview($venue['image'], 'Current venue image'); ?>
                         <input type="file" class="form-control" id="venue_image" name="venue_image" accept="image/*">
                         <small class="text-muted">Upload a new image to replace the current one. JPG, PNG, GIF, or WebP. Max 5MB</small>
                     </div>

@@ -416,7 +416,7 @@ function handleImageUpload($file, $prefix = 'image') {
     $result = ['success' => false, 'message' => ''];
     
     // Check if file was uploaded
-    if (!isset($file) || $file['error'] == UPLOAD_ERR_NO_FILE) {
+    if ($file['error'] == UPLOAD_ERR_NO_FILE) {
         $result['message'] = 'No file uploaded.';
         return $result;
     }
@@ -427,10 +427,23 @@ function handleImageUpload($file, $prefix = 'image') {
         return $result;
     }
     
-    // Validate file type
+    // Validate file type using MIME type (basic check)
     $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!in_array($file['type'], $allowed_types)) {
         $result['message'] = 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.';
+        return $result;
+    }
+    
+    // Validate actual image content using getimagesize (security check)
+    $image_info = @getimagesize($file['tmp_name']);
+    if ($image_info === false) {
+        $result['message'] = 'Invalid image file. The file does not appear to be a valid image.';
+        return $result;
+    }
+    
+    // Double-check MIME type from getimagesize
+    if (!in_array($image_info['mime'], $allowed_types)) {
+        $result['message'] = 'Invalid image type detected. Only JPG, PNG, GIF, and WebP images are allowed.';
         return $result;
     }
     
@@ -479,4 +492,28 @@ function deleteUploadedFile($filename) {
     }
     
     return true; // File doesn't exist, consider it deleted
+}
+
+/**
+ * Display current image preview HTML
+ * 
+ * @param string $image_filename The image filename
+ * @param string $alt_text Alternative text for the image
+ * @return string HTML for image preview or empty string if no image
+ */
+function displayImagePreview($image_filename, $alt_text = 'Current image') {
+    if (empty($image_filename)) {
+        return '';
+    }
+    
+    $image_path = UPLOAD_PATH . $image_filename;
+    if (!file_exists($image_path)) {
+        return '';
+    }
+    
+    $image_url = UPLOAD_URL . $image_filename;
+    return '<div class="mb-2">
+        <img src="' . htmlspecialchars($image_url) . '" alt="' . htmlspecialchars($alt_text) . '" class="img-thumbnail" style="max-width: 200px;">
+        <p class="text-muted small mt-1">Current image</p>
+    </div>';
 }
