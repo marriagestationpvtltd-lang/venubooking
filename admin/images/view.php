@@ -61,10 +61,10 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
                         
                         <?php if ($image_exists): ?>
                             <div class="mt-3">
-                                <a href="<?php echo $image_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <a href="<?php echo htmlspecialchars($image_url); ?>" target="_blank" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-external-link-alt"></i> Open in New Tab
                                 </a>
-                                <button onclick="copyToClipboard('<?php echo $image_url; ?>')" class="btn btn-sm btn-outline-secondary">
+                                <button onclick="copyToClipboard(<?php echo htmlspecialchars(json_encode($image_url), ENT_QUOTES); ?>)" class="btn btn-sm btn-outline-secondary">
                                     <i class="fas fa-copy"></i> Copy URL
                                 </button>
                             </div>
@@ -149,11 +149,49 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
 
 <script>
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        alert('URL copied to clipboard!');
-    }, function(err) {
-        console.error('Could not copy text: ', err);
-    });
+    // Modern approach with fallback
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('URL copied to clipboard!');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+            fallbackCopyToClipboard(text);
+        });
+    } else {
+        fallbackCopyToClipboard(text);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    // Fallback for older browsers
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.width = "2em";
+    textArea.style.height = "2em";
+    textArea.style.padding = "0";
+    textArea.style.border = "none";
+    textArea.style.outline = "none";
+    textArea.style.boxShadow = "none";
+    textArea.style.background = "transparent";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            alert('URL copied to clipboard!');
+        } else {
+            alert('Failed to copy URL. Please copy manually: ' + text);
+        }
+    } catch (err) {
+        alert('Failed to copy URL. Please copy manually: ' + text);
+    }
+    
+    document.body.removeChild(textArea);
 }
 </script>
 

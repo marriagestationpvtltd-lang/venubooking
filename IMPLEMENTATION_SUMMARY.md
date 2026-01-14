@@ -225,6 +225,73 @@ While not part of the current scope, these could improve the system:
 9. Payment gateway integration
 10. Customer portal for self-service bookings
 
+## New Feature: Dynamic Image Upload System
+
+### Overview
+A comprehensive image management system has been added to allow administrators to upload and manage images dynamically across different sections of the website.
+
+### Files Created
+- `admin/images/index.php` - List and manage all images with DataTables
+- `admin/images/add.php` - Upload new images with section assignment
+- `admin/images/edit.php` - Edit image details and replace files
+- `admin/images/view.php` - View detailed image information
+- `api/get-images.php` - API endpoint to fetch images by section
+- `database/migrations/add_site_images_table.sql` - Database migration script
+- `install-image-feature.sh` - Automated installation script
+- `IMAGE_UPLOAD_GUIDE.md` - Comprehensive user documentation
+
+### Files Modified
+- `admin/includes/header.php` - Added Images menu item
+- `database/schema.sql` - Added site_images table
+- `includes/functions.php` - Added image helper functions
+- `index.php` - Integrated dynamic banner and gallery images
+
+### Features
+- ✅ Upload images with section assignment (banner, gallery, venue, hall, etc.)
+- ✅ File validation (type, size, security)
+- ✅ Display order management
+- ✅ Active/Inactive status control
+- ✅ Replace existing images while keeping metadata
+- ✅ Preview images in admin panel
+- ✅ Copy image URLs to clipboard
+- ✅ API endpoint for programmatic access
+- ✅ Dynamic frontend display by section
+- ✅ Comprehensive error handling
+
+### Supported Sections
+1. Banner/Hero - Main homepage background
+2. Venue Gallery - Venue-specific images
+3. Hall Gallery - Hall-specific images
+4. Package/Menu - Menu package images
+5. Gallery - General photo gallery
+6. Testimonials - Customer testimonial images
+7. Features - Feature section images
+8. About Us - About section images
+9. Other - Miscellaneous images
+
+### Frontend Integration
+- Banner images dynamically replace homepage hero background
+- Gallery section displays up to 6 images automatically
+- Helper functions: `getImagesBySection()` and `getFirstImage()`
+- API accessible at `/api/get-images.php?section=SECTION_NAME`
+
+### Security Features
+- File type validation (JPG, PNG, GIF, WebP only)
+- File size limits (5MB maximum)
+- Sanitized filenames with unique identifiers
+- Admin-only access with authentication checks
+- Activity logging for all operations
+
+### Installation
+Run the installation script: `./install-image-feature.sh`
+
+This will:
+1. Create the database table
+2. Set up uploads directory
+3. Configure permissions
+
+For detailed usage instructions, see `IMAGE_UPLOAD_GUIDE.md`.
+
 ## Conclusion
 
 All admin functions have been completed and are ready for live deployment. The implementation:
@@ -234,5 +301,6 @@ All admin functions have been completed and are ready for live deployment. The i
 - ✅ Provides complete CRUD functionality across all sections
 - ✅ Includes proper error handling and validation
 - ✅ Is production-ready
+- ✅ **NEW: Dynamic image upload and management system**
 
-The venue booking system admin panel is now fully functional and ready to go live!
+The venue booking system admin panel is now fully functional with comprehensive image management and ready to go live!

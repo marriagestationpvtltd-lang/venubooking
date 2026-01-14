@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Handle file upload
         $file = $_FILES['image'];
-        $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $max_size = 5 * 1024 * 1024; // 5MB
 
         if ($file['error'] !== UPLOAD_ERR_OK) {

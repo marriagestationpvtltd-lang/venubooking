@@ -6,6 +6,14 @@ $db = getDB();
 $success_message = '';
 $error_message = '';
 
+// Helper function to clean up uploaded file
+function cleanupUploadedFile($filename) {
+    $file_path = UPLOAD_PATH . $filename;
+    if (file_exists($file_path)) {
+        unlink($file_path);
+    }
+}
+
 // Define available sections
 $sections = [
     'banner' => 'Banner / Hero Section',
@@ -56,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle new file upload if provided
         if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
             $file = $_FILES['image'];
-            $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             $max_size = 5 * 1024 * 1024; // 5MB
 
             if (!in_array($file['type'], $allowed_types)) {
@@ -78,10 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (move_uploaded_file($file['tmp_name'], $upload_path)) {
                     $update_image = true;
                     // Delete old image file
-                    $old_file = UPLOAD_PATH . $image['image_path'];
-                    if (file_exists($old_file)) {
-                        unlink($old_file);
-                    }
+                    cleanupUploadedFile($image['image_path']);
                 } else {
                     $error_message = 'Failed to upload new file. Please check directory permissions.';
                 }
@@ -119,15 +124,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $success_message = 'Image updated successfully!';
                 } else {
                     // If update failed and we uploaded a new file, delete it
-                    if ($update_image && file_exists(UPLOAD_PATH . $new_filename)) {
-                        unlink(UPLOAD_PATH . $new_filename);
+                    if ($update_image) {
+                        cleanupUploadedFile($new_filename);
                     }
                     $error_message = 'Failed to update image. Please try again.';
                 }
             } catch (Exception $e) {
                 // If exception and we uploaded a new file, delete it
-                if ($update_image && file_exists(UPLOAD_PATH . $new_filename)) {
-                    unlink(UPLOAD_PATH . $new_filename);
+                if ($update_image) {
+                    cleanupUploadedFile($new_filename);
                 }
                 $error_message = 'Error: ' . $e->getMessage();
             }
