@@ -5,16 +5,12 @@ $db = getDB();
 $stmt = $db->query("SELECT * FROM additional_services ORDER BY category, name");
 $services = $stmt->fetchAll();
 
-$success_message = '';
-$error_message = '';
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
 
-if (isset($_GET['deleted'])) {
-    $success_message = 'Service deleted successfully!';
-}
-
-if (isset($_GET['error'])) {
-    $error_message = $_GET['error'];
-}
+// Clear session messages after displaying
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 ?>
 
 <?php if ($success_message): ?>
@@ -58,10 +54,12 @@ if (isset($_GET['error'])) {
                             <td><?php echo formatCurrency($service['price']); ?></td>
                             <td><span class="badge bg-<?php echo $service['status'] == 'active' ? 'success' : 'secondary'; ?>"><?php echo ucfirst($service['status']); ?></span></td>
                             <td>
-                                <a href="view.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
-                                <a href="edit.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
-                                <a href="edit.php?id=<?php echo $service['id']; ?>&action=delete" class="btn btn-sm btn-danger" 
-                                   onclick="return confirm('Are you sure you want to delete this service? This action cannot be undone.');"><i class="fas fa-trash"></i></a>
+                                <a href="view.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>
+                                <a href="edit.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                                <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this service? This action cannot be undone.');">
+                                    <input type="hidden" name="id" value="<?php echo $service['id']; ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

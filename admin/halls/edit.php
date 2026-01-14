@@ -24,61 +24,6 @@ if (!$hall) {
     exit;
 }
 
-// Handle delete request
-if (isset($_GET['action']) && $_GET['action'] === 'delete') {
-    try {
-        // Check if hall has bookings
-        $check_stmt = $db->prepare("SELECT COUNT(*) as count FROM bookings WHERE hall_id = ?");
-        $check_stmt->execute([$hall_id]);
-        $result = $check_stmt->fetch();
-        
-        if ($result['count'] > 0) {
-            header('Location: index.php?error=' . urlencode('Cannot delete hall. It has ' . $result['count'] . ' associated booking(s). You can set it to inactive instead.'));
-            exit;
-        }
-        
-        // Start transaction for atomic deletion
-        $db->beginTransaction();
-        
-        // Delete hall images first
-        $images_stmt = $db->prepare("SELECT image_path FROM hall_images WHERE hall_id = ?");
-        $images_stmt->execute([$hall_id]);
-        $images = $images_stmt->fetchAll();
-        
-        foreach ($images as $image) {
-            deleteUploadedFile($image['image_path']);
-        }
-        
-        $db->prepare("DELETE FROM hall_images WHERE hall_id = ?")->execute([$hall_id]);
-        
-        // Delete hall_menus associations
-        $db->prepare("DELETE FROM hall_menus WHERE hall_id = ?")->execute([$hall_id]);
-        
-        // Delete the hall
-        $stmt = $db->prepare("DELETE FROM halls WHERE id = ?");
-        if ($stmt->execute([$hall_id])) {
-            // Commit transaction
-            $db->commit();
-            
-            // Log activity
-            logActivity($current_user['id'], 'Deleted hall', 'halls', $hall_id, "Deleted hall: {$hall['name']}");
-            
-            header('Location: index.php?deleted=1');
-            exit;
-        } else {
-            $db->rollBack();
-            header('Location: index.php?error=' . urlencode('Failed to delete hall. Please try again.'));
-            exit;
-        }
-    } catch (Exception $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
-        }
-        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
-        exit;
-    }
-}
-
 // Fetch all venues for dropdown
 $venues_stmt = $db->query("SELECT id, name FROM venues WHERE status = 'active' ORDER BY name");
 $venues = $venues_stmt->fetchAll();

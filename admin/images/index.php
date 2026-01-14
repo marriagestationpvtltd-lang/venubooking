@@ -3,8 +3,6 @@ $page_title = 'Manage Images';
 require_once __DIR__ . '/../includes/header.php';
 
 $db = getDB();
-$success_message = '';
-$error_message = '';
 
 // Handle delete request
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
@@ -26,12 +24,23 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
             }
             
             logActivity($current_user['id'], 'Deleted image', 'site_images', $id, "Deleted image: " . $image['image_path']);
-            $success_message = 'Image deleted successfully!';
+            $_SESSION['success_message'] = 'Image deleted successfully!';
         } else {
-            $error_message = 'Failed to delete image.';
+            $_SESSION['error_message'] = 'Failed to delete image.';
         }
     }
+    
+    // Redirect to remove query parameter
+    header('Location: index.php');
+    exit;
 }
+
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+
+// Clear session messages after displaying
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 
 // Fetch all images
 $stmt = $db->query("SELECT * FROM site_images ORDER BY section, display_order, created_at DESC");

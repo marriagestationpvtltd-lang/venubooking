@@ -5,16 +5,12 @@ $db = getDB();
 $stmt = $db->query("SELECT c.*, COUNT(b.id) as booking_count FROM customers c LEFT JOIN bookings b ON c.id = b.customer_id GROUP BY c.id ORDER BY c.created_at DESC");
 $customers = $stmt->fetchAll();
 
-$success_message = '';
-$error_message = '';
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
 
-if (isset($_GET['deleted'])) {
-    $success_message = 'Customer deleted successfully!';
-}
-
-if (isset($_GET['error'])) {
-    $error_message = $_GET['error'];
-}
+// Clear session messages after displaying
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 ?>
 
 <?php if ($success_message): ?>
@@ -57,8 +53,12 @@ if (isset($_GET['error'])) {
                             <td><?php echo htmlspecialchars($customer['email']); ?></td>
                             <td><?php echo $customer['booking_count']; ?></td>
                             <td>
-                                <a href="view.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
-                                <a href="edit.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                <a href="view.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>
+                                <a href="edit.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                                <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this customer? This action cannot be undone.');">
+                                    <input type="hidden" name="id" value="<?php echo $customer['id']; ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

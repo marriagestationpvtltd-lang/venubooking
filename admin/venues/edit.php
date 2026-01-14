@@ -24,36 +24,6 @@ if (!$venue) {
     exit;
 }
 
-// Handle delete request
-if (isset($_GET['action']) && $_GET['action'] === 'delete') {
-    try {
-        // Check if venue has halls
-        $check_stmt = $db->prepare("SELECT COUNT(*) as count FROM halls WHERE venue_id = ?");
-        $check_stmt->execute([$venue_id]);
-        $result = $check_stmt->fetch();
-        
-        if ($result['count'] > 0) {
-            header('Location: index.php?error=' . urlencode('Cannot delete venue. It has ' . $result['count'] . ' associated hall(s). Please delete the halls first.'));
-            exit;
-        }
-        
-        $stmt = $db->prepare("DELETE FROM venues WHERE id = ?");
-        if ($stmt->execute([$venue_id])) {
-            // Log activity
-            logActivity($current_user['id'], 'Deleted venue', 'venues', $venue_id, "Deleted venue: {$venue['name']}");
-            
-            header('Location: index.php?deleted=1');
-            exit;
-        } else {
-            header('Location: index.php?error=' . urlencode('Failed to delete venue. Please try again.'));
-            exit;
-        }
-    } catch (Exception $e) {
-        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
-        exit;
-    }
-}
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
@@ -229,9 +199,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">
-                            <i class="fas fa-trash"></i> Delete Venue
-                        </button>
+                        <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this venue? This action cannot be undone.');">
+                            <input type="hidden" name="id" value="<?php echo $venue_id; ?>">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Delete Venue
+                            </button>
+                        </form>
                         <div>
                             <a href="index.php" class="btn btn-secondary me-2">
                                 <i class="fas fa-times"></i> Cancel
@@ -246,13 +219,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
-
-<script>
-function confirmDelete() {
-    if (confirm('Are you sure you want to delete this venue? This action cannot be undone.')) {
-        window.location.href = 'edit.php?id=<?php echo $venue_id; ?>&action=delete';
-    }
-}
-</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

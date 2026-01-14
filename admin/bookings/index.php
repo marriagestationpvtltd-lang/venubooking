@@ -4,16 +4,12 @@ require_once __DIR__ . '/../includes/header.php';
 
 $db = getDB();
 
-$success_message = '';
-$error_message = '';
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
 
-if (isset($_GET['deleted'])) {
-    $success_message = 'Booking deleted successfully!';
-}
-
-if (isset($_GET['error'])) {
-    $error_message = $_GET['error'];
-}
+// Clear session messages after displaying
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 
 // Get all bookings
 $stmt = $db->query("SELECT b.*, c.full_name, c.phone, h.name as hall_name, v.name as venue_name 
@@ -105,6 +101,10 @@ $bookings = $stmt->fetchAll();
                                 <a href="edit.php?id=<?php echo $booking['id']; ?>" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this booking? This action cannot be undone.');">
+                                    <input type="hidden" name="id" value="<?php echo $booking['id']; ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
