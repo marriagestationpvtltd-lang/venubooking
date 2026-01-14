@@ -1,0 +1,291 @@
+/* ============================================
+   Admin Panel Stylesheet
+   ============================================ */
+
+:root {
+    --primary: #4CAF50;
+    --primary-dark: #2E7D32;
+    --sidebar-width: 260px;
+    --navbar-height: 60px;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f5f5;
+    overflow-x: hidden;
+}
+
+/* ============================================
+   Layout
+   ============================================ */
+.wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    margin-top: var(--navbar-height);
+}
+
+/* ============================================
+   Navbar
+   ============================================ */
+.navbar {
+    background: var(--primary) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+/* ============================================
+   Sidebar
+   ============================================ */
+.sidebar {
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
+    background: #2c3e50;
+    color: #fff;
+    min-height: calc(100vh - var(--navbar-height));
+    transition: all 0.3s;
+}
+
+.sidebar-header {
+    padding: 20px;
+    background: #1a252f;
+}
+
+.sidebar-header h3 {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.sidebar ul.components {
+    padding: 20px 0;
+}
+
+.sidebar ul li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar ul li a {
+    padding: 15px 20px;
+    font-size: 0.95rem;
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li.active > a {
+    background: var(--primary);
+    color: #fff;
+}
+
+.sidebar ul li a i {
+    margin-right: 10px;
+    width: 20px;
+}
+
+.sidebar ul ul a {
+    font-size: 0.9rem;
+    padding-left: 45px;
+    background: #1a252f;
+}
+
+.sidebar ul ul a:hover {
+    background: var(--primary);
+}
+
+/* ============================================
+   Content
+   ============================================ */
+.content {
+    width: 100%;
+    padding: 30px;
+    min-height: calc(100vh - var(--navbar-height));
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+.stat-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stat-card .stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.stat-card.stat-primary .stat-icon { color: var(--primary); }
+.stat-card.stat-success .stat-icon { color: #28a745; }
+.stat-card.stat-warning .stat-icon { color: #ffc107; }
+.stat-card.stat-danger .stat-icon { color: #dc3545; }
+.stat-card.stat-info .stat-icon { color: #17a2b8; }
+
+.stat-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.stat-card p {
+    color: #666;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   Tables
+   ============================================ */
+.table-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.table-card h5 {
+    margin-bottom: 20px;
+    color: var(--primary-dark);
+    font-weight: 700;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+}
+
+.table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+.btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   Badges
+   ============================================ */
+.badge {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+}
+
+/* ============================================
+   Forms
+   ============================================ */
+.form-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.form-card h5 {
+    margin-bottom: 20px;
+    color: var(--primary-dark);
+    font-weight: 700;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 10px;
+}
+
+/* ============================================
+   Breadcrumb
+   ============================================ */
+.page-breadcrumb {
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.page-breadcrumb .breadcrumb {
+    margin: 0;
+}
+
+/* ============================================
+   Page Header
+   ============================================ */
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h2 {
+    color: var(--primary-dark);
+    font-weight: 700;
+}
+
+/* ============================================
+   DataTables Customization
+   ============================================ */
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px 10px;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 768px) {
+    .sidebar {
+        margin-left: calc(-1 * var(--sidebar-width));
+    }
+    
+    .sidebar.active {
+        margin-left: 0;
+    }
+    
+    .content {
+        width: 100%;
+    }
+}
+
+/* ============================================
+   Utilities
+   ============================================ */
+.text-primary-dark {
+    color: var(--primary-dark) !important;
+}
+
+.bg-primary-light {
+    background-color: #e8f5e9 !important;
+}
