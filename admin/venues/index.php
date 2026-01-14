@@ -4,7 +4,19 @@ require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 $stmt = $db->query("SELECT * FROM venues ORDER BY name");
 $venues = $stmt->fetchAll();
+
+$success_message = '';
+if (isset($_GET['deleted'])) {
+    $success_message = 'Venue deleted successfully!';
+}
 ?>
+
+<?php if ($success_message): ?>
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">

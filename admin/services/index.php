@@ -4,7 +4,19 @@ require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 $stmt = $db->query("SELECT * FROM additional_services ORDER BY category, name");
 $services = $stmt->fetchAll();
+
+$success_message = '';
+if (isset($_GET['deleted'])) {
+    $success_message = 'Service deleted successfully!';
+}
 ?>
+
+<?php if ($success_message): ?>
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -33,6 +45,7 @@ $services = $stmt->fetchAll();
                             <td><?php echo formatCurrency($service['price']); ?></td>
                             <td><span class="badge bg-<?php echo $service['status'] == 'active' ? 'success' : 'secondary'; ?>"><?php echo ucfirst($service['status']); ?></span></td>
                             <td>
+                                <a href="view.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
                                 <a href="edit.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
                             </td>
                         </tr>
