@@ -1,10 +1,14 @@
 <?php
 $page_title = 'Book Your Event';
 require_once __DIR__ . '/includes/header.php';
+
+// Get banner images
+$banner_images = getImagesBySection('banner', 1);
+$banner_image = !empty($banner_images) ? $banner_images[0] : null;
 ?>
 
 <!-- Hero Section -->
-<section class="hero-section">
+<section class="hero-section" <?php if ($banner_image): ?>style="background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('<?php echo htmlspecialchars($banner_image['image_url']); ?>') center/cover no-repeat;"<?php endif; ?>>
     <div class="hero-overlay">
         <div class="container">
             <div class="row align-items-center min-vh-100">
@@ -120,6 +124,39 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </section>
+
+<?php
+// Get gallery images
+$gallery_images = getImagesBySection('gallery', 6);
+if (!empty($gallery_images)):
+?>
+<!-- Gallery Section -->
+<section class="gallery-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Our Gallery</h2>
+        <div class="row g-4">
+            <?php foreach ($gallery_images as $image): ?>
+                <div class="col-md-4 col-sm-6">
+                    <div class="gallery-item">
+                        <img src="<?php echo htmlspecialchars($image['image_url']); ?>" 
+                             alt="<?php echo htmlspecialchars($image['title']); ?>" 
+                             class="img-fluid rounded shadow-sm"
+                             style="width: 100%; height: 250px; object-fit: cover;">
+                        <?php if ($image['title']): ?>
+                            <div class="gallery-caption mt-2">
+                                <h6 class="mb-0"><?php echo htmlspecialchars($image['title']); ?></h6>
+                                <?php if ($image['description']): ?>
+                                    <small class="text-muted"><?php echo htmlspecialchars($image['description']); ?></small>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <?php
 $extra_js = '<script src="' . BASE_URL . '/js/booking-flow.js"></script>';
