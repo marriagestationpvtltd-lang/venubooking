@@ -52,32 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_item'])) {
     exit;
 }
 
-// Handle delete item
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
-    $item_id = intval($_POST['delete_item']);
-    try {
-        $stmt = $db->prepare("DELETE FROM menu_items WHERE id = ? AND menu_id = ?");
-        if ($stmt->execute([$item_id, $menu_id])) {
-            logActivity($current_user['id'], 'Deleted menu item', 'menu_items', $item_id, "Deleted item from menu: {$menu['name']}");
-            $_SESSION['success_message'] = 'Menu item deleted successfully!';
-        } else {
-            $_SESSION['error_message'] = 'Failed to delete menu item.';
-        }
-    } catch (Exception $e) {
-        $_SESSION['error_message'] = 'Error deleting item: ' . $e->getMessage();
-    }
-    // Redirect to prevent refresh resubmission
-    header("Location: items.php?id=$menu_id");
-    exit;
-}
-
-$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
-$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
-
-// Clear session messages after displaying
-unset($_SESSION['success_message']);
-unset($_SESSION['error_message']);
-
 // Handle add item
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_item'])) {
     $item_name = trim($_POST['item_name']);
@@ -104,6 +78,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_item'])) {
     header("Location: items.php?id=$menu_id");
     exit;
 }
+
+// Handle delete item
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_item'])) {
+    $item_id = intval($_POST['delete_item']);
+    try {
+        $stmt = $db->prepare("DELETE FROM menu_items WHERE id = ? AND menu_id = ?");
+        if ($stmt->execute([$item_id, $menu_id])) {
+            logActivity($current_user['id'], 'Deleted menu item', 'menu_items', $item_id, "Deleted item from menu: {$menu['name']}");
+            $_SESSION['success_message'] = 'Menu item deleted successfully!';
+        } else {
+            $_SESSION['error_message'] = 'Failed to delete menu item.';
+        }
+    } catch (Exception $e) {
+        $_SESSION['error_message'] = 'Error deleting item: ' . $e->getMessage();
+    }
+    // Redirect to prevent refresh resubmission
+    header("Location: items.php?id=$menu_id");
+    exit;
+}
+
+// Retrieve and clear session messages (only runs on GET requests after redirect)
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 
 // Fetch menu items
 $items_stmt = $db->prepare("SELECT * FROM menu_items WHERE menu_id = ? ORDER BY display_order, category, item_name");
@@ -181,7 +180,7 @@ foreach ($menu_items as $item) {
                     <div class="mb-3">
                         <label for="display_order" class="form-label">Display Order</label>
                         <input type="number" class="form-control" id="display_order" name="display_order" 
-                               value="<?php echo isset($_POST['display_order']) ? $_POST['display_order'] : '0'; ?>" 
+                               value="<?php echo isset($_POST['display_order']) ? htmlspecialchars($_POST['display_order']) : '0'; ?>" 
                                min="0" placeholder="0">
                         <small class="text-muted">Lower numbers appear first</small>
                     </div>
@@ -230,7 +229,7 @@ foreach ($menu_items as $item) {
                                             <i class="fas fa-utensils text-muted me-2"></i>
                                             <strong><?php echo htmlspecialchars($item['item_name']); ?></strong>
                                             <br>
-                                            <small class="text-muted">Order: <?php echo $item['display_order']; ?></small>
+                                            <small class="text-muted">Order: <?php echo htmlspecialchars($item['display_order']); ?></small>
                                         </div>
                                         <div>
                                             <button type="button" class="btn btn-sm btn-warning me-1" 
@@ -293,7 +292,7 @@ foreach ($menu_items as $item) {
                                                                    class="form-control" 
                                                                    id="edit_display_order_<?php echo $item['id']; ?>" 
                                                                    name="display_order" 
-                                                                   value="<?php echo $item['display_order']; ?>" 
+                                                                   value="<?php echo htmlspecialchars($item['display_order']); ?>" 
                                                                    min="0">
                                                             <small class="text-muted">Lower numbers appear first</small>
                                                         </div>
