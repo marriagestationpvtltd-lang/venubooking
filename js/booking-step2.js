@@ -65,7 +65,7 @@ function displayHalls(halls, venueName) {
         const hallCard = `
             <div class="col-md-6 col-lg-4">
                 <div class="hall-card card h-100">
-                    ${hall.image ? `<img src="${baseUrl}/uploads/halls/${hall.image}" class="card-img-top hall-image" alt="${hall.name}">` : ''}
+                    ${hall.image ? `<img src="${baseUrl}/uploads/${hall.image}" class="card-img-top hall-image" alt="${hall.name}">` : ''}
                     <div class="card-body">
                         <h5 class="card-title">${hall.name}</h5>
                         <div class="mb-3">

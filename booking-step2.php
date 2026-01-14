@@ -87,7 +87,7 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
                 <?php foreach ($venues as $venue): ?>
                     <div class="col-md-6 col-lg-4">
                         <div class="venue-card card h-100 shadow-sm">
-                            <div class="card-img-top venue-image" style="background-image: url('<?php echo UPLOAD_URL; ?>venues/<?php echo $venue['image']; ?>');">
+                            <div class="card-img-top venue-image" style="background-image: url('<?php echo UPLOAD_URL . htmlspecialchars($venue['image'], ENT_QUOTES, 'UTF-8'); ?>');">
                             </div>
                             <div class="card-body">
                                 <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
