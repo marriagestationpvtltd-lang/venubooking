@@ -33,21 +33,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         $result = $check_stmt->fetch();
         
         if ($result['count'] > 0) {
-            $error_message = 'Cannot delete service. It is associated with existing bookings. You can set it to inactive instead.';
+            header('Location: index.php?error=' . urlencode('Cannot delete service. It is associated with existing bookings. You can set it to inactive instead.'));
+            exit;
+        }
+        
+        $stmt = $db->prepare("DELETE FROM additional_services WHERE id = ?");
+        if ($stmt->execute([$service_id])) {
+            // Log activity
+            logActivity($current_user['id'], 'Deleted service', 'additional_services', $service_id, "Deleted service: {$service['name']}");
+            
+            header('Location: index.php?deleted=1');
+            exit;
         } else {
-            $stmt = $db->prepare("DELETE FROM additional_services WHERE id = ?");
-            if ($stmt->execute([$service_id])) {
-                // Log activity
-                logActivity($current_user['id'], 'Deleted service', 'additional_services', $service_id, "Deleted service: {$service['name']}");
-                
-                header('Location: index.php?deleted=1');
-                exit;
-            } else {
-                $error_message = 'Failed to delete service. Please try again.';
-            }
+            header('Location: index.php?error=' . urlencode('Failed to delete service. Please try again.'));
+            exit;
         }
     } catch (Exception $e) {
-        $error_message = 'Error: ' . $e->getMessage();
+        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
+        exit;
     }
 }
 

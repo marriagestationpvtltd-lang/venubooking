@@ -40,6 +40,9 @@ $selected_services = array_column($booking['services'], 'service_id');
 // Handle delete request
 if (isset($_GET['action']) && $_GET['action'] === 'delete') {
     try {
+        // Start transaction for atomic deletion
+        $db->beginTransaction();
+        
         // Delete related records first
         $db->prepare("DELETE FROM booking_menus WHERE booking_id = ?")->execute([$booking_id]);
         $db->prepare("DELETE FROM booking_services WHERE booking_id = ?")->execute([$booking_id]);
@@ -47,16 +50,25 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         // Delete the booking
         $stmt = $db->prepare("DELETE FROM bookings WHERE id = ?");
         if ($stmt->execute([$booking_id])) {
+            // Commit transaction
+            $db->commit();
+            
             logActivity($current_user['id'], 'Deleted booking', 'bookings', $booking_id, "Deleted booking: {$booking['booking_number']}");
             header('Location: index.php?deleted=1');
             exit;
         } else {
-            $error_message = 'Failed to delete booking. Please try again.';
+            $db->rollBack();
+            header('Location: index.php?error=' . urlencode('Failed to delete booking. Please try again.'));
+            exit;
         }
     } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
         // Log the error for debugging
         error_log('Booking deletion error: ' . $e->getMessage());
-        $error_message = 'Error deleting booking. Please try again or contact support.';
+        header('Location: index.php?error=' . urlencode('Error deleting booking. Please try again or contact support.'));
+        exit;
     }
 }
 

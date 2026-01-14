@@ -33,21 +33,24 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete') {
         $result = $check_stmt->fetch();
         
         if ($result['count'] > 0) {
-            $error_message = 'Cannot delete venue. It has ' . $result['count'] . ' associated hall(s). Please delete the halls first.';
+            header('Location: index.php?error=' . urlencode('Cannot delete venue. It has ' . $result['count'] . ' associated hall(s). Please delete the halls first.'));
+            exit;
+        }
+        
+        $stmt = $db->prepare("DELETE FROM venues WHERE id = ?");
+        if ($stmt->execute([$venue_id])) {
+            // Log activity
+            logActivity($current_user['id'], 'Deleted venue', 'venues', $venue_id, "Deleted venue: {$venue['name']}");
+            
+            header('Location: index.php?deleted=1');
+            exit;
         } else {
-            $stmt = $db->prepare("DELETE FROM venues WHERE id = ?");
-            if ($stmt->execute([$venue_id])) {
-                // Log activity
-                logActivity($current_user['id'], 'Deleted venue', 'venues', $venue_id, "Deleted venue: {$venue['name']}");
-                
-                header('Location: index.php?deleted=1');
-                exit;
-            } else {
-                $error_message = 'Failed to delete venue. Please try again.';
-            }
+            header('Location: index.php?error=' . urlencode('Failed to delete venue. Please try again.'));
+            exit;
         }
     } catch (Exception $e) {
-        $error_message = 'Error: ' . $e->getMessage();
+        header('Location: index.php?error=' . urlencode('Error: ' . $e->getMessage()));
+        exit;
     }
 }
 
