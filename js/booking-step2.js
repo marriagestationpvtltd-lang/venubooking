@@ -4,6 +4,17 @@
 
 let currentVenueId = null;
 
+// Escape HTML to prevent XSS - safer implementation
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // Show halls for selected venue
 function showHalls(venueId, venueName) {
     currentVenueId = venueId;
@@ -61,27 +72,35 @@ function displayHalls(halls, venueName) {
     
     hallsContainer.innerHTML = '';
     
+    // Build all hall cards HTML first for better performance
+    let hallsHtml = '';
+    
     halls.forEach(hall => {
         const hallCard = `
             <div class="col-md-6 col-lg-4">
                 <div class="hall-card card h-100">
-                    ${hall.image ? `<img src="${baseUrl}/uploads/halls/${hall.image}" class="card-img-top hall-image" alt="${hall.name}">` : ''}
+                    ${hall.image ? `<img src="${baseUrl}/uploads/${escapeHtml(hall.image)}" class="card-img-top hall-image" alt="${escapeHtml(hall.name)}">` : ''}
                     <div class="card-body">
-                        <h5 class="card-title">${hall.name}</h5>
+                        <h5 class="card-title">${escapeHtml(hall.name)}</h5>
                         <div class="mb-3">
                             <span class="capacity-badge">
-                                <i class="fas fa-users"></i> ${hall.capacity} pax
+                                <i class="fas fa-users"></i> ${parseInt(hall.capacity, 10) || 0} pax
                             </span>
-                            <span class="badge bg-info ms-2">${hall.indoor_outdoor}</span>
+                            <span class="badge bg-info ms-2">${escapeHtml(hall.indoor_outdoor)}</span>
                         </div>
-                        <p class="card-text text-muted">${hall.description || ''}</p>
-                        ${hall.features ? `<p class="small"><strong>Features:</strong> ${hall.features}</p>` : ''}
+                        <p class="card-text text-muted">${escapeHtml(hall.description || '')}</p>
+                        ${hall.features ? `<p class="small"><strong>Features:</strong> ${escapeHtml(hall.features)}</p>` : ''}
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="text-muted">Base Price:</span>
-                            <h5 class="text-success mb-0">${formatCurrency(hall.base_price)}</h5>
+                            <h5 class="text-success mb-0">${formatCurrency(parseFloat(hall.base_price) || 0)}</h5>
                         </div>
                         ${hall.available ? 
-                            `<button class="btn btn-success w-100" onclick="selectHall(${hall.id}, '${hall.name}', '${venueName}', ${hall.base_price}, ${hall.capacity})">
+                            `<button class="btn btn-success w-100 select-hall-btn" 
+                                     data-hall-id="${parseInt(hall.id, 10) || 0}" 
+                                     data-hall-name="${hall.name || ''}" 
+                                     data-venue-name="${venueName || ''}" 
+                                     data-base-price="${parseFloat(hall.base_price) || 0}" 
+                                     data-capacity="${parseInt(hall.capacity, 10) || 0}">
                                 <i class="fas fa-check"></i> Select This Hall
                             </button>` :
                             `<button class="btn btn-secondary w-100" disabled>
@@ -92,7 +111,29 @@ function displayHalls(halls, venueName) {
                 </div>
             </div>
         `;
-        hallsContainer.innerHTML += hallCard;
+        hallsHtml += hallCard;
+    });
+    
+    // Set innerHTML once for better performance
+    hallsContainer.innerHTML = hallsHtml;
+    
+    // Add event listeners to select buttons using event delegation
+    hallsContainer.querySelectorAll('.select-hall-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const hallId = parseInt(this.getAttribute('data-hall-id'), 10);
+            const hallName = this.getAttribute('data-hall-name') || '';
+            const venueName = this.getAttribute('data-venue-name') || '';
+            const basePrice = parseFloat(this.getAttribute('data-base-price'));
+            const capacity = parseInt(this.getAttribute('data-capacity'), 10);
+            
+            // Validate numeric values are valid and positive
+            if (isNaN(hallId) || hallId <= 0 || isNaN(basePrice) || basePrice < 0 || isNaN(capacity) || capacity <= 0) {
+                showError('Invalid hall data. Please try again.');
+                return;
+            }
+            
+            selectHall(hallId, hallName, venueName, basePrice, capacity);
+        });
     });
     
     // Scroll to halls section
