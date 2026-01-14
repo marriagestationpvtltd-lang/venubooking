@@ -58,8 +58,12 @@ function logout() {
 /**
  * Require login
  */
-function requireLogin($redirect = '/admin/login.php') {
+function requireLogin($redirect = null) {
     if (!isLoggedIn()) {
+        // Default redirect to admin login page with BASE_URL support
+        if ($redirect === null) {
+            $redirect = BASE_URL . '/admin/login.php';
+        }
         header('Location: ' . $redirect);
         exit;
     }
