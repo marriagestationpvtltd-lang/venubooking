@@ -1,0 +1,378 @@
+/* Venue Booking System - Main Styles */
+
+:root {
+    --primary-green: #4CAF50;
+    --dark-green: #2E7D32;
+    --light-green: #81C784;
+    --accent-orange: #FFA726;
+    --bg-light: #F5F5F5;
+    --text-dark: #333333;
+    --text-muted: #666666;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-dark);
+    background-color: var(--bg-light);
+}
+
+/* Navbar Styles */
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
+    position: relative;
+    min-height: 100vh;
+}
+
+.hero-overlay {
+    background: rgba(0, 0, 0, 0.3);
+    min-height: 100vh;
+}
+
+/* Booking Card */
+.booking-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.booking-card .form-label {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.booking-card .form-control,
+.booking-card .form-select {
+    border: 2px solid #e0e0e0;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.booking-card .form-control:focus,
+.booking-card .form-select:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+}
+
+/* Buttons */
+.btn-success {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.btn-success:hover {
+    background-color: var(--dark-green);
+    border-color: var(--dark-green);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.btn-outline-success {
+    color: var(--primary-green);
+    border-color: var(--primary-green);
+    font-weight: 600;
+}
+
+.btn-outline-success:hover {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+/* Features Section */
+.features-section {
+    background: white;
+}
+
+.feature-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+/* Venue Cards */
+.venue-card {
+    transition: all 0.3s;
+    border: none;
+}
+
+.venue-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.venue-image {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg-light);
+    border-radius: 8px 8px 0 0;
+}
+
+/* Hall Cards */
+.hall-card {
+    transition: all 0.3s;
+    border: 2px solid #e0e0e0;
+}
+
+.hall-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border-color: var(--primary-green);
+}
+
+.hall-card.selected {
+    border-color: var(--primary-green);
+    background-color: #f1f8f4;
+}
+
+.hall-image {
+    height: 250px;
+    object-fit: cover;
+}
+
+/* Menu Cards */
+.menu-card {
+    transition: all 0.3s;
+    border: 2px solid #e0e0e0;
+}
+
+.menu-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.menu-card.selected {
+    border-color: var(--primary-green);
+    background-color: #f1f8f4;
+}
+
+.menu-items {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+}
+
+.menu-items ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.menu-items li {
+    padding: 0.25rem 0;
+}
+
+.menu-items li:before {
+    content: "✓ ";
+    color: var(--primary-green);
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+/* Service Cards */
+.service-card {
+    transition: all 0.3s;
+    border: 2px solid #e0e0e0;
+}
+
+.service-card:hover {
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.service-card .form-check-input:checked ~ .form-check-label {
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+/* Booking Progress Steps */
+.booking-progress {
+    border-bottom: 1px solid #ddd;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+}
+
+.step:not(:last-child):after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: #ddd;
+    z-index: -1;
+}
+
+.step.completed:not(:last-child):after,
+.step.active:not(:last-child):after {
+    background: var(--primary-green);
+}
+
+.step-number {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 50%;
+    background: #ddd;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.step.completed .step-number,
+.step.active .step-number {
+    background: var(--primary-green);
+}
+
+.step-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.step.completed .step-label,
+.step.active .step-label {
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+/* Booking Summary Bar */
+.booking-summary-bar {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Success Icon */
+.success-icon i {
+    animation: scaleIn 0.5s ease-in-out;
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Form Validation */
+.was-validated .form-control:invalid,
+.form-control.is-invalid {
+    border-color: #dc3545;
+}
+
+.was-validated .form-control:valid,
+.form-control.is-valid {
+    border-color: var(--primary-green);
+}
+
+/* Checkbox Customization */
+.form-check-input {
+    width: 1.5em;
+    height: 1.5em;
+    margin-top: 0.1em;
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+/* Sticky Elements */
+.sticky-top {
+    position: sticky;
+}
+
+/* Card Enhancements */
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    border: none;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+}
+
+footer a {
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+footer a:hover {
+    color: var(--primary-green) !important;
+}
+
+/* Utility Classes */
+.text-success {
+    color: var(--primary-green) !important;
+}
+
+.bg-success {
+    background-color: var(--primary-green) !important;
+}
+
+.border-success {
+    border-color: var(--primary-green) !important;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-green);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-green);
+}
