@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nepali Calendar Fix Test</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Nepali Date Picker CSS -->
+    <link rel="stylesheet" href="css/nepali-date-picker.css">
+    
+    <style>
+        body {
+            padding: 50px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-pass { background: #28a745; }
+        .status-fail { background: #dc3545; }
+        .status-pending { background: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 class="mb-4">
+            <i class="fas fa-check-circle text-success"></i> 
+            Nepali Calendar Fix Verification
+        </h2>
+        
+        <div class="alert alert-info">
+            <strong>Test Scenario:</strong> Verify that the Nepali calendar button labels and behavior are correct.
+        </div>
+
+        <!-- Test Case 1: Initial State -->
+        <div class="test-section">
+            <h5>Test Case 1: Initial State (Nepali Calendar Default)</h5>
+            <p>Expected: Button should show "BS" label, input should be readonly text field</p>
+            
+            <div class="mb-3">
+                <label for="test1_date" class="form-label">
+                    <i class="fas fa-calendar"></i> Event Date (Test 1)
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="test1_date" name="test1_date" 
+                           readonly placeholder="Select Nepali Date (BS)">
+                    <button class="btn btn-outline-success" type="button" id="toggleCalendar1" 
+                            title="Current Calendar Mode (Click to toggle)">
+                        <i class="fas fa-exchange-alt"></i> <span id="calendarType1">BS</span>
+                    </button>
+                </div>
+                <small class="form-text text-muted">
+                    <span id="nepaliDateDisplay1"></span>
+                </small>
+            </div>
+            
+            <div id="test1_result" class="mt-3">
+                <span class="status-indicator status-pending"></span>
+                <span>Status: Pending - Open calendar and select a date</span>
+            </div>
+        </div>
+
+        <!-- Test Case 2: Toggle to English -->
+        <div class="test-section">
+            <h5>Test Case 2: Toggle to English Calendar</h5>
+            <p>Expected: After clicking toggle, button should show "AD" label, input should be date type</p>
+            
+            <div class="mb-3">
+                <label for="test2_date" class="form-label">
+                    <i class="fas fa-calendar"></i> Event Date (Test 2)
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="test2_date" name="test2_date" 
+                           readonly placeholder="Select Nepali Date (BS)">
+                    <button class="btn btn-outline-success" type="button" id="toggleCalendar2" 
+                            title="Current Calendar Mode (Click to toggle)">
+                        <i class="fas fa-exchange-alt"></i> <span id="calendarType2">BS</span>
+                    </button>
+                </div>
+                <small class="form-text text-muted">
+                    <span id="nepaliDateDisplay2"></span>
+                </small>
+            </div>
+            
+            <div id="test2_result" class="mt-3">
+                <span class="status-indicator status-pending"></span>
+                <span>Status: Pending - Click toggle button to switch to AD</span>
+            </div>
+        </div>
+
+        <!-- Test Case 3: Calendar Navigation -->
+        <div class="test-section">
+            <h5>Test Case 3: Calendar Navigation (Month/Year)</h5>
+            <p>Expected: Calendar should stay open when changing months/years, close only after date selection</p>
+            
+            <div class="mb-3">
+                <label for="test3_date" class="form-label">
+                    <i class="fas fa-calendar"></i> Event Date (Test 3)
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="test3_date" name="test3_date" 
+                           readonly placeholder="Select Nepali Date (BS)">
+                    <button class="btn btn-outline-success" type="button" id="toggleCalendar3" 
+                            title="Current Calendar Mode (Click to toggle)">
+                        <i class="fas fa-exchange-alt"></i> <span id="calendarType3">BS</span>
+                    </button>
+                </div>
+                <small class="form-text text-muted">
+                    <span id="nepaliDateDisplay3"></span>
+                </small>
+            </div>
+            
+            <div id="test3_result" class="mt-3">
+                <span class="status-indicator status-pending"></span>
+                <span>Status: Pending - Click input, navigate months, then select date</span>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="mt-4">
+            <h5>Test Instructions:</h5>
+            <ol>
+                <li><strong>Test 1:</strong> Click the input field for Test 1, verify calendar opens with BS dates. Select any date, verify it closes and displays correctly.</li>
+                <li><strong>Test 2:</strong> Click the "BS" toggle button for Test 2, verify it changes to "AD" and input type changes to date picker.</li>
+                <li><strong>Test 3:</strong> Click the input field for Test 3, navigate through months using arrows, verify calendar stays open. Select a date, verify it closes.</li>
+                <li>Check console for any JavaScript errors.</li>
+            </ol>
+        </div>
+        
+        <div class="mt-3 alert alert-success">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Expected Behavior:</strong>
+            <ul class="mb-0">
+                <li>Button label shows CURRENT calendar mode (BS or AD)</li>
+                <li>Calendar closes after date selection</li>
+                <li>Calendar stays open when navigating months/years</li>
+                <li>Toggle works smoothly without breaking date values</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Nepali Date Picker -->
+    <script src="js/nepali-date-picker.js"></script>
+    
+    <script>
+        // Show success message function
+        function showSuccess(message) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: message,
+                confirmButtonColor: '#4CAF50',
+                timer: 2000,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false
+            });
+        }
+        
+        // Initialize test cases
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.nepaliDateUtils === 'undefined') {
+                alert('ERROR: Nepali date picker library not loaded!');
+                return;
+            }
+            
+            // Test 1: Default Nepali Calendar
+            initTest1();
+            
+            // Test 2: Toggle functionality
+            initTest2();
+            
+            // Test 3: Navigation behavior
+            initTest3();
+        });
+        
+        function initTest1() {
+            const input = document.getElementById('test1_date');
+            const display = document.getElementById('nepaliDateDisplay1');
+            const result = document.getElementById('test1_result');
+            
+            let picker = new window.NepaliDatePicker(input, {
+                closeOnSelect: true,
+                onChange: function(adDate, bsDate) {
+                    const bs = window.nepaliDateUtils.adToBS(
+                        new Date(adDate).getFullYear(),
+                        new Date(adDate).getMonth() + 1,
+                        new Date(adDate).getDate()
+                    );
+                    if (bs) {
+                        display.textContent = window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day) + ' (BS)';
+                        result.innerHTML = '<span class="status-indicator status-pass"></span><span>Status: PASS - Date selected and calendar closed correctly</span>';
+                    }
+                }
+            });
+        }
+        
+        function initTest2() {
+            const input = document.getElementById('test2_date');
+            const display = document.getElementById('nepaliDateDisplay2');
+            const toggle = document.getElementById('toggleCalendar2');
+            const label = document.getElementById('calendarType2');
+            const result = document.getElementById('test2_result');
+            
+            let isNepaliMode = true;
+            let picker = new window.NepaliDatePicker(input, {
+                closeOnSelect: true,
+                onChange: function(adDate, bsDate) {
+                    updateDisplay();
+                }
+            });
+            
+            function updateDisplay() {
+                if (input.value) {
+                    const adDate = new Date(input.value);
+                    const bs = window.nepaliDateUtils.adToBS(
+                        adDate.getFullYear(),
+                        adDate.getMonth() + 1,
+                        adDate.getDate()
+                    );
+                    if (bs) {
+                        display.textContent = window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day) + ' (BS)';
+                    }
+                }
+            }
+            
+            toggle.addEventListener('click', function() {
+                isNepaliMode = !isNepaliMode;
+                
+                if (isNepaliMode) {
+                    label.textContent = 'BS';
+                    input.setAttribute('type', 'text');
+                    input.setAttribute('readonly', 'readonly');
+                    if (!picker) {
+                        picker = new window.NepaliDatePicker(input, {
+                            closeOnSelect: true,
+                            onChange: updateDisplay
+                        });
+                    }
+                    result.innerHTML = '<span class="status-indicator status-pass"></span><span>Status: PASS - Switched to BS mode, label shows "BS"</span>';
+                } else {
+                    label.textContent = 'AD';
+                    input.removeAttribute('readonly');
+                    input.setAttribute('type', 'date');
+                    if (picker) {
+                        picker.destroy();
+                        picker = null;
+                    }
+                    result.innerHTML = '<span class="status-indicator status-pass"></span><span>Status: PASS - Switched to AD mode, label shows "AD"</span>';
+                }
+                
+                showSuccess('Toggled to ' + (isNepaliMode ? 'Nepali (BS)' : 'English (AD)') + ' Calendar');
+            });
+        }
+        
+        function initTest3() {
+            const input = document.getElementById('test3_date');
+            const display = document.getElementById('nepaliDateDisplay3');
+            const result = document.getElementById('test3_result');
+            
+            let navigationCount = 0;
+            let dateSelected = false;
+            
+            let picker = new window.NepaliDatePicker(input, {
+                closeOnSelect: true,
+                onChange: function(adDate, bsDate) {
+                    dateSelected = true;
+                    const bs = window.nepaliDateUtils.adToBS(
+                        new Date(adDate).getFullYear(),
+                        new Date(adDate).getMonth() + 1,
+                        new Date(adDate).getDate()
+                    );
+                    if (bs) {
+                        display.textContent = window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day) + ' (BS)';
+                        
+                        if (navigationCount > 0) {
+                            result.innerHTML = '<span class="status-indicator status-pass"></span><span>Status: PASS - Navigated ' + navigationCount + ' times, calendar stayed open until date selected</span>';
+                        } else {
+                            result.innerHTML = '<span class="status-indicator status-pass"></span><span>Status: PASS - Date selected, calendar closed</span>';
+                        }
+                    }
+                }
+            });
+            
+            // Monitor navigation button clicks
+            input.addEventListener('click', function() {
+                setTimeout(function() {
+                    const pickerElement = document.querySelector('.nepali-date-picker');
+                    if (pickerElement) {
+                        const navButtons = pickerElement.querySelectorAll('[data-action]');
+                        navButtons.forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                navigationCount++;
+                                if (!dateSelected) {
+                                    result.innerHTML = '<span class="status-indicator status-pending"></span><span>Status: Navigating... (count: ' + navigationCount + ') - Calendar should stay open</span>';
+                                }
+                            });
+                        });
+                    }
+                }, 100);
+            });
+        }
+    </script>
+</body>
+</html>

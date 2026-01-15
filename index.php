@@ -46,8 +46,8 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="event_date" name="event_date" 
                                            readonly placeholder="Select Nepali Date (BS)" required>
-                                    <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Switch to English Calendar">
-                                        <i class="fas fa-exchange-alt"></i> <span id="calendarType">AD</span>
+                                    <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Current Calendar Mode (Click to toggle)">
+                                        <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>
                                     </button>
                                 </div>
                                 <small class="form-text text-muted">
