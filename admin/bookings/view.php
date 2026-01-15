@@ -458,7 +458,7 @@ if (isset($_POST['action'])) {
                 ?>
                 <div class="alert alert-warning mt-3 mb-0">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span><strong>Advance Required (<?php echo $advance['percentage']; ?>%):</strong></span>
+                        <span><strong>Advance Required (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong></span>
                         <strong class="fs-5"><?php echo formatCurrency($advance['amount']); ?></strong>
                     </div>
                 </div>
