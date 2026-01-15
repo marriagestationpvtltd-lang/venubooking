@@ -111,14 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <i class="fas fa-arrow-left"></i> Back to Home
                 </a>
             </div>
-            
-            <div class="mt-3 p-3 bg-light rounded">
-                <small class="text-muted">
-                    <strong>Default Credentials:</strong><br>
-                    Username: admin<br>
-                    Password: Admin@123
-                </small>
-            </div>
         </div>
     </div>
     
