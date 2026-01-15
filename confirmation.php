@@ -231,6 +231,9 @@ unset($_SESSION['booking_completed']);
 
                 <!-- Action Buttons -->
                 <div class="text-center">
+                    <a href="<?php echo BASE_URL; ?>/generate_pdf.php?id=<?php echo $booking['id']; ?>" class="btn btn-danger btn-lg me-2">
+                        <i class="fas fa-file-pdf"></i> Download PDF
+                    </a>
                     <button onclick="window.print()" class="btn btn-outline-success btn-lg me-2">
                         <i class="fas fa-print"></i> Print Booking
                     </button>
