@@ -43,8 +43,16 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
                                 <label for="event_date" class="form-label">
                                     <i class="fas fa-calendar"></i> Event Date
                                 </label>
-                                <input type="date" class="form-control" id="event_date" name="event_date" 
-                                       min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" required>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" id="event_date" name="event_date" 
+                                           min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" required>
+                                    <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Switch to Nepali Calendar">
+                                        <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <span id="nepaliDateDisplay"></span>
+                                </small>
                             </div>
 
                             <div class="mb-3">

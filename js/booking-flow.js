@@ -47,6 +47,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize back button handling
     handleBrowserBackButton();
     
+    // Initialize Nepali calendar functionality
+    initNepaliCalendar();
+    
     const bookingForm = document.getElementById('bookingForm');
     
     if (bookingForm) {
@@ -137,5 +140,83 @@ function updateTotalCost(total) {
     const totalCostElement = document.getElementById('totalCost');
     if (totalCostElement) {
         totalCostElement.textContent = formatCurrency(total);
+    }
+}
+
+// Nepali Date Picker functionality (Basic implementation)
+// This provides a simple BS/AD date conversion
+const nepaliMonths = [
+    'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
+    'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'
+];
+
+// Simple BS to AD conversion (approximate - for display purposes)
+function convertADtoBS(adDate) {
+    const ad = new Date(adDate);
+    const year = ad.getFullYear();
+    const month = ad.getMonth() + 1;
+    const day = ad.getDate();
+    
+    // Approximate conversion (add 56-57 years for BS)
+    let bsYear = year + 56;
+    let bsMonth = month + 8;
+    let bsDay = day + 15;
+    
+    // Adjust for overflow
+    if (bsMonth > 12) {
+        bsMonth -= 12;
+        bsYear += 1;
+    }
+    
+    if (bsDay > 30) {
+        bsDay -= 30;
+        bsMonth += 1;
+        if (bsMonth > 12) {
+            bsMonth -= 12;
+            bsYear += 1;
+        }
+    }
+    
+    return {
+        year: bsYear,
+        month: bsMonth,
+        day: bsDay,
+        monthName: nepaliMonths[bsMonth - 1]
+    };
+}
+
+function displayNepaliDate(adDate) {
+    if (!adDate) return '';
+    
+    const bs = convertADtoBS(adDate);
+    return `${bs.day} ${bs.monthName} ${bs.year} BS`;
+}
+
+// Initialize Nepali calendar toggle
+function initNepaliCalendar() {
+    const eventDateInput = document.getElementById('event_date');
+    const nepaliDateDisplay = document.getElementById('nepaliDateDisplay');
+    const toggleCalendar = document.getElementById('toggleCalendar');
+    
+    if (!eventDateInput || !nepaliDateDisplay || !toggleCalendar) return;
+    
+    // Update Nepali date display when English date changes
+    eventDateInput.addEventListener('change', function() {
+        if (this.value) {
+            const nepaliDate = displayNepaliDate(this.value);
+            nepaliDateDisplay.textContent = nepaliDate;
+        }
+    });
+    
+    // Toggle calendar button (for future enhancement with full Nepali picker)
+    toggleCalendar.addEventListener('click', function() {
+        // For now, just show info message
+        showSuccess('Nepali calendar picker will be available soon! Currently showing approximate BS date.', null);
+    });
+    
+    // Show initial Nepali date if date is already set
+    if (eventDateInput.value) {
+        const nepaliDate = displayNepaliDate(eventDateInput.value);
+        nepaliDateDisplay.textContent = nepaliDate;
     }
 }

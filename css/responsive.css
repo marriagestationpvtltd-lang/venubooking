@@ -148,6 +148,19 @@
         font-size: 1rem;
     }
     
+    /* Improve touch targets for mobile */
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Form inputs for better mobile UX */
+    .form-control,
+    .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        min-height: 44px;
+    }
+    
     /* Action Buttons */
     .action-buttons {
         flex-direction: column;
@@ -156,6 +169,17 @@
     .action-buttons .btn {
         width: 100%;
         margin-bottom: 0.5rem;
+    }
+    
+    /* Checkbox larger tap targets on mobile */
+    .form-check-input {
+        width: 2em;
+        height: 2em;
+    }
+    
+    .form-check-label {
+        padding-left: 0.5rem;
+        line-height: 2em;
     }
     
     /* Sticky elements on mobile */
