@@ -42,8 +42,44 @@
                 <div class="col-md-4 mb-3">
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
+                        <?php 
+                        // Get quick links from settings
+                        $quick_links_json = getSetting('quick_links', '[]');
+                        $quick_links = json_decode($quick_links_json, true);
+                        
+                        // Ensure we have valid data
+                        if (!is_array($quick_links)) {
+                            $quick_links = [];
+                        }
+                        
+                        // Sort by order if it exists
+                        usort($quick_links, function($a, $b) {
+                            $order_a = isset($a['order']) ? intval($a['order']) : 999;
+                            $order_b = isset($b['order']) ? intval($b['order']) : 999;
+                            return $order_a - $order_b;
+                        });
+                        
+                        // Display quick links
+                        if (!empty($quick_links)):
+                            foreach ($quick_links as $link):
+                                if (!empty($link['label']) && !empty($link['url'])):
+                                    // Check if URL is absolute or relative
+                                    $url = $link['url'];
+                                    if (strpos($url, 'http') !== 0 && strpos($url, '/') === 0) {
+                                        $url = BASE_URL . $url;
+                                    } elseif (strpos($url, 'http') !== 0 && strpos($url, '/') !== 0) {
+                                        $url = BASE_URL . '/' . $url;
+                                    }
+                        ?>
+                        <li><a href="<?php echo htmlspecialchars($url); ?>" class="text-white-50 text-decoration-none"><?php echo htmlspecialchars($link['label']); ?></a></li>
+                        <?php 
+                                endif;
+                            endforeach;
+                        else:
+                            // Default fallback if no links are configured
+                        ?>
                         <li><a href="<?php echo BASE_URL; ?>/index.php" class="text-white-50 text-decoration-none">Home</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>/admin/login.php" class="text-white-50 text-decoration-none">Admin</a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
                 <div class="col-md-4 mb-3">

@@ -167,6 +167,11 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                         <i class="fas fa-share-alt"></i> Social Media
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#quicklinks">
+                        <i class="fas fa-link"></i> Quick Links
+                    </a>
+                </li>
             </ul>
 
             <!-- Tab Content -->
@@ -504,6 +509,68 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                         </div>
                     </div>
                 </div>
+
+                <!-- Quick Links Tab -->
+                <div class="tab-pane fade" id="quicklinks">
+                    <h6 class="mb-3 text-success"><i class="fas fa-link"></i> Footer Quick Links Management</h6>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Manage the quick links displayed in the footer section. Links will appear in the order specified.
+                    </div>
+                    
+                    <div id="quickLinksContainer">
+                        <?php
+                        $quick_links_json = $settings['quick_links'] ?? '[]';
+                        $quick_links = json_decode($quick_links_json, true);
+                        if (!is_array($quick_links)) {
+                            $quick_links = [];
+                        }
+                        
+                        if (empty($quick_links)) {
+                            $quick_links = [['label' => 'Home', 'url' => '/index.php', 'order' => 1]];
+                        }
+                        
+                        foreach ($quick_links as $index => $link):
+                        ?>
+                        <div class="card mb-3 quick-link-item">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Link Label</label>
+                                        <input type="text" class="form-control quick-link-label" 
+                                               value="<?php echo htmlspecialchars($link['label'] ?? ''); ?>"
+                                               placeholder="e.g., Home, About Us">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label">Link URL</label>
+                                        <input type="text" class="form-control quick-link-url" 
+                                               value="<?php echo htmlspecialchars($link['url'] ?? ''); ?>"
+                                               placeholder="e.g., /index.php or https://example.com">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Order</label>
+                                        <input type="number" class="form-control quick-link-order" 
+                                               value="<?php echo htmlspecialchars($link['order'] ?? ($index + 1)); ?>"
+                                               min="1">
+                                    </div>
+                                    <div class="col-md-1 text-end">
+                                        <label class="form-label d-block">&nbsp;</label>
+                                        <button type="button" class="btn btn-danger btn-sm remove-link" title="Remove Link">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <button type="button" class="btn btn-secondary mb-3" id="addQuickLink">
+                        <i class="fas fa-plus"></i> Add Quick Link
+                    </button>
+                    
+                    <input type="hidden" name="setting_quick_links" id="quickLinksData" value="">
+                </div>
             </div>
 
             <hr class="my-4">
@@ -521,6 +588,81 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 </div>
 
 <script>
+// Quick Links Management
+function updateQuickLinksData() {
+    const links = [];
+    document.querySelectorAll('.quick-link-item').forEach((item, index) => {
+        const label = item.querySelector('.quick-link-label').value.trim();
+        const url = item.querySelector('.quick-link-url').value.trim();
+        const order = parseInt(item.querySelector('.quick-link-order').value) || (index + 1);
+        
+        if (label && url) {
+            links.push({
+                label: label,
+                url: url,
+                order: order
+            });
+        }
+    });
+    
+    document.getElementById('quickLinksData').value = JSON.stringify(links);
+}
+
+// Add new quick link
+document.getElementById('addQuickLink').addEventListener('click', function() {
+    const container = document.getElementById('quickLinksContainer');
+    const count = container.querySelectorAll('.quick-link-item').length + 1;
+    
+    const newLink = document.createElement('div');
+    newLink.className = 'card mb-3 quick-link-item';
+    newLink.innerHTML = `
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label">Link Label</label>
+                    <input type="text" class="form-control quick-link-label" 
+                           placeholder="e.g., Home, About Us">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Link URL</label>
+                    <input type="text" class="form-control quick-link-url" 
+                           placeholder="e.g., /index.php or https://example.com">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Order</label>
+                    <input type="number" class="form-control quick-link-order" 
+                           value="${count}" min="1">
+                </div>
+                <div class="col-md-1 text-end">
+                    <label class="form-label d-block">&nbsp;</label>
+                    <button type="button" class="btn btn-danger btn-sm remove-link" title="Remove Link">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(newLink);
+});
+
+// Remove quick link
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-link') || e.target.closest('.remove-link')) {
+        const button = e.target.classList.contains('remove-link') ? e.target : e.target.closest('.remove-link');
+        const item = button.closest('.quick-link-item');
+        if (confirm('Are you sure you want to remove this quick link?')) {
+            item.remove();
+            updateQuickLinksData();
+        }
+    }
+});
+
+// Update data before form submission
+document.getElementById('settingsForm').addEventListener('submit', function(e) {
+    updateQuickLinksData();
+});
+
 // Auto-save warning before leaving page with unsaved changes
 let formChanged = false;
 let formSubmitting = false;

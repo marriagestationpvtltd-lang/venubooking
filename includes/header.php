@@ -70,9 +70,6 @@ if (!empty($meta_title)) {
                     <li class="nav-item">
                         <a class="nav-link" href="<?php echo BASE_URL; ?>/index.php">Home</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?php echo BASE_URL; ?>/admin/login.php">Admin Login</a>
-                    </li>
                 </ul>
             </div>
         </div>
