@@ -3,27 +3,86 @@
  * Generate PDF for Booking Confirmation
  */
 
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/includes/functions.php';
-require_once __DIR__ . '/lib/fpdf.php';
+// Enable error logging
+error_reporting(E_ALL);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/error_log.txt');
 
-// Check if booking ID is provided
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    http_response_code(400);
-    exit;
-}
+// Don't display errors to user (security best practice)
+ini_set('display_errors', 0);
 
-$booking_id = intval($_GET['id']);
-
-// Get booking details
-$booking = getBookingDetails($booking_id);
-
-if (!$booking) {
-    http_response_code(404);
-    exit;
+try {
+    // Load required files
+    if (!file_exists(__DIR__ . '/config/database.php')) {
+        throw new Exception('Database configuration file not found');
+    }
+    require_once __DIR__ . '/config/database.php';
+    
+    if (!file_exists(__DIR__ . '/includes/functions.php')) {
+        throw new Exception('Functions file not found');
+    }
+    require_once __DIR__ . '/includes/functions.php';
+    
+    if (!file_exists(__DIR__ . '/lib/fpdf.php')) {
+        throw new Exception('FPDF library not found. Please ensure FPDF is installed.');
+    }
+    require_once __DIR__ . '/lib/fpdf.php';
+    
+    // Check if booking ID is provided
+    if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+        http_response_code(400);
+        error_log("PDF Generation Error: Invalid or missing booking ID");
+        die('Error: Invalid booking ID provided.');
+    }
+    
+    $booking_id = intval($_GET['id']);
+    
+    // Test database connection
+    try {
+        $db = getDB();
+        if (!$db) {
+            throw new Exception('Database connection failed');
+        }
+    } catch (Exception $e) {
+        error_log("PDF Generation Error: Database connection failed - " . $e->getMessage());
+        http_response_code(500);
+        die('Error: Unable to connect to database. Please try again later.');
+    }
+    
+    // Get booking details with error handling
+    try {
+        $booking = getBookingDetails($booking_id);
+    } catch (Exception $e) {
+        error_log("PDF Generation Error: Failed to retrieve booking #$booking_id - " . $e->getMessage());
+        http_response_code(500);
+        die('Error: Unable to retrieve booking details. Please contact support.');
+    }
+    
+    if (!$booking) {
+        error_log("PDF Generation Error: Booking #$booking_id not found");
+        http_response_code(404);
+        die('Error: Booking not found. Please check the booking ID.');
+    }
+    
+    // Validate required booking fields
+    $required_fields = ['booking_number', 'full_name', 'phone', 'event_type', 'event_date', 
+                        'shift', 'venue_name', 'hall_name', 'booking_status', 'payment_status'];
+    foreach ($required_fields as $field) {
+        if (!isset($booking[$field]) || empty($booking[$field])) {
+            error_log("PDF Generation Error: Missing required field '$field' for booking #$booking_id");
+            http_response_code(500);
+            die("Error: Incomplete booking data. Please contact support.");
+        }
+    }
+    
+} catch (Exception $e) {
+    error_log("PDF Generation Fatal Error: " . $e->getMessage());
+    http_response_code(500);
+    die('Error: Unable to process request. Please contact support.');
 }
 
 // Get settings before creating PDF class to avoid scope issues
+// getSetting function has built-in error handling and will return defaults on error
 $site_name = getSetting('site_name', 'Venue Booking System');
 $contact_phone = getSetting('contact_phone', '');
 $currency = getSetting('currency', 'NPR');
@@ -102,12 +161,13 @@ class BookingPDF extends FPDF {
     }
 }
 
-// Create PDF
-$pdf = new BookingPDF();
-$pdf->setBookingNumber($booking['booking_number']);
-$pdf->setSiteName($site_name);
-$pdf->SetTitle('Booking ' . $booking['booking_number']);
-$pdf->AddPage();
+try {
+    // Create PDF
+    $pdf = new BookingPDF();
+    $pdf->setBookingNumber($booking['booking_number']);
+    $pdf->setSiteName($site_name);
+    $pdf->SetTitle('Booking ' . $booking['booking_number']);
+    $pdf->AddPage();
 
 // Customer Information
 $pdf->SectionHeader('Customer Information');
@@ -247,3 +307,9 @@ $pdf->MultiCell(0, 4,
 // Output PDF
 $filename = 'Booking_' . $booking['booking_number'] . '.pdf';
 $pdf->Output('D', $filename);
+
+} catch (Exception $e) {
+    error_log("PDF Generation Error: Failed to generate PDF for booking #$booking_id - " . $e->getMessage());
+    http_response_code(500);
+    die('Error: Failed to generate PDF. Please contact support.');
+}

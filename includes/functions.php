@@ -374,43 +374,65 @@ function createBooking($data) {
  * Get booking details
  */
 function getBookingDetails($booking_id) {
-    $db = getDB();
-    
-    $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
-                   h.name as hall_name, h.capacity,
-                   v.name as venue_name, v.location
-            FROM bookings b
-            INNER JOIN customers c ON b.customer_id = c.id
-            INNER JOIN halls h ON b.hall_id = h.id
-            INNER JOIN venues v ON h.venue_id = v.id
-            WHERE b.id = ?";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute([$booking_id]);
-    $booking = $stmt->fetch();
-    
-    if ($booking) {
-        // Get menus
-        $stmt = $db->prepare("SELECT bm.*, m.name as menu_name FROM booking_menus bm INNER JOIN menus m ON bm.menu_id = m.id WHERE bm.booking_id = ?");
-        $stmt->execute([$booking_id]);
-        $booking['menus'] = $stmt->fetchAll();
+    try {
+        $db = getDB();
         
-        // Get menu items for each menu (prepare statement once for efficiency)
-        if (!empty($booking['menus'])) {
-            $itemsStmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
-            foreach ($booking['menus'] as &$menu) {
-                $itemsStmt->execute([$menu['menu_id']]);
-                $menu['items'] = $itemsStmt->fetchAll();
+        $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
+                       h.name as hall_name, h.capacity,
+                       v.name as venue_name, v.location
+                FROM bookings b
+                INNER JOIN customers c ON b.customer_id = c.id
+                INNER JOIN halls h ON b.hall_id = h.id
+                INNER JOIN venues v ON h.venue_id = v.id
+                WHERE b.id = ?";
+        
+        $stmt = $db->prepare($sql);
+        if (!$stmt) {
+            throw new Exception("Failed to prepare booking query");
+        }
+        
+        $stmt->execute([$booking_id]);
+        $booking = $stmt->fetch();
+        
+        if ($booking) {
+            // Get menus
+            $stmt = $db->prepare("SELECT bm.*, m.name as menu_name FROM booking_menus bm INNER JOIN menus m ON bm.menu_id = m.id WHERE bm.booking_id = ?");
+            if ($stmt) {
+                $stmt->execute([$booking_id]);
+                $booking['menus'] = $stmt->fetchAll();
+            } else {
+                $booking['menus'] = [];
+            }
+            
+            // Get menu items for each menu (prepare statement once for efficiency)
+            if (!empty($booking['menus'])) {
+                $itemsStmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
+                if ($itemsStmt) {
+                    foreach ($booking['menus'] as &$menu) {
+                        $itemsStmt->execute([$menu['menu_id']]);
+                        $menu['items'] = $itemsStmt->fetchAll();
+                    }
+                }
+            }
+            
+            // Get services
+            $stmt = $db->prepare("SELECT bs.*, s.name as service_name, s.price FROM booking_services bs INNER JOIN additional_services s ON bs.service_id = s.id WHERE bs.booking_id = ?");
+            if ($stmt) {
+                $stmt->execute([$booking_id]);
+                $booking['services'] = $stmt->fetchAll();
+            } else {
+                $booking['services'] = [];
             }
         }
         
-        // Get services
-        $stmt = $db->prepare("SELECT * FROM booking_services WHERE booking_id = ?");
-        $stmt->execute([$booking_id]);
-        $booking['services'] = $stmt->fetchAll();
+        return $booking;
+    } catch (PDOException $e) {
+        error_log("Database error in getBookingDetails: " . $e->getMessage());
+        throw new Exception("Unable to retrieve booking information");
+    } catch (Exception $e) {
+        error_log("Error in getBookingDetails: " . $e->getMessage());
+        throw new Exception("Unable to retrieve booking information");
     }
-    
-    return $booking;
 }
 
 /**
@@ -432,15 +454,25 @@ function getSetting($key, $default = '') {
         return $cache[$key];
     }
     
-    // Query database
-    $db = getDB();
-    $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
-    $stmt->execute([$key]);
-    $result = $stmt->fetch();
-    
-    // Store in cache and return
-    $cache[$key] = $result ? $result['setting_value'] : $default;
-    return $cache[$key];
+    try {
+        // Query database
+        $db = getDB();
+        $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare settings query");
+        }
+        $stmt->execute([$key]);
+        $result = $stmt->fetch();
+        
+        // Store in cache and return
+        $cache[$key] = $result ? $result['setting_value'] : $default;
+        return $cache[$key];
+    } catch (Exception $e) {
+        error_log("Error in getSetting for key '$key': " . $e->getMessage());
+        // Return default value on error
+        $cache[$key] = $default;
+        return $default;
+    }
 }
 
 /**
