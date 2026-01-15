@@ -10,6 +10,20 @@
     // Nepali date data - days in each month for each year
     // Format: [year] = [days in Baisakh, Jestha, Ashadh, Shrawan, Bhadra, Ashwin, Kartik, Mangsir, Poush, Magh, Falgun, Chaitra]
     const nepaliDateData = {
+        2056: [31, 32, 32, 31, 31, 30, 29, 30, 29, 30, 29, 30],
+        2057: [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2058: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2059: [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 29, 31],
+        2060: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2061: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2062: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2063: [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2064: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2065: [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2066: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2067: [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2068: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2069: [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
         2070: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
         2071: [31, 31, 32, 31, 32, 30, 30, 29, 30, 29, 30, 30],
         2072: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
@@ -220,6 +234,7 @@
             this.selectedBSDate = null;
             this.pickerElement = null;
             this.isOpen = false;
+            this.justClosed = false; // Flag to prevent immediate reopening
             
             this.init();
         }
@@ -260,6 +275,13 @@
             // Toggle on input click
             this.input.addEventListener('click', (e) => {
                 e.stopPropagation();
+                
+                // Prevent reopening immediately after closing
+                if (this.justClosed) {
+                    this.justClosed = false;
+                    return;
+                }
+                
                 this.toggle();
             });
             
@@ -275,6 +297,10 @@
             if (this.isOpen) {
                 this.close();
             } else {
+                // Don't open if we just closed
+                if (this.justClosed) {
+                    return;
+                }
                 this.open();
             }
         }
@@ -309,6 +335,12 @@
         close() {
             this.pickerElement.style.display = 'none';
             this.isOpen = false;
+            this.justClosed = true;
+            
+            // Reset the flag after a short delay
+            setTimeout(() => {
+                this.justClosed = false;
+            }, 200);
         }
         
         position() {
@@ -437,6 +469,7 @@
             this.pickerElement.querySelectorAll('[data-action]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     const action = btn.getAttribute('data-action');
                     this.navigate(action);
                 });
@@ -446,6 +479,7 @@
             this.pickerElement.querySelectorAll('.nepali-day').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     const day = parseInt(btn.getAttribute('data-day'));
                     this.selectDate(day);
                 });
