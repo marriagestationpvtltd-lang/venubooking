@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Default Nepali Calendar Test</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Nepali Date Picker CSS -->
+    <link rel="stylesheet" href="css/nepali-date-picker.css">
+    
+    <style>
+        body {
+            padding: 50px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .booking-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 class="mb-4 text-center text-success">
+            <i class="fas fa-calendar-check"></i> Default Nepali Calendar Demo
+        </h2>
+        
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-info-circle"></i> 
+            <strong>NEW:</strong> Nepali (BS) Calendar is now the DEFAULT! Click the input field to open the Nepali calendar picker directly.
+        </div>
+        
+        <div class="booking-card">
+            <h5 class="mb-3">Event Booking Form</h5>
+            <form id="bookingForm">
+                <div class="mb-3">
+                    <label for="shift" class="form-label">
+                        <i class="fas fa-clock"></i> Select Shift
+                    </label>
+                    <select class="form-select" id="shift" name="shift" required>
+                        <option value="">Choose a shift...</option>
+                        <option value="morning">Morning (6:00 AM - 12:00 PM)</option>
+                        <option value="afternoon">Afternoon (12:00 PM - 6:00 PM)</option>
+                        <option value="evening">Evening (6:00 PM - 12:00 AM)</option>
+                        <option value="fullday">Full Day</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="event_date" class="form-label">
+                        <i class="fas fa-calendar"></i> Event Date <span class="badge bg-success">Nepali (BS) Default</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="event_date" name="event_date" 
+                               readonly placeholder="Select Nepali Date (BS)" required>
+                        <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Switch to English Calendar">
+                            <i class="fas fa-exchange-alt"></i> <span id="calendarType">AD</span>
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">
+                        <span id="nepaliDateDisplay"></span>
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="guests" class="form-label">
+                        <i class="fas fa-users"></i> Number of Guests
+                    </label>
+                    <input type="number" class="form-control" id="guests" name="guests" 
+                           min="10" placeholder="Minimum 10 guests" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="event_type" class="form-label">
+                        <i class="fas fa-tag"></i> Event Type
+                    </label>
+                    <select class="form-select" id="event_type" name="event_type" required>
+                        <option value="">Choose event type...</option>
+                        <option value="Wedding">Wedding</option>
+                        <option value="Birthday Party">Birthday Party</option>
+                        <option value="Corporate Event">Corporate Event</option>
+                        <option value="Anniversary">Anniversary</option>
+                        <option value="Other Events">Other Events</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        
+        <div class="mt-4 alert alert-success">
+            <h6><i class="fas fa-check-circle"></i> Features Implemented:</h6>
+            <ul class="mb-0">
+                <li>✅ Nepali calendar is now the DEFAULT calendar</li>
+                <li>✅ Clicking date field opens Nepali calendar picker directly</li>
+                <li>✅ Toggle button allows switching to English (AD) calendar</li>
+                <li>✅ Selected dates stored in AD format in database</li>
+                <li>✅ Displays correctly in both formats</li>
+                <li>✅ Works on mobile and desktop</li>
+                <li>✅ No page refresh required</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Nepali Date Picker -->
+    <script src="js/nepali-date-picker.js"></script>
+    
+    <script>
+        // Show success message function
+        function showSuccess(message) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: message,
+                confirmButtonColor: '#4CAF50',
+                timer: 2000
+            });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventDateInput = document.getElementById('event_date');
+            const nepaliDateDisplay = document.getElementById('nepaliDateDisplay');
+            const toggleCalendar = document.getElementById('toggleCalendar');
+            const calendarTypeLabel = document.getElementById('calendarType');
+            
+            // Check if library is loaded
+            if (typeof window.nepaliDateUtils === 'undefined') {
+                alert('ERROR: Nepali date picker library not loaded!');
+                return;
+            }
+            
+            let isNepaliMode = true; // Start with Nepali calendar as default
+            let nepaliPicker = null;
+            
+            // Update Nepali date display
+            function updateNepaliDisplay() {
+                if (eventDateInput.value) {
+                    try {
+                        const adDate = new Date(eventDateInput.value);
+                        if (!isNaN(adDate)) {
+                            const bs = window.nepaliDateUtils.adToBS(
+                                adDate.getFullYear(),
+                                adDate.getMonth() + 1,
+                                adDate.getDate()
+                            );
+                            
+                            if (bs) {
+                                const bsDateStr = window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day);
+                                nepaliDateDisplay.textContent = bsDateStr + ' (BS)';
+                                nepaliDateDisplay.classList.add('active');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error converting date:', error);
+                    }
+                }
+            }
+            
+            // Initialize with Nepali calendar as default
+            function initializeNepaliAsDefault() {
+                // Already set in HTML: type="text", readonly, placeholder
+                
+                // Initialize Nepali picker
+                nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
+                    closeOnSelect: true,
+                    onChange: function(adDate, bsDate) {
+                        updateNepaliDisplay();
+                    }
+                });
+            }
+            
+            // Initialize
+            initializeNepaliAsDefault();
+            updateNepaliDisplay();
+            
+            // Listen for date changes
+            eventDateInput.addEventListener('change', updateNepaliDisplay);
+            
+            // Toggle calendar mode
+            toggleCalendar.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                isNepaliMode = !isNepaliMode;
+                
+                if (isNepaliMode) {
+                    // Switch to Nepali calendar
+                    calendarTypeLabel.textContent = 'AD';
+                    
+                    // Change to text input
+                    eventDateInput.setAttribute('type', 'text');
+                    eventDateInput.setAttribute('readonly', 'readonly');
+                    eventDateInput.setAttribute('placeholder', 'Select Nepali Date (BS)');
+                    
+                    // Initialize Nepali picker
+                    if (!nepaliPicker) {
+                        nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
+                            closeOnSelect: true,
+                            onChange: function(adDate, bsDate) {
+                                updateNepaliDisplay();
+                            }
+                        });
+                    }
+                    
+                    showSuccess('Switched to Nepali (BS) Calendar');
+                } else {
+                    // Switch to English calendar
+                    calendarTypeLabel.textContent = 'BS';
+                    
+                    // Restore standard date input
+                    eventDateInput.removeAttribute('readonly');
+                    eventDateInput.setAttribute('type', 'date');
+                    eventDateInput.setAttribute('placeholder', '');
+                    
+                    // Destroy Nepali picker
+                    if (nepaliPicker) {
+                        nepaliPicker.destroy();
+                        nepaliPicker = null;
+                    }
+                    
+                    showSuccess('Switched to English (AD) Calendar');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
