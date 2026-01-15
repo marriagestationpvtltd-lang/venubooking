@@ -54,8 +54,8 @@
                         
                         // Sort by order if it exists
                         usort($quick_links, function($a, $b) {
-                            $order_a = isset($a['order']) ? intval($a['order']) : 999;
-                            $order_b = isset($b['order']) ? intval($b['order']) : 999;
+                            $order_a = isset($a['order']) ? intval($a['order']) : PHP_INT_MAX;
+                            $order_b = isset($b['order']) ? intval($b['order']) : PHP_INT_MAX;
                             return $order_a - $order_b;
                         });
                         
@@ -65,11 +65,22 @@
                                 if (!empty($link['label']) && !empty($link['url'])):
                                     // Check if URL is absolute or relative
                                     $url = $link['url'];
-                                    if (strpos($url, 'http') !== 0 && strpos($url, '/') === 0) {
-                                        $url = BASE_URL . $url;
-                                    } elseif (strpos($url, 'http') !== 0 && strpos($url, '/') !== 0) {
-                                        $url = BASE_URL . '/' . $url;
+                                    // Check if URL has a protocol (http, https, mailto, tel, etc.) or is protocol-relative (//)
+                                    $parsed = parse_url($url);
+                                    $has_scheme = isset($parsed['scheme']);
+                                    $is_protocol_relative = (strpos($url, '//') === 0);
+                                    
+                                    if (!$has_scheme && !$is_protocol_relative) {
+                                        // No protocol and not protocol-relative - treat as relative URL
+                                        if (strpos($url, '/') === 0) {
+                                            // URL starts with / - relative to domain root
+                                            $url = BASE_URL . $url;
+                                        } else {
+                                            // URL doesn't start with / - relative to current directory
+                                            $url = BASE_URL . '/' . $url;
+                                        }
                                     }
+                                    // If has_scheme or is_protocol_relative is true, use URL as-is
                         ?>
                         <li><a href="<?php echo htmlspecialchars($url); ?>" class="text-white-50 text-decoration-none"><?php echo htmlspecialchars($link['label']); ?></a></li>
                         <?php 

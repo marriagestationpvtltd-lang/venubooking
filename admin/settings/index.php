@@ -594,7 +594,8 @@ function updateQuickLinksData() {
     document.querySelectorAll('.quick-link-item').forEach((item, index) => {
         const label = item.querySelector('.quick-link-label').value.trim();
         const url = item.querySelector('.quick-link-url').value.trim();
-        const order = parseInt(item.querySelector('.quick-link-order').value) || (index + 1);
+        const orderValue = item.querySelector('.quick-link-order').value;
+        const order = orderValue && orderValue.trim() !== '' ? parseInt(orderValue) : (index + 1);
         
         if (label && url) {
             links.push({
