@@ -23,20 +23,35 @@ if (!$booking) {
     die('Booking not found');
 }
 
+// Get settings before creating PDF class to avoid scope issues
+$site_name = getSetting('site_name', 'Venue Booking System');
+$contact_phone = getSetting('contact_phone', '');
+$currency = getSetting('currency', 'NPR');
+$tax_rate = getSetting('tax_rate', '13');
+
+// Helper function to format currency for PDF
+function formatCurrencyForPDF($amount, $currency) {
+    return $currency . ' ' . number_format($amount, 2);
+}
+
 // Create PDF instance
 class BookingPDF extends FPDF {
     private $bookingNumber;
+    private $siteName;
     
     public function setBookingNumber($number) {
         $this->bookingNumber = $number;
+    }
+    
+    public function setSiteName($name) {
+        $this->siteName = $name;
     }
     
     function Header() {
         // Logo/Site name
         $this->SetFont('Arial', 'B', 18);
         $this->SetTextColor(76, 175, 80); // Green color
-        $site_name = getSetting('site_name', 'Venue Booking System');
-        $this->Cell(0, 10, $site_name, 0, 1, 'C');
+        $this->Cell(0, 10, $this->siteName, 0, 1, 'C');
         
         // Booking title
         $this->SetFont('Arial', 'B', 14);
@@ -90,6 +105,7 @@ class BookingPDF extends FPDF {
 // Create PDF
 $pdf = new BookingPDF();
 $pdf->setBookingNumber($booking['booking_number']);
+$pdf->setSiteName($site_name);
 $pdf->SetTitle('Booking ' . $booking['booking_number']);
 $pdf->AddPage();
 
@@ -136,9 +152,9 @@ if (!empty($booking['menus'])) {
         $pdf->Cell(0, 6, $menu['menu_name'], 0, 1);
         
         $pdf->SetFont('Arial', '', 8);
-        $menuDetails = formatCurrency($menu['price_per_person']) . '/person x ' . 
+        $menuDetails = formatCurrencyForPDF($menu['price_per_person'], $currency) . '/person x ' . 
                        $menu['number_of_guests'] . ' = ' . 
-                       formatCurrency($menu['total_price']);
+                       formatCurrencyForPDF($menu['total_price'], $currency);
         $pdf->Cell(10);
         $pdf->Cell(0, 5, $menuDetails, 0, 1);
         
@@ -177,7 +193,7 @@ if (!empty($booking['services'])) {
         $pdf->SetFont('Arial', '', 9);
         $pdf->Cell(5);
         $pdf->Cell(100, 6, '- ' . $service['service_name'], 0, 0);
-        $pdf->Cell(0, 6, formatCurrency($service['price']), 0, 1, 'R');
+        $pdf->Cell(0, 6, formatCurrencyForPDF($service['price'], $currency), 0, 1, 'R');
     }
     $pdf->Ln(3);
 }
@@ -194,27 +210,26 @@ if ($booking['special_requests']) {
 $pdf->SectionHeader('Cost Breakdown');
 $pdf->Ln(2);
 
-$pdf->CostRow('Hall Cost:', formatCurrency($booking['hall_price']));
+$pdf->CostRow('Hall Cost:', formatCurrencyForPDF($booking['hall_price'], $currency));
 
 if ($booking['menu_total'] > 0) {
-    $pdf->CostRow('Menu Cost:', formatCurrency($booking['menu_total']));
+    $pdf->CostRow('Menu Cost:', formatCurrencyForPDF($booking['menu_total'], $currency));
 }
 
 if ($booking['services_total'] > 0) {
-    $pdf->CostRow('Services Cost:', formatCurrency($booking['services_total']));
+    $pdf->CostRow('Services Cost:', formatCurrencyForPDF($booking['services_total'], $currency));
 }
 
-$pdf->CostRow('Subtotal:', formatCurrency($booking['subtotal']));
+$pdf->CostRow('Subtotal:', formatCurrencyForPDF($booking['subtotal'], $currency));
 
-$tax_rate = getSetting('tax_rate', '13');
-$pdf->CostRow('Tax (' . $tax_rate . '%):', formatCurrency($booking['tax_amount']));
+$pdf->CostRow('Tax (' . $tax_rate . '%):', formatCurrencyForPDF($booking['tax_amount'], $currency));
 
 $pdf->SetDrawColor(76, 175, 80);
 $pdf->SetLineWidth(0.5);
 $pdf->Line(60, $pdf->GetY(), 200, $pdf->GetY());
 $pdf->Ln(2);
 
-$pdf->CostRow('Grand Total:', formatCurrency($booking['grand_total']), true);
+$pdf->CostRow('Grand Total:', formatCurrencyForPDF($booking['grand_total'], $currency), true);
 $pdf->Ln(5);
 
 // Important Note
@@ -226,7 +241,7 @@ $pdf->SetFont('Arial', '', 8);
 $pdf->MultiCell(0, 4, 
     '- Please save this booking number for future reference: ' . $booking['booking_number'] . "\n" .
     '- Our team will contact you within 24 hours to confirm your booking and payment details.' . "\n" .
-    '- For any queries, please contact us at ' . getSetting('contact_phone', '')
+    '- For any queries, please contact us at ' . $contact_phone
 );
 
 // Output PDF
