@@ -335,12 +335,14 @@
         close() {
             this.pickerElement.style.display = 'none';
             this.isOpen = false;
+            
+            // Set flag to prevent immediate reopening, will be checked on next click
             this.justClosed = true;
             
-            // Reset the flag using microtask scheduling (more deterministic than setTimeout)
-            Promise.resolve().then(() => {
+            // Reset flag on next event loop tick
+            setTimeout(() => {
                 this.justClosed = false;
-            });
+            }, 100);
         }
         
         position() {
@@ -526,28 +528,26 @@
                 const adDate = `${ad.year}-${String(ad.month).padStart(2, '0')}-${String(ad.day).padStart(2, '0')}`;
                 this.input.value = adDate;
                 
-                // Close first before triggering events if closeOnSelect is true
+                // Close first if needed
                 if (this.options.closeOnSelect) {
                     this.close();
-                    
-                    // Use microtask scheduling to trigger events after close completes
-                    Promise.resolve().then(() => {
-                        const event = new Event('change', { bubbles: true });
-                        this.input.dispatchEvent(event);
-                        
-                        if (this.options.onChange) {
-                            this.options.onChange(adDate, this.selectedBSDate);
-                        }
-                    });
-                } else {
-                    // If not closing, trigger events immediately
+                }
+                
+                // Trigger events (after microtask if calendar was closed)
+                const triggerEvents = () => {
                     const event = new Event('change', { bubbles: true });
                     this.input.dispatchEvent(event);
                     
                     if (this.options.onChange) {
                         this.options.onChange(adDate, this.selectedBSDate);
                     }
-                    
+                };
+                
+                if (this.options.closeOnSelect) {
+                    // Use microtask to ensure events fire after calendar is fully closed
+                    Promise.resolve().then(triggerEvents);
+                } else {
+                    triggerEvents();
                     this.render();
                 }
             } else {
