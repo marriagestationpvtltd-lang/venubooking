@@ -20,12 +20,47 @@ async function loadSettings() {
     } catch (error) {
         console.error('Failed to load settings:', error);
         // Keep default values if loading fails
+        // Log to server if logging endpoint exists
+        if (typeof logError === 'function') {
+            logError('Settings load failed', error);
+        }
     }
 }
 
 // Format currency using dynamic settings
 function formatCurrency(amount) {
     return appSettings.currency + ' ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+}
+
+/**
+ * Client-side error logging function
+ * 
+ * Provides a centralized way to log errors in production.
+ * Can be extended to send errors to a server-side logging endpoint.
+ * 
+ * @param {string} message - A description of the error context
+ * @param {Error|string} error - The error object or error message
+ * 
+ * @example
+ * logError('Failed to load settings', error);
+ * 
+ * @future
+ * To enable server-side logging, implement an API endpoint (e.g., /api/log-error.php)
+ * and uncomment the fetch() call below.
+ */
+function logError(message, error) {
+    // This is a placeholder for production error logging
+    // In production, you can send errors to a logging endpoint:
+    // fetch('/api/log-error.php', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ message, error: error?.toString() })
+    // });
+    
+    // For now, just log to console in development
+    if (typeof console !== 'undefined' && console.error) {
+        console.error(message, error);
+    }
 }
 
 // Show loading spinner
@@ -193,6 +228,10 @@ function ajax(url, method, data, successCallback, errorCallback) {
             errorCallback(error);
         } else {
             showError('An error occurred. Please try again.');
+        }
+        // Log to server if available
+        if (typeof logError === 'function') {
+            logError('AJAX request failed', error);
         }
     });
 }

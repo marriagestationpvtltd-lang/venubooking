@@ -4,6 +4,26 @@
 
 let currentVenueId = null;
 
+// Validate session on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we have required session data
+    if (typeof bookingData === 'undefined' || !bookingData) {
+        // No session data, redirect to start
+        const redirectUrl = (typeof baseUrl !== 'undefined' && baseUrl) ? baseUrl + '/index.php' : '/index.php';
+        window.location.href = redirectUrl;
+        return;
+    }
+    
+    // Handle back button navigation
+    window.addEventListener('popstate', function(event) {
+        // Redirect to start if session is lost
+        if (typeof bookingData === 'undefined' || !bookingData) {
+            const redirectUrl = (typeof baseUrl !== 'undefined' && baseUrl) ? baseUrl + '/index.php' : '/index.php';
+            window.location.href = redirectUrl;
+        }
+    });
+});
+
 // Escape HTML to prevent XSS - safer implementation
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
@@ -42,7 +62,10 @@ function showHalls(venueId, venueName) {
         })
         .catch(error => {
             hideLoading();
-            console.error('Error:', error);
+            // Log error for debugging but show user-friendly message
+            if (typeof logError === 'function') {
+                logError('Hall loading failed', error);
+            }
             showError('An error occurred while loading halls');
         });
 }
@@ -189,7 +212,10 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
     })
     .catch(error => {
         hideLoading();
-        console.error('Error:', error);
+        // Log error for debugging
+        if (typeof logError === 'function') {
+            logError('Hall selection failed', error);
+        }
         showError('An error occurred while selecting the hall');
     });
 }
