@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nepali Calendar Simple Test</title>
+    <link rel="stylesheet" href="css/nepali-date-picker.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        input[type="text"] {
+            padding: 8px;
+            width: 200px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nepali Calendar Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Date Conversion (AD to BS)</h2>
+        <div id="test1Result" class="result">Waiting...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Date Conversion (BS to AD)</h2>
+        <div id="test2Result" class="result">Waiting...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Interactive Calendar Picker</h2>
+        <label>Select a date:</label><br>
+        <input type="text" id="testInput" readonly placeholder="Click to open calendar">
+        <div id="test3Result" class="result">Click the input to test</div>
+    </div>
+    
+    <script src="js/nepali-date-picker.js"></script>
+    <script>
+        // Test 1: AD to BS conversion
+        function test1() {
+            const result = document.getElementById('test1Result');
+            try {
+                const bs1 = window.nepaliDateUtils.adToBS(2024, 1, 20);
+                const formatted1 = window.nepaliDateUtils.formatBSDate(bs1.year, bs1.month, bs1.day);
+                
+                const bs2 = window.nepaliDateUtils.adToBS(2024, 5, 15);
+                const formatted2 = window.nepaliDateUtils.formatBSDate(bs2.year, bs2.month, bs2.day);
+                
+                result.innerHTML = `
+                    <strong>Test Results:</strong><br>
+                    2024-01-20 (AD) = ${formatted1} (${bs1.year}-${bs1.month}-${bs1.day})<br>
+                    Expected: Magh 2080<br>
+                    <span class="${bs1.year === 2080 && bs1.month === 10 ? 'success' : 'error'}">
+                        ${bs1.year === 2080 && bs1.month === 10 ? '✓ PASS' : '✗ FAIL'}
+                    </span><br><br>
+                    2024-05-15 (AD) = ${formatted2} (${bs2.year}-${bs2.month}-${bs2.day})<br>
+                    Expected: Baisakh 2081<br>
+                    <span class="${bs2.year === 2081 && bs2.month === 1 ? 'success' : 'error'}">
+                        ${bs2.year === 2081 && bs2.month === 1 ? '✓ PASS' : '✗ FAIL'}
+                    </span>
+                `;
+            } catch (error) {
+                result.innerHTML = `<span class="error">✗ ERROR: ${error.message}</span>`;
+            }
+        }
+        
+        // Test 2: BS to AD conversion
+        function test2() {
+            const result = document.getElementById('test2Result');
+            try {
+                const ad1 = window.nepaliDateUtils.bsToAD(2080, 10, 8);
+                const ad2 = window.nepaliDateUtils.bsToAD(2081, 1, 1);
+                
+                result.innerHTML = `
+                    <strong>Test Results:</strong><br>
+                    2080-10-08 (BS / Magh 8) = ${ad1.year}-${String(ad1.month).padStart(2,'0')}-${String(ad1.day).padStart(2,'0')} (AD)<br>
+                    Expected: 2024-01-20<br>
+                    <span class="${ad1.year === 2024 && ad1.month === 1 && ad1.day === 20 ? 'success' : 'error'}">
+                        ${ad1.year === 2024 && ad1.month === 1 && ad1.day === 20 ? '✓ PASS' : '✗ FAIL'}
+                    </span><br><br>
+                    2081-01-01 (BS / Baisakh 1) = ${ad2.year}-${String(ad2.month).padStart(2,'0')}-${String(ad2.day).padStart(2,'0')} (AD)<br>
+                    Expected: Around 2024-04-13<br>
+                    <span class="${ad2.year === 2024 && ad2.month === 4 ? 'success' : 'error'}">
+                        ${ad2.year === 2024 && ad2.month === 4 ? '✓ PASS' : '✗ FAIL'}
+                    </span>
+                `;
+            } catch (error) {
+                result.innerHTML = `<span class="error">✗ ERROR: ${error.message}</span>`;
+            }
+        }
+        
+        // Test 3: Interactive picker
+        function test3() {
+            const input = document.getElementById('testInput');
+            const result = document.getElementById('test3Result');
+            
+            try {
+                const picker = new window.NepaliDatePicker(input, {
+                    closeOnSelect: true,
+                    onChange: function(adDate, bsDate) {
+                        const bsFormatted = window.nepaliDateUtils.formatBSDate(bsDate.year, bsDate.month, bsDate.day);
+                        result.innerHTML = `
+                            <strong>Date Selected:</strong><br>
+                            AD Date: ${adDate}<br>
+                            BS Date: ${bsFormatted}<br>
+                            <span class="success">✓ Calendar working!</span>
+                        `;
+                    }
+                });
+                
+                result.innerHTML = '<span class="success">✓ Picker initialized. Click input field to select a date.</span>';
+            } catch (error) {
+                result.innerHTML = `<span class="error">✗ ERROR: ${error.message}</span>`;
+            }
+        }
+        
+        // Run tests on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            test1();
+            test2();
+            test3();
+        });
+    </script>
+</body>
+</html>
