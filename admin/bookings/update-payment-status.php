@@ -27,7 +27,7 @@ try {
     }
     
     // Validate payment status
-    $valid_statuses = ['pending', 'unpaid', 'partial', 'paid', 'cancelled'];
+    $valid_statuses = ['pending', 'partial', 'paid', 'cancelled'];
     if (!in_array($new_payment_status, $valid_statuses)) {
         throw new Exception('Invalid payment status');
     }
@@ -45,7 +45,7 @@ try {
     
     // Validate status flow (optional - can be strict or flexible)
     // For now, we'll allow flexible updates but log them
-    $status_order = ['pending' => 0, 'unpaid' => 0, 'partial' => 1, 'paid' => 2];
+    $status_order = ['pending' => 0, 'partial' => 1, 'paid' => 2];
     $is_backward = false;
     
     if ($new_payment_status !== 'cancelled' && 

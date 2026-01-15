@@ -337,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label for="payment_status" class="form-label">Payment Status</label>
                                 <select class="form-select" id="payment_status" name="payment_status">
-                                    <option value="pending" <?php echo (!isset($_POST['payment_status']) || $_POST['payment_status'] == 'pending' || $_POST['payment_status'] == 'unpaid') ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="pending" <?php echo (!isset($_POST['payment_status']) || $_POST['payment_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
                                     <option value="partial" <?php echo (isset($_POST['payment_status']) && $_POST['payment_status'] == 'partial') ? 'selected' : ''; ?>>Partial</option>
                                     <option value="paid" <?php echo (isset($_POST['payment_status']) && $_POST['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
                                     <option value="cancelled" <?php echo (isset($_POST['payment_status']) && $_POST['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>

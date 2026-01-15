@@ -149,7 +149,7 @@ $bookings = $stmt->fetchAll();
                                         ?>" 
                                         data-booking-id="<?php echo $booking['id']; ?>"
                                         data-current-status="<?php echo $booking['payment_status']; ?>">
-                                        <option value="pending" <?php echo ($booking['payment_status'] == 'pending' || $booking['payment_status'] == 'unpaid') ? 'selected' : ''; ?>>Pending</option>
+                                        <option value="pending" <?php echo ($booking['payment_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
                                         <option value="partial" <?php echo ($booking['payment_status'] == 'partial') ? 'selected' : ''; ?>>Partial</option>
                                         <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
                                         <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
