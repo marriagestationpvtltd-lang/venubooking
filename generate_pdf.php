@@ -82,19 +82,11 @@ try {
 }
 
 // Get settings before creating PDF class to avoid scope issues
-try {
-    $site_name = getSetting('site_name', 'Venue Booking System');
-    $contact_phone = getSetting('contact_phone', '');
-    $currency = getSetting('currency', 'NPR');
-    $tax_rate = getSetting('tax_rate', '13');
-} catch (Exception $e) {
-    error_log("PDF Generation Error: Failed to retrieve settings - " . $e->getMessage());
-    // Use defaults if settings can't be retrieved
-    $site_name = 'Venue Booking System';
-    $contact_phone = '';
-    $currency = 'NPR';
-    $tax_rate = '13';
-}
+// getSetting function has built-in error handling and will return defaults on error
+$site_name = getSetting('site_name', 'Venue Booking System');
+$contact_phone = getSetting('contact_phone', '');
+$currency = getSetting('currency', 'NPR');
+$tax_rate = getSetting('tax_rate', '13');
 
 // Helper function to format currency for PDF
 function formatCurrencyForPDF($amount, $currency) {

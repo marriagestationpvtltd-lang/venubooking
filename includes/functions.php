@@ -454,15 +454,25 @@ function getSetting($key, $default = '') {
         return $cache[$key];
     }
     
-    // Query database
-    $db = getDB();
-    $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
-    $stmt->execute([$key]);
-    $result = $stmt->fetch();
-    
-    // Store in cache and return
-    $cache[$key] = $result ? $result['setting_value'] : $default;
-    return $cache[$key];
+    try {
+        // Query database
+        $db = getDB();
+        $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare settings query");
+        }
+        $stmt->execute([$key]);
+        $result = $stmt->fetch();
+        
+        // Store in cache and return
+        $cache[$key] = $result ? $result['setting_value'] : $default;
+        return $cache[$key];
+    } catch (Exception $e) {
+        error_log("Error in getSetting for key '$key': " . $e->getMessage());
+        // Return default value on error
+        $cache[$key] = $default;
+        return $default;
+    }
 }
 
 /**
