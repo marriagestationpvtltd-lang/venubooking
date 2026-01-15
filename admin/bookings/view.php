@@ -14,16 +14,19 @@ if ($booking_id <= 0) {
     exit;
 }
 
+// Fetch booking details (only once)
+$booking = getBookingDetails($booking_id);
+
+if (!$booking) {
+    header('Location: index.php');
+    exit;
+}
+
 // Handle payment request actions
 if (isset($_POST['action'])) {
     $action = $_POST['action'];
     
-    // Fetch booking details once for all actions
-    $booking = getBookingDetails($booking_id);
-    
-    if (!$booking) {
-        $error_message = 'Booking not found.';
-    } elseif ($action === 'send_payment_request_email') {
+    if ($action === 'send_payment_request_email') {
         // Send payment request via email
         if (!empty($booking['email'])) {
             $result = sendBookingNotification($booking_id, 'payment_request');
@@ -64,19 +67,14 @@ if (isset($_POST['action'])) {
                 logActivity($current_user['id'], 'Updated booking status', 'bookings', $booking_id, "Status changed from {$old_booking_status} to {$new_booking_status}");
                 
                 $success_message = "Booking status updated successfully from " . ucfirst($old_booking_status) . " to " . ucfirst($new_booking_status);
+                
+                // Re-fetch booking to get updated status
+                $booking = getBookingDetails($booking_id);
             } catch (Exception $e) {
                 $error_message = 'Failed to update booking status. Please try again.';
             }
         }
     }
-}
-
-// Fetch booking details
-$booking = getBookingDetails($booking_id);
-
-if (!$booking) {
-    header('Location: index.php');
-    exit;
 }
 ?>
 
@@ -480,8 +478,8 @@ if (!$booking) {
         whatsappForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Open WhatsApp
-            const whatsappUrl = 'https://wa.me/<?php echo $clean_phone; ?>?text=<?php echo $whatsapp_message; ?>';
+            // Open WhatsApp with properly escaped values
+            const whatsappUrl = 'https://wa.me/' + <?php echo json_encode($clean_phone); ?> + '?text=' + <?php echo json_encode($whatsapp_message); ?>;
             window.open(whatsappUrl, '_blank');
             
             // Submit the form to log the activity
