@@ -21,7 +21,19 @@ echo ""
 # Load database credentials from .env if it exists
 if [ -f ".env" ]; then
     echo "Loading database credentials from .env file..."
-    source <(grep -v '^#' .env | sed 's/\r$//')
+    # Safely parse .env file without executing code
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+        # Remove quotes from value if present
+        value="${value%\"}"
+        value="${value#\"}"
+        value="${value%\'}"
+        value="${value#\'}"
+        # Export the variable
+        export "$key=$value"
+    done < <(grep -v '^[[:space:]]*#' .env | grep -v '^[[:space:]]*$')
 else
     echo "Warning: .env file not found. Using default credentials."
     DB_HOST=${DB_HOST:-localhost}

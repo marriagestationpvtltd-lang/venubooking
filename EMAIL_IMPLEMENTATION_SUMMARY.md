@@ -207,8 +207,27 @@ SMTP Enabled: No
 1. **Email Validation**: All email addresses validated with `filter_var()`
 2. **HTML Sanitization**: All user input sanitized with `htmlspecialchars()`
 3. **Error Logging**: Failed emails logged to PHP error log
-4. **Password Storage**: SMTP passwords stored in plaintext in DB (consider encryption for production)
+4. **Password Storage**: SMTP passwords stored in plaintext in database
+   - **Production Recommendation**: Implement encryption for SMTP passwords
+   - Consider using environment variables or a secrets management system
+   - Suggested approach: Use `openssl_encrypt()` and `openssl_decrypt()` with a secure key
 5. **No Injection**: SQL prepared statements used throughout
+6. **SMTP Security**: Server name sanitized to prevent SMTP injection
+7. **Socket Timeouts**: Prevents hanging on unresponsive SMTP servers
+8. **Password Field**: Settings UI doesn't expose password value in HTML
+
+### Recommended Production Security Enhancement
+
+For production environments, consider implementing password encryption:
+
+```php
+// Encrypt password before saving
+$encryption_key = getSetting('encryption_key', ''); // Store securely
+$encrypted = openssl_encrypt($password, 'AES-256-CBC', $encryption_key, 0, $iv);
+
+// Decrypt when using
+$decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $encryption_key, 0, $iv);
+```
 
 ## Performance Considerations
 
