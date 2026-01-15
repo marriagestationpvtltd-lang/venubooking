@@ -97,9 +97,10 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
         $services_total = $result['total'] ?? 0;
     }
     
-    // Calculate totals
+    // Calculate totals - get tax rate from database settings
+    $tax_rate = floatval(getSetting('tax_rate', '13'));
     $subtotal = $hall_price + $menu_total + $services_total;
-    $tax_amount = $subtotal * (TAX_RATE / 100);
+    $tax_amount = $subtotal * ($tax_rate / 100);
     $grand_total = $subtotal + $tax_amount;
     
     return [
@@ -412,7 +413,8 @@ function getBookingDetails($booking_id) {
  * Format currency
  */
 function formatCurrency($amount) {
-    return CURRENCY . ' ' . number_format($amount, 2);
+    $currency = getSetting('currency', 'NPR');
+    return $currency . ' ' . number_format($amount, 2);
 }
 
 /**

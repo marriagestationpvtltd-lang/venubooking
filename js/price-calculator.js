@@ -8,7 +8,20 @@ class PriceCalculator {
         this.menuPrices = [];
         this.servicePrices = [];
         this.guests = 0;
-        this.taxRate = 13; // Default tax rate
+        this.taxRate = 13; // Default, will be loaded from settings
+        
+        // Load tax rate from global settings when available
+        this.loadTaxRate();
+    }
+    
+    async loadTaxRate() {
+        // Wait for settings to be loaded if not already available
+        if (typeof appSettings !== 'undefined' && appSettings.tax_rate) {
+            this.taxRate = appSettings.tax_rate;
+        } else {
+            // If settings not loaded yet, wait and try again
+            setTimeout(() => this.loadTaxRate(), 100);
+        }
     }
     
     setHallPrice(price) {

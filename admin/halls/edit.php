@@ -241,7 +241,7 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="base_price" class="form-label">Base Price (<?php echo CURRENCY; ?>) <span class="text-danger">*</span></label>
+                                <label for="base_price" class="form-label">Base Price (<?php echo getSetting('currency', 'NPR'); ?>) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="base_price" name="base_price" 
                                        value="<?php echo $hall['base_price']; ?>" min="0" step="0.01" required>
                             </div>

@@ -121,6 +121,11 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
+    <!-- Base URL for API calls -->
+    <script>
+        const baseUrl = "<?php echo BASE_URL; ?>";
+    </script>
+    
     <!-- Custom JS -->
     <script src="<?php echo BASE_URL; ?>/js/main.js"></script>
     

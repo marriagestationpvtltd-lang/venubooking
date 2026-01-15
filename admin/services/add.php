@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="price" class="form-label">Price (<?php echo CURRENCY; ?>) <span class="text-danger">*</span></label>
+                                <label for="price" class="form-label">Price (<?php echo getSetting('currency', 'NPR'); ?>) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="price" name="price" 
                                        value="<?php echo isset($_POST['price']) ? $_POST['price'] : ''; ?>" 
                                        min="0" step="0.01" placeholder="e.g., 25000.00" required>
