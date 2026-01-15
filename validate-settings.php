@@ -4,9 +4,6 @@
  * Run this to validate that settings are properly database-driven
  */
 
-// Disable strict error reporting for this test
-error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
-
 echo "=== Settings Implementation Validation ===\n\n";
 
 // Test 1: Check if functions.php has been updated

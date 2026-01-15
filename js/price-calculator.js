@@ -15,13 +15,22 @@ class PriceCalculator {
     }
     
     async loadTaxRate() {
-        // Wait for settings to be loaded if not already available
-        if (typeof appSettings !== 'undefined' && appSettings.tax_rate) {
-            this.taxRate = appSettings.tax_rate;
-        } else {
-            // If settings not loaded yet, wait and try again
-            setTimeout(() => this.loadTaxRate(), 100);
-        }
+        // Wait for settings to be loaded - max 30 retries (3 seconds)
+        let retries = 0;
+        const maxRetries = 30;
+        
+        const checkSettings = () => {
+            if (typeof appSettings !== 'undefined' && appSettings.tax_rate) {
+                this.taxRate = appSettings.tax_rate;
+            } else if (retries < maxRetries) {
+                retries++;
+                setTimeout(checkSettings, 100);
+            } else {
+                console.warn('Failed to load tax rate from settings, using default');
+            }
+        };
+        
+        checkSettings();
     }
     
     setHallPrice(price) {

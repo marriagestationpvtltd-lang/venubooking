@@ -68,8 +68,8 @@
     </div>
 
     <script>
-        // Base URL for API calls
-        const baseUrl = "";
+        // Base URL for API calls - determine from current location
+        const baseUrl = window.location.pathname.replace(/\/[^\/]*$/, '').replace(/\/(admin|api).*/, '');
         
         // Global settings loaded from API
         let appSettings = {
