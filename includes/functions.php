@@ -1411,3 +1411,94 @@ function linkPaymentMethodsToBooking($booking_id, $payment_method_ids) {
         return false;
     }
 }
+
+/**
+ * Record a payment transaction
+ * @param array $data Payment data (booking_id, payment_method_id, transaction_id, paid_amount, payment_slip, notes)
+ * @return array Result with success status and payment_id or error message
+ */
+function recordPayment($data) {
+    $db = getDB();
+    
+    try {
+        $db->beginTransaction();
+        
+        // Validate required fields
+        if (empty($data['booking_id'])) {
+            throw new Exception('Booking ID is required.');
+        }
+        if (empty($data['paid_amount'])) {
+            throw new Exception('Paid amount is required.');
+        }
+        
+        // Insert payment record
+        $sql = "INSERT INTO payments (booking_id, payment_method_id, transaction_id, paid_amount, payment_slip, notes) 
+                VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([
+            $data['booking_id'],
+            $data['payment_method_id'] ?? null,
+            $data['transaction_id'] ?? null,
+            $data['paid_amount'],
+            $data['payment_slip'] ?? null,
+            $data['notes'] ?? null
+        ]);
+        
+        $payment_id = $db->lastInsertId();
+        
+        // Update booking status
+        if (isset($data['update_booking_status']) && $data['update_booking_status']) {
+            // Update booking status to payment_submitted if with payment
+            $stmt = $db->prepare("UPDATE bookings SET booking_status = 'payment_submitted' WHERE id = ?");
+            $stmt->execute([$data['booking_id']]);
+        }
+        
+        // Calculate total paid amount for this booking
+        $stmt = $db->prepare("SELECT COALESCE(SUM(paid_amount), 0) as total_paid FROM payments WHERE booking_id = ?");
+        $stmt->execute([$data['booking_id']]);
+        $result = $stmt->fetch();
+        $total_paid = floatval($result['total_paid']);
+        
+        // Get booking grand total
+        $stmt = $db->prepare("SELECT grand_total FROM bookings WHERE id = ?");
+        $stmt->execute([$data['booking_id']]);
+        $booking = $stmt->fetch();
+        $grand_total = $booking['grand_total'] ?? 0;
+        
+        // Update payment status
+        $payment_status = 'unpaid';
+        if ($total_paid >= $grand_total) {
+            $payment_status = 'paid';
+        } elseif ($total_paid > 0) {
+            $payment_status = 'partial';
+        }
+        
+        $stmt = $db->prepare("UPDATE bookings SET payment_status = ? WHERE id = ?");
+        $stmt->execute([$payment_status, $data['booking_id']]);
+        
+        $db->commit();
+        
+        return ['success' => true, 'payment_id' => $payment_id];
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+
+/**
+ * Get payments for a booking
+ * @param int $booking_id Booking ID
+ * @return array Array of payments
+ */
+function getBookingPayments($booking_id) {
+    $db = getDB();
+    $sql = "SELECT p.*, pm.name as payment_method_name 
+            FROM payments p
+            LEFT JOIN payment_methods pm ON p.payment_method_id = pm.id
+            WHERE p.booking_id = ?
+            ORDER BY p.payment_date DESC";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$booking_id]);
+    return $stmt->fetchAll();
+}

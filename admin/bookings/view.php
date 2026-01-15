@@ -53,7 +53,7 @@ if (isset($_POST['action'])) {
         $old_booking_status = trim($_POST['old_booking_status'] ?? '');
         
         // Validate booking status
-        $valid_statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
+        $valid_statuses = ['pending', 'payment_submitted', 'confirmed', 'cancelled', 'completed'];
         if (!in_array($new_booking_status, $valid_statuses)) {
             $error_message = 'Invalid booking status.';
         } else {
@@ -185,6 +185,7 @@ if (isset($_POST['action'])) {
                                 <label for="booking_status" class="form-label mb-1">Status</label>
                                 <select class="form-select" id="booking_status" name="booking_status">
                                     <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>Payment Submitted</option>
                                     <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
                                     <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                                     <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
@@ -428,6 +429,120 @@ if (isset($_POST['action'])) {
                     <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <!-- Payment Transactions -->
+        <?php 
+        $payment_transactions = getBookingPayments($booking_id);
+        if (count($payment_transactions) > 0): 
+        ?>
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave"></i> Payment Transactions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Payment Method</th>
+                                <th>Transaction ID</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Payment Slip</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($payment_transactions as $payment): ?>
+                            <tr>
+                                <td><?php echo date('M d, Y H:i', strtotime($payment['payment_date'])); ?></td>
+                                <td><?php echo !empty($payment['payment_method_name']) ? htmlspecialchars($payment['payment_method_name']) : '-'; ?></td>
+                                <td>
+                                    <?php echo !empty($payment['transaction_id']) ? htmlspecialchars($payment['transaction_id']) : '-'; ?>
+                                    <?php if (!empty($payment['notes'])): ?>
+                                        <br><small class="text-muted"><?php echo htmlspecialchars($payment['notes']); ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><strong class="text-success"><?php echo formatCurrency($payment['paid_amount']); ?></strong></td>
+                                <td>
+                                    <span class="badge bg-<?php 
+                                        echo $payment['payment_status'] == 'verified' ? 'success' : 
+                                            ($payment['payment_status'] == 'pending' ? 'warning' : 'danger'); 
+                                    ?>">
+                                        <?php echo ucfirst($payment['payment_status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php if (!empty($payment['payment_slip']) && validateUploadedFilePath($payment['payment_slip'])): ?>
+                                        <a href="#" data-bs-toggle="modal" data-bs-target="#slipModal<?php echo $payment['id']; ?>" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        
+                                        <!-- Modal for Payment Slip -->
+                                        <div class="modal fade" id="slipModal<?php echo $payment['id']; ?>" tabindex="-1">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Payment Slip - Transaction ID: <?php echo htmlspecialchars($payment['transaction_id'] ?? 'N/A'); ?></h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body text-center">
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($payment['payment_slip']); ?>" 
+                                                             alt="Payment Slip" 
+                                                             class="img-fluid"
+                                                             style="max-height: 80vh;">
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <a href="<?php echo UPLOAD_URL . htmlspecialchars($payment['payment_slip']); ?>" 
+                                                           download 
+                                                           class="btn btn-success">
+                                                            <i class="fas fa-download"></i> Download
+                                                        </a>
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info">
+                                <td colspan="3" class="text-end"><strong>Total Paid:</strong></td>
+                                <td colspan="3">
+                                    <strong class="text-success fs-5">
+                                        <?php 
+                                        $total_paid = array_sum(array_column($payment_transactions, 'paid_amount'));
+                                        echo formatCurrency($total_paid); 
+                                        ?>
+                                    </strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end">Grand Total:</td>
+                                <td colspan="3"><strong><?php echo formatCurrency($booking['grand_total']); ?></strong></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end">Balance Due:</td>
+                                <td colspan="3">
+                                    <strong class="text-danger">
+                                        <?php 
+                                        $balance_due = $booking['grand_total'] - $total_paid;
+                                        echo formatCurrency($balance_due); 
+                                        ?>
+                                    </strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </div>
         <?php endif; ?>

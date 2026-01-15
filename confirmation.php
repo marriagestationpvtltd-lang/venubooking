@@ -10,10 +10,17 @@ if (!isset($_SESSION['booking_completed'])) {
 
 $booking_info = $_SESSION['booking_completed'];
 $booking = getBookingDetails($booking_info['booking_id']);
+$payment_submitted = $booking_info['payment_submitted'] ?? false;
 
 if (!$booking) {
     header('Location: index.php');
     exit;
+}
+
+// Get payment details if payment was submitted
+$payments = [];
+if ($payment_submitted) {
+    $payments = getBookingPayments($booking_info['booking_id']);
 }
 
 // Clear the booking completed session
@@ -228,6 +235,64 @@ unset($_SESSION['booking_completed']);
                         </div>
                     </div>
                 </div>
+
+                <!-- Payment Information (if payment was submitted) -->
+                <?php if ($payment_submitted && !empty($payments)): ?>
+                    <div class="card shadow-sm mb-4 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Payment Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Payment details submitted successfully!</strong><br>
+                                Your booking status has been updated to "Payment Submitted". Our team will verify your payment and update the status accordingly.
+                            </div>
+                            
+                            <?php foreach ($payments as $payment): ?>
+                                <div class="row mb-3">
+                                    <div class="col-md-6 mb-3">
+                                        <h6 class="text-success mb-2">Payment Details</h6>
+                                        <?php if (!empty($payment['payment_method_name'])): ?>
+                                            <div class="mb-1">
+                                                <strong>Payment Method:</strong> <?php echo sanitize($payment['payment_method_name']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($payment['transaction_id'])): ?>
+                                            <div class="mb-1">
+                                                <strong>Transaction ID:</strong> <?php echo sanitize($payment['transaction_id']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="mb-1">
+                                            <strong>Paid Amount:</strong> <span class="text-success"><?php echo formatCurrency($payment['paid_amount']); ?></span>
+                                        </div>
+                                        <div class="mb-1">
+                                            <strong>Payment Date:</strong> <?php echo date('F d, Y g:i A', strtotime($payment['payment_date'])); ?>
+                                        </div>
+                                        <div class="mb-1">
+                                            <strong>Status:</strong> 
+                                            <span class="badge bg-warning text-dark">
+                                                <?php echo ucfirst($payment['payment_status']); ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <?php if (!empty($payment['payment_slip']) && validateUploadedFilePath($payment['payment_slip'])): ?>
+                                        <div class="col-md-6 mb-3">
+                                            <h6 class="text-success mb-2">Payment Slip</h6>
+                                            <div class="text-center">
+                                                <img src="<?php echo UPLOAD_URL . sanitize($payment['payment_slip']); ?>" 
+                                                     alt="Payment Slip" 
+                                                     class="img-fluid border rounded"
+                                                     style="max-height: 300px;">
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Action Buttons -->
                 <div class="text-center">

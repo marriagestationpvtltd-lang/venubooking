@@ -265,6 +265,13 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                                    value="<?php echo htmlspecialchars($settings['tax_rate'] ?? '13'); ?>" step="0.01" min="0">
                             <div class="form-text">Default tax rate percentage</div>
                         </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Advance Payment Percentage (%)</label>
+                            <input type="number" class="form-control" name="setting_advance_payment_percentage" 
+                                   value="<?php echo htmlspecialchars($settings['advance_payment_percentage'] ?? '25'); ?>" step="0.01" min="0" max="100">
+                            <div class="form-text">Percentage of total amount required as advance payment (default: 25%)</div>
+                        </div>
                     </div>
                 </div>
 
