@@ -121,6 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $db->commit();
                 
+                // Send email notifications after successful booking
+                sendBookingNotification($booking_id, 'new');
+                
                 header('Location: view.php?id=' . $booking_id);
                 exit;
                 

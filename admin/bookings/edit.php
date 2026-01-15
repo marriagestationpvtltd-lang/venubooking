@@ -53,6 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $post_selected_services = isset($_POST['services']) ? $_POST['services'] : [];
     $booking_status = $_POST['booking_status'];
     $payment_status = $_POST['payment_status'];
+    
+    // Store old status for email notification
+    $old_booking_status = $booking['booking_status'];
+    $old_payment_status = $booking['payment_status'];
+    $status_changed = ($old_booking_status !== $booking_status) || ($old_payment_status !== $payment_status);
 
     // Validation
     if (empty($full_name) || empty($phone) || $hall_id <= 0 || empty($event_date) || $number_of_guests <= 0) {
@@ -146,6 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity($current_user['id'], 'Updated booking', 'bookings', $booking_id, "Updated booking: {$booking['booking_number']}");
                 
                 $db->commit();
+                
+                // Send email notifications if status changed
+                if ($status_changed) {
+                    sendBookingNotification($booking_id, 'update', $old_booking_status);
+                }
                 
                 $success_message = 'Booking updated successfully!';
                 

@@ -358,6 +358,10 @@ function createBooking($data) {
         }
         
         $db->commit();
+        
+        // Send email notifications after successful booking
+        sendBookingNotification($booking_id, 'new');
+        
         return ['success' => true, 'booking_id' => $booking_id, 'booking_number' => $booking_number];
         
     } catch (Exception $e) {
@@ -663,4 +667,505 @@ function getPlaceholderImageUrl() {
     
     // URL encode for use in data URL
     return 'data:image/svg+xml,' . rawurlencode($svg);
+}
+
+/**
+ * Send email notification
+ * 
+ * @param string $to Recipient email address
+ * @param string $subject Email subject
+ * @param string $message Email message (HTML)
+ * @param string $recipient_name Optional recipient name
+ * @return bool True on success, false on failure
+ */
+function sendEmail($to, $subject, $message, $recipient_name = '') {
+    // Check if email is enabled
+    if (getSetting('email_enabled', '1') != '1') {
+        return false;
+    }
+    
+    // Validate email address
+    if (empty($to) || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        error_log("Invalid email address: $to");
+        return false;
+    }
+    
+    $from_name = getSetting('email_from_name', 'Venue Booking System');
+    $from_email = getSetting('email_from_address', 'noreply@venubooking.com');
+    
+    // Use SMTP if enabled
+    if (getSetting('smtp_enabled', '0') == '1') {
+        return sendEmailSMTP($to, $subject, $message, $recipient_name);
+    }
+    
+    // Use PHP mail() function
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-type: text/html; charset=UTF-8',
+        'From: ' . $from_name . ' <' . $from_email . '>',
+        'Reply-To: ' . $from_email,
+        'X-Mailer: PHP/' . phpversion()
+    ];
+    
+    $full_to = !empty($recipient_name) ? $recipient_name . ' <' . $to . '>' : $to;
+    
+    $result = @mail($full_to, $subject, $message, implode("\r\n", $headers));
+    
+    if (!$result) {
+        error_log("Failed to send email to: $to, subject: $subject");
+    }
+    
+    return $result;
+}
+
+/**
+ * Send email using SMTP
+ * 
+ * @param string $to Recipient email address
+ * @param string $subject Email subject
+ * @param string $message Email message (HTML)
+ * @param string $recipient_name Optional recipient name
+ * @return bool True on success, false on failure
+ */
+function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
+    $smtp_host = getSetting('smtp_host', '');
+    $smtp_port = intval(getSetting('smtp_port', '587'));
+    $smtp_username = getSetting('smtp_username', '');
+    $smtp_password = getSetting('smtp_password', '');
+    $smtp_encryption = getSetting('smtp_encryption', 'tls');
+    $from_name = getSetting('email_from_name', 'Venue Booking System');
+    $from_email = getSetting('email_from_address', 'noreply@venubooking.com');
+    
+    if (empty($smtp_host) || empty($smtp_username)) {
+        error_log("SMTP settings incomplete");
+        return false;
+    }
+    
+    try {
+        // Set timeout for socket operations
+        ini_set('default_socket_timeout', 30);
+        
+        // Create socket connection
+        $context = stream_context_create();
+        
+        if ($smtp_encryption === 'ssl') {
+            $socket = @stream_socket_client(
+                "ssl://$smtp_host:$smtp_port",
+                $errno,
+                $errstr,
+                30,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+        } else {
+            $socket = @stream_socket_client(
+                "tcp://$smtp_host:$smtp_port",
+                $errno,
+                $errstr,
+                30,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+        }
+        
+        if (!$socket) {
+            error_log("SMTP connection failed: $errstr ($errno)");
+            return false;
+        }
+        
+        // Set socket timeout
+        stream_set_timeout($socket, 30);
+        
+        // Read server response
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '220') {
+            fclose($socket);
+            error_log("SMTP server not ready: $response");
+            return false;
+        }
+        
+        // Get server name for EHLO, use localhost as fallback
+        $ehlo_domain = !empty($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
+        // Sanitize domain name to prevent SMTP injection
+        $ehlo_domain = preg_replace('/[^a-zA-Z0-9.-]/', '', $ehlo_domain);
+        if (empty($ehlo_domain)) {
+            $ehlo_domain = 'localhost';
+        }
+        
+        // Send EHLO
+        fwrite($socket, "EHLO $ehlo_domain\r\n");
+        $response = fgets($socket);
+        
+        // Start TLS if needed
+        if ($smtp_encryption === 'tls') {
+            fwrite($socket, "STARTTLS\r\n");
+            $response = fgets($socket);
+            if (substr($response, 0, 3) != '220') {
+                fclose($socket);
+                error_log("STARTTLS failed: $response");
+                return false;
+            }
+            
+            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+            
+            // Send EHLO again after TLS
+            fwrite($socket, "EHLO $ehlo_domain\r\n");
+            $response = fgets($socket);
+        }
+        
+        // Authenticate
+        fwrite($socket, "AUTH LOGIN\r\n");
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '334') {
+            fclose($socket);
+            error_log("SMTP AUTH LOGIN failed: $response");
+            return false;
+        }
+        
+        fwrite($socket, base64_encode($smtp_username) . "\r\n");
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '334') {
+            fclose($socket);
+            error_log("SMTP username failed: $response");
+            return false;
+        }
+        
+        fwrite($socket, base64_encode($smtp_password) . "\r\n");
+        $response = fgets($socket);
+        
+        if (substr($response, 0, 3) != '235') {
+            fclose($socket);
+            error_log("SMTP authentication failed: $response");
+            return false;
+        }
+        
+        // Send email
+        fwrite($socket, "MAIL FROM: <$from_email>\r\n");
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '250') {
+            fclose($socket);
+            error_log("SMTP MAIL FROM failed: $response");
+            return false;
+        }
+        
+        fwrite($socket, "RCPT TO: <$to>\r\n");
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '250') {
+            fclose($socket);
+            error_log("SMTP RCPT TO failed: $response");
+            return false;
+        }
+        
+        fwrite($socket, "DATA\r\n");
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '354') {
+            fclose($socket);
+            error_log("SMTP DATA failed: $response");
+            return false;
+        }
+        
+        // Build email content
+        $full_to = !empty($recipient_name) ? $recipient_name : $to;
+        $email_content = "From: $from_name <$from_email>\r\n";
+        $email_content .= "To: $full_to <$to>\r\n";
+        $email_content .= "Subject: $subject\r\n";
+        $email_content .= "MIME-Version: 1.0\r\n";
+        $email_content .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $email_content .= "\r\n";
+        $email_content .= $message;
+        $email_content .= "\r\n.\r\n";
+        
+        fwrite($socket, $email_content);
+        $response = fgets($socket);
+        
+        // Quit
+        fwrite($socket, "QUIT\r\n");
+        fclose($socket);
+        
+        if (substr($response, 0, 3) != '250') {
+            error_log("SMTP send failed: $response");
+            return false;
+        }
+        
+        return true;
+        
+    } catch (Exception $e) {
+        error_log("SMTP error: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Send booking notification emails
+ * 
+ * @param int $booking_id Booking ID
+ * @param string $type Type of notification (new, update)
+ * @param string $old_status Old status (for updates)
+ * @return array Array with admin and user email results
+ */
+function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
+    $booking = getBookingDetails($booking_id);
+    
+    if (!$booking) {
+        return ['admin' => false, 'user' => false];
+    }
+    
+    $admin_email = getSetting('admin_email', getSetting('contact_email', ''));
+    $results = ['admin' => false, 'user' => false];
+    
+    // Determine subject and message based on type
+    if ($type === 'new') {
+        $admin_subject = 'New Booking Received - ' . $booking['booking_number'];
+        $user_subject = 'Booking Confirmation - ' . $booking['booking_number'];
+    } else {
+        $status_text = ucfirst($booking['booking_status']);
+        $admin_subject = 'Booking Updated - ' . $booking['booking_number'];
+        $user_subject = 'Booking Status Updated - ' . $booking['booking_number'];
+    }
+    
+    // Generate email HTML
+    $admin_message = generateBookingEmailHTML($booking, 'admin', $type, $old_status);
+    $user_message = generateBookingEmailHTML($booking, 'user', $type, $old_status);
+    
+    // Send to admin
+    if (!empty($admin_email)) {
+        $results['admin'] = sendEmail($admin_email, $admin_subject, $admin_message);
+    }
+    
+    // Send to user
+    if (!empty($booking['email'])) {
+        $results['user'] = sendEmail($booking['email'], $user_subject, $user_message, $booking['full_name']);
+    }
+    
+    return $results;
+}
+
+/**
+ * Generate booking email HTML
+ * 
+ * @param array $booking Booking details
+ * @param string $recipient Type of recipient (admin/user)
+ * @param string $type Type of notification (new/update)
+ * @param string $old_status Old status (for updates)
+ * @return string HTML email content
+ */
+function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', $old_status = '') {
+    $site_name = getSetting('site_name', 'Venue Booking System');
+    $contact_email = getSetting('contact_email', '');
+    $contact_phone = getSetting('contact_phone', '');
+    
+    ob_start();
+    ?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+            .content { background-color: #f9f9f9; padding: 20px; }
+            .booking-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; }
+            .detail-row { padding: 8px 0; border-bottom: 1px solid #eee; }
+            .detail-label { font-weight: bold; color: #555; }
+            .detail-value { color: #333; }
+            .section-title { color: #4CAF50; font-size: 18px; margin: 20px 0 10px 0; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; }
+            .cost-row { display: flex; justify-content: space-between; padding: 5px 0; }
+            .total-row { font-weight: bold; font-size: 18px; color: #4CAF50; border-top: 2px solid #4CAF50; padding-top: 10px; margin-top: 10px; }
+            .footer { text-align: center; padding: 20px; color: #777; font-size: 14px; }
+            .status-badge { display: inline-block; padding: 5px 15px; border-radius: 3px; font-weight: bold; }
+            .status-pending { background-color: #fff3cd; color: #856404; }
+            .status-confirmed { background-color: #d4edda; color: #155724; }
+            .status-cancelled { background-color: #f8d7da; color: #721c24; }
+            .status-completed { background-color: #d1ecf1; color: #0c5460; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1><?php echo htmlspecialchars($site_name); ?></h1>
+                <h2><?php echo $type === 'new' ? 'Booking Confirmation' : 'Booking Update'; ?></h2>
+            </div>
+            
+            <div class="content">
+                <?php if ($recipient === 'user'): ?>
+                    <?php if ($type === 'new'): ?>
+                        <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
+                        <p>Thank you for your booking! Your reservation has been successfully created.</p>
+                    <?php else: ?>
+                        <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
+                        <p>Your booking status has been updated.</p>
+                        <?php if (!empty($old_status)): ?>
+                            <p><strong>Previous Status:</strong> <?php echo ucfirst($old_status); ?> → <strong>New Status:</strong> <?php echo ucfirst($booking['booking_status']); ?></p>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <?php if ($type === 'new'): ?>
+                        <p><strong>A new booking has been received:</strong></p>
+                    <?php else: ?>
+                        <p><strong>Booking has been updated:</strong></p>
+                        <?php if (!empty($old_status)): ?>
+                            <p><strong>Status Change:</strong> <?php echo ucfirst($old_status); ?> → <?php echo ucfirst($booking['booking_status']); ?></p>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                <?php endif; ?>
+                
+                <div class="booking-details">
+                    <div class="section-title">Booking Information</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Booking Number:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['booking_number']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="status-badge status-<?php echo $booking['booking_status']; ?>">
+                            <?php echo ucfirst($booking['booking_status']); ?>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Payment Status:</span>
+                        <span class="detail-value"><?php echo ucfirst($booking['payment_status']); ?></span>
+                    </div>
+                </div>
+                
+                <div class="booking-details">
+                    <div class="section-title">Customer Information</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Name:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['full_name']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Phone:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['phone']); ?></span>
+                    </div>
+                    <?php if (!empty($booking['email'])): ?>
+                    <div class="detail-row">
+                        <span class="detail-label">Email:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['email']); ?></span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="booking-details">
+                    <div class="section-title">Event Details</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Event Type:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['event_type']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Shift:</span>
+                        <span class="detail-value"><?php echo ucfirst($booking['shift']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Number of Guests:</span>
+                        <span class="detail-value"><?php echo $booking['number_of_guests']; ?> persons</span>
+                    </div>
+                </div>
+                
+                <div class="booking-details">
+                    <div class="section-title">Venue & Hall</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Venue:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['venue_name']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Location:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['location']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Hall:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['hall_name']); ?> (<?php echo $booking['capacity']; ?> capacity)</span>
+                    </div>
+                </div>
+                
+                <?php if (!empty($booking['menus'])): ?>
+                <div class="booking-details">
+                    <div class="section-title">Selected Menus</div>
+                    <?php foreach ($booking['menus'] as $menu): ?>
+                        <div class="detail-row">
+                            <span class="detail-label"><?php echo htmlspecialchars($menu['menu_name']); ?>:</span>
+                            <span class="detail-value"><?php echo formatCurrency($menu['price_per_person']); ?>/person × <?php echo $menu['number_of_guests']; ?> = <?php echo formatCurrency($menu['total_price']); ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($booking['services'])): ?>
+                <div class="booking-details">
+                    <div class="section-title">Additional Services</div>
+                    <?php foreach ($booking['services'] as $service): ?>
+                        <div class="detail-row">
+                            <span class="detail-label"><?php echo htmlspecialchars($service['service_name']); ?>:</span>
+                            <span class="detail-value"><?php echo formatCurrency($service['price']); ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($booking['special_requests'])): ?>
+                <div class="booking-details">
+                    <div class="section-title">Special Requests</div>
+                    <p><?php echo nl2br(htmlspecialchars($booking['special_requests'])); ?></p>
+                </div>
+                <?php endif; ?>
+                
+                <div class="booking-details">
+                    <div class="section-title">Cost Breakdown</div>
+                    <div class="cost-row">
+                        <span>Hall Cost:</span>
+                        <span><?php echo formatCurrency($booking['hall_price']); ?></span>
+                    </div>
+                    <?php if ($booking['menu_total'] > 0): ?>
+                    <div class="cost-row">
+                        <span>Menu Cost:</span>
+                        <span><?php echo formatCurrency($booking['menu_total']); ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($booking['services_total'] > 0): ?>
+                    <div class="cost-row">
+                        <span>Services Cost:</span>
+                        <span><?php echo formatCurrency($booking['services_total']); ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <div class="cost-row">
+                        <span>Subtotal:</span>
+                        <span><?php echo formatCurrency($booking['subtotal']); ?></span>
+                    </div>
+                    <div class="cost-row">
+                        <span>Tax (<?php echo htmlspecialchars(getSetting('tax_rate', '13'), ENT_QUOTES, 'UTF-8'); ?>%):</span>
+                        <span><?php echo formatCurrency($booking['tax_amount']); ?></span>
+                    </div>
+                    <div class="cost-row total-row">
+                        <span>Grand Total:</span>
+                        <span><?php echo formatCurrency($booking['grand_total']); ?></span>
+                    </div>
+                </div>
+                
+                <?php if ($recipient === 'user'): ?>
+                    <p style="margin-top: 20px;">If you have any questions about your booking, please don't hesitate to contact us.</p>
+                <?php endif; ?>
+            </div>
+            
+            <div class="footer">
+                <p><strong><?php echo htmlspecialchars($site_name); ?></strong></p>
+                <?php if ($contact_phone): ?>
+                    <p>Phone: <?php echo htmlspecialchars($contact_phone); ?></p>
+                <?php endif; ?>
+                <?php if ($contact_email): ?>
+                    <p>Email: <?php echo htmlspecialchars($contact_email); ?></p>
+                <?php endif; ?>
+                <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                    This is an automated message. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    return ob_get_clean();
 }
