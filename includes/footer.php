@@ -173,6 +173,9 @@
         const baseUrl = "<?php echo BASE_URL; ?>";
     </script>
     
+    <!-- Nepali Date Picker -->
+    <script src="<?php echo BASE_URL; ?>/js/nepali-date-picker.js"></script>
+    
     <!-- Custom JS -->
     <script src="<?php echo BASE_URL; ?>/js/main.js"></script>
     

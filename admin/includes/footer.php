@@ -68,6 +68,9 @@
         }
     </script>
     
+    <!-- Nepali Date Picker -->
+    <script src="<?php echo BASE_URL; ?>/js/nepali-date-picker.js"></script>
+    
     <?php if (isset($extra_js)) echo $extra_js; ?>
 </body>
 </html>
