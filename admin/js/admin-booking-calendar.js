@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // Calendar mode button text constants
+    const BUTTON_TEXT_NEPALI = '<i class="fas fa-calendar"></i> Current: Nepali (BS) | Click to toggle';
+    const BUTTON_TEXT_ENGLISH = '<i class="fas fa-calendar-alt"></i> Current: English (AD) | Click to toggle';
+    
     // Add calendar toggle button next to date input
     const dateFieldGroup = eventDateInput.closest('.mb-3') || eventDateInput.parentElement;
     
@@ -23,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleButton = document.createElement('button');
         toggleButton.type = 'button';
         toggleButton.className = 'btn btn-sm btn-success calendar-toggle-btn mt-2';
-        toggleButton.innerHTML = '<i class="fas fa-calendar"></i> Switch to English (AD) Calendar';
+        toggleButton.innerHTML = BUTTON_TEXT_NEPALI;
         toggleButton.style.display = 'block';
         
         // Insert after the input
@@ -80,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Initialize Nepali picker
         nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
-            closeOnSelect: true,
+            closeOnSelect: true, // Close calendar after date is selected (like English calendar)
             onChange: function(adDate, bsDate) {
                 updateNepaliDisplay();
             }
@@ -102,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (isNepaliMode) {
             // Switch to Nepali mode
-            toggleButton.innerHTML = '<i class="fas fa-calendar"></i> Switch to English (AD) Calendar';
+            toggleButton.innerHTML = BUTTON_TEXT_NEPALI;
             toggleButton.classList.remove('btn-outline-success');
             toggleButton.classList.add('btn-success');
             
@@ -114,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Initialize Nepali picker
             if (!nepaliPicker) {
                 nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
-                    closeOnSelect: true,
+                    closeOnSelect: true, // Close calendar after date is selected (like English calendar)
                     onChange: function(adDate, bsDate) {
                         updateNepaliDisplay();
                     }
@@ -128,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             // Switch to English mode
-            toggleButton.innerHTML = '<i class="fas fa-calendar-alt"></i> Switch to Nepali (BS) Calendar';
+            toggleButton.innerHTML = BUTTON_TEXT_ENGLISH;
             toggleButton.classList.remove('btn-success');
             toggleButton.classList.add('btn-outline-success');
             

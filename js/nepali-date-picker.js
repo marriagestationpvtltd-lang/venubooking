@@ -210,7 +210,7 @@
             this.input = inputElement;
             this.options = {
                 dateFormat: options.dateFormat || 'YYYY-MM-DD',
-                closeOnSelect: options.closeOnSelect !== false,
+                closeOnSelect: options.closeOnSelect !== false, // Default to true - close after date selection
                 minDate: options.minDate || null,
                 maxDate: options.maxDate || null,
                 onChange: options.onChange || null

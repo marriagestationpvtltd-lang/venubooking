@@ -49,7 +49,7 @@
             <div class="input-group">
                 <input type="date" class="form-control" id="event_date" name="event_date" 
                        min="2024-01-16" value="2024-01-20">
-                <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Switch to Nepali Calendar">
+                <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Current Calendar Mode (Click to toggle)">
                     <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>
                 </button>
             </div>
@@ -188,7 +188,7 @@
                 
                 if (isNepaliMode) {
                     // Switch to Nepali calendar
-                    calendarTypeLabel.textContent = 'AD';
+                    calendarTypeLabel.textContent = 'BS'; // Show current mode
                     calendarModeEl.textContent = 'Nepali (BS)';
                     
                     // Remove type="date" to prevent browser date picker
@@ -200,7 +200,7 @@
                     // Initialize Nepali picker
                     if (!nepaliPicker) {
                         nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
-                            closeOnSelect: true,
+                            closeOnSelect: true, // Close calendar after date is selected (like English calendar)
                             onChange: function(adDate, bsDate) {
                                 updateDisplays();
                             }
@@ -210,7 +210,7 @@
                     showSuccess('Switched to Nepali (BS) Calendar');
                 } else {
                     // Switch to English calendar
-                    calendarTypeLabel.textContent = 'BS';
+                    calendarTypeLabel.textContent = 'AD'; // Show current mode
                     calendarModeEl.textContent = 'English (AD)';
                     
                     // Restore standard date input
