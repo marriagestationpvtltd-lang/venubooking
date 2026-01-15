@@ -422,4 +422,7 @@ function confirmDelete() {
 }
 </script>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php 
+$extra_js = '<script src="' . BASE_URL . '/admin/js/admin-booking-calendar.js"></script>';
+require_once __DIR__ . '/../includes/footer.php'; 
+?>

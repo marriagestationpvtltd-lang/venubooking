@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nepali Calendar Test</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Nepali Date Picker CSS -->
+    <link rel="stylesheet" href="css/nepali-date-picker.css">
+    
+    <style>
+        body {
+            padding: 50px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3e8;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 class="mb-4">
+            <i class="fas fa-calendar-alt text-success"></i> 
+            Nepali Calendar Test
+        </h2>
+        
+        <div class="mb-4">
+            <label for="event_date" class="form-label">
+                <i class="fas fa-calendar"></i> Event Date
+            </label>
+            <div class="input-group">
+                <input type="date" class="form-control" id="event_date" name="event_date" 
+                       min="2024-01-16" value="2024-01-20">
+                <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Switch to Nepali Calendar">
+                    <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>
+                </button>
+            </div>
+            <small class="form-text text-muted">
+                <span id="nepaliDateDisplay"></span>
+            </small>
+        </div>
+        
+        <div class="test-result">
+            <h5>Test Results:</h5>
+            <div id="testResults">
+                <p class="mb-1">
+                    <strong>Selected AD Date:</strong> <span id="adDate">-</span>
+                </p>
+                <p class="mb-1">
+                    <strong>Converted BS Date:</strong> <span id="bsDate">-</span>
+                </p>
+                <p class="mb-1">
+                    <strong>Calendar Mode:</strong> <span id="calendarMode">English (AD)</span>
+                </p>
+                <p class="mb-0">
+                    <strong>Status:</strong> <span id="status" class="text-success">Ready</span>
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Test Instructions:</h5>
+            <ol>
+                <li>Click the "BS" toggle button to switch to Nepali calendar</li>
+                <li>Select a date from the Nepali calendar picker</li>
+                <li>Verify the date is converted and displayed correctly</li>
+                <li>Switch back to English calendar and verify functionality</li>
+                <li>Check console for any JavaScript errors</li>
+            </ol>
+        </div>
+        
+        <div class="mt-3 alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Note:</strong> This is a standalone test page. The calendar should work on both mobile and desktop devices.
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Nepali Date Picker -->
+    <script src="js/nepali-date-picker.js?v=20240115-002"></script></script>
+    
+    <script>
+        // Show success message function
+        function showSuccess(message) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: message,
+                confirmButtonColor: '#4CAF50',
+                timer: 2000
+            });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventDateInput = document.getElementById('event_date');
+            const nepaliDateDisplay = document.getElementById('nepaliDateDisplay');
+            const toggleCalendar = document.getElementById('toggleCalendar');
+            const calendarTypeLabel = document.getElementById('calendarType');
+            
+            // Test results elements
+            const adDateEl = document.getElementById('adDate');
+            const bsDateEl = document.getElementById('bsDate');
+            const calendarModeEl = document.getElementById('calendarMode');
+            const statusEl = document.getElementById('status');
+            
+            // Check if library is loaded
+            if (typeof window.nepaliDateUtils === 'undefined') {
+                statusEl.textContent = 'ERROR: Nepali date picker library not loaded!';
+                statusEl.className = 'text-danger';
+                return;
+            }
+            
+            let isNepaliMode = false;
+            let nepaliPicker = null;
+            
+            // Update displays
+            function updateDisplays() {
+                if (eventDateInput.value) {
+                    try {
+                        const adDate = new Date(eventDateInput.value);
+                        if (!isNaN(adDate)) {
+                            // Update AD date display
+                            adDateEl.textContent = eventDateInput.value;
+                            
+                            // Convert and display BS date
+                            const bs = window.nepaliDateUtils.adToBS(
+                                adDate.getFullYear(),
+                                adDate.getMonth() + 1,
+                                adDate.getDate()
+                            );
+                            
+                            if (bs) {
+                                const bsDateStr = window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day);
+                                nepaliDateDisplay.textContent = bsDateStr + ' (BS)';
+                                nepaliDateDisplay.classList.add('active');
+                                bsDateEl.textContent = bsDateStr;
+                                statusEl.textContent = 'Working correctly!';
+                                statusEl.className = 'text-success';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error converting date:', error);
+                        statusEl.textContent = 'ERROR: ' + error.message;
+                        statusEl.className = 'text-danger';
+                    }
+                }
+            }
+            
+            // Initial update
+            updateDisplays();
+            
+            // Listen for date changes
+            eventDateInput.addEventListener('change', updateDisplays);
+            
+            // Toggle calendar mode
+            toggleCalendar.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                isNepaliMode = !isNepaliMode;
+                
+                if (isNepaliMode) {
+                    // Switch to Nepali calendar
+                    calendarTypeLabel.textContent = 'AD';
+                    calendarModeEl.textContent = 'Nepali (BS)';
+                    
+                    // Remove type="date" to prevent browser date picker
+                    eventDateInput.removeAttribute('type');
+                    eventDateInput.setAttribute('type', 'text');
+                    eventDateInput.setAttribute('readonly', 'readonly');
+                    eventDateInput.setAttribute('placeholder', 'Select Nepali Date (BS)');
+                    
+                    // Initialize Nepali picker
+                    if (!nepaliPicker) {
+                        nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
+                            closeOnSelect: true,
+                            onChange: function(adDate, bsDate) {
+                                updateDisplays();
+                            }
+                        });
+                    }
+                    
+                    showSuccess('Switched to Nepali (BS) Calendar');
+                } else {
+                    // Switch to English calendar
+                    calendarTypeLabel.textContent = 'BS';
+                    calendarModeEl.textContent = 'English (AD)';
+                    
+                    // Restore standard date input
+                    eventDateInput.removeAttribute('readonly');
+                    eventDateInput.setAttribute('type', 'date');
+                    eventDateInput.setAttribute('placeholder', '');
+                    
+                    // Destroy Nepali picker
+                    if (nepaliPicker) {
+                        nepaliPicker.destroy();
+                        nepaliPicker = null;
+                    }
+                    
+                    showSuccess('Switched to English (AD) Calendar');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

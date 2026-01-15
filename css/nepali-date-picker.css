@@ -1,0 +1,234 @@
+/**
+ * Nepali Date Picker Styles
+ */
+
+.nepali-date-picker {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-width: 280px;
+    max-width: 320px;
+}
+
+.nepali-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 5px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 10px;
+}
+
+.nepali-picker-header button {
+    background: none;
+    border: none;
+    color: #4CAF50;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px 10px;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.nepali-picker-header button:hover {
+    background-color: #f0f0f0;
+    color: #2d7a2e;
+}
+
+.nepali-picker-header button:active {
+    transform: scale(0.95);
+}
+
+.nepali-picker-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    flex: 1;
+    text-align: center;
+    user-select: none;
+}
+
+.nepali-picker-body {
+    padding: 5px;
+}
+
+.nepali-calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.nepali-calendar-table th {
+    color: #666;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 8px 4px;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.nepali-calendar-table td {
+    padding: 2px;
+    text-align: center;
+}
+
+.nepali-day {
+    background: none;
+    border: none;
+    width: 100%;
+    padding: 8px 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-weight: 400;
+}
+
+.nepali-day:hover {
+    background-color: #e8f5e9;
+    color: #2d7a2e;
+    transform: scale(1.05);
+}
+
+.nepali-day:active {
+    transform: scale(0.95);
+}
+
+.nepali-day.selected {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: 600;
+}
+
+.nepali-day.selected:hover {
+    background-color: #45a049;
+    color: white;
+}
+
+.nepali-day.today {
+    border: 2px solid #4CAF50;
+    font-weight: 600;
+}
+
+.nepali-day.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Calendar type toggle button styles */
+.calendar-type-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.calendar-type-toggle .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Nepali date display */
+.nepali-date-display {
+    font-size: 0.875rem;
+    color: #666;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+.nepali-date-display.active {
+    color: #4CAF50;
+    font-weight: 500;
+}
+
+/* Input group adjustments for Nepali calendar */
+.input-group.nepali-calendar-input {
+    position: relative;
+}
+
+.input-group.nepali-calendar-input .form-control {
+    border-right: none;
+}
+
+.input-group.nepali-calendar-input .btn {
+    border-left: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .nepali-date-picker {
+        position: fixed !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%);
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .nepali-picker-header {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 1;
+    }
+}
+
+/* Animation for picker appearance */
+@keyframes nepaliPickerFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.nepali-date-picker {
+    animation: nepaliPickerFadeIn 0.2s ease-out;
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+    .nepali-date-picker {
+        background: #2a2a2a;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+    
+    .nepali-picker-header {
+        border-bottom-color: #444;
+    }
+    
+    .nepali-picker-title {
+        color: #e0e0e0;
+    }
+    
+    .nepali-calendar-table th {
+        color: #b0b0b0;
+        border-bottom-color: #444;
+    }
+    
+    .nepali-day {
+        color: #e0e0e0;
+    }
+    
+    .nepali-day:hover {
+        background-color: #3a3a3a;
+    }
+    
+    .nepali-picker-header button {
+        color: #66BB6A;
+    }
+    
+    .nepali-picker-header button:hover {
+        background-color: #3a3a3a;
+        color: #81C784;
+    }
+}

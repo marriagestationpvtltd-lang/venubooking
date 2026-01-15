@@ -139,6 +139,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
         }
     </style>
     
+    <!-- Nepali Date Picker CSS -->
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/nepali-date-picker.css">
+    
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
 <body>
