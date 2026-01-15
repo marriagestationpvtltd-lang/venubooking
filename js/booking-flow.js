@@ -211,7 +211,11 @@ function initNepaliCalendar() {
     // Toggle calendar button (for future enhancement with full Nepali picker)
     toggleCalendar.addEventListener('click', function() {
         // For now, just show info message
-        showSuccess('Nepali calendar picker will be available soon! Currently showing approximate BS date.', null);
+        if (typeof showSuccess === 'function') {
+            showSuccess('Nepali calendar picker will be available soon! Currently showing approximate BS date.');
+        } else {
+            alert('Nepali calendar picker will be available soon! Currently showing approximate BS date.');
+        }
     });
     
     // Show initial Nepali date if date is already set

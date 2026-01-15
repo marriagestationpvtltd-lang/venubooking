@@ -23,7 +23,9 @@ ini_set('error_log', $error_log_path);
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_samesite', 'Strict');
-ini_set('session.cookie_secure', '1'); // Enable in production with HTTPS
+// Note: Enable cookie_secure only if HTTPS is enabled
+// Uncomment the line below after enabling SSL/HTTPS:
+// ini_set('session.cookie_secure', '1');
 
 // Disable unnecessary PHP functions for security
 // disable_functions in php.ini is preferred, but this provides runtime check

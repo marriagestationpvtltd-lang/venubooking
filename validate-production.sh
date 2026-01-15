@@ -212,7 +212,8 @@ echo "8. CODE QUALITY CHECKS"
 echo "----------------------"
 
 # Check for hardcoded credentials (common patterns)
-if grep -rE "(password|passwd|pwd)['\"]?\s*[:=]\s*['\"](?!.*\$|.*getSetting|.*ENV)" --include="*.php" . | grep -v ".git" | grep -v "vendor" | grep -v "example" | grep -v "sample" > /dev/null 2>&1; then
+# Note: This is a simple pattern check, not exhaustive
+if grep -rE "password.*=.*['\"][^'\"$]+['\"]" --include="*.php" . 2>/dev/null | grep -v ".git" | grep -v "vendor" | grep -v "example" | grep -v "sample" | grep -v "getSetting" | grep -v "ENV" > /dev/null; then
     print_result "No hardcoded passwords" "WARN" "Possible hardcoded credentials found"
 else
     print_result "No hardcoded passwords" "PASS"

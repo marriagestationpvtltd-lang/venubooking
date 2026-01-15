@@ -32,6 +32,22 @@ function formatCurrency(amount) {
     return appSettings.currency + ' ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 }
 
+// Client-side error logging (optional - can be implemented with server endpoint)
+function logError(message, error) {
+    // This is a placeholder for production error logging
+    // In production, you can send errors to a logging endpoint:
+    // fetch('/api/log-error.php', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ message, error: error?.toString() })
+    // });
+    
+    // For now, just log to console in development
+    if (typeof console !== 'undefined' && console.error) {
+        console.error(message, error);
+    }
+}
+
 // Show loading spinner
 function showLoading() {
     Swal.fire({
