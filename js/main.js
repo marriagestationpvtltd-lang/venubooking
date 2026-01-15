@@ -20,6 +20,10 @@ async function loadSettings() {
     } catch (error) {
         console.error('Failed to load settings:', error);
         // Keep default values if loading fails
+        // Log to server if logging endpoint exists
+        if (typeof logError === 'function') {
+            logError('Settings load failed', error);
+        }
     }
 }
 
@@ -193,6 +197,10 @@ function ajax(url, method, data, successCallback, errorCallback) {
             errorCallback(error);
         } else {
             showError('An error occurred. Please try again.');
+        }
+        // Log to server if available
+        if (typeof logError === 'function') {
+            logError('AJAX request failed', error);
         }
     });
 }

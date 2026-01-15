@@ -3,6 +3,22 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Validate session on page load
+    if (typeof hallPrice === 'undefined' || typeof guestsCount === 'undefined') {
+        // Missing required session data, redirect to appropriate step
+        window.location.href = baseUrl + '/booking-step2.php';
+        return;
+    }
+    
+    // Handle back button navigation
+    window.addEventListener('popstate', function(event) {
+        // Allow natural back navigation
+        if (event.state && event.state.page) {
+            // Browser will handle the navigation
+            return;
+        }
+    });
+    
     const menuForm = document.getElementById('menuForm');
     const menuCheckboxes = document.querySelectorAll('.menu-checkbox');
     

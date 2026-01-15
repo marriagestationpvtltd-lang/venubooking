@@ -3,6 +3,21 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Validate session on page load
+    if (typeof baseTotal === 'undefined') {
+        // Missing required session data, redirect to appropriate step
+        window.location.href = baseUrl + '/booking-step3.php';
+        return;
+    }
+    
+    // Handle back button navigation
+    window.addEventListener('popstate', function(event) {
+        // Allow natural back navigation
+        if (event.state && event.state.page) {
+            return;
+        }
+    });
+    
     const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
     
     if (serviceCheckboxes) {

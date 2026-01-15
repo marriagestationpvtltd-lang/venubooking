@@ -2,8 +2,51 @@
  * Booking Flow JavaScript
  */
 
+// Handle browser back button navigation
+function handleBrowserBackButton() {
+    // Save current page state to history
+    if (window.history && window.history.pushState) {
+        // Add state to indicate booking flow
+        const currentPath = window.location.pathname;
+        const state = { page: currentPath, timestamp: Date.now() };
+        
+        // Only push state if it's a booking page
+        if (currentPath.includes('booking-step') || currentPath.includes('confirmation')) {
+            window.history.replaceState(state, '', currentPath);
+        }
+    }
+    
+    // Listen for back button navigation
+    window.addEventListener('popstate', function(event) {
+        // Check if we have session data
+        const hasBookingData = sessionStorage.getItem('bookingData');
+        
+        // If navigating back in booking flow, redirect to appropriate step
+        if (window.location.pathname.includes('booking-step') && !hasBookingData) {
+            // Session expired or lost, redirect to start
+            window.location.href = baseUrl + '/index.php';
+        }
+    });
+    
+    // Prevent navigation away without warning on booking pages
+    if (window.location.pathname.includes('booking-step')) {
+        window.addEventListener('beforeunload', function(e) {
+            // Only show warning if we have unsaved data
+            const hasBookingData = sessionStorage.getItem('bookingData');
+            if (hasBookingData) {
+                e.preventDefault();
+                e.returnValue = 'You have an incomplete booking. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        });
+    }
+}
+
 // Validate booking form on index page
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize back button handling
+    handleBrowserBackButton();
+    
     const bookingForm = document.getElementById('bookingForm');
     
     if (bookingForm) {

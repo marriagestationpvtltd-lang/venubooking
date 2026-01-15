@@ -343,17 +343,61 @@ body {
     border-color: var(--primary-green);
 }
 
-/* Checkbox Customization */
+/* Checkbox Customization - Enhanced for better visibility */
 .form-check-input {
     width: 1.5em;
     height: 1.5em;
     margin-top: 0.1em;
     cursor: pointer;
+    border: 2px solid #4CAF50;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-check-input:hover {
+    border-color: #45a049;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+.form-check-input:focus {
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 0.25rem rgba(76, 175, 80, 0.25);
 }
 
 .form-check-input:checked {
     background-color: var(--primary-green);
     border-color: var(--primary-green);
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+/* Enhanced checkmark visibility */
+.form-check-input:checked::before {
+    content: '✓';
+    display: block;
+    text-align: center;
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    line-height: 1.2em;
+}
+
+/* Menu and service card selection states */
+.menu-card .form-check-input,
+.service-card .form-check-input {
+    width: 1.75em;
+    height: 1.75em;
+    border-width: 2.5px;
+}
+
+.menu-card.selected,
+.service-card.selected {
+    border: 2px solid var(--primary-green);
+    background-color: rgba(76, 175, 80, 0.05);
+}
+
+.menu-card .form-check-label,
+.service-card .form-check-label {
+    cursor: pointer;
+    user-select: none;
 }
 
 /* Sticky Elements */
