@@ -58,6 +58,17 @@ $advance = calculateAdvancePayment($totals['grand_total']);
 
 // Handle form submission
 $error = '';
+// Initialize form values
+$full_name = '';
+$phone = '';
+$email = '';
+$address = '';
+$special_requests = '';
+$payment_option = 'without';
+$payment_method_id = '';
+$transaction_id = '';
+$paid_amount = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
     // Validate inputs
     $full_name = trim($_POST['full_name']);
@@ -203,28 +214,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="full_name" name="full_name" required>
+                                <input type="text" class="form-control" id="full_name" name="full_name" value="<?php echo sanitize($full_name); ?>" required>
                             </div>
 
                             <div class="mb-3">
                                 <label for="phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="phone" name="phone" required>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="<?php echo sanitize($phone); ?>" required>
                             </div>
 
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email Address</label>
-                                <input type="email" class="form-control" id="email" name="email">
+                                <input type="email" class="form-control" id="email" name="email" value="<?php echo sanitize($email); ?>">
                             </div>
 
                             <div class="mb-3">
                                 <label for="address" class="form-label">Address</label>
-                                <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+                                <textarea class="form-control" id="address" name="address" rows="2"><?php echo sanitize($address); ?></textarea>
                             </div>
 
                             <div class="mb-3">
                                 <label for="special_requests" class="form-label">Special Requests</label>
                                 <textarea class="form-control" id="special_requests" name="special_requests" rows="3" 
-                                          placeholder="Any special requirements or requests for your event..."></textarea>
+                                          placeholder="Any special requirements or requests for your event..."><?php echo sanitize($special_requests); ?></textarea>
                             </div>
                         </div>
                     </div>
@@ -240,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                             <!-- Payment Option Selection -->
                             <div class="mb-4">
                                 <div class="form-check mb-3">
-                                    <input class="form-check-input" type="radio" name="payment_option" id="payment_with" value="with">
+                                    <input class="form-check-input" type="radio" name="payment_option" id="payment_with" value="with" <?php echo ($payment_option === 'with') ? 'checked' : ''; ?>>
                                     <label class="form-check-label fw-bold" for="payment_with">
                                         <i class="fas fa-money-bill-wave text-success me-2"></i>Confirm Booking With Payment
                                     </label>
@@ -248,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                 </div>
                                 
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="payment_option" id="payment_without" value="without" checked>
+                                    <input class="form-check-input" type="radio" name="payment_option" id="payment_without" value="without" <?php echo ($payment_option === 'without') ? 'checked' : ''; ?>>
                                     <label class="form-check-label fw-bold" for="payment_without">
                                         <i class="fas fa-calendar-check text-success me-2"></i>Confirm Booking Without Payment
                                     </label>
@@ -275,7 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                         <select class="form-select" id="payment_method_id" name="payment_method_id">
                                             <option value="">Select Payment Method</option>
                                             <?php foreach ($active_payment_methods as $method): ?>
-                                                <option value="<?php echo $method['id']; ?>"><?php echo sanitize($method['name']); ?></option>
+                                                <option value="<?php echo $method['id']; ?>" <?php echo ($payment_method_id == $method['id']) ? 'selected' : ''; ?>><?php echo sanitize($method['name']); ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
@@ -314,7 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                 <div class="mb-3">
                                     <label for="transaction_id" class="form-label">Transaction ID / Reference Number <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="transaction_id" name="transaction_id" 
-                                           placeholder="Enter your transaction ID or reference number">
+                                           placeholder="Enter your transaction ID or reference number" value="<?php echo sanitize($transaction_id); ?>">
                                     <small class="form-text text-muted">The reference number from your payment transaction</small>
                                 </div>
 
@@ -322,7 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                 <div class="mb-3">
                                     <label for="paid_amount" class="form-label">Paid Amount <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="paid_amount" name="paid_amount" 
-                                           step="0.01" min="0" placeholder="0.00" value="<?php echo $advance['amount']; ?>">
+                                           step="0.01" min="0" placeholder="0.00" value="<?php echo !empty($paid_amount) ? sanitize($paid_amount) : $advance['amount']; ?>">
                                     <small class="form-text text-muted">Amount you have paid</small>
                                 </div>
 
@@ -330,8 +341,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                 <div class="mb-3">
                                     <label for="payment_slip" class="form-label">Payment Slip / Screenshot <span class="text-danger">*</span></label>
                                     <input type="file" class="form-control" id="payment_slip" name="payment_slip" 
-                                           accept="image/*,.pdf">
-                                    <small class="form-text text-muted">Upload a screenshot or photo of your payment receipt (JPG, PNG, or PDF)</small>
+                                           accept="image/*">
+                                    <small class="form-text text-muted">Upload a screenshot or photo of your payment receipt (JPG, PNG, GIF, or WebP)</small>
                                 </div>
                             </div>
                         </div>
@@ -583,6 +594,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     togglePaymentSection();
+    
+    // If payment method was previously selected, show its details
+    if (paymentMethodSelect && paymentMethodSelect.value) {
+        showPaymentMethodDetails();
+    }
 });
 </script>
 
