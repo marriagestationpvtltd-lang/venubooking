@@ -193,7 +193,6 @@ $extra_js = '
 const bookingData = ' . json_encode($booking_data) . ';
 const hallPrice = ' . $hall_price . ';
 const guestsCount = ' . $booking_data['guests'] . ';
-const baseUrl = "' . BASE_URL . '";
 </script>
 <script src="' . BASE_URL . '/js/booking-step3.js"></script>
 ';

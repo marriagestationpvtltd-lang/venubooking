@@ -151,7 +151,6 @@ $current_total = $totals['subtotal'];
 $extra_js = '
 <script>
 const baseTotal = ' . $current_total . ';
-const baseUrl = "' . BASE_URL . '";
 </script>
 <script src="' . BASE_URL . '/js/booking-step4.js"></script>
 ';
