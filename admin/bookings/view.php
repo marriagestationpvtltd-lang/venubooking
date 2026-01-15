@@ -130,9 +130,9 @@ if (isset($_POST['action'])) {
                             </button>
                         </form>
                         <?php 
-                        $clean_phone = preg_replace('/[^0-9]/', '', $booking['phone']);
-                        $whatsapp_message = urlencode(
-                            "Hello " . $booking['full_name'] . ",\n\n" .
+                        // Prepare WhatsApp data
+                        $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
+                        $whatsapp_text = "Hello " . $booking['full_name'] . ",\n\n" .
                             "This is a payment request for your booking:\n\n" .
                             "Booking Number: " . $booking['booking_number'] . "\n" .
                             "Event Date: " . date('F d, Y', strtotime($booking['event_date'])) . "\n" .
@@ -140,8 +140,7 @@ if (isset($_POST['action'])) {
                             "Hall: " . $booking['hall_name'] . "\n" .
                             "Total Amount: " . formatCurrency($booking['grand_total']) . "\n\n" .
                             "Please complete your payment at your earliest convenience.\n\n" .
-                            "Thank you!"
-                        );
+                            "Thank you!";
                         ?>
                         <form method="POST" action="" style="display: inline-block;" id="whatsappForm">
                             <input type="hidden" name="action" value="send_payment_request_whatsapp">
@@ -478,8 +477,10 @@ if (isset($_POST['action'])) {
         whatsappForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Open WhatsApp with properly escaped values
-            const whatsappUrl = 'https://wa.me/' + <?php echo json_encode($clean_phone); ?> + '?text=' + <?php echo json_encode($whatsapp_message); ?>;
+            // Open WhatsApp with properly escaped and encoded values
+            const phone = <?php echo json_encode($clean_phone); ?>;
+            const message = <?php echo json_encode($whatsapp_text); ?>;
+            const whatsappUrl = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
             window.open(whatsappUrl, '_blank');
             
             // Submit the form to log the activity
