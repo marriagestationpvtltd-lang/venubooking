@@ -10,7 +10,7 @@ require_once __DIR__ . '/lib/fpdf.php';
 // Check if booking ID is provided
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     http_response_code(400);
-    die('Invalid booking ID');
+    exit;
 }
 
 $booking_id = intval($_GET['id']);
@@ -20,7 +20,7 @@ $booking = getBookingDetails($booking_id);
 
 if (!$booking) {
     http_response_code(404);
-    die('Booking not found');
+    exit;
 }
 
 // Get settings before creating PDF class to avoid scope issues
