@@ -123,7 +123,7 @@ CREATE TABLE bookings (
     grand_total DECIMAL(10, 2) NOT NULL,
     special_requests TEXT,
     booking_status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
-    payment_status ENUM('unpaid', 'partial', 'paid') DEFAULT 'unpaid',
+    payment_status ENUM('pending', 'partial', 'paid', 'cancelled') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
