@@ -10,6 +10,20 @@
     // Nepali date data - days in each month for each year
     // Format: [year] = [days in Baisakh, Jestha, Ashadh, Shrawan, Bhadra, Ashwin, Kartik, Mangsir, Poush, Magh, Falgun, Chaitra]
     const nepaliDateData = {
+        2056: [31, 32, 32, 31, 31, 30, 29, 30, 29, 30, 29, 30],
+        2057: [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2058: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2059: [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 29, 31],
+        2060: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2061: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2062: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2063: [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2064: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2065: [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2066: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2067: [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2068: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2069: [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
         2070: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
         2071: [31, 31, 32, 31, 32, 30, 30, 29, 30, 29, 30, 30],
         2072: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
@@ -220,6 +234,7 @@
             this.selectedBSDate = null;
             this.pickerElement = null;
             this.isOpen = false;
+            this.justClosed = false; // Flag to prevent immediate reopening
             
             this.init();
         }
@@ -260,6 +275,13 @@
             // Toggle on input click
             this.input.addEventListener('click', (e) => {
                 e.stopPropagation();
+                
+                // Prevent reopening immediately after closing
+                if (this.justClosed) {
+                    this.justClosed = false;
+                    return;
+                }
+                
                 this.toggle();
             });
             
@@ -275,6 +297,10 @@
             if (this.isOpen) {
                 this.close();
             } else {
+                // Don't open if we just closed
+                if (this.justClosed) {
+                    return;
+                }
                 this.open();
             }
         }
@@ -309,6 +335,14 @@
         close() {
             this.pickerElement.style.display = 'none';
             this.isOpen = false;
+            
+            // Set flag to prevent immediate reopening, will be checked on next click
+            this.justClosed = true;
+            
+            // Reset flag on next event loop tick
+            setTimeout(() => {
+                this.justClosed = false;
+            }, 100);
         }
         
         position() {
@@ -437,6 +471,7 @@
             this.pickerElement.querySelectorAll('[data-action]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     const action = btn.getAttribute('data-action');
                     this.navigate(action);
                 });
@@ -446,6 +481,7 @@
             this.pickerElement.querySelectorAll('.nepali-day').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     const day = parseInt(btn.getAttribute('data-day'));
                     this.selectDate(day);
                 });
@@ -492,19 +528,35 @@
                 const adDate = `${ad.year}-${String(ad.month).padStart(2, '0')}-${String(ad.day).padStart(2, '0')}`;
                 this.input.value = adDate;
                 
-                // Trigger change event
-                const event = new Event('change', { bubbles: true });
-                this.input.dispatchEvent(event);
-                
-                if (this.options.onChange) {
-                    this.options.onChange(adDate, this.selectedBSDate);
+                // Close first if needed
+                if (this.options.closeOnSelect) {
+                    this.close();
                 }
-            }
-            
-            if (this.options.closeOnSelect) {
-                this.close();
+                
+                // Trigger events (after microtask if calendar was closed)
+                const triggerEvents = () => {
+                    const event = new Event('change', { bubbles: true });
+                    this.input.dispatchEvent(event);
+                    
+                    if (this.options.onChange) {
+                        this.options.onChange(adDate, this.selectedBSDate);
+                    }
+                };
+                
+                if (this.options.closeOnSelect) {
+                    // Use microtask to ensure events fire after calendar is fully closed
+                    Promise.resolve().then(triggerEvents);
+                } else {
+                    triggerEvents();
+                    this.render();
+                }
             } else {
-                this.render();
+                // If conversion failed
+                if (this.options.closeOnSelect) {
+                    this.close();
+                } else {
+                    this.render();
+                }
             }
         }
         
