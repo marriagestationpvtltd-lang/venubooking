@@ -18,10 +18,14 @@ if ($booking_id <= 0) {
 if (isset($_POST['action'])) {
     $action = $_POST['action'];
     
-    if ($action === 'send_payment_request_email') {
+    // Fetch booking details once for all actions
+    $booking = getBookingDetails($booking_id);
+    
+    if (!$booking) {
+        $error_message = 'Booking not found.';
+    } elseif ($action === 'send_payment_request_email') {
         // Send payment request via email
-        $booking = getBookingDetails($booking_id);
-        if ($booking && !empty($booking['email'])) {
+        if (!empty($booking['email'])) {
             $result = sendBookingNotification($booking_id, 'payment_request');
             if ($result['user']) {
                 $success_message = 'Payment request sent successfully via email to ' . htmlspecialchars($booking['email']);
@@ -34,9 +38,7 @@ if (isset($_POST['action'])) {
         }
     } elseif ($action === 'send_payment_request_whatsapp') {
         // Send payment request via WhatsApp
-        $booking = getBookingDetails($booking_id);
-        if ($booking && !empty($booking['phone'])) {
-            $whatsapp_number = preg_replace('/[^0-9]/', '', $booking['phone']);
+        if (!empty($booking['phone'])) {
             $success_message = 'Opening WhatsApp to send payment request...';
             logActivity($current_user['id'], 'Initiated WhatsApp payment request', 'bookings', $booking_id, "WhatsApp payment request initiated for booking: {$booking['booking_number']}");
         } else {
@@ -44,21 +46,27 @@ if (isset($_POST['action'])) {
         }
     } elseif ($action === 'update_status') {
         // Handle quick status update
-        $new_booking_status = $_POST['booking_status'];
-        $old_booking_status = $_POST['old_booking_status'];
+        $new_booking_status = trim($_POST['booking_status'] ?? '');
+        $old_booking_status = trim($_POST['old_booking_status'] ?? '');
         
-        try {
-            $stmt = $db->prepare("UPDATE bookings SET booking_status = ? WHERE id = ?");
-            $stmt->execute([$new_booking_status, $booking_id]);
-            
-            // Send email notification about status change
-            sendBookingNotification($booking_id, 'update', $old_booking_status);
-            
-            logActivity($current_user['id'], 'Updated booking status', 'bookings', $booking_id, "Status changed from {$old_booking_status} to {$new_booking_status}");
-            
-            $success_message = "Booking status updated successfully from " . ucfirst($old_booking_status) . " to " . ucfirst($new_booking_status);
-        } catch (Exception $e) {
-            $error_message = 'Failed to update booking status. Please try again.';
+        // Validate booking status
+        $valid_statuses = ['pending', 'confirmed', 'cancelled', 'completed'];
+        if (!in_array($new_booking_status, $valid_statuses)) {
+            $error_message = 'Invalid booking status.';
+        } else {
+            try {
+                $stmt = $db->prepare("UPDATE bookings SET booking_status = ? WHERE id = ?");
+                $stmt->execute([$new_booking_status, $booking_id]);
+                
+                // Send email notification about status change
+                sendBookingNotification($booking_id, 'update', $old_booking_status);
+                
+                logActivity($current_user['id'], 'Updated booking status', 'bookings', $booking_id, "Status changed from {$old_booking_status} to {$new_booking_status}");
+                
+                $success_message = "Booking status updated successfully from " . ucfirst($old_booking_status) . " to " . ucfirst($new_booking_status);
+            } catch (Exception $e) {
+                $error_message = 'Failed to update booking status. Please try again.';
+            }
         }
     }
 }
@@ -464,18 +472,25 @@ if (!$booking) {
 
 <script>
 // Handle WhatsApp form submission
-document.getElementById('whatsappForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
+(function() {
+    const WHATSAPP_REDIRECT_DELAY = 500; // milliseconds
+    const whatsappForm = document.getElementById('whatsappForm');
     
-    // Open WhatsApp
-    const whatsappUrl = 'https://wa.me/<?php echo $clean_phone; ?>?text=<?php echo $whatsapp_message; ?>';
-    window.open(whatsappUrl, '_blank');
-    
-    // Submit the form to log the activity
-    setTimeout(() => {
-        this.submit();
-    }, 500);
-});
+    if (whatsappForm) {
+        whatsappForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Open WhatsApp
+            const whatsappUrl = 'https://wa.me/<?php echo $clean_phone; ?>?text=<?php echo $whatsapp_message; ?>';
+            window.open(whatsappUrl, '_blank');
+            
+            // Submit the form to log the activity
+            setTimeout(function() {
+                whatsappForm.submit();
+            }, WHATSAPP_REDIRECT_DELAY);
+        });
+    }
+})();
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
