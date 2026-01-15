@@ -62,3 +62,6 @@ backup/
 
 # PHP
 .php_cs.cache
+
+# Test files
+test-mobile-improvements.html

@@ -100,6 +100,7 @@
     
     .step.active,
     .step.completed {
+        /* Using rgba(76, 175, 80, 0.1) which matches var(--primary-green) #4CAF50 with 10% opacity */
         background: rgba(76, 175, 80, 0.1);
     }
     
@@ -235,6 +236,7 @@
     .service-card.selected {
         border-width: 3px;
         border-color: var(--primary-green);
+        /* Using rgba(76, 175, 80, 0.1) which matches var(--primary-green) #4CAF50 with 10% opacity */
         background-color: rgba(76, 175, 80, 0.1);
     }
     
@@ -290,7 +292,7 @@
         padding: 1rem;
     }
     
-    /* Enhanced checkbox on very small screens */
+    /* Enhanced checkbox on very small screens - intentionally larger than tablet (2.5em vs 2.25em) */
     .form-check-input {
         width: 2.5em;
         height: 2.5em;
