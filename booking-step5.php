@@ -209,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                     </div>
                 <?php endif; ?>
 
-                <form id="customerForm" method="POST">
+                <form id="customerForm" method="POST" enctype="multipart/form-data">
                     <div class="card mb-4">
                         <div class="card-body">
                             <div class="mb-3">
