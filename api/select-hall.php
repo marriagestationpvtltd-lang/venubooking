@@ -3,8 +3,8 @@
  * API: Select Hall
  */
 
+require_once __DIR__ . '/../config/database.php';
 header('Content-Type: application/json');
-require_once __DIR__ . '/../includes/functions.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
