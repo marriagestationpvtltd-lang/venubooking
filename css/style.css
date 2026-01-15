@@ -227,6 +227,8 @@ body {
     content: "✓";
     color: var(--light-green);
     font-weight: bold;
+    position: absolute;
+    left: 0;
 }
 
 /* Service Cards */
