@@ -27,8 +27,10 @@ CREATE TABLE IF NOT EXISTS booking_payment_methods (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Insert default payment methods (can be customized later by admin)
+-- NOTE: Replace placeholder values [in brackets] with actual information before production use
+-- These are sample entries to demonstrate the structure
 INSERT INTO payment_methods (name, bank_details, status, display_order) VALUES
-('Bank Transfer', 'Bank: [Your Bank Name]\nAccount Name: [Account Holder Name]\nAccount Number: [Account Number]\nBranch: [Branch Name]', 'active', 1),
-('eSewa', 'eSewa ID: [Your eSewa ID]\neSewa Number: [Your eSewa Number]', 'active', 2),
-('Khalti', 'Khalti ID: [Your Khalti ID]\nKhalti Number: [Your Khalti Number]', 'active', 3),
-('Cash Payment', 'Cash payment can be made at our office during business hours.', 'active', 4);
+('Bank Transfer', 'Bank: [Your Bank Name]\nAccount Name: [Account Holder Name]\nAccount Number: [Account Number]\nBranch: [Branch Name]\n\nNote: Please replace these placeholders with actual bank details', 'inactive', 1),
+('eSewa', 'eSewa ID: [Your eSewa ID]\neSewa Number: [Your eSewa Number]\n\nNote: Please replace these placeholders with actual eSewa details', 'inactive', 2),
+('Khalti', 'Khalti ID: [Your Khalti ID]\nKhalti Number: [Your Khalti Number]\n\nNote: Please replace these placeholders with actual Khalti details', 'inactive', 3),
+('Cash Payment', 'Cash payment can be made at our office during business hours.\nPlease bring your booking reference number.', 'active', 4);

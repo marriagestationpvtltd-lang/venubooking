@@ -350,16 +350,29 @@ function editMethod(method) {
     document.getElementById('edit_status').value = method.status;
     document.getElementById('edit_display_order').value = method.display_order;
     
-    // Show current QR code if exists
+    // Show current QR code if exists - using safer DOM methods
     const qrPreview = document.getElementById('current_qr_preview');
+    qrPreview.innerHTML = ''; // Clear existing content
+    
     if (method.qr_code) {
-        // Escape HTML to prevent XSS
-        const escapedQrCode = method.qr_code.replace(/[&<>"']/g, function(m) {
-            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
-        });
-        qrPreview.innerHTML = '<p class="text-muted small">Current QR Code:</p><img src="<?php echo UPLOAD_URL; ?>' + escapedQrCode + '" alt="Current QR" class="qr-preview">';
+        // Create elements safely using DOM methods
+        const paragraph = document.createElement('p');
+        paragraph.className = 'text-muted small';
+        paragraph.textContent = 'Current QR Code:';
+        
+        const img = document.createElement('img');
+        img.className = 'qr-preview';
+        img.alt = 'Current QR';
+        // Safe: method.qr_code is set as src attribute, browser handles encoding
+        img.src = '<?php echo UPLOAD_URL; ?>' + method.qr_code;
+        
+        qrPreview.appendChild(paragraph);
+        qrPreview.appendChild(img);
     } else {
-        qrPreview.innerHTML = '<p class="text-muted small">No QR code currently uploaded</p>';
+        const paragraph = document.createElement('p');
+        paragraph.className = 'text-muted small';
+        paragraph.textContent = 'No QR code currently uploaded';
+        qrPreview.appendChild(paragraph);
     }
     
     const editModal = new bootstrap.Modal(document.getElementById('editMethodModal'));

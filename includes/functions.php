@@ -691,13 +691,23 @@ function validateUploadedFilePath($filename) {
         return false;
     }
     
+    // Check for null bytes which can be used to bypass security
+    if (strpos($filename, "\0") !== false) {
+        return false;
+    }
+    
     // Check for directory traversal characters
     if (strpos($filename, '/') !== false || strpos($filename, '\\') !== false || strpos($filename, '..') !== false) {
         return false;
     }
     
-    // Use basename as additional safety
+    // Use basename as additional safety - ensures only filename, no path
     $safe_filename = basename($filename);
+    
+    // Verify filename hasn't changed after basename (would indicate path manipulation)
+    if ($safe_filename !== $filename) {
+        return false;
+    }
     
     // Check if file exists
     $filepath = UPLOAD_PATH . $safe_filename;
@@ -713,7 +723,10 @@ function validateUploadedFilePath($filename) {
         return false;
     }
     
-    // Check if file is within upload directory
+    // Ensure both paths end with directory separator for accurate comparison
+    $real_upload_path = rtrim($real_upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    
+    // Check if file is within upload directory (with proper path comparison)
     if (strpos($real_file_path, $real_upload_path) !== 0) {
         return false;
     }
