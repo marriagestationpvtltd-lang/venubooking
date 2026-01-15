@@ -134,13 +134,12 @@ if (isset($_POST['action'])) {
                         $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
                         
                         // Calculate advance payment based on configured percentage
-                        $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
-                        $advance_amount = $booking['grand_total'] * ($advance_percentage / 100);
+                        $advance = calculateAdvancePayment($booking['grand_total']);
                         
                         $whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
                             "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . date('F d, Y', strtotime($booking['event_date'])) . " is almost confirmed.\n\n" .
                             "Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
-                            "Advance Payment (" . $advance_percentage . "%): " . formatCurrency($advance_amount) . "\n\n" .
+                            "Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n" .
                             "Please complete the advance payment using the QR code or bank details below:\n" .
                             "[Payment details will be shared separately]\n\n" .
                             "Thank you!";
@@ -455,13 +454,12 @@ if (isset($_POST['action'])) {
                 </div>
                 <?php 
                 // Calculate advance payment
-                $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
-                $advance_amount = $booking['grand_total'] * ($advance_percentage / 100);
+                $advance = calculateAdvancePayment($booking['grand_total']);
                 ?>
                 <div class="alert alert-warning mt-3 mb-0">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span><strong>Advance Required (<?php echo $advance_percentage; ?>%):</strong></span>
-                        <strong class="fs-5"><?php echo formatCurrency($advance_amount); ?></strong>
+                        <span><strong>Advance Required (<?php echo $advance['percentage']; ?>%):</strong></span>
+                        <strong class="fs-5"><?php echo formatCurrency($advance['amount']); ?></strong>
                     </div>
                 </div>
             </div>
