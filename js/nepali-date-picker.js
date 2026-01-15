@@ -526,19 +526,27 @@
                 const adDate = `${ad.year}-${String(ad.month).padStart(2, '0')}-${String(ad.day).padStart(2, '0')}`;
                 this.input.value = adDate;
                 
-                // Trigger change event
-                const event = new Event('change', { bubbles: true });
-                this.input.dispatchEvent(event);
-                
-                if (this.options.onChange) {
-                    this.options.onChange(adDate, this.selectedBSDate);
+                // Close first before triggering events if closeOnSelect is true
+                if (this.options.closeOnSelect) {
+                    this.close();
                 }
-            }
-            
-            if (this.options.closeOnSelect) {
-                this.close();
+                
+                // Trigger change event after a slight delay to ensure calendar is closed
+                setTimeout(() => {
+                    const event = new Event('change', { bubbles: true });
+                    this.input.dispatchEvent(event);
+                    
+                    if (this.options.onChange) {
+                        this.options.onChange(adDate, this.selectedBSDate);
+                    }
+                }, 50);
             } else {
-                this.render();
+                // If close on select but conversion failed, just render
+                if (this.options.closeOnSelect) {
+                    this.close();
+                } else {
+                    this.render();
+                }
             }
         }
         
