@@ -450,6 +450,14 @@ function formatCurrency($amount) {
  * @return array Array with 'percentage' and 'amount' keys
  */
 function calculateAdvancePayment($total_amount) {
+    // Validate input
+    if (!is_numeric($total_amount) || $total_amount < 0) {
+        return [
+            'percentage' => 0,
+            'amount' => 0
+        ];
+    }
+    
     $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
     $advance_amount = $total_amount * ($advance_percentage / 100);
     
