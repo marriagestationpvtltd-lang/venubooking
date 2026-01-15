@@ -92,41 +92,59 @@ if (isset($_POST['action'])) {
     </div>
 <?php endif; ?>
 
-<div class="row">
-    <div class="col-md-12 mb-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <h4><i class="fas fa-calendar-check"></i> Booking #<?php echo htmlspecialchars($booking['booking_number']); ?></h4>
-            <div>
-                <button onclick="window.print()" class="btn btn-secondary btn-sm">
-                    <i class="fas fa-print"></i> Print
-                </button>
-                <a href="index.php" class="btn btn-secondary btn-sm">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                </a>
-                <a href="edit.php?id=<?php echo $booking_id; ?>" class="btn btn-warning btn-sm">
-                    <i class="fas fa-edit"></i> Edit Booking
-                </a>
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-body py-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h3 class="mb-1 text-primary">
+                            <i class="fas fa-calendar-check me-2"></i>
+                            Booking #<?php echo htmlspecialchars($booking['booking_number']); ?>
+                        </h3>
+                        <p class="text-muted mb-0 small">
+                            <i class="far fa-clock me-1"></i>
+                            Created on <?php echo date('F d, Y \a\t h:i A', strtotime($booking['created_at'])); ?>
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-print me-1"></i> Print
+                        </button>
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back
+                        </a>
+                        <a href="edit.php?id=<?php echo $booking_id; ?>" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Quick Actions Card -->
-<div class="row mb-3">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-gradient-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Quick Actions</h5>
             </div>
-            <div class="card-body">
-                <div class="row">
+            <div class="card-body p-4">
+                <div class="row g-4">
                     <!-- Payment Request Buttons -->
-                    <div class="col-md-6 mb-3 mb-md-0">
-                        <h6 class="text-muted mb-3">Send Payment Request</h6>
+                    <div class="col-lg-6">
+                        <div class="quick-action-section">
+                            <h6 class="fw-bold mb-3 text-dark">
+                                <i class="fas fa-paper-plane text-primary me-2"></i>
+                                Send Payment Request
+                            </h6>
                         <form method="POST" action="" style="display: inline-block;" class="me-2">
                             <input type="hidden" name="action" value="send_payment_request_email">
-                            <button type="submit" class="btn btn-primary" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
-                                <i class="fas fa-envelope"></i> Request Payment (Email)
+                            <button type="submit" class="btn btn-primary px-4" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
+                                <i class="fas fa-envelope me-2"></i> Email Request
                             </button>
                         </form>
                         <?php 
@@ -162,44 +180,67 @@ if (isset($_POST['action'])) {
                         ?>
                         <form method="POST" action="" style="display: inline-block;" id="whatsappForm">
                             <input type="hidden" name="action" value="send_payment_request_whatsapp">
-                            <button type="submit" class="btn btn-success" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
-                                <i class="fab fa-whatsapp"></i> Request Payment (WhatsApp)
+                            <button type="submit" class="btn btn-success px-4" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
+                                <i class="fab fa-whatsapp me-2"></i> WhatsApp Request
                             </button>
                         </form>
                         <?php if (empty($booking['email']) && empty($booking['phone'])): ?>
-                            <small class="text-muted d-block mt-2">Customer contact information is not available</small>
+                            <small class="text-muted d-block mt-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Customer contact information is not available
+                            </small>
                         <?php elseif (empty($booking['email'])): ?>
-                            <small class="text-muted d-block mt-2">Email not available</small>
+                            <small class="text-muted d-block mt-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Email not available
+                            </small>
                         <?php elseif (empty($booking['phone'])): ?>
-                            <small class="text-muted d-block mt-2">Phone number not available</small>
+                            <small class="text-muted d-block mt-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Phone number not available
+                            </small>
                         <?php endif; ?>
+                        </div>
                     </div>
                     
                     <!-- Quick Status Update -->
-                    <div class="col-md-6">
-                        <h6 class="text-muted mb-3">Update Booking Status</h6>
-                        <form method="POST" action="" class="d-flex align-items-end gap-2">
-                            <input type="hidden" name="action" value="update_status">
-                            <input type="hidden" name="old_booking_status" value="<?php echo $booking['booking_status']; ?>">
-                            <div class="flex-grow-1">
-                                <label for="booking_status" class="form-label mb-1">Status</label>
-                                <select class="form-select" id="booking_status" name="booking_status">
-                                    <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>Payment Submitted</option>
-                                    <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
-                                    <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                    <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-info">
-                                <i class="fas fa-sync-alt"></i> Update Status
-                            </button>
-                        </form>
-                        <small class="text-muted d-block mt-2">Current: <span class="badge bg-<?php 
-                            echo $booking['booking_status'] == 'confirmed' ? 'success' : 
-                                ($booking['booking_status'] == 'pending' ? 'warning' : 
-                                ($booking['booking_status'] == 'cancelled' ? 'danger' : 'info')); 
-                        ?>"><?php echo ucfirst($booking['booking_status']); ?></span></small>
+                    <div class="col-lg-6">
+                        <div class="quick-action-section">
+                            <h6 class="fw-bold mb-3 text-dark">
+                                <i class="fas fa-sync-alt text-primary me-2"></i>
+                                Update Booking Status
+                            </h6>
+                            <form method="POST" action="" class="status-update-form">
+                                <input type="hidden" name="action" value="update_status">
+                                <input type="hidden" name="old_booking_status" value="<?php echo $booking['booking_status']; ?>">
+                                <div class="row g-3">
+                                    <div class="col-md-8">
+                                        <label for="booking_status" class="form-label fw-semibold">Select New Status</label>
+                                        <select class="form-select form-select-lg" id="booking_status" name="booking_status">
+                                            <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                            <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>Payment Submitted</option>
+                                            <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
+                                            <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+                                            <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-info w-100">
+                                            <i class="fas fa-check me-2"></i> Update
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-3">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Current Status: 
+                                    <span class="badge bg-<?php 
+                                        echo $booking['booking_status'] == 'confirmed' ? 'success' : 
+                                            ($booking['booking_status'] == 'pending' ? 'warning' : 
+                                            ($booking['booking_status'] == 'cancelled' ? 'danger' : 'info')); 
+                                    ?>"><?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?></span>
+                                </small>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -209,114 +250,174 @@ if (isset($_POST['action'])) {
 
 <div class="row">
     <!-- Booking Details -->
-    <div class="col-md-8">
+    <div class="col-lg-8">
         <!-- Customer Information -->
-        <div class="card mb-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-user"></i> Customer Information</h5>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-gradient-info text-white">
+                <h5 class="mb-0"><i class="fas fa-user me-2"></i> Customer Information</h5>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <strong>Name:</strong><br>
-                        <?php echo htmlspecialchars($booking['full_name']); ?>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Full Name</label>
+                            <p class="mb-0 fw-bold text-dark fs-6">
+                                <i class="fas fa-user-circle text-primary me-2"></i>
+                                <?php echo htmlspecialchars($booking['full_name']); ?>
+                            </p>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Phone:</strong><br>
-                        <a href="tel:<?php echo htmlspecialchars($booking['phone']); ?>">
-                            <?php echo htmlspecialchars($booking['phone']); ?>
-                        </a>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Phone Number</label>
+                            <p class="mb-0">
+                                <a href="tel:<?php echo htmlspecialchars($booking['phone']); ?>" class="text-decoration-none">
+                                    <i class="fas fa-phone text-success me-2"></i>
+                                    <span class="fw-semibold"><?php echo htmlspecialchars($booking['phone']); ?></span>
+                                </a>
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <strong>Email:</strong><br>
-                        <?php if ($booking['email']): ?>
-                            <a href="mailto:<?php echo htmlspecialchars($booking['email']); ?>">
-                                <?php echo htmlspecialchars($booking['email']); ?>
-                            </a>
-                        <?php else: ?>
-                            <em class="text-muted">Not provided</em>
-                        <?php endif; ?>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Email Address</label>
+                            <p class="mb-0">
+                                <?php if ($booking['email']): ?>
+                                    <a href="mailto:<?php echo htmlspecialchars($booking['email']); ?>" class="text-decoration-none">
+                                        <i class="fas fa-envelope text-danger me-2"></i>
+                                        <span class="fw-semibold"><?php echo htmlspecialchars($booking['email']); ?></span>
+                                    </a>
+                                <?php else: ?>
+                                    <em class="text-muted">Not provided</em>
+                                <?php endif; ?>
+                            </p>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Address:</strong><br>
-                        <?php echo $booking['address'] ? htmlspecialchars($booking['address']) : '<em class="text-muted">Not provided</em>'; ?>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Address</label>
+                            <p class="mb-0">
+                                <i class="fas fa-map-marker-alt text-warning me-2"></i>
+                                <?php echo $booking['address'] ? '<span class="fw-semibold">' . htmlspecialchars($booking['address']) . '</span>' : '<em class="text-muted">Not provided</em>'; ?>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Event Details -->
-        <div class="card mb-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Event Details</h5>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-gradient-success text-white">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i> Event Details</h5>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <strong>Venue:</strong><br>
-                        <?php echo htmlspecialchars($booking['venue_name']); ?><br>
-                        <small class="text-muted"><?php echo htmlspecialchars($booking['location']); ?></small>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Venue</label>
+                            <p class="mb-0 fw-bold text-dark fs-6">
+                                <i class="fas fa-building text-primary me-2"></i>
+                                <?php echo htmlspecialchars($booking['venue_name']); ?>
+                            </p>
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                <?php echo htmlspecialchars($booking['location']); ?>
+                            </small>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <strong>Hall:</strong><br>
-                        <?php echo htmlspecialchars($booking['hall_name']); ?><br>
-                        <small class="text-muted">Capacity: <?php echo $booking['capacity']; ?> guests</small>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Hall</label>
+                            <p class="mb-0 fw-bold text-dark fs-6">
+                                <i class="fas fa-door-open text-info me-2"></i>
+                                <?php echo htmlspecialchars($booking['hall_name']); ?>
+                            </p>
+                            <small class="text-muted">
+                                <i class="fas fa-users me-1"></i>
+                                Capacity: <?php echo $booking['capacity']; ?> guests
+                            </small>
+                        </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Event Date</label>
+                            <p class="mb-0 fw-bold text-dark">
+                                <i class="far fa-calendar text-danger me-2"></i>
+                                <?php echo date('M d, Y', strtotime($booking['event_date'])); ?>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Shift</label>
+                            <p class="mb-0 fw-bold text-dark">
+                                <i class="far fa-clock text-warning me-2"></i>
+                                <?php echo ucfirst($booking['shift']); ?>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Event Type</label>
+                            <p class="mb-0 fw-bold text-dark">
+                                <i class="fas fa-tag text-success me-2"></i>
+                                <?php echo htmlspecialchars($booking['event_type']); ?>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-1">Number of Guests</label>
+                            <p class="mb-0">
+                                <span class="badge bg-primary fs-6 px-3 py-2">
+                                    <i class="fas fa-user-friends me-2"></i>
+                                    <?php echo $booking['number_of_guests']; ?> Guests
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <?php if ($booking['special_requests']): ?>
+                    <div class="col-12">
+                        <div class="info-item">
+                            <label class="text-muted small fw-semibold mb-2">Special Requests</label>
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-comment-dots me-2"></i>
+                                <?php echo nl2br(htmlspecialchars($booking['special_requests'])); ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <strong>Event Date:</strong><br>
-                        <?php echo date('M d, Y', strtotime($booking['event_date'])); ?>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <strong>Shift:</strong><br>
-                        <?php echo ucfirst($booking['shift']); ?>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <strong>Event Type:</strong><br>
-                        <?php echo htmlspecialchars($booking['event_type']); ?>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <strong>Number of Guests:</strong><br>
-                    <?php echo $booking['number_of_guests']; ?> guests
-                </div>
-                <?php if ($booking['special_requests']): ?>
-                <div class="mb-3">
-                    <strong>Special Requests:</strong><br>
-                    <?php echo nl2br(htmlspecialchars($booking['special_requests'])); ?>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
 
         <!-- Menus -->
         <?php if (count($booking['menus']) > 0): ?>
-        <div class="card mb-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-utensils"></i> Selected Menus</h5>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-gradient-warning">
+                <h5 class="mb-0 text-white"><i class="fas fa-utensils me-2"></i> Selected Menus</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table">
-                        <thead>
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th>Menu</th>
-                                <th>Price per Person</th>
-                                <th>Guests</th>
-                                <th>Total</th>
+                                <th class="fw-semibold">Menu</th>
+                                <th class="fw-semibold text-end">Price per Person</th>
+                                <th class="fw-semibold text-center">Guests</th>
+                                <th class="fw-semibold text-end">Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($booking['menus'] as $menu): ?>
                             <tr>
-                                <td>
+                                <td class="fw-semibold">
+                                    <i class="fas fa-plate-wheat text-warning me-2"></i>
                                     <?php echo htmlspecialchars($menu['menu_name']); ?>
                                     <?php if (!empty($menu['items'])): ?>
                                         <?php $safeMenuId = intval($menu['menu_id']); ?>
-                                        <button class="btn btn-sm btn-link p-0 ms-2" type="button" 
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" type="button" 
                                                 data-bs-toggle="collapse" 
                                                 data-bs-target="#menu-items-<?php echo $safeMenuId; ?>" 
                                                 aria-expanded="false"
@@ -325,9 +426,11 @@ if (isset($_POST['action'])) {
                                         </button>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo formatCurrency($menu['price_per_person']); ?></td>
-                                <td><?php echo $menu['number_of_guests']; ?></td>
-                                <td><?php echo formatCurrency($menu['total_price']); ?></td>
+                                <td class="text-end fw-semibold text-success"><?php echo formatCurrency($menu['price_per_person']); ?></td>
+                                <td class="text-center">
+                                    <span class="badge bg-info"><?php echo $menu['number_of_guests']; ?></span>
+                                </td>
+                                <td class="text-end fw-bold text-primary"><?php echo formatCurrency($menu['total_price']); ?></td>
                             </tr>
                             <?php if (!empty($menu['items'])): ?>
                             <tr class="collapse" id="menu-items-<?php echo $safeMenuId; ?>">
@@ -373,24 +476,27 @@ if (isset($_POST['action'])) {
 
         <!-- Services -->
         <?php if (count($booking['services']) > 0): ?>
-        <div class="card mb-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-concierge-bell"></i> Additional Services</h5>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-gradient-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-concierge-bell me-2"></i> Additional Services</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table">
-                        <thead>
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th>Service</th>
-                                <th>Price</th>
+                                <th class="fw-semibold">Service</th>
+                                <th class="fw-semibold text-end">Price</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($booking['services'] as $service): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($service['service_name']); ?></td>
-                                <td><?php echo formatCurrency($service['price']); ?></td>
+                                <td class="fw-semibold">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <?php echo htmlspecialchars($service['service_name']); ?>
+                                </td>
+                                <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service['price']); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -405,28 +511,39 @@ if (isset($_POST['action'])) {
         $booking_payment_methods = getBookingPaymentMethods($booking_id);
         if (count($booking_payment_methods) > 0): 
         ?>
-        <div class="card mb-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-credit-card"></i> Payment Methods</h5>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-gradient-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i> Payment Methods</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <?php foreach ($booking_payment_methods as $method): ?>
-                <div class="mb-4 pb-3 border-bottom">
-                    <h6 class="mb-2"><?php echo htmlspecialchars($method['name']); ?></h6>
+                <div class="payment-method-item mb-4 pb-4 <?php echo ($method !== end($booking_payment_methods)) ? 'border-bottom' : ''; ?>">
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="fas fa-money-check-alt text-primary me-2"></i>
+                        <?php echo htmlspecialchars($method['name']); ?>
+                    </h6>
                     
-                    <?php if (!empty($method['qr_code']) && validateUploadedFilePath($method['qr_code'])): ?>
-                    <div class="mb-3">
-                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
-                             alt="<?php echo htmlspecialchars($method['name']); ?> QR Code" 
-                             style="max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px; padding: 8px;">
+                    <div class="row g-3">
+                        <?php if (!empty($method['qr_code']) && validateUploadedFilePath($method['qr_code'])): ?>
+                        <div class="col-md-4">
+                            <div class="qr-code-container">
+                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
+                                     alt="<?php echo htmlspecialchars($method['name']); ?> QR Code" 
+                                     class="img-fluid rounded shadow-sm"
+                                     style="max-width: 200px; border: 2px solid #dee2e6; padding: 10px; background: white;">
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($method['bank_details'])): ?>
+                        <div class="<?php echo !empty($method['qr_code']) ? 'col-md-8' : 'col-12'; ?>">
+                            <div class="alert alert-light mb-0 border">
+                                <small class="text-muted fw-semibold d-block mb-2">Bank Details:</small>
+                                <pre class="mb-0 text-dark" style="font-family: 'Courier New', monospace; font-size: 0.875rem; white-space: pre-wrap;"><?php echo htmlspecialchars($method['bank_details']); ?></pre>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($method['bank_details'])): ?>
-                    <div style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap;">
-                        <?php echo htmlspecialchars($method['bank_details']); ?>
-                    </div>
-                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -438,36 +555,45 @@ if (isset($_POST['action'])) {
         $payment_transactions = getBookingPayments($booking_id);
         if (count($payment_transactions) > 0): 
         ?>
-        <div class="card mb-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-money-bill-wave"></i> Payment Transactions</h5>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-gradient-success text-white">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Payment Transactions</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th>Date</th>
-                                <th>Payment Method</th>
-                                <th>Transaction ID</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Payment Slip</th>
+                                <th class="fw-semibold">Date</th>
+                                <th class="fw-semibold">Payment Method</th>
+                                <th class="fw-semibold">Transaction ID</th>
+                                <th class="fw-semibold text-end">Amount</th>
+                                <th class="fw-semibold text-center">Status</th>
+                                <th class="fw-semibold text-center">Payment Slip</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($payment_transactions as $payment): ?>
                             <tr>
-                                <td><?php echo date('M d, Y H:i', strtotime($payment['payment_date'])); ?></td>
-                                <td><?php echo !empty($payment['payment_method_name']) ? htmlspecialchars($payment['payment_method_name']) : '-'; ?></td>
+                                <td class="fw-semibold">
+                                    <i class="far fa-calendar-alt text-primary me-2"></i>
+                                    <?php echo date('M d, Y', strtotime($payment['payment_date'])); ?>
+                                    <br>
+                                    <small class="text-muted"><?php echo date('h:i A', strtotime($payment['payment_date'])); ?></small>
+                                </td>
+                                <td><?php echo !empty($payment['payment_method_name']) ? htmlspecialchars($payment['payment_method_name']) : '<em class="text-muted">N/A</em>'; ?></td>
                                 <td>
-                                    <?php echo !empty($payment['transaction_id']) ? htmlspecialchars($payment['transaction_id']) : '-'; ?>
+                                    <span class="badge bg-secondary">
+                                        <?php echo !empty($payment['transaction_id']) ? htmlspecialchars($payment['transaction_id']) : 'N/A'; ?>
+                                    </span>
                                     <?php if (!empty($payment['notes'])): ?>
-                                        <br><small class="text-muted"><?php echo htmlspecialchars($payment['notes']); ?></small>
+                                        <br><small class="text-muted mt-1 d-block"><?php echo htmlspecialchars($payment['notes']); ?></small>
                                     <?php endif; ?>
                                 </td>
-                                <td><strong class="text-success"><?php echo formatCurrency($payment['paid_amount']); ?></strong></td>
-                                <td>
+                                <td class="text-end">
+                                    <strong class="text-success fs-6"><?php echo formatCurrency($payment['paid_amount']); ?></strong>
+                                </td>
+                                <td class="text-center">
                                     <span class="badge bg-<?php 
                                         echo $payment['payment_status'] == 'verified' ? 'success' : 
                                             ($payment['payment_status'] == 'pending' ? 'warning' : 'danger'); 
@@ -475,31 +601,37 @@ if (isset($_POST['action'])) {
                                         <?php echo ucfirst($payment['payment_status']); ?>
                                     </span>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     <?php if (!empty($payment['payment_slip']) && validateUploadedFilePath($payment['payment_slip'])): ?>
-                                        <a href="#" data-bs-toggle="modal" data-bs-target="#slipModal<?php echo $payment['id']; ?>" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i> View
-                                        </a>
+                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#slipModal<?php echo $payment['id']; ?>">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </button>
                                         
                                         <!-- Modal for Payment Slip -->
                                         <div class="modal fade" id="slipModal<?php echo $payment['id']; ?>" tabindex="-1">
-                                            <div class="modal-dialog modal-lg">
+                                            <div class="modal-dialog modal-lg modal-dialog-centered">
                                                 <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Payment Slip - Transaction ID: <?php echo htmlspecialchars($payment['transaction_id'] ?? 'N/A'); ?></h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    <div class="modal-header bg-primary text-white">
+                                                        <h5 class="modal-title">
+                                                            <i class="fas fa-receipt me-2"></i>
+                                                            Payment Slip
+                                                        </h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                     </div>
-                                                    <div class="modal-body text-center">
+                                                    <div class="modal-body text-center p-4">
+                                                        <div class="mb-3">
+                                                            <span class="badge bg-secondary">Transaction ID: <?php echo htmlspecialchars($payment['transaction_id'] ?? 'N/A'); ?></span>
+                                                        </div>
                                                         <img src="<?php echo UPLOAD_URL . htmlspecialchars($payment['payment_slip']); ?>" 
                                                              alt="Payment Slip" 
-                                                             class="img-fluid"
-                                                             style="max-height: 80vh;">
+                                                             class="img-fluid rounded shadow"
+                                                             style="max-height: 70vh;">
                                                     </div>
                                                     <div class="modal-footer">
                                                         <a href="<?php echo UPLOAD_URL . htmlspecialchars($payment['payment_slip']); ?>" 
                                                            download 
                                                            class="btn btn-success">
-                                                            <i class="fas fa-download"></i> Download
+                                                            <i class="fas fa-download me-1"></i> Download
                                                         </a>
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                                     </div>
@@ -514,10 +646,10 @@ if (isset($_POST['action'])) {
                             <?php endforeach; ?>
                         </tbody>
                         <tfoot>
-                            <tr class="table-info">
-                                <td colspan="3" class="text-end"><strong>Total Paid:</strong></td>
-                                <td colspan="3">
-                                    <strong class="text-success fs-5">
+                            <tr class="table-light border-top border-2">
+                                <td colspan="3" class="text-end fw-bold">Total Paid:</td>
+                                <td colspan="3" class="text-end">
+                                    <strong class="text-success fs-4">
                                         <?php 
                                         $total_paid = array_sum(array_column($payment_transactions, 'paid_amount'));
                                         echo formatCurrency($total_paid); 
@@ -525,14 +657,16 @@ if (isset($_POST['action'])) {
                                     </strong>
                                 </td>
                             </tr>
-                            <tr>
+                            <tr class="table-light">
                                 <td colspan="3" class="text-end">Grand Total:</td>
-                                <td colspan="3"><strong><?php echo formatCurrency($booking['grand_total']); ?></strong></td>
+                                <td colspan="3" class="text-end">
+                                    <strong class="fs-5"><?php echo formatCurrency($booking['grand_total']); ?></strong>
+                                </td>
                             </tr>
-                            <tr>
+                            <tr class="table-light">
                                 <td colspan="3" class="text-end">Balance Due:</td>
-                                <td colspan="3">
-                                    <strong class="text-danger">
+                                <td colspan="3" class="text-end">
+                                    <strong class="text-danger fs-4">
                                         <?php 
                                         $balance_due = $booking['grand_total'] - $total_paid;
                                         echo formatCurrency($balance_due); 
@@ -549,81 +683,112 @@ if (isset($_POST['action'])) {
     </div>
 
     <!-- Summary Sidebar -->
-    <div class="col-md-4">
-        <div class="card mb-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Booking Status</h5>
+    <div class="col-lg-4">
+        <!-- Booking Status Card -->
+        <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 20px;">
+            <div class="card-header bg-gradient-info text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Booking Overview</h5>
             </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <strong>Booking Status:</strong><br>
-                    <span class="badge bg-<?php 
-                        echo $booking['booking_status'] == 'confirmed' ? 'success' : 
-                            ($booking['booking_status'] == 'pending' ? 'warning' : 
-                            ($booking['booking_status'] == 'cancelled' ? 'danger' : 'info')); 
-                    ?> fs-6">
-                        <?php echo ucfirst($booking['booking_status']); ?>
-                    </span>
+            <div class="card-body p-4">
+                <!-- Status Badges -->
+                <div class="mb-4 pb-4 border-bottom">
+                    <div class="mb-3">
+                        <label class="small text-muted fw-semibold mb-2 d-block">Booking Status</label>
+                        <h5 class="mb-0">
+                            <span class="badge bg-<?php 
+                                echo $booking['booking_status'] == 'confirmed' ? 'success' : 
+                                    ($booking['booking_status'] == 'pending' ? 'warning' : 
+                                    ($booking['booking_status'] == 'cancelled' ? 'danger' : 
+                                    ($booking['booking_status'] == 'completed' ? 'primary' : 'info'))); 
+                            ?> px-3 py-2">
+                                <i class="fas fa-circle-dot me-2"></i>
+                                <?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?>
+                            </span>
+                        </h5>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted fw-semibold mb-2 d-block">Payment Status</label>
+                        <h5 class="mb-0">
+                            <span class="badge bg-<?php 
+                                echo $booking['payment_status'] == 'paid' ? 'success' : 
+                                    ($booking['payment_status'] == 'partial' ? 'warning' : 'danger'); 
+                            ?> px-3 py-2">
+                                <i class="fas <?php 
+                                    echo $booking['payment_status'] == 'paid' ? 'fa-check-circle' : 
+                                        ($booking['payment_status'] == 'partial' ? 'fa-clock' : 'fa-exclamation-circle'); 
+                                ?> me-2"></i>
+                                <?php echo ucfirst($booking['payment_status']); ?>
+                            </span>
+                        </h5>
+                    </div>
+                    <div>
+                        <label class="small text-muted fw-semibold mb-2 d-block">
+                            <i class="far fa-calendar-plus me-1"></i>
+                            Booked On
+                        </label>
+                        <p class="mb-0 fw-semibold">
+                            <?php echo date('M d, Y', strtotime($booking['created_at'])); ?>
+                            <br>
+                            <small class="text-muted"><?php echo date('h:i A', strtotime($booking['created_at'])); ?></small>
+                        </p>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <strong>Payment Status:</strong><br>
-                    <span class="badge bg-<?php 
-                        echo $booking['payment_status'] == 'paid' ? 'success' : 
-                            ($booking['payment_status'] == 'partial' ? 'warning' : 'danger'); 
-                    ?> fs-6">
-                        <?php echo ucfirst($booking['payment_status']); ?>
-                    </span>
-                </div>
-                <div class="mb-3">
-                    <strong>Booked On:</strong><br>
-                    <?php echo date('M d, Y H:i', strtotime($booking['created_at'])); ?>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-calculator"></i> Payment Summary</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Hall Price:</span>
-                    <strong><?php echo formatCurrency($booking['hall_price']); ?></strong>
-                </div>
-                <?php if ($booking['menu_total'] > 0): ?>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Menu Total:</span>
-                    <strong><?php echo formatCurrency($booking['menu_total']); ?></strong>
-                </div>
-                <?php endif; ?>
-                <?php if ($booking['services_total'] > 0): ?>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Services Total:</span>
-                    <strong><?php echo formatCurrency($booking['services_total']); ?></strong>
-                </div>
-                <?php endif; ?>
-                <hr>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Subtotal:</span>
-                    <strong><?php echo formatCurrency($booking['subtotal']); ?></strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
-                    <strong><?php echo formatCurrency($booking['tax_amount']); ?></strong>
-                </div>
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <h5>Grand Total:</h5>
-                    <h5 class="text-success"><?php echo formatCurrency($booking['grand_total']); ?></h5>
-                </div>
-                <?php 
-                // Calculate advance payment
-                $advance = calculateAdvancePayment($booking['grand_total']);
-                ?>
-                <div class="alert alert-warning mt-3 mb-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span><strong>Advance Required (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong></span>
-                        <strong class="fs-5"><?php echo formatCurrency($advance['amount']); ?></strong>
+                
+                <!-- Payment Summary -->
+                <div>
+                    <h6 class="fw-bold mb-3 text-dark">
+                        <i class="fas fa-calculator text-primary me-2"></i>
+                        Payment Summary
+                    </h6>
+                    
+                    <div class="payment-breakdown">
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">Hall Price:</span>
+                            <strong class="text-dark"><?php echo formatCurrency($booking['hall_price']); ?></strong>
+                        </div>
+                        <?php if ($booking['menu_total'] > 0): ?>
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">Menu Total:</span>
+                            <strong class="text-dark"><?php echo formatCurrency($booking['menu_total']); ?></strong>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($booking['services_total'] > 0): ?>
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">Services Total:</span>
+                            <strong class="text-dark"><?php echo formatCurrency($booking['services_total']); ?></strong>
+                        </div>
+                        <?php endif; ?>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted">Subtotal:</span>
+                            <strong class="text-dark"><?php echo formatCurrency($booking['subtotal']); ?></strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 align-items-center">
+                            <span class="text-muted">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
+                            <strong class="text-dark"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
+                        </div>
+                        <hr class="my-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0 fw-bold">Grand Total:</h5>
+                            <h4 class="mb-0 text-success fw-bold"><?php echo formatCurrency($booking['grand_total']); ?></h4>
+                        </div>
+                        
+                        <?php 
+                        // Calculate advance payment
+                        $advance = calculateAdvancePayment($booking['grand_total']);
+                        ?>
+                        <div class="alert alert-warning mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="d-block fw-semibold mb-1">
+                                        <i class="fas fa-hand-holding-usd me-1"></i>
+                                        Advance Required
+                                    </small>
+                                    <small class="text-muted">(<?php echo htmlspecialchars($advance['percentage']); ?>%)</small>
+                                </div>
+                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency($advance['amount']); ?></h5>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -632,13 +797,137 @@ if (isset($_POST['action'])) {
 </div>
 
 <style>
+/* Enhanced Booking View Styles */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.bg-gradient-secondary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.info-item {
+    padding: 0.75rem;
+    border-radius: 6px;
+    background: #f8f9fa;
+    transition: background 0.2s ease;
+}
+
+.info-item:hover {
+    background: #e9ecef;
+}
+
+.quick-action-section {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.status-update-form .form-select {
+    border: 2px solid #dee2e6;
+}
+
+.status-update-form .form-select:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.payment-breakdown {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+}
+
+.payment-method-item {
+    transition: all 0.2s ease;
+}
+
+.payment-method-item:hover {
+    background: #f8f9fa;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    border-radius: 8px;
+}
+
+.modal-dialog-centered {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 1rem);
+}
+
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Print Styles */
 @media print {
-    .btn, .card-header, nav, footer, .alert {
+    .btn, .card-header, nav, footer, .alert, .quick-action-section {
         display: none !important;
     }
     .card {
-        border: none !important;
+        border: 1px solid #dee2e6 !important;
         box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+    .shadow-sm {
+        box-shadow: none !important;
+    }
+    .col-lg-8, .col-lg-4 {
+        width: 100% !important;
+    }
+    .sticky-top {
+        position: relative !important;
+        top: 0 !important;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .quick-action-section {
+        margin-bottom: 1rem;
+    }
+    
+    .status-update-form .col-md-4 {
+        margin-top: 0.5rem;
+    }
+    
+    .payment-breakdown {
+        font-size: 0.9rem;
     }
 }
 </style>
