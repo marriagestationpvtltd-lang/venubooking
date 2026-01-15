@@ -428,10 +428,10 @@ function getBookingDetails($booking_id) {
         return $booking;
     } catch (PDOException $e) {
         error_log("Database error in getBookingDetails: " . $e->getMessage());
-        throw new Exception("Database error: " . $e->getMessage());
+        throw new Exception("Unable to retrieve booking information");
     } catch (Exception $e) {
         error_log("Error in getBookingDetails: " . $e->getMessage());
-        throw $e;
+        throw new Exception("Unable to retrieve booking information");
     }
 }
 

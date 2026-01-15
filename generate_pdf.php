@@ -71,14 +71,14 @@ try {
         if (!isset($booking[$field]) || empty($booking[$field])) {
             error_log("PDF Generation Error: Missing required field '$field' for booking #$booking_id");
             http_response_code(500);
-            die("Error: Incomplete booking data. Missing field: $field");
+            die("Error: Incomplete booking data. Please contact support.");
         }
     }
     
 } catch (Exception $e) {
     error_log("PDF Generation Fatal Error: " . $e->getMessage());
     http_response_code(500);
-    die('Error: ' . htmlspecialchars($e->getMessage()));
+    die('Error: Unable to process request. Please contact support.');
 }
 
 // Get settings before creating PDF class to avoid scope issues
@@ -319,5 +319,5 @@ $pdf->Output('D', $filename);
 } catch (Exception $e) {
     error_log("PDF Generation Error: Failed to generate PDF for booking #$booking_id - " . $e->getMessage());
     http_response_code(500);
-    die('Error: Failed to generate PDF. Please contact support. Error: ' . htmlspecialchars($e->getMessage()));
+    die('Error: Failed to generate PDF. Please contact support.');
 }
