@@ -40,82 +40,99 @@ unset($_SESSION['booking_completed']);
                 <!-- Booking Details Card -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">Booking Details</h5>
+                        <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Booking Details</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <!-- Customer Information -->
-                            <div class="col-md-6 mb-4">
-                                <h6 class="text-success mb-3">Customer Information</h6>
-                                <div class="mb-2">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-success mb-2"><i class="fas fa-user me-2"></i>Customer Information</h6>
+                                <div class="mb-1">
                                     <strong>Name:</strong> <?php echo sanitize($booking['full_name']); ?>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-1">
                                     <strong>Phone:</strong> <?php echo sanitize($booking['phone']); ?>
                                 </div>
                                 <?php if ($booking['email']): ?>
-                                    <div class="mb-2">
+                                    <div class="mb-1">
                                         <strong>Email:</strong> <?php echo sanitize($booking['email']); ?>
                                     </div>
                                 <?php endif; ?>
                                 <?php if ($booking['address']): ?>
-                                    <div class="mb-2">
+                                    <div class="mb-1">
                                         <strong>Address:</strong> <?php echo sanitize($booking['address']); ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
 
                             <!-- Event Information -->
-                            <div class="col-md-6 mb-4">
-                                <h6 class="text-success mb-3">Event Information</h6>
-                                <div class="mb-2">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-success mb-2"><i class="fas fa-calendar-check me-2"></i>Event Information</h6>
+                                <div class="mb-1">
                                     <strong>Event Type:</strong> <?php echo sanitize($booking['event_type']); ?>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-1">
                                     <strong>Date:</strong> <?php echo date('F d, Y', strtotime($booking['event_date'])); ?>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-1">
                                     <strong>Shift:</strong> <?php echo ucfirst($booking['shift']); ?>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-1">
                                     <strong>Number of Guests:</strong> <?php echo $booking['number_of_guests']; ?> persons
                                 </div>
                             </div>
 
                             <!-- Venue & Hall Information -->
-                            <div class="col-md-6 mb-4">
-                                <h6 class="text-success mb-3">Venue & Hall</h6>
-                                <div class="mb-2">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-success mb-2"><i class="fas fa-building me-2"></i>Venue & Hall</h6>
+                                <div class="mb-1">
                                     <strong>Venue:</strong> <?php echo sanitize($booking['venue_name']); ?>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-1">
                                     <strong>Location:</strong> <?php echo sanitize($booking['location']); ?>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-1">
                                     <strong>Hall:</strong> <?php echo sanitize($booking['hall_name']); ?>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-1">
                                     <strong>Capacity:</strong> <?php echo $booking['capacity']; ?> persons
+                                </div>
+                            </div>
+
+                            <!-- Status Information -->
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-success mb-2"><i class="fas fa-info-circle me-2"></i>Status</h6>
+                                <div class="mb-1">
+                                    <strong>Booking Status:</strong>
+                                    <span class="badge bg-warning text-dark">
+                                        <?php echo ucfirst($booking['booking_status']); ?>
+                                    </span>
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Payment Status:</strong>
+                                    <span class="badge bg-danger">
+                                        <?php echo ucfirst($booking['payment_status']); ?>
+                                    </span>
                                 </div>
                             </div>
 
                             <!-- Menus -->
                             <?php if (!empty($booking['menus'])): ?>
-                                <div class="col-md-12 mb-4">
-                                    <h6 class="text-success mb-3">Selected Menus</h6>
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="text-success mb-2"><i class="fas fa-utensils me-2"></i>Selected Menus</h6>
                                     <?php foreach ($booking['menus'] as $menu): ?>
-                                        <div class="mb-3">
-                                            <strong><?php echo sanitize($menu['menu_name']); ?></strong><br>
-                                            <small class="text-muted">
-                                                <?php echo formatCurrency($menu['price_per_person']); ?>/pax × 
+                                        <div class="mb-2">
+                                            <strong><?php echo sanitize($menu['menu_name']); ?></strong>
+                                            <span class="text-muted ms-2">
+                                                (<?php echo formatCurrency($menu['price_per_person']); ?>/pax × 
                                                 <?php echo $menu['number_of_guests']; ?> = 
-                                                <?php echo formatCurrency($menu['total_price']); ?>
-                                            </small>
+                                                <?php echo formatCurrency($menu['total_price']); ?>)
+                                            </span>
                                             
                                             <?php if (!empty($menu['items'])): ?>
-                                                <div class="mt-2 ms-3">
-                                                    <strong class="small">Menu Items:</strong>
-                                                    <ul class="mb-0 mt-1">
+                                                <div class="mt-1 ms-3">
+                                                    <small class="text-muted d-block mb-1">Menu Items:</small>
+                                                    <ul class="booking-list small">
                                                         <?php 
                                                         $items_by_category = [];
                                                         foreach ($menu['items'] as $item) {
@@ -126,16 +143,16 @@ unset($_SESSION['booking_completed']);
                                                         foreach ($items_by_category as $category => $items): 
                                                         ?>
                                                             <?php if (count($items_by_category) > 1): ?>
-                                                                <li class="small"><strong><?php echo sanitize($category); ?>:</strong>
+                                                                <li><strong><?php echo sanitize($category); ?>:</strong>
                                                                     <ul>
                                                                         <?php foreach ($items as $item): ?>
-                                                                            <li class="small"><?php echo sanitize($item['item_name']); ?></li>
+                                                                            <li><?php echo sanitize($item['item_name']); ?></li>
                                                                         <?php endforeach; ?>
                                                                     </ul>
                                                                 </li>
                                                             <?php else: ?>
                                                                 <?php foreach ($items as $item): ?>
-                                                                    <li class="small"><?php echo sanitize($item['item_name']); ?></li>
+                                                                    <li><?php echo sanitize($item['item_name']); ?></li>
                                                                 <?php endforeach; ?>
                                                             <?php endif; ?>
                                                         <?php endforeach; ?>
@@ -149,14 +166,14 @@ unset($_SESSION['booking_completed']);
 
                             <!-- Services -->
                             <?php if (!empty($booking['services'])): ?>
-                                <div class="col-md-12 mb-4">
-                                    <h6 class="text-success mb-3">Additional Services</h6>
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="text-success mb-2"><i class="fas fa-star me-2"></i>Additional Services</h6>
                                     <div class="row">
                                         <?php foreach ($booking['services'] as $service): ?>
-                                            <div class="col-md-6 mb-2">
-                                                <i class="fas fa-check text-success"></i>
-                                                <?php echo sanitize($service['service_name']); ?>
-                                                <span class="text-muted">(<?php echo formatCurrency($service['price']); ?>)</span>
+                                            <div class="col-md-6 mb-1">
+                                                <i class="fas fa-check-circle text-success me-1"></i>
+                                                <strong><?php echo sanitize($service['service_name']); ?></strong>
+                                                <span class="text-muted ms-1"><?php echo formatCurrency($service['price']); ?></span>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
@@ -165,68 +182,48 @@ unset($_SESSION['booking_completed']);
 
                             <!-- Special Requests -->
                             <?php if ($booking['special_requests']): ?>
-                                <div class="col-md-12 mb-4">
-                                    <h6 class="text-success mb-3">Special Requests</h6>
-                                    <p><?php echo nl2br(sanitize($booking['special_requests'])); ?></p>
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="text-success mb-2"><i class="fas fa-comment me-2"></i>Special Requests</h6>
+                                    <p class="mb-0"><?php echo nl2br(sanitize($booking['special_requests'])); ?></p>
                                 </div>
                             <?php endif; ?>
                         </div>
 
-                        <hr>
+                        <hr class="my-3">
 
                         <!-- Cost Breakdown -->
                         <div class="row">
                             <div class="col-md-6 offset-md-6">
-                                <h6 class="text-success mb-3">Cost Breakdown</h6>
-                                <div class="d-flex justify-content-between mb-2">
+                                <h6 class="text-success mb-2"><i class="fas fa-calculator me-2"></i>Cost Breakdown</h6>
+                                <div class="d-flex justify-content-between mb-1">
                                     <span>Hall Cost:</span>
-                                    <strong><?php echo formatCurrency($booking['hall_price']); ?></strong>
+                                    <strong class="text-success"><?php echo formatCurrency($booking['hall_price']); ?></strong>
                                 </div>
                                 <?php if ($booking['menu_total'] > 0): ?>
-                                    <div class="d-flex justify-content-between mb-2">
+                                    <div class="d-flex justify-content-between mb-1">
                                         <span>Menu Cost:</span>
-                                        <strong><?php echo formatCurrency($booking['menu_total']); ?></strong>
+                                        <strong class="text-success"><?php echo formatCurrency($booking['menu_total']); ?></strong>
                                     </div>
                                 <?php endif; ?>
                                 <?php if ($booking['services_total'] > 0): ?>
-                                    <div class="d-flex justify-content-between mb-2">
+                                    <div class="d-flex justify-content-between mb-1">
                                         <span>Services Cost:</span>
-                                        <strong><?php echo formatCurrency($booking['services_total']); ?></strong>
+                                        <strong class="text-success"><?php echo formatCurrency($booking['services_total']); ?></strong>
                                     </div>
                                 <?php endif; ?>
-                                <div class="d-flex justify-content-between mb-2">
+                                <div class="d-flex justify-content-between mb-1">
                                     <span>Subtotal:</span>
-                                    <strong><?php echo formatCurrency($booking['subtotal']); ?></strong>
+                                    <strong class="text-success"><?php echo formatCurrency($booking['subtotal']); ?></strong>
                                 </div>
-                                <div class="d-flex justify-content-between mb-2">
+                                <div class="d-flex justify-content-between mb-1">
                                     <span>Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
-                                    <strong><?php echo formatCurrency($booking['tax_amount']); ?></strong>
+                                    <strong class="text-success"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
                                 </div>
-                                <hr>
+                                <hr class="my-2">
                                 <div class="d-flex justify-content-between">
                                     <h5>Grand Total:</h5>
                                     <h5 class="text-success"><?php echo formatCurrency($booking['grand_total']); ?></h5>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Booking Status -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="text-success">Booking Status</h6>
-                                <span class="badge bg-warning text-dark">
-                                    <?php echo ucfirst($booking['booking_status']); ?>
-                                </span>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="text-success">Payment Status</h6>
-                                <span class="badge bg-danger">
-                                    <?php echo ucfirst($booking['payment_status']); ?>
-                                </span>
                             </div>
                         </div>
                     </div>
@@ -243,12 +240,12 @@ unset($_SESSION['booking_completed']);
                 </div>
 
                 <!-- Important Note -->
-                <div class="alert alert-info mt-4">
-                    <h6><i class="fas fa-info-circle"></i> Important Information</h6>
-                    <ul class="mb-0">
-                        <li>Please save your booking number for future reference: <strong><?php echo sanitize($booking['booking_number']); ?></strong></li>
+                <div class="alert alert-success border-success mt-4">
+                    <h6><i class="fas fa-info-circle me-2"></i>Important Information</h6>
+                    <ul class="booking-list mb-0">
+                        <li>Please save your booking number for future reference: <strong class="text-success"><?php echo sanitize($booking['booking_number']); ?></strong></li>
                         <li>Our team will contact you within 24 hours to confirm your booking and payment details.</li>
-                        <li>For any queries, please contact us at <?php echo getSetting('contact_phone'); ?></li>
+                        <li>For any queries, please contact us at <strong class="text-success"><?php echo getSetting('contact_phone'); ?></strong></li>
                     </ul>
                 </div>
             </div>
@@ -258,7 +255,7 @@ unset($_SESSION['booking_completed']);
 
 <style>
 @media print {
-    nav, footer, .btn, .alert-info {
+    nav, footer, .btn, .alert-success {
         display: none !important;
     }
 }
