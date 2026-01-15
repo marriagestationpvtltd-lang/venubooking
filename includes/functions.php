@@ -1231,6 +1231,51 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <?php endif; ?>
                 </div>
                 
+                <?php 
+                // Get payment methods for this booking (only show if payment request or if methods are linked)
+                if ($type === 'payment_request' || $type === 'new'):
+                    $payment_methods = getBookingPaymentMethods($booking['id']);
+                    if (!empty($payment_methods)): 
+                ?>
+                <div class="booking-details">
+                    <div class="section-title">Payment Methods</div>
+                    <p style="margin-bottom: 15px;">You can make payment using any of the following methods:</p>
+                    <?php foreach ($payment_methods as $idx => $method): ?>
+                        <div style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-left: 4px solid #4CAF50; border-radius: 4px;">
+                            <h4 style="margin: 0 0 10px 0; color: #4CAF50;"><?php echo htmlspecialchars($method['name']); ?></h4>
+                            
+                            <?php if (!empty($method['qr_code'])): ?>
+                                <div style="margin: 10px 0;">
+                                    <img src="<?php echo BASE_URL . '/' . UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
+                                         alt="<?php echo htmlspecialchars($method['name']); ?> QR Code" 
+                                         style="max-width: 250px; max-height: 250px; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;">
+                                </div>
+                            <?php endif; ?>
+                            
+                            <?php if (!empty($method['bank_details'])): ?>
+                                <div style="background-color: white; padding: 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 13px; white-space: pre-wrap; line-height: 1.6;">
+                                    <?php echo htmlspecialchars($method['bank_details']); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ($idx < count($payment_methods) - 1): ?>
+                            <div style="margin: 15px 0; text-align: center; color: #999;">- OR -</div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    
+                    <?php if ($type === 'payment_request'): ?>
+                        <p style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 4px;">
+                            <strong>Note:</strong> After making the payment, please contact us with your booking number 
+                            <strong><?php echo htmlspecialchars($booking['booking_number']); ?></strong> 
+                            to confirm the payment.
+                        </p>
+                    <?php endif; ?>
+                </div>
+                <?php 
+                    endif;
+                endif; 
+                ?>
+                
                 <?php if ($recipient === 'user'): ?>
                     <p style="margin-top: 20px;">If you have any questions about your booking, please don't hesitate to contact us.</p>
                 <?php endif; ?>
@@ -1253,4 +1298,61 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
     </html>
     <?php
     return ob_get_clean();
+}
+
+/**
+ * Get active payment methods
+ * @return array Array of active payment methods
+ */
+function getActivePaymentMethods() {
+    $db = getDB();
+    $stmt = $db->query("SELECT * FROM payment_methods WHERE status = 'active' ORDER BY display_order ASC, name ASC");
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get payment methods for a booking
+ * @param int $booking_id Booking ID
+ * @return array Array of payment methods assigned to the booking
+ */
+function getBookingPaymentMethods($booking_id) {
+    $db = getDB();
+    $sql = "SELECT pm.* FROM payment_methods pm
+            INNER JOIN booking_payment_methods bpm ON pm.id = bpm.payment_method_id
+            WHERE bpm.booking_id = ?
+            ORDER BY pm.display_order ASC, pm.name ASC";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$booking_id]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Link payment methods to a booking
+ * @param int $booking_id Booking ID
+ * @param array $payment_method_ids Array of payment method IDs
+ * @return bool Success status
+ */
+function linkPaymentMethodsToBooking($booking_id, $payment_method_ids) {
+    if (empty($payment_method_ids)) {
+        return true; // No payment methods to link
+    }
+    
+    $db = getDB();
+    
+    try {
+        // Delete existing payment method associations
+        $stmt = $db->prepare("DELETE FROM booking_payment_methods WHERE booking_id = ?");
+        $stmt->execute([$booking_id]);
+        
+        // Insert new associations
+        $stmt = $db->prepare("INSERT INTO booking_payment_methods (booking_id, payment_method_id) VALUES (?, ?)");
+        foreach ($payment_method_ids as $method_id) {
+            $stmt->execute([$booking_id, intval($method_id)]);
+        }
+        
+        return true;
+    } catch (Exception $e) {
+        error_log('Error linking payment methods: ' . $e->getMessage());
+        return false;
+    }
 }

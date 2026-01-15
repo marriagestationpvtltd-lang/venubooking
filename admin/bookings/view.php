@@ -382,6 +382,39 @@ if (isset($_POST['action'])) {
             </div>
         </div>
         <?php endif; ?>
+        
+        <!-- Payment Methods -->
+        <?php 
+        $booking_payment_methods = getBookingPaymentMethods($booking_id);
+        if (count($booking_payment_methods) > 0): 
+        ?>
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-credit-card"></i> Payment Methods</h5>
+            </div>
+            <div class="card-body">
+                <?php foreach ($booking_payment_methods as $method): ?>
+                <div class="mb-4 pb-3 border-bottom">
+                    <h6 class="mb-2"><?php echo htmlspecialchars($method['name']); ?></h6>
+                    
+                    <?php if (!empty($method['qr_code'])): ?>
+                    <div class="mb-3">
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
+                             alt="<?php echo htmlspecialchars($method['name']); ?> QR Code" 
+                             style="max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px; padding: 8px;">
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($method['bank_details'])): ?>
+                    <div style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap;">
+                        <?php echo htmlspecialchars($method['bank_details']); ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- Summary Sidebar -->
