@@ -132,14 +132,17 @@ if (isset($_POST['action'])) {
                         <?php 
                         // Prepare WhatsApp data
                         $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
-                        $whatsapp_text = "Hello " . $booking['full_name'] . ",\n\n" .
-                            "This is a payment request for your booking:\n\n" .
-                            "Booking Number: " . $booking['booking_number'] . "\n" .
-                            "Event Date: " . date('F d, Y', strtotime($booking['event_date'])) . "\n" .
-                            "Venue: " . $booking['venue_name'] . "\n" .
-                            "Hall: " . $booking['hall_name'] . "\n" .
-                            "Total Amount: " . formatCurrency($booking['grand_total']) . "\n\n" .
-                            "Please complete your payment at your earliest convenience.\n\n" .
+                        
+                        // Calculate 25% advance payment
+                        $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
+                        $advance_amount = $booking['grand_total'] * ($advance_percentage / 100);
+                        
+                        $whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
+                            "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . date('F d, Y', strtotime($booking['event_date'])) . " is almost confirmed.\n\n" .
+                            "Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
+                            "Advance Payment (" . $advance_percentage . "%): " . formatCurrency($advance_amount) . "\n\n" .
+                            "Please complete the advance payment using the QR code or bank details below:\n" .
+                            "[Payment details will be shared separately]\n\n" .
                             "Thank you!";
                         ?>
                         <form method="POST" action="" style="display: inline-block;" id="whatsappForm">
@@ -449,6 +452,17 @@ if (isset($_POST['action'])) {
                 <div class="d-flex justify-content-between">
                     <h5>Grand Total:</h5>
                     <h5 class="text-success"><?php echo formatCurrency($booking['grand_total']); ?></h5>
+                </div>
+                <?php 
+                // Calculate advance payment
+                $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
+                $advance_amount = $booking['grand_total'] * ($advance_percentage / 100);
+                ?>
+                <div class="alert alert-warning mt-3 mb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><strong>Advance Required (<?php echo $advance_percentage; ?>%):</strong></span>
+                        <strong class="fs-5"><?php echo formatCurrency($advance_amount); ?></strong>
+                    </div>
                 </div>
             </div>
         </div>
