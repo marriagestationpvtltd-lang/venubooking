@@ -367,8 +367,8 @@ body {
     background-color: var(--primary-green);
     border-color: var(--primary-green);
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
-    /* Using SVG checkmark for better cross-browser compatibility */
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+    /* Using SVG checkmark with black color for better visibility on mobile */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
     background-size: 100% 100%;
     background-position: center;
     background-repeat: no-repeat;
@@ -379,7 +379,7 @@ body {
     content: '✓';
     display: block;
     text-align: center;
-    color: white;
+    color: black;
     font-size: 1.2em;
     font-weight: bold;
     line-height: 1.2em;
