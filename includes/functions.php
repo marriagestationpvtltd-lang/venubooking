@@ -792,12 +792,13 @@ function getPlaceholderImageUrl() {
 function sendEmail($to, $subject, $message, $recipient_name = '') {
     // Check if email is enabled
     if (getSetting('email_enabled', '1') != '1') {
+        error_log("Email notification skipped - email notifications are disabled in settings");
         return false;
     }
     
     // Validate email address
     if (empty($to) || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
-        error_log("Invalid email address: $to");
+        error_log("Email notification failed - invalid email address: " . ($to ?: '(empty)'));
         return false;
     }
     
@@ -848,7 +849,7 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
     $from_email = getSetting('email_from_address', 'noreply@venubooking.com');
     
     if (empty($smtp_host) || empty($smtp_username)) {
-        error_log("SMTP settings incomplete");
+        error_log("SMTP email failed - SMTP settings incomplete (host: " . ($smtp_host ?: '(empty)') . ", username: " . ($smtp_username ?: '(empty)') . ")");
         return false;
     }
     
@@ -1018,6 +1019,7 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     $booking = getBookingDetails($booking_id);
     
     if (!$booking) {
+        error_log("Email notification failed - could not retrieve booking details for booking ID: $booking_id");
         return ['admin' => false, 'user' => false];
     }
     
@@ -1044,11 +1046,21 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     // Send to admin
     if (!empty($admin_email)) {
         $results['admin'] = sendEmail($admin_email, $admin_subject, $admin_message);
+        if ($results['admin']) {
+            error_log("Booking notification email sent to admin: $admin_email for booking " . $booking['booking_number']);
+        }
+    } else {
+        error_log("Admin email notification skipped for booking " . $booking['booking_number'] . " - admin email not configured in settings");
     }
     
     // Send to user
     if (!empty($booking['email'])) {
         $results['user'] = sendEmail($booking['email'], $user_subject, $user_message, $booking['full_name']);
+        if ($results['user']) {
+            error_log("Booking notification email sent to customer: " . $booking['email'] . " for booking " . $booking['booking_number']);
+        }
+    } else {
+        error_log("Customer email notification skipped for booking " . $booking['booking_number'] . " - customer email not provided");
     }
     
     return $results;
