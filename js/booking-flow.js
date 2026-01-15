@@ -193,8 +193,8 @@ function initNepaliCalendar() {
     
     // Initialize with Nepali calendar as default
     function initializeNepaliAsDefault() {
-        // Change button label to show AD (since we're in BS mode)
-        calendarTypeLabel.textContent = 'AD';
+        // Change button label to show current mode (BS)
+        calendarTypeLabel.textContent = 'BS';
         
         // Remove type="date" to prevent browser date picker
         eventDateInput.removeAttribute('type');
@@ -204,7 +204,7 @@ function initNepaliCalendar() {
         
         // Initialize Nepali picker
         nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
-            closeOnSelect: true,
+            closeOnSelect: true, // Close calendar after date is selected (like English calendar)
             onChange: function(adDate, bsDate) {
                 updateNepaliDisplay();
             }
@@ -229,7 +229,7 @@ function initNepaliCalendar() {
         
         if (isNepaliMode) {
             // Switch to Nepali calendar
-            calendarTypeLabel.textContent = 'AD';
+            calendarTypeLabel.textContent = 'BS'; // Show current mode
             
             // Remove type="date" to prevent browser date picker
             eventDateInput.removeAttribute('type');
@@ -240,7 +240,7 @@ function initNepaliCalendar() {
             // Initialize Nepali picker
             if (!nepaliPicker) {
                 nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
-                    closeOnSelect: true,
+                    closeOnSelect: true, // Close calendar after date is selected (like English calendar)
                     onChange: function(adDate, bsDate) {
                         updateNepaliDisplay();
                     }
@@ -266,7 +266,7 @@ function initNepaliCalendar() {
             }
         } else {
             // Switch to English calendar
-            calendarTypeLabel.textContent = 'BS';
+            calendarTypeLabel.textContent = 'AD'; // Show current mode
             
             // Restore standard date input
             eventDateInput.removeAttribute('readonly');
