@@ -32,7 +32,22 @@ function formatCurrency(amount) {
     return appSettings.currency + ' ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 }
 
-// Client-side error logging (optional - can be implemented with server endpoint)
+/**
+ * Client-side error logging function
+ * 
+ * Provides a centralized way to log errors in production.
+ * Can be extended to send errors to a server-side logging endpoint.
+ * 
+ * @param {string} message - A description of the error context
+ * @param {Error|string} error - The error object or error message
+ * 
+ * @example
+ * logError('Failed to load settings', error);
+ * 
+ * @future
+ * To enable server-side logging, implement an API endpoint (e.g., /api/log-error.php)
+ * and uncomment the fetch() call below.
+ */
 function logError(message, error) {
     // This is a placeholder for production error logging
     // In production, you can send errors to a logging endpoint:

@@ -28,8 +28,12 @@ ini_set('session.cookie_samesite', 'Strict');
 // ini_set('session.cookie_secure', '1');
 
 // Disable unnecessary PHP functions for security
-// disable_functions in php.ini is preferred, but this provides runtime check
-$disabled_functions = ['exec', 'shell_exec', 'system', 'passthru', 'proc_open', 'popen'];
+// Note: Actual function disabling should be done in php.ini using disable_functions directive
+// This array is kept for documentation purposes
+$security_note = 'For maximum security, add these functions to disable_functions in php.ini: ' .
+                'exec, shell_exec, system, passthru, proc_open, popen';
+// Log security recommendation
+error_log($security_note);
 
 // Output buffering for better performance
 ini_set('output_buffering', '4096');

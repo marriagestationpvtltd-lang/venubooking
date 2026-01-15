@@ -145,12 +145,22 @@ function updateTotalCost(total) {
 
 // Nepali Date Picker functionality (Basic implementation)
 // This provides a simple BS/AD date conversion
+// NOTE: This is an APPROXIMATE conversion for display purposes only
+// For accurate Nepali date conversion, integrate a dedicated library like:
+// - nepali-date-picker (JavaScript)
+// - nepali-date (npm package)
+// The current implementation provides a rough estimate to give users
+// a sense of the Nepali date, but should not be used for precise calculations
 const nepaliMonths = [
     'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
     'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'
 ];
 
-// Simple BS to AD conversion (approximate - for display purposes)
+// Simple BS to AD conversion (approximate - for display purposes ONLY)
+// This is a simplified algorithm and does NOT account for:
+// - Variable month lengths in BS calendar (29-32 days)
+// - Leap years in BS calendar
+// - Precise date boundaries between AD and BS
 function convertADtoBS(adDate) {
     const ad = new Date(adDate);
     const year = ad.getFullYear();

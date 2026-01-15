@@ -103,9 +103,12 @@ fi
 
 # Check file permissions (if on Unix)
 if [ -f ".env" ]; then
-    PERMS=$(stat -c "%a" .env 2>/dev/null || stat -f "%OLp" .env 2>/dev/null)
+    # Try both Linux and macOS stat formats
+    PERMS=$(stat -c "%a" .env 2>/dev/null || stat -f "%OLp" .env 2>/dev/null || echo "unknown")
     if [ "$PERMS" = "600" ] || [ "$PERMS" = "400" ]; then
         print_result ".env file permissions" "PASS"
+    elif [ "$PERMS" = "unknown" ]; then
+        print_result ".env file permissions" "WARN" "Could not check permissions (stat command unavailable)"
     else
         print_result ".env file permissions" "WARN" ".env should be 600 or 400 (currently $PERMS)"
     fi

@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if we have required session data
     if (typeof bookingData === 'undefined' || !bookingData) {
         // No session data, redirect to start
-        window.location.href = baseUrl + '/index.php';
+        const redirectUrl = (typeof baseUrl !== 'undefined' && baseUrl) ? baseUrl + '/index.php' : '/index.php';
+        window.location.href = redirectUrl;
         return;
     }
     
@@ -17,7 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('popstate', function(event) {
         // Redirect to start if session is lost
         if (typeof bookingData === 'undefined' || !bookingData) {
-            window.location.href = baseUrl + '/index.php';
+            const redirectUrl = (typeof baseUrl !== 'undefined' && baseUrl) ? baseUrl + '/index.php' : '/index.php';
+            window.location.href = redirectUrl;
         }
     });
 });
