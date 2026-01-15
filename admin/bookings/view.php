@@ -22,6 +22,20 @@ if (!$booking) {
     exit;
 }
 
+// Helper variables for consistent status display formatting
+$booking_status_display = ucfirst(str_replace('_', ' ', $booking['booking_status']));
+$booking_status_color = $booking['booking_status'] == 'confirmed' ? 'success' : 
+    ($booking['booking_status'] == 'pending' ? 'warning' : 
+    ($booking['booking_status'] == 'cancelled' ? 'danger' : 
+    ($booking['booking_status'] == 'completed' ? 'primary' : 'info')));
+
+$payment_status_display = ucfirst($booking['payment_status']);
+$payment_status_color = $booking['payment_status'] == 'paid' ? 'success' : 
+    ($booking['payment_status'] == 'partial' ? 'warning' : 'danger');
+$payment_status_icon = $booking['payment_status'] == 'paid' ? 'fa-check-circle' : 
+    ($booking['payment_status'] == 'partial' ? 'fa-clock' : 'fa-exclamation-circle');
+
+
 // Handle payment request actions
 if (isset($_POST['action'])) {
     $action = $_POST['action'];
@@ -233,11 +247,7 @@ if (isset($_POST['action'])) {
                                 <small class="text-muted d-block mt-3">
                                     <i class="fas fa-info-circle me-1"></i>
                                     Current Status: 
-                                    <span class="badge bg-<?php 
-                                        echo $booking['booking_status'] == 'confirmed' ? 'success' : 
-                                            ($booking['booking_status'] == 'pending' ? 'warning' : 
-                                            ($booking['booking_status'] == 'cancelled' ? 'danger' : 'info')); 
-                                    ?>"><?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?></span>
+                                    <span class="badge bg-<?php echo $booking_status_color; ?>"><?php echo $booking_status_display; ?></span>
                                 </small>
                             </form>
                         </div>
@@ -695,29 +705,18 @@ if (isset($_POST['action'])) {
                     <div class="mb-3">
                         <label class="small text-muted fw-semibold mb-2 d-block">Booking Status</label>
                         <h5 class="mb-0">
-                            <span class="badge bg-<?php 
-                                echo $booking['booking_status'] == 'confirmed' ? 'success' : 
-                                    ($booking['booking_status'] == 'pending' ? 'warning' : 
-                                    ($booking['booking_status'] == 'cancelled' ? 'danger' : 
-                                    ($booking['booking_status'] == 'completed' ? 'primary' : 'info'))); 
-                            ?> px-3 py-2">
+                            <span class="badge bg-<?php echo $booking_status_color; ?> px-3 py-2">
                                 <i class="fas fa-circle-dot me-2"></i>
-                                <?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?>
+                                <?php echo $booking_status_display; ?>
                             </span>
                         </h5>
                     </div>
                     <div class="mb-3">
                         <label class="small text-muted fw-semibold mb-2 d-block">Payment Status</label>
                         <h5 class="mb-0">
-                            <span class="badge bg-<?php 
-                                echo $booking['payment_status'] == 'paid' ? 'success' : 
-                                    ($booking['payment_status'] == 'partial' ? 'warning' : 'danger'); 
-                            ?> px-3 py-2">
-                                <i class="fas <?php 
-                                    echo $booking['payment_status'] == 'paid' ? 'fa-check-circle' : 
-                                        ($booking['payment_status'] == 'partial' ? 'fa-clock' : 'fa-exclamation-circle'); 
-                                ?> me-2"></i>
-                                <?php echo ucfirst($booking['payment_status']); ?>
+                            <span class="badge bg-<?php echo $payment_status_color; ?> px-3 py-2">
+                                <i class="fas <?php echo $payment_status_icon; ?> me-2"></i>
+                                <?php echo $payment_status_display; ?>
                             </span>
                         </h5>
                     </div>
@@ -869,7 +868,7 @@ if (isset($_POST['action'])) {
 
 .table-hover tbody tr:hover {
     background-color: #f8f9fa;
-    transform: scale(1.01);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .payment-method-item {
@@ -878,8 +877,8 @@ if (isset($_POST['action'])) {
 
 .payment-method-item:hover {
     background: #f8f9fa;
-    padding-left: 1.5rem !important;
-    padding-right: 1.5rem !important;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
     border-radius: 8px;
 }
 
