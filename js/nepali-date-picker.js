@@ -277,6 +277,26 @@
         }
         
         open() {
+            // Ensure we have a current BS date to display
+            if (!this.currentBSDate) {
+                if (this.input.value) {
+                    try {
+                        const adDate = new Date(this.input.value);
+                        if (!isNaN(adDate)) {
+                            this.currentBSDate = adToBS(adDate.getFullYear(), adDate.getMonth() + 1, adDate.getDate());
+                        }
+                    } catch (error) {
+                        console.error('Error parsing date:', error);
+                    }
+                }
+                
+                // Fallback to today's date
+                if (!this.currentBSDate) {
+                    const today = new Date();
+                    this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                }
+            }
+            
             this.render();
             this.position();
             this.pickerElement.style.display = 'block';
@@ -327,6 +347,12 @@
         }
         
         renderCalendar() {
+            // Safety check - ensure we have a current date
+            if (!this.currentBSDate) {
+                const today = new Date();
+                this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+            }
+            
             const daysInMonth = getDaysInBSMonth(this.currentBSDate.year, this.currentBSDate.month);
             const firstDayBS = { ...this.currentBSDate, day: 1 };
             const firstDayAD = bsToAD(firstDayBS.year, firstDayBS.month, firstDayBS.day);
