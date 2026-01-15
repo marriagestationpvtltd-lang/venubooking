@@ -2,9 +2,30 @@
  * Main JavaScript Functions
  */
 
-// Format currency
+// Global settings loaded from API
+let appSettings = {
+    currency: 'NPR',
+    tax_rate: 13
+};
+
+// Load settings from API
+async function loadSettings() {
+    try {
+        const apiUrl = (typeof baseUrl !== 'undefined' ? baseUrl : '') + '/api/get-settings.php';
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        if (data.success && data.settings) {
+            appSettings = data.settings;
+        }
+    } catch (error) {
+        console.error('Failed to load settings:', error);
+        // Keep default values if loading fails
+    }
+}
+
+// Format currency using dynamic settings
 function formatCurrency(amount) {
-    return 'NPR ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    return appSettings.currency + ' ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 }
 
 // Show loading spinner
@@ -107,6 +128,9 @@ function smoothScroll(target) {
 
 // Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
+    // Load settings first
+    loadSettings();
+    
     // Bootstrap tooltip initialization
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {

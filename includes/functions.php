@@ -97,9 +97,10 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
         $services_total = $result['total'] ?? 0;
     }
     
-    // Calculate totals
+    // Calculate totals - get tax rate from database settings
+    $tax_rate = floatval(getSetting('tax_rate', '13'));
     $subtotal = $hall_price + $menu_total + $services_total;
-    $tax_amount = $subtotal * (TAX_RATE / 100);
+    $tax_amount = $subtotal * ($tax_rate / 100);
     $grand_total = $subtotal + $tax_amount;
     
     return [
@@ -412,18 +413,30 @@ function getBookingDetails($booking_id) {
  * Format currency
  */
 function formatCurrency($amount) {
-    return CURRENCY . ' ' . number_format($amount, 2);
+    $currency = getSetting('currency', 'NPR');
+    return $currency . ' ' . number_format($amount, 2);
 }
 
 /**
- * Get setting value
+ * Get setting value with caching
  */
 function getSetting($key, $default = '') {
+    static $cache = [];
+    
+    // Return from cache if available
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+    
+    // Query database
     $db = getDB();
     $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
     $stmt->execute([$key]);
     $result = $stmt->fetch();
-    return $result ? $result['setting_value'] : $default;
+    
+    // Store in cache and return
+    $cache[$key] = $result ? $result['setting_value'] : $default;
+    return $cache[$key];
 }
 
 /**

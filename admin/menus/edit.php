@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="price_per_person" class="form-label">Price per Person (<?php echo CURRENCY; ?>) <span class="text-danger">*</span></label>
+                                <label for="price_per_person" class="form-label">Price per Person (<?php echo getSetting('currency', 'NPR'); ?>) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="price_per_person" name="price_per_person" 
                                        value="<?php echo $menu['price_per_person']; ?>" 
                                        min="0" step="0.01" placeholder="e.g., 1500.00" required>

@@ -22,10 +22,6 @@ define('DB_USER', $_ENV['DB_USER'] ?? 'root');
 define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 define('DB_CHARSET', 'utf8mb4');
 
-// Application configuration
-define('CURRENCY', $_ENV['CURRENCY'] ?? 'NPR');
-define('TAX_RATE', $_ENV['TAX_RATE'] ?? 13);
-
 // Base URL configuration
 // Calculate the base URL by finding the application root directory
 $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '/';

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings Test - Dynamic Configuration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Database-Driven Settings Test</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Current Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="settingsDisplay">
+                            <p>Loading settings...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Currency Format Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Amount: 150000.00</strong></p>
+                        <p>Formatted: <span id="formattedAmount" class="text-primary"></span></p>
+                        
+                        <hr>
+                        
+                        <h6>Tax Calculation Test</h6>
+                        <p><strong>Subtotal: 100000.00</strong></p>
+                        <p>Tax Rate: <span id="taxRateDisplay"></span>%</p>
+                        <p>Tax Amount: <span id="taxAmount" class="text-primary"></span></p>
+                        <p>Grand Total: <span id="grandTotal" class="text-success"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <h5><i class="bi bi-info-circle"></i> Implementation Details</h5>
+            <ul>
+                <li>Settings are loaded from database via <code>/api/get-settings.php</code></li>
+                <li>Currency and tax rate are dynamically applied to all calculations</li>
+                <li>Changes in admin panel settings immediately reflect on frontend</li>
+                <li>No hardcoded values in PHP or JavaScript</li>
+            </ul>
+        </div>
+        
+        <div class="alert alert-success mt-3">
+            <h5><i class="bi bi-check-circle"></i> Testing Instructions</h5>
+            <ol>
+                <li>Go to Admin Panel → Settings</li>
+                <li>Change Currency (e.g., from NPR to USD or INR)</li>
+                <li>Change Tax Rate (e.g., from 13% to 15%)</li>
+                <li>Save Settings</li>
+                <li>Refresh this page to see changes reflected immediately</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Base URL for API calls - determine from current location
+        const baseUrl = window.location.pathname.replace(/\/[^\/]*$/, '').replace(/\/(admin|api).*/, '');
+        
+        // Global settings loaded from API
+        let appSettings = {
+            currency: 'NPR',
+            tax_rate: 13
+        };
+
+        // Load settings from API
+        async function loadSettings() {
+            try {
+                const apiUrl = (typeof baseUrl !== 'undefined' ? baseUrl : '') + '/api/get-settings.php';
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    appSettings = data.settings;
+                    displaySettings();
+                    performCalculations();
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+                document.getElementById('settingsDisplay').innerHTML = 
+                    '<div class="alert alert-danger">Failed to load settings. Please ensure database is configured.</div>';
+            }
+        }
+
+        // Display current settings
+        function displaySettings() {
+            const html = `
+                <table class="table">
+                    <tr>
+                        <th>Setting</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Currency</td>
+                        <td><strong>${appSettings.currency}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Tax Rate</td>
+                        <td><strong>${appSettings.tax_rate}%</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Site Name</td>
+                        <td><strong>${appSettings.site_name}</strong></td>
+                    </tr>
+                </table>
+            `;
+            document.getElementById('settingsDisplay').innerHTML = html;
+        }
+
+        // Format currency using dynamic settings
+        function formatCurrency(amount) {
+            return appSettings.currency + ' ' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+
+        // Perform test calculations
+        function performCalculations() {
+            // Format currency test
+            document.getElementById('formattedAmount').textContent = formatCurrency(150000);
+            
+            // Tax calculation test
+            const subtotal = 100000;
+            const taxAmount = subtotal * (appSettings.tax_rate / 100);
+            const grandTotal = subtotal + taxAmount;
+            
+            document.getElementById('taxRateDisplay').textContent = appSettings.tax_rate;
+            document.getElementById('taxAmount').textContent = formatCurrency(taxAmount);
+            document.getElementById('grandTotal').textContent = formatCurrency(grandTotal);
+        }
+
+        // Load settings on page load
+        loadSettings();
+    </script>
+</body>
+</html>

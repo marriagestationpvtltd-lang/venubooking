@@ -303,7 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                             <strong><?php echo formatCurrency($totals['subtotal']); ?></strong>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Tax (<?php echo TAX_RATE; ?>%):</span>
+                            <span>Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
                             <strong><?php echo formatCurrency($totals['tax_amount']); ?></strong>
                         </div>
                         <hr>
