@@ -196,6 +196,41 @@ body {
     margin-right: 5px;
 }
 
+/* Booking Confirmation Lists - Clean checkmarks without borders */
+.booking-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+
+.booking-list li {
+    padding: 0.2rem 0;
+    position: relative;
+    padding-left: 1.2rem;
+}
+
+.booking-list li:before {
+    content: "✓";
+    color: var(--primary-green);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+}
+
+.booking-list ul {
+    list-style-type: none;
+    padding-left: 1rem;
+    margin-top: 0.25rem;
+}
+
+.booking-list ul li:before {
+    content: "✓";
+    color: var(--light-green);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+}
+
 /* Service Cards */
 .service-card {
     transition: all 0.3s;

@@ -199,44 +199,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                     </div>
                     <div class="card-body">
                         <!-- Event Details -->
-                        <h6 class="mb-3">Event Details</h6>
-                        <div class="mb-3">
+                        <h6 class="mb-2 text-success"><i class="fas fa-calendar-check me-2"></i>Event Details</h6>
+                        <div class="mb-2">
                             <small class="text-muted">Event Type:</small><br>
                             <strong><?php echo sanitize($booking_data['event_type']); ?></strong>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <small class="text-muted">Date & Shift:</small><br>
                             <strong><?php echo date('F d, Y', strtotime($booking_data['event_date'])); ?></strong><br>
-                            <small><?php echo ucfirst($booking_data['shift']); ?></small>
+                            <small class="text-success"><?php echo ucfirst($booking_data['shift']); ?></small>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <small class="text-muted">Number of Guests:</small><br>
                             <strong><?php echo $booking_data['guests']; ?> persons</strong>
                         </div>
 
-                        <hr>
+                        <hr class="my-2">
 
                         <!-- Venue & Hall -->
-                        <h6 class="mb-3">Venue & Hall</h6>
-                        <div class="mb-3">
+                        <h6 class="mb-2 text-success"><i class="fas fa-building me-2"></i>Venue & Hall</h6>
+                        <div class="mb-2">
                             <strong><?php echo sanitize($selected_hall['venue_name']); ?></strong><br>
-                            <small><?php echo sanitize($selected_hall['name']); ?> (<?php echo $selected_hall['capacity']; ?> pax)</small>
+                            <small class="text-muted"><?php echo sanitize($selected_hall['name']); ?> (<?php echo $selected_hall['capacity']; ?> pax)</small>
                         </div>
 
-                        <hr>
+                        <hr class="my-2">
 
                         <!-- Menus -->
                         <?php if (!empty($menu_details)): ?>
-                            <h6 class="mb-3">Selected Menus</h6>
+                            <h6 class="mb-2 text-success"><i class="fas fa-utensils me-2"></i>Selected Menus</h6>
                             <?php foreach ($menu_details as $menu): ?>
-                                <div class="mb-3">
+                                <div class="mb-2">
                                     <small><strong><?php echo sanitize($menu['name']); ?></strong></small><br>
-                                    <small class="text-muted"><?php echo formatCurrency($menu['price_per_person']); ?>/pax</small>
+                                    <small class="text-success"><?php echo formatCurrency($menu['price_per_person']); ?>/pax</small>
                                     
                                     <?php if (!empty($menu['items'])): ?>
                                         <div class="mt-1 ms-2">
-                                            <small class="text-muted d-block">Menu Items:</small>
-                                            <ul class="small mb-0 mt-1" style="list-style-type: disc; padding-left: 20px;">
+                                            <small class="text-muted d-block mb-1">Menu Items:</small>
+                                            <ul class="booking-list small">
                                                 <?php 
                                                 $items_by_category = [];
                                                 foreach ($menu['items'] as $item) {
@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                                 ?>
                                                     <?php if (count($items_by_category) > 1): ?>
                                                         <li><strong><?php echo sanitize($category); ?>:</strong>
-                                                            <ul style="list-style-type: circle;">
+                                                            <ul>
                                                                 <?php foreach ($items as $item): ?>
                                                                     <li><?php echo sanitize($item['item_name']); ?></li>
                                                                 <?php endforeach; ?>
@@ -265,48 +265,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                     <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
-                            <hr>
+                            <hr class="my-2">
                         <?php endif; ?>
 
                         <!-- Services -->
                         <?php if (!empty($service_details)): ?>
-                            <h6 class="mb-3">Additional Services</h6>
+                            <h6 class="mb-2 text-success"><i class="fas fa-star me-2"></i>Additional Services</h6>
                             <?php foreach ($service_details as $service): ?>
-                                <div class="mb-2">
-                                    <small><?php echo sanitize($service['name']); ?></small><br>
-                                    <small class="text-muted"><?php echo formatCurrency($service['price']); ?></small>
+                                <div class="mb-1">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    <small><strong><?php echo sanitize($service['name']); ?></strong></small>
+                                    <small class="text-success ms-1"><?php echo formatCurrency($service['price']); ?></small>
                                 </div>
                             <?php endforeach; ?>
-                            <hr>
+                            <hr class="my-2">
                         <?php endif; ?>
 
                         <!-- Cost Breakdown -->
-                        <h6 class="mb-3">Cost Breakdown</h6>
-                        <div class="d-flex justify-content-between mb-2">
+                        <h6 class="mb-2 text-success"><i class="fas fa-calculator me-2"></i>Cost Breakdown</h6>
+                        <div class="d-flex justify-content-between mb-1">
                             <span>Hall Cost:</span>
-                            <strong><?php echo formatCurrency($totals['hall_price']); ?></strong>
+                            <strong class="text-success"><?php echo formatCurrency($totals['hall_price']); ?></strong>
                         </div>
                         <?php if ($totals['menu_total'] > 0): ?>
-                            <div class="d-flex justify-content-between mb-2">
+                            <div class="d-flex justify-content-between mb-1">
                                 <span>Menu Cost:</span>
-                                <strong><?php echo formatCurrency($totals['menu_total']); ?></strong>
+                                <strong class="text-success"><?php echo formatCurrency($totals['menu_total']); ?></strong>
                             </div>
                         <?php endif; ?>
                         <?php if ($totals['services_total'] > 0): ?>
-                            <div class="d-flex justify-content-between mb-2">
+                            <div class="d-flex justify-content-between mb-1">
                                 <span>Services Cost:</span>
-                                <strong><?php echo formatCurrency($totals['services_total']); ?></strong>
+                                <strong class="text-success"><?php echo formatCurrency($totals['services_total']); ?></strong>
                             </div>
                         <?php endif; ?>
-                        <div class="d-flex justify-content-between mb-2">
+                        <div class="d-flex justify-content-between mb-1">
                             <span>Subtotal:</span>
-                            <strong><?php echo formatCurrency($totals['subtotal']); ?></strong>
+                            <strong class="text-success"><?php echo formatCurrency($totals['subtotal']); ?></strong>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
+                        <div class="d-flex justify-content-between mb-1">
                             <span>Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
-                            <strong><?php echo formatCurrency($totals['tax_amount']); ?></strong>
+                            <strong class="text-success"><?php echo formatCurrency($totals['tax_amount']); ?></strong>
                         </div>
-                        <hr>
+                        <hr class="my-2">
                         <div class="d-flex justify-content-between">
                             <h5>Grand Total:</h5>
                             <h5 class="text-success"><?php echo formatCurrency($totals['grand_total']); ?></h5>
