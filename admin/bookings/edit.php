@@ -31,11 +31,17 @@ $menus = $db->query("SELECT id, name, price_per_person FROM menus WHERE status =
 // Fetch services
 $services = $db->query("SELECT id, name, price, category FROM additional_services WHERE status = 'active' ORDER BY category, name")->fetchAll();
 
+// Fetch active payment methods
+$payment_methods = getActivePaymentMethods();
+
 // Get currently selected menus
 $selected_menus = array_column($booking['menus'], 'menu_id');
 
 // Get currently selected services
 $selected_services = array_column($booking['services'], 'service_id');
+
+// Get currently selected payment methods
+$selected_payment_methods = array_column(getBookingPaymentMethods($booking_id), 'id');
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $special_requests = trim($_POST['special_requests']);
     $post_selected_menus = isset($_POST['menus']) ? $_POST['menus'] : [];
     $post_selected_services = isset($_POST['services']) ? $_POST['services'] : [];
+    $post_selected_payment_methods = isset($_POST['payment_methods']) ? $_POST['payment_methods'] : [];
     $booking_status = $_POST['booking_status'];
     $payment_status = $_POST['payment_status'];
     
@@ -147,6 +154,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
+                // Link payment methods to booking
+                linkPaymentMethodsToBooking($booking_id, $post_selected_payment_methods);
+                
                 // Log activity
                 logActivity($current_user['id'], 'Updated booking', 'bookings', $booking_id, "Updated booking: {$booking['booking_number']}");
                 
@@ -163,6 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $booking = getBookingDetails($booking_id);
                 $selected_menus = array_column($booking['menus'], 'menu_id');
                 $selected_services = array_column($booking['services'], 'service_id');
+                $selected_payment_methods = array_column(getBookingPaymentMethods($booking_id), 'id');
                 
             } catch (Exception $e) {
                 $db->rollBack();
@@ -326,6 +337,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="mb-3">
                         <label for="special_requests" class="form-label">Special Requests</label>
                         <textarea class="form-control" id="special_requests" name="special_requests" rows="3"><?php echo htmlspecialchars($booking['special_requests']); ?></textarea>
+                    </div>
+
+                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">Payment Methods</h6>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Select Payment Methods (Optional)</label>
+                                <small class="text-muted d-block mb-2">Choose which payment methods to offer for this booking</small>
+                                <?php if (empty($payment_methods)): ?>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> No payment methods configured. 
+                                        <a href="<?php echo BASE_URL; ?>/admin/payment-methods/index.php">Add payment methods</a> to use this feature.
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($payment_methods as $method): ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="payment_methods[]" 
+                                               value="<?php echo $method['id']; ?>" 
+                                               id="payment_method_<?php echo $method['id']; ?>" 
+                                               <?php echo in_array($method['id'], $selected_payment_methods) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="payment_method_<?php echo $method['id']; ?>">
+                                            <?php echo htmlspecialchars($method['name']); ?>
+                                            <?php if (!empty($method['bank_details'])): ?>
+                                                <small class="text-muted">(<?php echo substr(htmlspecialchars($method['bank_details']), 0, 50); ?>...)</small>
+                                            <?php endif; ?>
+                                        </label>
+                                    </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
 
                     <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">Booking Status</h6>

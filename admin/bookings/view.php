@@ -136,13 +136,29 @@ if (isset($_POST['action'])) {
                         // Calculate advance payment based on configured percentage
                         $advance = calculateAdvancePayment($booking['grand_total']);
                         
+                        // Get payment methods for this booking
+                        $whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
+                        
                         $whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
                             "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . date('F d, Y', strtotime($booking['event_date'])) . " is almost confirmed.\n\n" .
-                            "Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
-                            "Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n" .
-                            "Please complete the advance payment using the QR code or bank details below:\n" .
-                            "[Payment details will be shared separately]\n\n" .
-                            "Thank you!";
+                            "💰 Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
+                            "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n";
+                        
+                        if (!empty($whatsapp_payment_methods)) {
+                            $whatsapp_text .= "📱 Payment Methods:\n\n";
+                            foreach ($whatsapp_payment_methods as $idx => $method) {
+                                $whatsapp_text .= ($idx + 1) . ". " . $method['name'] . "\n";
+                                if (!empty($method['bank_details'])) {
+                                    $whatsapp_text .= $method['bank_details'] . "\n";
+                                }
+                                $whatsapp_text .= "\n";
+                            }
+                            $whatsapp_text .= "After making payment, please contact us with your booking number to confirm.\n\n";
+                        } else {
+                            $whatsapp_text .= "Please contact us for payment details.\n\n";
+                        }
+                        
+                        $whatsapp_text .= "Thank you!";
                         ?>
                         <form method="POST" action="" style="display: inline-block;" id="whatsappForm">
                             <input type="hidden" name="action" value="send_payment_request_whatsapp">
@@ -379,6 +395,39 @@ if (isset($_POST['action'])) {
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <!-- Payment Methods -->
+        <?php 
+        $booking_payment_methods = getBookingPaymentMethods($booking_id);
+        if (count($booking_payment_methods) > 0): 
+        ?>
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-credit-card"></i> Payment Methods</h5>
+            </div>
+            <div class="card-body">
+                <?php foreach ($booking_payment_methods as $method): ?>
+                <div class="mb-4 pb-3 border-bottom">
+                    <h6 class="mb-2"><?php echo htmlspecialchars($method['name']); ?></h6>
+                    
+                    <?php if (!empty($method['qr_code']) && validateUploadedFilePath($method['qr_code'])): ?>
+                    <div class="mb-3">
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
+                             alt="<?php echo htmlspecialchars($method['name']); ?> QR Code" 
+                             style="max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px; padding: 8px;">
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($method['bank_details'])): ?>
+                    <div style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 0.875rem; white-space: pre-wrap;">
+                        <?php echo htmlspecialchars($method['bank_details']); ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
             </div>
         </div>
         <?php endif; ?>
