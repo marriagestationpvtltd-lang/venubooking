@@ -162,6 +162,9 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
         capacity: capacity
     };
     
+    // Show loading indicator
+    showLoading();
+    
     // Update session via AJAX or form submission
     fetch(baseUrl + '/api/select-hall.php', {
         method: 'POST',
@@ -172,6 +175,8 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
     })
     .then(response => response.json())
     .then(data => {
+        hideLoading();
+        
         if (data.success) {
             // Update total cost
             updateTotalCost(basePrice);
@@ -183,6 +188,7 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
         }
     })
     .catch(error => {
+        hideLoading();
         console.error('Error:', error);
         showError('An error occurred while selecting the hall');
     });
