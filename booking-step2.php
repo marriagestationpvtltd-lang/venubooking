@@ -136,7 +136,6 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
 $extra_js = '
 <script>
 const bookingData = ' . json_encode($booking_data) . ';
-const baseUrl = "' . BASE_URL . '";
 </script>
 <script src="' . BASE_URL . '/js/booking-flow.js"></script>
 <script src="' . BASE_URL . '/js/booking-step2.js"></script>
