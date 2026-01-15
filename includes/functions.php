@@ -444,6 +444,30 @@ function formatCurrency($amount) {
 }
 
 /**
+ * Calculate advance payment amount
+ * 
+ * @param float $total_amount The total booking amount
+ * @return array Array with 'percentage' and 'amount' keys
+ */
+function calculateAdvancePayment($total_amount) {
+    // Validate input
+    if (!is_numeric($total_amount) || $total_amount < 0) {
+        return [
+            'percentage' => 0,
+            'amount' => 0
+        ];
+    }
+    
+    $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
+    $advance_amount = $total_amount * ($advance_percentage / 100);
+    
+    return [
+        'percentage' => $advance_percentage,
+        'amount' => $advance_amount
+    ];
+}
+
+/**
  * Get setting value with caching
  */
 function getSetting($key, $default = '') {
@@ -1031,9 +1055,16 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <p>Thank you for your booking! Your reservation has been successfully created.</p>
                     <?php elseif ($type === 'payment_request'): ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
+                        <?php 
+                        // Calculate advance payment for display in notice
+                        $advance = calculateAdvancePayment($booking['grand_total']);
+                        ?>
                         <div class="payment-notice">
                             <strong>Payment Request</strong><br>
-                            This is a friendly reminder about the payment for your booking. Please complete your payment at your earliest convenience.
+                            Your booking for <?php echo htmlspecialchars($booking['venue_name']); ?> on <?php echo date('F d, Y', strtotime($booking['event_date'])); ?> is almost confirmed.<br><br>
+                            <strong>Total Amount:</strong> <?php echo formatCurrency($booking['grand_total']); ?><br>
+                            <strong>Advance Payment (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong> <?php echo formatCurrency($advance['amount']); ?><br><br>
+                            Please complete the advance payment at your earliest convenience to confirm your booking.
                         </div>
                     <?php else: ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
@@ -1188,6 +1219,16 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <span>Grand Total:</span>
                         <span><?php echo formatCurrency($booking['grand_total']); ?></span>
                     </div>
+                    <?php if ($type === 'payment_request'): ?>
+                        <?php 
+                        // Calculate advance payment based on configured percentage
+                        $advance = calculateAdvancePayment($booking['grand_total']);
+                        ?>
+                        <div class="cost-row" style="margin-top: 10px; border-top: 1px solid #ddd; background-color: #fff3cd; padding: 10px; border-radius: 3px;">
+                            <span><strong>Advance Payment Required (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong></span>
+                            <span style="color: #856404; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($advance['amount']); ?></span>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 
                 <?php if ($recipient === 'user'): ?>
