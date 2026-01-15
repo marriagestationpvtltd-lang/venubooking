@@ -50,6 +50,12 @@ if (!empty($selected_services)) {
     $service_details = $stmt->fetchAll();
 }
 
+// Get active payment methods
+$active_payment_methods = getActivePaymentMethods();
+
+// Calculate advance payment
+$advance = calculateAdvancePayment($totals['grand_total']);
+
 // Handle form submission
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
@@ -59,10 +65,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
     $email = trim($_POST['email']);
     $address = trim($_POST['address']);
     $special_requests = trim($_POST['special_requests']);
+    $payment_option = $_POST['payment_option'] ?? 'without';
 
     if (empty($full_name) || empty($phone)) {
         $error = 'Full name and phone number are required.';
-    } else {
+    } elseif ($payment_option === 'with') {
+        // Validate payment fields
+        $payment_method_id = $_POST['payment_method_id'] ?? '';
+        $transaction_id = trim($_POST['transaction_id'] ?? '');
+        $paid_amount = $_POST['paid_amount'] ?? '';
+        
+        if (empty($payment_method_id)) {
+            $error = 'Please select a payment method.';
+        } elseif (empty($transaction_id)) {
+            $error = 'Transaction ID / Reference Number is required.';
+        } elseif (empty($paid_amount) || !is_numeric($paid_amount) || $paid_amount <= 0) {
+            $error = 'Please enter a valid paid amount.';
+        } elseif (!isset($_FILES['payment_slip']) || $_FILES['payment_slip']['error'] === UPLOAD_ERR_NO_FILE) {
+            $error = 'Payment slip / screenshot upload is required.';
+        } else {
+            // Validate payment slip upload
+            $upload_result = handleImageUpload($_FILES['payment_slip'], 'payment-slips');
+            if (!$upload_result['success']) {
+                $error = 'Payment slip upload failed: ' . $upload_result['message'];
+            }
+        }
+    }
+    
+    if (empty($error)) {
         // Create booking
         $booking_result = createBooking([
             'hall_id' => $selected_hall['id'],
@@ -80,10 +110,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
         ]);
 
         if ($booking_result['success']) {
+            $booking_id = $booking_result['booking_id'];
+            
+            // If payment option is with payment, record the payment
+            if ($payment_option === 'with' && isset($upload_result)) {
+                $payment_result = recordPayment([
+                    'booking_id' => $booking_id,
+                    'payment_method_id' => $payment_method_id,
+                    'transaction_id' => $transaction_id,
+                    'paid_amount' => $paid_amount,
+                    'payment_slip' => $upload_result['filename'],
+                    'notes' => 'Payment submitted during booking',
+                    'update_booking_status' => true
+                ]);
+                
+                if (!$payment_result['success']) {
+                    $error = 'Booking created but payment recording failed: ' . $payment_result['error'];
+                }
+            }
+            
             // Clear booking session
             $_SESSION['booking_completed'] = [
-                'booking_id' => $booking_result['booking_id'],
-                'booking_number' => $booking_result['booking_number']
+                'booking_id' => $booking_id,
+                'booking_number' => $booking_result['booking_number'],
+                'payment_submitted' => ($payment_option === 'with')
             ];
             unset($_SESSION['booking_data']);
             unset($_SESSION['selected_hall']);
@@ -176,6 +226,114 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                         </div>
                     </div>
 
+                    <!-- Payment Confirmation Options -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Options</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Choose how you would like to proceed with your booking:</p>
+                            
+                            <!-- Payment Option Selection -->
+                            <div class="mb-4">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="payment_option" id="payment_with" value="with">
+                                    <label class="form-check-label fw-bold" for="payment_with">
+                                        <i class="fas fa-money-bill-wave text-success me-2"></i>Confirm Booking With Payment
+                                    </label>
+                                    <p class="text-muted small ms-4 mt-1">Submit payment details now to confirm your booking immediately</p>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="payment_option" id="payment_without" value="without" checked>
+                                    <label class="form-check-label fw-bold" for="payment_without">
+                                        <i class="fas fa-calendar-check text-success me-2"></i>Confirm Booking Without Payment
+                                    </label>
+                                    <p class="text-muted small ms-4 mt-1">Confirm your booking now and add payment details later</p>
+                                </div>
+                            </div>
+
+                            <!-- Payment Details Section (shown when "With Payment" is selected) -->
+                            <div id="payment_details_section" style="display: none;">
+                                <hr class="my-4">
+                                <h6 class="mb-3 text-success"><i class="fas fa-info-circle me-2"></i>Payment Information</h6>
+                                
+                                <!-- Advance Payment Display -->
+                                <div class="alert alert-info mb-3">
+                                    <strong><i class="fas fa-calculator me-2"></i>Required Advance Payment:</strong><br>
+                                    <span class="fs-5"><?php echo formatCurrency($advance['amount']); ?></span>
+                                    <small class="d-block mt-1">(<?php echo $advance['percentage']; ?>% of Total: <?php echo formatCurrency($totals['grand_total']); ?>)</small>
+                                </div>
+
+                                <?php if (!empty($active_payment_methods)): ?>
+                                    <!-- Payment Method Selection -->
+                                    <div class="mb-3">
+                                        <label for="payment_method_id" class="form-label">Payment Method <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="payment_method_id" name="payment_method_id">
+                                            <option value="">Select Payment Method</option>
+                                            <?php foreach ($active_payment_methods as $method): ?>
+                                                <option value="<?php echo $method['id']; ?>"><?php echo sanitize($method['name']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <!-- Payment Method Details Display -->
+                                    <div id="payment_method_details" class="mb-3" style="display: none;">
+                                        <?php foreach ($active_payment_methods as $method): ?>
+                                            <div id="method_details_<?php echo $method['id']; ?>" class="payment-method-detail" style="display: none;">
+                                                <div class="card bg-light">
+                                                    <div class="card-body">
+                                                        <?php if (!empty($method['qr_code']) && validateUploadedFilePath($method['qr_code'])): ?>
+                                                            <div class="text-center mb-3">
+                                                                <img src="<?php echo UPLOAD_URL . sanitize($method['qr_code']); ?>" 
+                                                                     alt="QR Code" 
+                                                                     class="img-fluid"
+                                                                     style="max-width: 250px; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;">
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($method['bank_details'])): ?>
+                                                            <div class="bg-white p-3 rounded">
+                                                                <pre class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;"><?php echo sanitize($method['bank_details']); ?></pre>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>No payment methods are currently configured. Please contact us to complete your booking.
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Transaction ID -->
+                                <div class="mb-3">
+                                    <label for="transaction_id" class="form-label">Transaction ID / Reference Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="transaction_id" name="transaction_id" 
+                                           placeholder="Enter your transaction ID or reference number">
+                                    <small class="form-text text-muted">The reference number from your payment transaction</small>
+                                </div>
+
+                                <!-- Paid Amount -->
+                                <div class="mb-3">
+                                    <label for="paid_amount" class="form-label">Paid Amount <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="paid_amount" name="paid_amount" 
+                                           step="0.01" min="0" placeholder="0.00" value="<?php echo $advance['amount']; ?>">
+                                    <small class="form-text text-muted">Amount you have paid</small>
+                                </div>
+
+                                <!-- Payment Slip Upload -->
+                                <div class="mb-3">
+                                    <label for="payment_slip" class="form-label">Payment Slip / Screenshot <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="payment_slip" name="payment_slip" 
+                                           accept="image/*,.pdf">
+                                    <small class="form-text text-muted">Upload a screenshot or photo of your payment receipt (JPG, PNG, or PDF)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <a href="booking-step4.php" class="btn btn-outline-secondary btn-lg w-100">
@@ -183,7 +341,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                             </a>
                         </div>
                         <div class="col-md-6">
-                            <button type="submit" name="submit_booking" class="btn btn-success btn-lg w-100">
+                            <button type="submit" name="submit_booking" class="btn btn-success btn-lg w-100" id="submit_btn">
                                 <i class="fas fa-check"></i> Confirm Booking
                             </button>
                         </div>
@@ -318,6 +476,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
         </div>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentWithRadio = document.getElementById('payment_with');
+    const paymentWithoutRadio = document.getElementById('payment_without');
+    const paymentDetailsSection = document.getElementById('payment_details_section');
+    const paymentMethodSelect = document.getElementById('payment_method_id');
+    const paymentMethodDetails = document.getElementById('payment_method_details');
+    const customerForm = document.getElementById('customerForm');
+    const submitBtn = document.getElementById('submit_btn');
+    
+    // Toggle payment details section
+    function togglePaymentSection() {
+        if (paymentWithRadio && paymentWithRadio.checked) {
+            paymentDetailsSection.style.display = 'block';
+            // Make payment fields required
+            document.getElementById('payment_method_id').required = true;
+            document.getElementById('transaction_id').required = true;
+            document.getElementById('paid_amount').required = true;
+            document.getElementById('payment_slip').required = true;
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Booking & Submit Payment';
+        } else {
+            paymentDetailsSection.style.display = 'none';
+            // Make payment fields optional
+            if (document.getElementById('payment_method_id')) {
+                document.getElementById('payment_method_id').required = false;
+                document.getElementById('transaction_id').required = false;
+                document.getElementById('paid_amount').required = false;
+                document.getElementById('payment_slip').required = false;
+            }
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Booking';
+        }
+    }
+    
+    // Show payment method details
+    function showPaymentMethodDetails() {
+        const selectedMethodId = paymentMethodSelect.value;
+        
+        // Hide all payment method details
+        const allDetails = document.querySelectorAll('.payment-method-detail');
+        allDetails.forEach(detail => {
+            detail.style.display = 'none';
+        });
+        
+        // Show selected payment method details
+        if (selectedMethodId) {
+            const selectedDetail = document.getElementById('method_details_' + selectedMethodId);
+            if (selectedDetail) {
+                paymentMethodDetails.style.display = 'block';
+                selectedDetail.style.display = 'block';
+            } else {
+                paymentMethodDetails.style.display = 'none';
+            }
+        } else {
+            paymentMethodDetails.style.display = 'none';
+        }
+    }
+    
+    // Event listeners
+    if (paymentWithRadio) {
+        paymentWithRadio.addEventListener('change', togglePaymentSection);
+    }
+    if (paymentWithoutRadio) {
+        paymentWithoutRadio.addEventListener('change', togglePaymentSection);
+    }
+    if (paymentMethodSelect) {
+        paymentMethodSelect.addEventListener('change', showPaymentMethodDetails);
+    }
+    
+    // Form validation
+    if (customerForm) {
+        customerForm.addEventListener('submit', function(e) {
+            if (paymentWithRadio && paymentWithRadio.checked) {
+                const paymentMethodId = document.getElementById('payment_method_id').value;
+                const transactionId = document.getElementById('transaction_id').value.trim();
+                const paidAmount = document.getElementById('paid_amount').value;
+                const paymentSlip = document.getElementById('payment_slip').files.length;
+                
+                if (!paymentMethodId) {
+                    e.preventDefault();
+                    alert('Please select a payment method.');
+                    return false;
+                }
+                if (!transactionId) {
+                    e.preventDefault();
+                    alert('Please enter the transaction ID / reference number.');
+                    return false;
+                }
+                if (!paidAmount || parseFloat(paidAmount) <= 0) {
+                    e.preventDefault();
+                    alert('Please enter a valid paid amount.');
+                    return false;
+                }
+                if (!paymentSlip) {
+                    e.preventDefault();
+                    alert('Please upload the payment slip / screenshot.');
+                    return false;
+                }
+            }
+        });
+    }
+    
+    // Initialize
+    togglePaymentSection();
+});
+</script>
 
 <?php
 require_once __DIR__ . '/includes/footer.php';
