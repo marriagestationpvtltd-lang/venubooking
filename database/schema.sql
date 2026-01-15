@@ -198,6 +198,9 @@ CREATE TABLE activity_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Insert default admin user (password: Admin@123)
+-- ⚠️ SECURITY WARNING: Change this password immediately after installation!
+-- Login at /admin/ with username: admin, password: Admin@123
+-- Then update your password in the admin panel settings
 INSERT INTO users (username, password, full_name, email, role, status) 
 VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
 
