@@ -10,7 +10,8 @@ echo ""
 
 # Check if we're in the right directory
 if [ ! -f "config/database.php" ]; then
-    echo "Error: Please run this script from the venubooking root directory"
+    echo "Error: Please run this script from the project root directory"
+    echo "(The directory containing the 'config' folder)"
     exit 1
 fi
 

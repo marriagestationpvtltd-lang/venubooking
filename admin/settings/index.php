@@ -45,6 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (strpos($key, 'setting_') === 0) {
                 $setting_key = str_replace('setting_', '', $key);
                 
+                // Skip empty password field (keep existing password)
+                if ($setting_key === 'smtp_password' && empty($value)) {
+                    continue;
+                }
+                
                 // Check if setting exists
                 $stmt = $db->prepare("SELECT id FROM settings WHERE setting_key = ?");
                 $stmt->execute([$setting_key]);
@@ -372,9 +377,9 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                         <div class="col-md-6 mb-3">
                             <label class="form-label">SMTP Password</label>
                             <input type="password" class="form-control" name="setting_smtp_password" 
-                                   value="<?php echo htmlspecialchars($settings['smtp_password'] ?? ''); ?>"
+                                   <?php echo !empty($settings['smtp_password']) ? 'placeholder="••••••••"' : 'placeholder="Enter SMTP password"'; ?>
                                    autocomplete="new-password">
-                            <div class="form-text">SMTP account password</div>
+                            <div class="form-text">SMTP account password (leave empty to keep current password)</div>
                         </div>
                     </div>
                 </div>

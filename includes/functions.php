@@ -742,6 +742,9 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
     }
     
     try {
+        // Set timeout for socket operations
+        ini_set('default_socket_timeout', 30);
+        
         // Create socket connection
         $context = stream_context_create();
         
@@ -770,6 +773,9 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
             return false;
         }
         
+        // Set socket timeout
+        stream_set_timeout($socket, 30);
+        
         // Read server response
         $response = fgets($socket);
         if (substr($response, 0, 3) != '220') {
@@ -778,8 +784,16 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
             return false;
         }
         
+        // Get server name for EHLO, use localhost as fallback
+        $ehlo_domain = !empty($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost';
+        // Sanitize domain name to prevent SMTP injection
+        $ehlo_domain = preg_replace('/[^a-zA-Z0-9.-]/', '', $ehlo_domain);
+        if (empty($ehlo_domain)) {
+            $ehlo_domain = 'localhost';
+        }
+        
         // Send EHLO
-        fwrite($socket, "EHLO " . ($_SERVER['SERVER_NAME'] ?? 'localhost') . "\r\n");
+        fwrite($socket, "EHLO $ehlo_domain\r\n");
         $response = fgets($socket);
         
         // Start TLS if needed
@@ -795,15 +809,27 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
             stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
             
             // Send EHLO again after TLS
-            fwrite($socket, "EHLO " . ($_SERVER['SERVER_NAME'] ?? 'localhost') . "\r\n");
+            fwrite($socket, "EHLO $ehlo_domain\r\n");
             $response = fgets($socket);
         }
         
         // Authenticate
         fwrite($socket, "AUTH LOGIN\r\n");
-        fgets($socket);
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '334') {
+            fclose($socket);
+            error_log("SMTP AUTH LOGIN failed: $response");
+            return false;
+        }
+        
         fwrite($socket, base64_encode($smtp_username) . "\r\n");
-        fgets($socket);
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '334') {
+            fclose($socket);
+            error_log("SMTP username failed: $response");
+            return false;
+        }
+        
         fwrite($socket, base64_encode($smtp_password) . "\r\n");
         $response = fgets($socket);
         
@@ -815,13 +841,28 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         
         // Send email
         fwrite($socket, "MAIL FROM: <$from_email>\r\n");
-        fgets($socket);
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '250') {
+            fclose($socket);
+            error_log("SMTP MAIL FROM failed: $response");
+            return false;
+        }
         
         fwrite($socket, "RCPT TO: <$to>\r\n");
-        fgets($socket);
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '250') {
+            fclose($socket);
+            error_log("SMTP RCPT TO failed: $response");
+            return false;
+        }
         
         fwrite($socket, "DATA\r\n");
-        fgets($socket);
+        $response = fgets($socket);
+        if (substr($response, 0, 3) != '354') {
+            fclose($socket);
+            error_log("SMTP DATA failed: $response");
+            return false;
+        }
         
         // Build email content
         $full_to = !empty($recipient_name) ? $recipient_name : $to;
@@ -1096,7 +1137,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <span><?php echo formatCurrency($booking['subtotal']); ?></span>
                     </div>
                     <div class="cost-row">
-                        <span>Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
+                        <span>Tax (<?php echo htmlspecialchars(getSetting('tax_rate', '13'), ENT_QUOTES, 'UTF-8'); ?>%):</span>
                         <span><?php echo formatCurrency($booking['tax_amount']); ?></span>
                     </div>
                     <div class="cost-row total-row">
