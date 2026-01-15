@@ -29,7 +29,7 @@ for file in "${FILES[@]}"; do
     if [ -f "$file" ]; then
         echo "📄 Checking: $file"
         # Basic syntax check - look for common SQL syntax errors
-        if grep -q "CREATE TABLE\|INSERT INTO\|SELECT\|USE" "$file"; then
+        if grep -qE "CREATE TABLE|INSERT INTO|SELECT|USE" "$file"; then
             echo "   ✅ File contains valid SQL commands"
             
             # Count tables being created

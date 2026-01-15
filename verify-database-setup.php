@@ -146,46 +146,30 @@ if (file_exists(__DIR__ . '/includes/functions.php')) {
     echo "❌ functions.php NOT found\n\n";
 }
 
-// Test generate_pdf.php requirements
-echo "Testing generate_pdf.php requirements...\n";
-$allOk = true;
-
-if (!file_exists(__DIR__ . '/config/database.php')) {
-    echo "❌ config/database.php missing\n";
-    $allOk = false;
-}
-
-if (!file_exists(__DIR__ . '/includes/functions.php')) {
-    echo "❌ includes/functions.php missing\n";
-    $allOk = false;
-}
-
-if (!file_exists(__DIR__ . '/lib/fpdf.php')) {
-    echo "❌ lib/fpdf.php missing\n";
-    $allOk = false;
-}
+// Final summary
+echo "=== SUMMARY ===\n";
+$hasBooking23 = false;
+$hasAllFiles = file_exists(__DIR__ . '/config/database.php') && 
+                file_exists(__DIR__ . '/includes/functions.php') && 
+                file_exists(__DIR__ . '/lib/fpdf.php');
+$hasDbConnection = false;
 
 try {
     $db = getDB();
     $stmt = $db->prepare("SELECT COUNT(*) FROM bookings WHERE id = 23");
     $stmt->execute();
-    if ($stmt->fetchColumn() == 0) {
-        echo "❌ Booking #23 not found in database\n";
-        $allOk = false;
-    }
+    $hasBooking23 = ($stmt->fetchColumn() > 0);
+    $hasDbConnection = true;
 } catch (Exception $e) {
-    echo "❌ Cannot query database: " . $e->getMessage() . "\n";
-    $allOk = false;
+    // Already reported above
 }
 
-if ($allOk) {
-    echo "✅ All requirements met!\n\n";
-    echo "=== SUCCESS ===\n";
-    echo "generate_pdf.php should work for booking ID=23\n";
-    echo "Test it at: http://your-domain.com/venubooking/generate_pdf.php?id=23\n\n";
+if ($hasDbConnection && $hasBooking23 && $hasAllFiles) {
+    echo "✅ All requirements met!\n";
+    echo "✅ generate_pdf.php should work for booking ID=23\n";
+    echo "\nTest it at: http://your-domain.com/venubooking/generate_pdf.php?id=23\n\n";
 } else {
-    echo "\n=== ISSUES FOUND ===\n";
-    echo "Please fix the issues above before testing generate_pdf.php\n\n";
+    echo "⚠️  Some issues found - please review the errors above\n\n";
 }
 
 echo "=== Verification Complete ===\n";
