@@ -243,7 +243,7 @@ unset($_SESSION['booking_completed']);
                 </div>
 
                 <!-- Important Note -->
-                <div class="alert alert-success border-success mt-4">
+                <div class="alert alert-success alert-permanent border-success mt-4">
                     <h6><i class="fas fa-info-circle me-2"></i>Important Information</h6>
                     <ul class="booking-list mb-0">
                         <li>Please save your booking number for future reference: <strong class="text-success"><?php echo sanitize($booking['booking_number']); ?></strong></li>
