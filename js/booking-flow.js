@@ -194,6 +194,8 @@ function initNepaliCalendar() {
     // Initialize with Nepali calendar as default
     function initializeNepaliAsDefault() {
         // Change button label to show current mode (BS)
+        // This helps users understand which calendar they are currently using
+        // Previously showed "AD" which was confusing as it suggested the target, not current state
         calendarTypeLabel.textContent = 'BS';
         
         // Remove type="date" to prevent browser date picker
