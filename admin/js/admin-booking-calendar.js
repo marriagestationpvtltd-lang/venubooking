@@ -22,8 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!toggleButton) {
         toggleButton = document.createElement('button');
         toggleButton.type = 'button';
-        toggleButton.className = 'btn btn-sm btn-outline-success calendar-toggle-btn mt-2';
-        toggleButton.innerHTML = '<i class="fas fa-calendar-alt"></i> Switch to Nepali (BS) Calendar';
+        toggleButton.className = 'btn btn-sm btn-success calendar-toggle-btn mt-2';
+        toggleButton.innerHTML = '<i class="fas fa-calendar"></i> Switch to English (AD) Calendar';
         toggleButton.style.display = 'block';
         
         // Insert after the input
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
         dateFieldGroup.appendChild(nepaliDisplay);
     }
     
-    let isNepaliMode = false;
+    let isNepaliMode = true; // Start with Nepali calendar as default
     let nepaliPicker = null;
     
     // Update Nepali date display
@@ -71,8 +71,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Initialize with Nepali calendar as default
+    function initializeNepaliAsDefault() {
+        // Change input to text and make readonly
+        eventDateInput.setAttribute('type', 'text');
+        eventDateInput.setAttribute('readonly', 'readonly');
+        eventDateInput.setAttribute('placeholder', 'Select Nepali Date (BS)');
+        
+        // Initialize Nepali picker
+        nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
+            closeOnSelect: true,
+            onChange: function(adDate, bsDate) {
+                updateNepaliDisplay();
+            }
+        });
+    }
+    
     // Initial display
     updateNepaliDisplay();
+    
+    // Initialize Nepali calendar as default
+    initializeNepaliAsDefault();
     
     // Listen for date changes
     eventDateInput.addEventListener('change', updateNepaliDisplay);

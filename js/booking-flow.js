@@ -161,7 +161,7 @@ function initNepaliCalendar() {
         return;
     }
     
-    let isNepaliMode = false;
+    let isNepaliMode = true; // Start with Nepali calendar as default
     let nepaliPicker = null;
     let standardDateInput = eventDateInput;
     
@@ -191,8 +191,31 @@ function initNepaliCalendar() {
         }
     }
     
-    // Initial display update
+    // Initialize with Nepali calendar as default
+    function initializeNepaliAsDefault() {
+        // Change button label to show AD (since we're in BS mode)
+        calendarTypeLabel.textContent = 'AD';
+        
+        // Remove type="date" to prevent browser date picker
+        eventDateInput.removeAttribute('type');
+        eventDateInput.setAttribute('type', 'text');
+        eventDateInput.setAttribute('readonly', 'readonly');
+        eventDateInput.setAttribute('placeholder', 'Select Nepali Date (BS)');
+        
+        // Initialize Nepali picker
+        nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
+            closeOnSelect: true,
+            onChange: function(adDate, bsDate) {
+                updateNepaliDisplay();
+            }
+        });
+    }
+    
+    // Initial display update and setup
     updateNepaliDisplay();
+    
+    // Initialize Nepali calendar as default
+    initializeNepaliAsDefault();
     
     // Listen for date changes
     eventDateInput.addEventListener('change', updateNepaliDisplay);

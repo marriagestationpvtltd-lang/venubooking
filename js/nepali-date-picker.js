@@ -58,6 +58,9 @@
     ];
 
     const englishDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Fallback date for when conversion fails or date is out of range
+    const FALLBACK_BS_DATE = { year: 2081, month: 1, day: 1 };
 
     /**
      * Count total days from reference BS date to target BS date
@@ -327,6 +330,12 @@
         }
         
         render() {
+            // Safety check - ensure we have a current date before rendering
+            if (!this.currentBSDate) {
+                const today = new Date();
+                this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+            }
+            
             const html = `
                 <div class="nepali-picker-header">
                     <button type="button" class="nepali-picker-prev-year" data-action="prev-year">&laquo;</button>
@@ -351,12 +360,36 @@
             if (!this.currentBSDate) {
                 const today = new Date();
                 this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                // If still null, use fallback
+                if (!this.currentBSDate) {
+                    this.currentBSDate = { ...FALLBACK_BS_DATE };
+                }
             }
             
             const daysInMonth = getDaysInBSMonth(this.currentBSDate.year, this.currentBSDate.month);
             const firstDayBS = { ...this.currentBSDate, day: 1 };
             const firstDayAD = bsToAD(firstDayBS.year, firstDayBS.month, firstDayBS.day);
+            
+            // Additional safety check - if conversion fails, use fallback
+            if (!firstDayAD) {
+                console.warn('BS to AD conversion failed for year', this.currentBSDate.year);
+                // Use fallback date
+                this.currentBSDate = { ...FALLBACK_BS_DATE };
+                const fallbackDaysInMonth = getDaysInBSMonth(FALLBACK_BS_DATE.year, FALLBACK_BS_DATE.month);
+                const fallbackFirstDayAD = bsToAD(FALLBACK_BS_DATE.year, FALLBACK_BS_DATE.month, 1);
+                if (!fallbackFirstDayAD) {
+                    console.error('Fallback conversion also failed');
+                    return '<p>Error rendering calendar</p>';
+                }
+                const firstDayOfWeek = new Date(fallbackFirstDayAD.year, fallbackFirstDayAD.month - 1, fallbackFirstDayAD.day).getDay();
+                return this.renderCalendarWithDate(FALLBACK_BS_DATE.year, FALLBACK_BS_DATE.month, fallbackDaysInMonth, firstDayOfWeek);
+            }
+            
             const firstDayOfWeek = new Date(firstDayAD.year, firstDayAD.month - 1, firstDayAD.day).getDay();
+            return this.renderCalendarWithDate(this.currentBSDate.year, this.currentBSDate.month, daysInMonth, firstDayOfWeek);
+        }
+        
+        renderCalendarWithDate(year, month, daysInMonth, firstDayOfWeek) {
             
             let html = '<table class="nepali-calendar-table"><thead><tr>';
             
@@ -375,8 +408,8 @@
             let currentWeekDay = firstDayOfWeek;
             for (let day = 1; day <= daysInMonth; day++) {
                 const isSelected = this.selectedBSDate && 
-                    this.selectedBSDate.year === this.currentBSDate.year &&
-                    this.selectedBSDate.month === this.currentBSDate.month &&
+                    this.selectedBSDate.year === year &&
+                    this.selectedBSDate.month === month &&
                     this.selectedBSDate.day === day;
                 
                 const className = isSelected ? 'nepali-day selected' : 'nepali-day';
