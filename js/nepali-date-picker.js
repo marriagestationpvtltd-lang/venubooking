@@ -58,6 +58,9 @@
     ];
 
     const englishDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Fallback date for when conversion fails or date is out of range
+    const FALLBACK_BS_DATE = { year: 2081, month: 1, day: 1 };
 
     /**
      * Count total days from reference BS date to target BS date
@@ -357,9 +360,9 @@
             if (!this.currentBSDate) {
                 const today = new Date();
                 this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
-                // If still null, use a default BS date
+                // If still null, use fallback
                 if (!this.currentBSDate) {
-                    this.currentBSDate = { year: 2081, month: 1, day: 1 };
+                    this.currentBSDate = { ...FALLBACK_BS_DATE };
                 }
             }
             
@@ -367,18 +370,19 @@
             const firstDayBS = { ...this.currentBSDate, day: 1 };
             const firstDayAD = bsToAD(firstDayBS.year, firstDayBS.month, firstDayBS.day);
             
-            // Additional safety check - if conversion fails, use a fallback
+            // Additional safety check - if conversion fails, use fallback
             if (!firstDayAD) {
                 console.warn('BS to AD conversion failed for year', this.currentBSDate.year);
-                // Use a known good date as fallback
-                this.currentBSDate = { year: 2081, month: 1, day: 1 };
-                const fallbackFirstDayAD = bsToAD(2081, 1, 1);
+                // Use fallback date
+                this.currentBSDate = { ...FALLBACK_BS_DATE };
+                const fallbackDaysInMonth = getDaysInBSMonth(FALLBACK_BS_DATE.year, FALLBACK_BS_DATE.month);
+                const fallbackFirstDayAD = bsToAD(FALLBACK_BS_DATE.year, FALLBACK_BS_DATE.month, 1);
                 if (!fallbackFirstDayAD) {
                     console.error('Fallback conversion also failed');
                     return '<p>Error rendering calendar</p>';
                 }
                 const firstDayOfWeek = new Date(fallbackFirstDayAD.year, fallbackFirstDayAD.month - 1, fallbackFirstDayAD.day).getDay();
-                return this.renderCalendarWithDate(2081, 1, daysInMonth, firstDayOfWeek);
+                return this.renderCalendarWithDate(FALLBACK_BS_DATE.year, FALLBACK_BS_DATE.month, fallbackDaysInMonth, firstDayOfWeek);
             }
             
             const firstDayOfWeek = new Date(firstDayAD.year, firstDayAD.month - 1, firstDayAD.day).getDay();
