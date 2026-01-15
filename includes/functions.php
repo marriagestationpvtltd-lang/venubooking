@@ -418,14 +418,25 @@ function formatCurrency($amount) {
 }
 
 /**
- * Get setting value
+ * Get setting value with caching
  */
 function getSetting($key, $default = '') {
+    static $cache = [];
+    
+    // Return from cache if available
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+    
+    // Query database
     $db = getDB();
     $stmt = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
     $stmt->execute([$key]);
     $result = $stmt->fetch();
-    return $result ? $result['setting_value'] : $default;
+    
+    // Store in cache and return
+    $cache[$key] = $result ? $result['setting_value'] : $default;
+    return $cache[$key];
 }
 
 /**

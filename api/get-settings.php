@@ -21,8 +21,12 @@ try {
     ]);
     
 } catch (Exception $e) {
+    // Log the detailed error for debugging
+    error_log('Settings API error: ' . $e->getMessage());
+    
+    // Return generic error to client
     echo json_encode([
         'success' => false,
-        'message' => 'Error fetching settings: ' . $e->getMessage()
+        'message' => 'Unable to load settings. Please try again later.'
     ]);
 }

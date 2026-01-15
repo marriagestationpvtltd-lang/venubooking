@@ -20,7 +20,7 @@ class PriceCalculator {
         const maxRetries = 30;
         
         const checkSettings = () => {
-            if (typeof appSettings !== 'undefined' && appSettings.tax_rate) {
+            if (typeof appSettings !== 'undefined' && 'tax_rate' in appSettings && appSettings.tax_rate !== undefined) {
                 this.taxRate = appSettings.tax_rate;
             } else if (retries < maxRetries) {
                 retries++;
