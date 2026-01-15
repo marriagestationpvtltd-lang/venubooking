@@ -15,8 +15,17 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
-# Load database credentials from .env file
-export $(cat .env | grep -v '^#' | xargs)
+# Load database credentials from .env file more safely
+# Parse .env file properly to avoid shell injection
+while IFS='=' read -r key value; do
+    # Skip comments and empty lines
+    [[ $key =~ ^#.*$ ]] || [[ -z $key ]] && continue
+    # Remove leading/trailing whitespace and quotes
+    key=$(echo "$key" | xargs)
+    value=$(echo "$value" | xargs | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+    # Export the variable
+    export "$key=$value"
+done < .env
 
 # Check if required variables are set
 if [ -z "$DB_HOST" ] || [ -z "$DB_NAME" ] || [ -z "$DB_USER" ]; then

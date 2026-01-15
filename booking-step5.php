@@ -111,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
 
         if ($booking_result['success']) {
             $booking_id = $booking_result['booking_id'];
+            $payment_submitted_successfully = false;
             
             // If payment option is with payment, record the payment
             if ($payment_option === 'with' && isset($upload_result)) {
@@ -126,6 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 
                 if (!$payment_result['success']) {
                     $error = 'Booking created but payment recording failed: ' . $payment_result['error'];
+                } else {
+                    $payment_submitted_successfully = true;
                 }
             }
             
@@ -133,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             $_SESSION['booking_completed'] = [
                 'booking_id' => $booking_id,
                 'booking_number' => $booking_result['booking_number'],
-                'payment_submitted' => ($payment_option === 'with')
+                'payment_submitted' => ($payment_option === 'with' && $payment_submitted_successfully)
             ];
             unset($_SESSION['booking_data']);
             unset($_SESSION['selected_hall']);

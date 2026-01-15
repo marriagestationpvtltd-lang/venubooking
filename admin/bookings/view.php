@@ -460,7 +460,12 @@ if (isset($_POST['action'])) {
                             <tr>
                                 <td><?php echo date('M d, Y H:i', strtotime($payment['payment_date'])); ?></td>
                                 <td><?php echo !empty($payment['payment_method_name']) ? htmlspecialchars($payment['payment_method_name']) : '-'; ?></td>
-                                <td><?php echo !empty($payment['transaction_id']) ? htmlspecialchars($payment['transaction_id']) : '-'; ?></td>
+                                <td>
+                                    <?php echo !empty($payment['transaction_id']) ? htmlspecialchars($payment['transaction_id']) : '-'; ?>
+                                    <?php if (!empty($payment['notes'])): ?>
+                                        <br><small class="text-muted"><?php echo htmlspecialchars($payment['notes']); ?></small>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong class="text-success"><?php echo formatCurrency($payment['paid_amount']); ?></strong></td>
                                 <td>
                                     <span class="badge bg-<?php 
@@ -538,12 +543,6 @@ if (isset($_POST['action'])) {
                         </tfoot>
                     </table>
                 </div>
-                
-                <?php if (!empty($payment['notes'])): ?>
-                <div class="alert alert-info mt-3 mb-0">
-                    <strong>Notes:</strong> <?php echo nl2br(htmlspecialchars($payment['notes'])); ?>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>

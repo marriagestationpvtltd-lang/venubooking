@@ -1424,8 +1424,11 @@ function recordPayment($data) {
         $db->beginTransaction();
         
         // Validate required fields
-        if (empty($data['booking_id']) || empty($data['paid_amount'])) {
-            throw new Exception('Booking ID and paid amount are required.');
+        if (empty($data['booking_id'])) {
+            throw new Exception('Booking ID is required.');
+        }
+        if (empty($data['paid_amount'])) {
+            throw new Exception('Paid amount is required.');
         }
         
         // Insert payment record
@@ -1451,10 +1454,10 @@ function recordPayment($data) {
         }
         
         // Calculate total paid amount for this booking
-        $stmt = $db->prepare("SELECT SUM(paid_amount) as total_paid FROM payments WHERE booking_id = ?");
+        $stmt = $db->prepare("SELECT COALESCE(SUM(paid_amount), 0) as total_paid FROM payments WHERE booking_id = ?");
         $stmt->execute([$data['booking_id']]);
         $result = $stmt->fetch();
-        $total_paid = $result['total_paid'] ?? 0;
+        $total_paid = floatval($result['total_paid']);
         
         // Get booking grand total
         $stmt = $db->prepare("SELECT grand_total FROM bookings WHERE id = ?");
