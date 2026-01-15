@@ -85,6 +85,7 @@
     .progress-steps {
         flex-direction: column;
         align-items: flex-start;
+        gap: 0.75rem;
     }
     
     .step {
@@ -92,7 +93,14 @@
         align-items: center;
         width: 100%;
         text-align: left;
-        padding: 0.5rem 0;
+        padding: 0.75rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.5);
+    }
+    
+    .step.active,
+    .step.completed {
+        background: rgba(76, 175, 80, 0.1);
     }
     
     .step:not(:last-child):after {
@@ -100,32 +108,70 @@
     }
     
     .step-number {
-        margin-right: 10px;
+        margin-right: 15px;
         margin-bottom: 0;
+        flex-shrink: 0;
     }
     
     .step-label {
         display: inline;
-        font-size: 0.9rem;
+        font-size: 1rem;
+        font-weight: 500;
     }
     
     /* Booking Summary Bar */
     .booking-summary-bar {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
+        padding: 0.75rem 0 !important;
+    }
+    
+    .booking-summary-bar .col-md-8,
+    .booking-summary-bar .col-md-4 {
+        font-size: 0.9rem;
     }
     
     .booking-summary-bar .mx-2 {
         display: block;
-        margin: 0.25rem 0 !important;
+        margin: 0.5rem 0 !important;
+    }
+    
+    .booking-summary-bar i {
+        margin-right: 0.25rem;
     }
     
     /* Hall Cards */
+    .hall-card {
+        margin-bottom: 1.5rem;
+    }
+    
     .hall-card .card-body {
-        padding: 1rem;
+        padding: 1.25rem;
     }
     
     .hall-image {
+        height: 220px;
+    }
+    
+    /* Venue Cards */
+    .venue-card {
+        margin-bottom: 1.5rem;
+    }
+    
+    .venue-card .card-body {
+        padding: 1.25rem;
+    }
+    
+    .venue-image {
         height: 200px;
+    }
+    
+    /* Better card interaction feedback */
+    .venue-card:active,
+    .hall-card:active,
+    .menu-card:active,
+    .service-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
     }
     
     /* Menu Cards */
@@ -173,13 +219,41 @@
     
     /* Checkbox larger tap targets on mobile */
     .form-check-input {
-        width: 2em;
-        height: 2em;
+        width: 2.25em;
+        height: 2.25em;
+        border-width: 3px;
     }
     
     .form-check-label {
         padding-left: 0.5rem;
-        line-height: 2em;
+        line-height: 2.25em;
+        font-size: 1.05rem;
+    }
+    
+    /* Enhanced card selection visibility on mobile */
+    .menu-card.selected,
+    .service-card.selected {
+        border-width: 3px;
+        border-color: var(--primary-green);
+        background-color: rgba(76, 175, 80, 0.1);
+    }
+    
+    .menu-card,
+    .service-card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Improve card body padding for better touch targets */
+    .menu-card .card-body,
+    .service-card .card-body {
+        padding: 1.25rem;
+    }
+    
+    /* Make checkbox areas more tappable */
+    .form-check {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
     }
     
     /* Sticky elements on mobile */
@@ -200,11 +274,45 @@
     }
     
     .btn {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+        padding: 0.875rem 1.25rem;
+        min-height: 48px;
+    }
+    
+    /* Ensure navigation buttons are easy to tap */
+    .btn-lg {
+        font-size: 1rem;
+        padding: 1rem 1.5rem;
+        min-height: 52px;
     }
     
     .card-body {
         padding: 1rem;
+    }
+    
+    /* Enhanced checkbox on very small screens */
+    .form-check-input {
+        width: 2.5em;
+        height: 2.5em;
+        border-width: 3px;
+    }
+    
+    .form-check-label {
+        font-size: 1.1rem;
+        line-height: 2.5em;
+    }
+    
+    /* Better spacing for service/menu cards */
+    .menu-card .d-flex,
+    .service-card .d-flex {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .menu-card .form-check,
+    .service-card .form-check {
+        padding: 0.5rem;
+        margin: -0.5rem;
     }
     
     /* Price Display */
