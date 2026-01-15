@@ -931,7 +931,7 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
  * Send booking notification emails
  * 
  * @param int $booking_id Booking ID
- * @param string $type Type of notification (new, update)
+ * @param string $type Type of notification (new, update, payment_request)
  * @param string $old_status Old status (for updates)
  * @return array Array with admin and user email results
  */
@@ -949,6 +949,9 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     if ($type === 'new') {
         $admin_subject = 'New Booking Received - ' . $booking['booking_number'];
         $user_subject = 'Booking Confirmation - ' . $booking['booking_number'];
+    } elseif ($type === 'payment_request') {
+        $admin_subject = 'Payment Request Sent - ' . $booking['booking_number'];
+        $user_subject = 'Payment Request for Booking - ' . $booking['booking_number'];
     } else {
         $status_text = ucfirst($booking['booking_status']);
         $admin_subject = 'Booking Updated - ' . $booking['booking_number'];
@@ -977,7 +980,7 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
  * 
  * @param array $booking Booking details
  * @param string $recipient Type of recipient (admin/user)
- * @param string $type Type of notification (new/update)
+ * @param string $type Type of notification (new/update/payment_request)
  * @param string $old_status Old status (for updates)
  * @return string HTML email content
  */
@@ -1011,13 +1014,14 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
             .status-confirmed { background-color: #d4edda; color: #155724; }
             .status-cancelled { background-color: #f8d7da; color: #721c24; }
             .status-completed { background-color: #d1ecf1; color: #0c5460; }
+            .payment-notice { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1><?php echo htmlspecialchars($site_name); ?></h1>
-                <h2><?php echo $type === 'new' ? 'Booking Confirmation' : 'Booking Update'; ?></h2>
+                <h2><?php echo $type === 'new' ? 'Booking Confirmation' : ($type === 'payment_request' ? 'Payment Request' : 'Booking Update'); ?></h2>
             </div>
             
             <div class="content">
@@ -1025,6 +1029,12 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <?php if ($type === 'new'): ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>Thank you for your booking! Your reservation has been successfully created.</p>
+                    <?php elseif ($type === 'payment_request'): ?>
+                        <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
+                        <div class="payment-notice">
+                            <strong>Payment Request</strong><br>
+                            This is a friendly reminder about the payment for your booking. Please complete your payment at your earliest convenience.
+                        </div>
                     <?php else: ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>Your booking status has been updated.</p>
@@ -1035,6 +1045,8 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                 <?php else: ?>
                     <?php if ($type === 'new'): ?>
                         <p><strong>A new booking has been received:</strong></p>
+                    <?php elseif ($type === 'payment_request'): ?>
+                        <p><strong>Payment request sent for booking:</strong></p>
                     <?php else: ?>
                         <p><strong>Booking has been updated:</strong></p>
                         <?php if (!empty($old_status)): ?>

@@ -3,6 +3,8 @@ $page_title = 'View Booking Details';
 require_once __DIR__ . '/../includes/header.php';
 
 $db = getDB();
+$success_message = '';
+$error_message = '';
 
 // Get booking ID from URL
 $booking_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -10,6 +12,55 @@ $booking_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($booking_id <= 0) {
     header('Location: index.php');
     exit;
+}
+
+// Handle payment request actions
+if (isset($_POST['action'])) {
+    $action = $_POST['action'];
+    
+    if ($action === 'send_payment_request_email') {
+        // Send payment request via email
+        $booking = getBookingDetails($booking_id);
+        if ($booking && !empty($booking['email'])) {
+            $result = sendBookingNotification($booking_id, 'payment_request');
+            if ($result['user']) {
+                $success_message = 'Payment request sent successfully via email to ' . htmlspecialchars($booking['email']);
+                logActivity($current_user['id'], 'Sent payment request via email', 'bookings', $booking_id, "Payment request email sent for booking: {$booking['booking_number']}");
+            } else {
+                $error_message = 'Failed to send payment request email. Please check email settings.';
+            }
+        } else {
+            $error_message = 'Customer email not found. Cannot send email.';
+        }
+    } elseif ($action === 'send_payment_request_whatsapp') {
+        // Send payment request via WhatsApp
+        $booking = getBookingDetails($booking_id);
+        if ($booking && !empty($booking['phone'])) {
+            $whatsapp_number = preg_replace('/[^0-9]/', '', $booking['phone']);
+            $success_message = 'Opening WhatsApp to send payment request...';
+            logActivity($current_user['id'], 'Initiated WhatsApp payment request', 'bookings', $booking_id, "WhatsApp payment request initiated for booking: {$booking['booking_number']}");
+        } else {
+            $error_message = 'Customer phone number not found. Cannot send WhatsApp message.';
+        }
+    } elseif ($action === 'update_status') {
+        // Handle quick status update
+        $new_booking_status = $_POST['booking_status'];
+        $old_booking_status = $_POST['old_booking_status'];
+        
+        try {
+            $stmt = $db->prepare("UPDATE bookings SET booking_status = ? WHERE id = ?");
+            $stmt->execute([$new_booking_status, $booking_id]);
+            
+            // Send email notification about status change
+            sendBookingNotification($booking_id, 'update', $old_booking_status);
+            
+            logActivity($current_user['id'], 'Updated booking status', 'bookings', $booking_id, "Status changed from {$old_booking_status} to {$new_booking_status}");
+            
+            $success_message = "Booking status updated successfully from " . ucfirst($old_booking_status) . " to " . ucfirst($new_booking_status);
+        } catch (Exception $e) {
+            $error_message = 'Failed to update booking status. Please try again.';
+        }
+    }
 }
 
 // Fetch booking details
@@ -20,6 +71,20 @@ if (!$booking) {
     exit;
 }
 ?>
+
+<?php if ($success_message): ?>
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
+
+<?php if ($error_message): ?>
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
 
 <div class="row">
     <div class="col-md-12 mb-3">
@@ -35,6 +100,84 @@ if (!$booking) {
                 <a href="edit.php?id=<?php echo $booking_id; ?>" class="btn btn-warning btn-sm">
                     <i class="fas fa-edit"></i> Edit Booking
                 </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Card -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Payment Request Buttons -->
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h6 class="text-muted mb-3">Send Payment Request</h6>
+                        <form method="POST" action="" style="display: inline-block;" class="me-2">
+                            <input type="hidden" name="action" value="send_payment_request_email">
+                            <button type="submit" class="btn btn-primary" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
+                                <i class="fas fa-envelope"></i> Request Payment (Email)
+                            </button>
+                        </form>
+                        <?php 
+                        $clean_phone = preg_replace('/[^0-9]/', '', $booking['phone']);
+                        $whatsapp_message = urlencode(
+                            "Hello " . $booking['full_name'] . ",\n\n" .
+                            "This is a payment request for your booking:\n\n" .
+                            "Booking Number: " . $booking['booking_number'] . "\n" .
+                            "Event Date: " . date('F d, Y', strtotime($booking['event_date'])) . "\n" .
+                            "Venue: " . $booking['venue_name'] . "\n" .
+                            "Hall: " . $booking['hall_name'] . "\n" .
+                            "Total Amount: " . formatCurrency($booking['grand_total']) . "\n\n" .
+                            "Please complete your payment at your earliest convenience.\n\n" .
+                            "Thank you!"
+                        );
+                        ?>
+                        <form method="POST" action="" style="display: inline-block;" id="whatsappForm">
+                            <input type="hidden" name="action" value="send_payment_request_whatsapp">
+                            <button type="submit" class="btn btn-success" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
+                                <i class="fab fa-whatsapp"></i> Request Payment (WhatsApp)
+                            </button>
+                        </form>
+                        <?php if (empty($booking['email']) && empty($booking['phone'])): ?>
+                            <small class="text-muted d-block mt-2">Customer contact information is not available</small>
+                        <?php elseif (empty($booking['email'])): ?>
+                            <small class="text-muted d-block mt-2">Email not available</small>
+                        <?php elseif (empty($booking['phone'])): ?>
+                            <small class="text-muted d-block mt-2">Phone number not available</small>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Quick Status Update -->
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">Update Booking Status</h6>
+                        <form method="POST" action="" class="d-flex align-items-end gap-2">
+                            <input type="hidden" name="action" value="update_status">
+                            <input type="hidden" name="old_booking_status" value="<?php echo $booking['booking_status']; ?>">
+                            <div class="flex-grow-1">
+                                <label for="booking_status" class="form-label mb-1">Status</label>
+                                <select class="form-select" id="booking_status" name="booking_status">
+                                    <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
+                                    <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+                                    <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-sync-alt"></i> Update Status
+                            </button>
+                        </form>
+                        <small class="text-muted d-block mt-2">Current: <span class="badge bg-<?php 
+                            echo $booking['booking_status'] == 'confirmed' ? 'success' : 
+                                ($booking['booking_status'] == 'pending' ? 'warning' : 
+                                ($booking['booking_status'] == 'cancelled' ? 'danger' : 'info')); 
+                        ?>"><?php echo ucfirst($booking['booking_status']); ?></span></small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -309,7 +452,7 @@ if (!$booking) {
 
 <style>
 @media print {
-    .btn, .card-header, nav, footer {
+    .btn, .card-header, nav, footer, .alert {
         display: none !important;
     }
     .card {
@@ -318,5 +461,21 @@ if (!$booking) {
     }
 }
 </style>
+
+<script>
+// Handle WhatsApp form submission
+document.getElementById('whatsappForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Open WhatsApp
+    const whatsappUrl = 'https://wa.me/<?php echo $clean_phone; ?>?text=<?php echo $whatsapp_message; ?>';
+    window.open(whatsappUrl, '_blank');
+    
+    // Submit the form to log the activity
+    setTimeout(() => {
+        this.submit();
+    }, 500);
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
