@@ -143,6 +143,11 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#email">
+                        <i class="fas fa-envelope"></i> Email Settings
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#booking">
                         <i class="fas fa-calendar-check"></i> Booking
                     </a>
@@ -269,6 +274,107 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                             <input type="text" class="form-control" name="setting_footer_copyright" 
                                    value="<?php echo htmlspecialchars($settings['footer_copyright'] ?? ''); ?>">
                             <div class="form-text">Custom copyright text (leave empty for auto-generated)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Settings Tab -->
+                <div class="tab-pane fade" id="email">
+                    <h6 class="mb-3 text-success"><i class="fas fa-envelope"></i> Email & Notification Settings</h6>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Configure email settings for booking notifications. Emails will be sent to customers and admin when bookings are created or updated.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Enable Email Notifications</label>
+                            <select class="form-select" name="setting_email_enabled">
+                                <option value="1" <?php echo ($settings['email_enabled'] ?? '1') == '1' ? 'selected' : ''; ?>>Enabled</option>
+                                <option value="0" <?php echo ($settings['email_enabled'] ?? '1') == '0' ? 'selected' : ''; ?>>Disabled</option>
+                            </select>
+                            <div class="form-text">Enable or disable all email notifications</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Admin Email Address *</label>
+                            <input type="email" class="form-control" name="setting_admin_email" 
+                                   value="<?php echo htmlspecialchars($settings['admin_email'] ?? $settings['contact_email'] ?? ''); ?>" required>
+                            <div class="form-text">Email address to receive booking notifications</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">From Name</label>
+                            <input type="text" class="form-control" name="setting_email_from_name" 
+                                   value="<?php echo htmlspecialchars($settings['email_from_name'] ?? 'Venue Booking System'); ?>">
+                            <div class="form-text">Name shown as sender in emails</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">From Email Address</label>
+                            <input type="email" class="form-control" name="setting_email_from_address" 
+                                   value="<?php echo htmlspecialchars($settings['email_from_address'] ?? 'noreply@venubooking.com'); ?>">
+                            <div class="form-text">Email address shown as sender</div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h6 class="mb-3 text-success"><i class="fas fa-server"></i> SMTP Configuration (Optional)</h6>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong> If SMTP is disabled, the system will use PHP's mail() function. For better deliverability, configure SMTP settings.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Enable SMTP</label>
+                            <select class="form-select" name="setting_smtp_enabled" id="smtp_enabled">
+                                <option value="0" <?php echo ($settings['smtp_enabled'] ?? '0') == '0' ? 'selected' : ''; ?>>Disabled (Use PHP mail())</option>
+                                <option value="1" <?php echo ($settings['smtp_enabled'] ?? '0') == '1' ? 'selected' : ''; ?>>Enabled</option>
+                            </select>
+                            <div class="form-text">Enable SMTP for more reliable email delivery</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMTP Host</label>
+                            <input type="text" class="form-control" name="setting_smtp_host" 
+                                   value="<?php echo htmlspecialchars($settings['smtp_host'] ?? ''); ?>"
+                                   placeholder="smtp.gmail.com">
+                            <div class="form-text">SMTP server address</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMTP Port</label>
+                            <input type="number" class="form-control" name="setting_smtp_port" 
+                                   value="<?php echo htmlspecialchars($settings['smtp_port'] ?? '587'); ?>">
+                            <div class="form-text">Common ports: 587 (TLS), 465 (SSL), 25 (Plain)</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">SMTP Encryption</label>
+                            <select class="form-select" name="setting_smtp_encryption">
+                                <option value="tls" <?php echo ($settings['smtp_encryption'] ?? 'tls') == 'tls' ? 'selected' : ''; ?>>TLS (Recommended)</option>
+                                <option value="ssl" <?php echo ($settings['smtp_encryption'] ?? 'tls') == 'ssl' ? 'selected' : ''; ?>>SSL</option>
+                                <option value="" <?php echo empty($settings['smtp_encryption']) ? 'selected' : ''; ?>>None</option>
+                            </select>
+                            <div class="form-text">Encryption method for SMTP connection</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMTP Username</label>
+                            <input type="text" class="form-control" name="setting_smtp_username" 
+                                   value="<?php echo htmlspecialchars($settings['smtp_username'] ?? ''); ?>"
+                                   autocomplete="off">
+                            <div class="form-text">SMTP account username or email</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMTP Password</label>
+                            <input type="password" class="form-control" name="setting_smtp_password" 
+                                   value="<?php echo htmlspecialchars($settings['smtp_password'] ?? ''); ?>"
+                                   autocomplete="new-password">
+                            <div class="form-text">SMTP account password</div>
                         </div>
                     </div>
                 </div>
