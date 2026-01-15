@@ -232,6 +232,7 @@
             
             this.currentBSDate = null;
             this.selectedBSDate = null;
+            this.todayBSDate = null; // Store today's date in BS format
             this.pickerElement = null;
             this.isOpen = false;
             this.justClosed = false; // Flag to prevent immediate reopening
@@ -242,6 +243,10 @@
         init() {
             // Create picker container
             this.createPicker();
+            
+            // Store today's date in BS format for highlighting
+            const today = new Date();
+            this.todayBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
             
             // Set initial date from input if exists
             if (this.input.value) {
@@ -254,8 +259,7 @@
             }
             
             if (!this.currentBSDate) {
-                const today = new Date();
-                this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                this.currentBSDate = this.todayBSDate;
             }
             
             // Bind events
@@ -446,7 +450,15 @@
                     this.selectedBSDate.month === month &&
                     this.selectedBSDate.day === day;
                 
-                const className = isSelected ? 'nepali-day selected' : 'nepali-day';
+                const isToday = this.todayBSDate &&
+                    this.todayBSDate.year === year &&
+                    this.todayBSDate.month === month &&
+                    this.todayBSDate.day === day;
+                
+                let className = 'nepali-day';
+                if (isSelected) className += ' selected';
+                if (isToday) className += ' today';
+                
                 html += `<td><button type="button" class="${className}" data-day="${day}">${day}</button></td>`;
                 
                 currentWeekDay++;
