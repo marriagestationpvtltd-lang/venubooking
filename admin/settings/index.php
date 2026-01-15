@@ -402,13 +402,6 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Advance Payment (%)</label>
-                            <input type="number" class="form-control" name="setting_advance_payment_percentage" 
-                                   value="<?php echo htmlspecialchars($settings['advance_payment_percentage'] ?? '30'); ?>" min="0" max="100">
-                            <div class="form-text">Percentage of advance payment required</div>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
                             <label class="form-label">Minimum Advance Booking (Days)</label>
                             <input type="number" class="form-control" name="setting_booking_min_advance_days" 
                                    value="<?php echo htmlspecialchars($settings['booking_min_advance_days'] ?? '1'); ?>" min="0">
