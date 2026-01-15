@@ -1198,11 +1198,11 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     </div>
                     <?php if ($type === 'payment_request'): ?>
                         <?php 
-                        // Calculate 25% advance payment
+                        // Calculate advance payment based on configured percentage
                         $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
                         $advance_amount = $booking['grand_total'] * ($advance_percentage / 100);
                         ?>
-                        <div class="cost-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; background-color: #fff3cd; padding: 10px; border-radius: 3px;">
+                        <div class="cost-row" style="margin-top: 10px; border-top: 1px solid #ddd; background-color: #fff3cd; padding: 10px; border-radius: 3px;">
                             <span><strong>Advance Payment Required (<?php echo $advance_percentage; ?>%):</strong></span>
                             <span style="color: #856404; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($advance_amount); ?></span>
                         </div>

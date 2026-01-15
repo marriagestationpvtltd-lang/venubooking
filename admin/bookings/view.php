@@ -133,7 +133,7 @@ if (isset($_POST['action'])) {
                         // Prepare WhatsApp data
                         $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
                         
-                        // Calculate 25% advance payment
+                        // Calculate advance payment based on configured percentage
                         $advance_percentage = floatval(getSetting('advance_payment_percentage', '25'));
                         $advance_amount = $booking['grand_total'] * ($advance_percentage / 100);
                         
