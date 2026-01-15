@@ -186,7 +186,7 @@ $payment_methods = $stmt->fetchAll();
                 <div class="payment-method-card">
                     <div class="row align-items-center">
                         <div class="col-md-2">
-                            <?php if (!empty($method['qr_code'])): ?>
+                            <?php if (!empty($method['qr_code']) && validateUploadedFilePath($method['qr_code'])): ?>
                                 <img src="<?php echo UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
                                      alt="QR Code" class="qr-preview">
                             <?php else: ?>
@@ -353,7 +353,11 @@ function editMethod(method) {
     // Show current QR code if exists
     const qrPreview = document.getElementById('current_qr_preview');
     if (method.qr_code) {
-        qrPreview.innerHTML = '<p class="text-muted small">Current QR Code:</p><img src="<?php echo UPLOAD_URL; ?>' + method.qr_code + '" alt="Current QR" class="qr-preview">';
+        // Escape HTML to prevent XSS
+        const escapedQrCode = method.qr_code.replace(/[&<>"']/g, function(m) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+        });
+        qrPreview.innerHTML = '<p class="text-muted small">Current QR Code:</p><img src="<?php echo UPLOAD_URL; ?>' + escapedQrCode + '" alt="Current QR" class="qr-preview">';
     } else {
         qrPreview.innerHTML = '<p class="text-muted small">No QR code currently uploaded</p>';
     }

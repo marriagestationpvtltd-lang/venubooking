@@ -413,7 +413,7 @@ if (isset($_POST['action'])) {
                 <div class="mb-4 pb-3 border-bottom">
                     <h6 class="mb-2"><?php echo htmlspecialchars($method['name']); ?></h6>
                     
-                    <?php if (!empty($method['qr_code'])): ?>
+                    <?php if (!empty($method['qr_code']) && validateUploadedFilePath($method['qr_code'])): ?>
                     <div class="mb-3">
                         <img src="<?php echo UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
                              alt="<?php echo htmlspecialchars($method['name']); ?> QR Code" 

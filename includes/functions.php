@@ -680,6 +680,48 @@ function deleteUploadedFile($filename) {
 }
 
 /**
+ * Validate uploaded file path for display
+ * Ensures the file exists, is within upload directory, and has no path traversal
+ * 
+ * @param string $filename The filename to validate
+ * @return bool True if valid and safe to display
+ */
+function validateUploadedFilePath($filename) {
+    if (empty($filename)) {
+        return false;
+    }
+    
+    // Check for directory traversal characters
+    if (strpos($filename, '/') !== false || strpos($filename, '\\') !== false || strpos($filename, '..') !== false) {
+        return false;
+    }
+    
+    // Use basename as additional safety
+    $safe_filename = basename($filename);
+    
+    // Check if file exists
+    $filepath = UPLOAD_PATH . $safe_filename;
+    if (!file_exists($filepath)) {
+        return false;
+    }
+    
+    // Verify the real path is within upload directory
+    $real_upload_path = realpath(UPLOAD_PATH);
+    $real_file_path = realpath($filepath);
+    
+    if ($real_upload_path === false || $real_file_path === false) {
+        return false;
+    }
+    
+    // Check if file is within upload directory
+    if (strpos($real_file_path, $real_upload_path) !== 0) {
+        return false;
+    }
+    
+    return true;
+}
+
+/**
  * Display current image preview HTML
  * 
  * @param string $image_filename The image filename
@@ -1244,7 +1286,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <div style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-left: 4px solid #4CAF50; border-radius: 4px;">
                             <h4 style="margin: 0 0 10px 0; color: #4CAF50;"><?php echo htmlspecialchars($method['name']); ?></h4>
                             
-                            <?php if (!empty($method['qr_code'])): ?>
+                            <?php if (!empty($method['qr_code']) && validateUploadedFilePath($method['qr_code'])): ?>
                                 <div style="margin: 10px 0;">
                                     <img src="<?php echo BASE_URL . '/' . UPLOAD_URL . htmlspecialchars($method['qr_code']); ?>" 
                                          alt="<?php echo htmlspecialchars($method['name']); ?> QR Code" 
