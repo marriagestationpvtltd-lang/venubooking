@@ -337,10 +337,10 @@
             this.isOpen = false;
             this.justClosed = true;
             
-            // Reset the flag after a short delay
-            setTimeout(() => {
+            // Reset the flag using microtask scheduling (more deterministic than setTimeout)
+            Promise.resolve().then(() => {
                 this.justClosed = false;
-            }, 200);
+            });
         }
         
         position() {
@@ -529,19 +529,29 @@
                 // Close first before triggering events if closeOnSelect is true
                 if (this.options.closeOnSelect) {
                     this.close();
-                }
-                
-                // Trigger change event after a slight delay to ensure calendar is closed
-                setTimeout(() => {
+                    
+                    // Use microtask scheduling to trigger events after close completes
+                    Promise.resolve().then(() => {
+                        const event = new Event('change', { bubbles: true });
+                        this.input.dispatchEvent(event);
+                        
+                        if (this.options.onChange) {
+                            this.options.onChange(adDate, this.selectedBSDate);
+                        }
+                    });
+                } else {
+                    // If not closing, trigger events immediately
                     const event = new Event('change', { bubbles: true });
                     this.input.dispatchEvent(event);
                     
                     if (this.options.onChange) {
                         this.options.onChange(adDate, this.selectedBSDate);
                     }
-                }, 50);
+                    
+                    this.render();
+                }
             } else {
-                // If close on select but conversion failed, just render
+                // If conversion failed
                 if (this.options.closeOnSelect) {
                     this.close();
                 } else {
