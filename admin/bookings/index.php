@@ -80,10 +80,11 @@ $bookings = $stmt->fetchAll();
                             <td>
                                 <span class="badge bg-<?php 
                                     echo $booking['booking_status'] == 'confirmed' ? 'success' : 
+                                        ($booking['booking_status'] == 'payment_submitted' ? 'info' :
                                         ($booking['booking_status'] == 'pending' ? 'warning' : 
-                                        ($booking['booking_status'] == 'cancelled' ? 'danger' : 'info')); 
+                                        ($booking['booking_status'] == 'cancelled' ? 'danger' : 'secondary'))); 
                                 ?>">
-                                    <?php echo ucfirst($booking['booking_status']); ?>
+                                    <?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?>
                                 </span>
                             </td>
                             <td>
