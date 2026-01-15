@@ -122,15 +122,6 @@ try {
     echo "❌ Error checking booking: " . $e->getMessage() . "\n\n";
 }
 
-// Check FPDF library
-echo "Checking FPDF library...\n";
-if (file_exists(__DIR__ . '/lib/fpdf.php')) {
-    echo "✅ FPDF library found\n\n";
-} else {
-    echo "❌ FPDF library NOT found at lib/fpdf.php\n";
-    echo "   Download from: http://www.fpdf.org/\n\n";
-}
-
 // Check functions.php
 echo "Checking functions.php...\n";
 if (file_exists(__DIR__ . '/includes/functions.php')) {
@@ -150,8 +141,7 @@ if (file_exists(__DIR__ . '/includes/functions.php')) {
 echo "=== SUMMARY ===\n";
 $hasBooking23 = false;
 $hasAllFiles = file_exists(__DIR__ . '/config/database.php') && 
-                file_exists(__DIR__ . '/includes/functions.php') && 
-                file_exists(__DIR__ . '/lib/fpdf.php');
+                file_exists(__DIR__ . '/includes/functions.php');
 $hasDbConnection = false;
 
 try {
@@ -166,8 +156,7 @@ try {
 
 if ($hasDbConnection && $hasBooking23 && $hasAllFiles) {
     echo "✅ All requirements met!\n";
-    echo "✅ generate_pdf.php should work for booking ID=23\n";
-    echo "\nTest it at: http://your-domain.com/venubooking/generate_pdf.php?id=23\n\n";
+    echo "✅ Database is properly configured and ready for use\n\n";
 } else {
     echo "⚠️  Some issues found - please review the errors above\n\n";
 }
