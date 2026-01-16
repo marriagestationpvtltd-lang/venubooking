@@ -545,11 +545,11 @@ function numberToWords($number) {
         );
         
         $integer = str_pad($integer, 9, '0', STR_PAD_LEFT);
-        $crore = substr($integer, 0, 2);
-        $lakh = substr($integer, 2, 2);
-        $thousand = substr($integer, 4, 2);
-        $hundred = substr($integer, 6, 1);
-        $ten = substr($integer, 7, 2);
+        $crore = intval(substr($integer, 0, 2));
+        $lakh = intval(substr($integer, 2, 2));
+        $thousand = intval(substr($integer, 4, 2));
+        $hundred = intval(substr($integer, 6, 1));
+        $ten = intval(substr($integer, 7, 2));
         
         $result = array();
         
