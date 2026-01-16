@@ -761,7 +761,11 @@ $currency = getSetting('currency', 'NPR');
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($booking['services'] as $service): ?>
+                            <?php 
+                            $services_total_display = 0;
+                            foreach ($booking['services'] as $service): 
+                                $services_total_display += $service['price'];
+                            ?>
                             <tr>
                                 <td class="fw-semibold">
                                     <i class="fas fa-check-circle text-success me-2"></i>
@@ -771,6 +775,16 @@ $currency = getSetting('currency', 'NPR');
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
+                        <?php if (count($booking['services']) > 1): ?>
+                        <tfoot>
+                            <tr class="table-light border-top border-2">
+                                <td class="text-end fw-bold">Total Additional Services:</td>
+                                <td class="text-end">
+                                    <strong class="text-success fs-5"><?php echo formatCurrency($services_total_display); ?></strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                        <?php endif; ?>
                     </table>
                 </div>
             </div>
