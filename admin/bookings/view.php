@@ -326,7 +326,7 @@ $currency = getSetting('currency', 'NPR');
             <table class="payment-table">
                 <tr>
                     <td class="payment-label">Advance Payment Required (<?php echo $advance['percentage']; ?>%):</td>
-                    <td class="payment-value"><?php echo htmlspecialchars($currency); ?> <?php echo number_format($advance['amount'], 2); ?></td>
+                    <td class="payment-value"><?php echo formatCurrency($advance['amount']); ?></td>
                 </tr>
                 <tr>
                     <td class="payment-label">Advance Payment Received:</td>
@@ -341,7 +341,7 @@ $currency = getSetting('currency', 'NPR');
                 </tr>
                 <tr class="due-amount-row">
                     <td class="payment-label"><strong>Balance Due Amount:</strong></td>
-                    <td class="payment-value"><strong><?php echo htmlspecialchars($currency); ?> <?php echo number_format($balance_due, 2); ?></strong></td>
+                    <td class="payment-value"><strong><?php echo formatCurrency($balance_due); ?></strong></td>
                 </tr>
                 <tr>
                     <td class="payment-label">Amount in Words:</td>

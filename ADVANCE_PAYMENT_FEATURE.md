@@ -25,8 +25,8 @@ This feature allows admins to mark whether the advance payment for a booking has
      - Red alert if advance payment is not received
    - Invoice print section shows:
      - Advance amount when marked as received
-     - NPR 0.00 when not received
-   - Balance Due is calculated as: Grand Total - Advance Received (if checked)
+     - formatCurrency(0) when not received
+   - Balance Due is calculated as: Grand Total - Total Paid (actual payments made)
 
 ## Installation
 
@@ -70,7 +70,8 @@ mysql -u username -p database_name < database/migrations/add_advance_payment_rec
 ### Printing Bills/Invoices
 When you print a booking bill:
 - If "Advance Payment Received" is checked: Shows the calculated advance amount
-- If "Advance Payment Received" is not checked: Shows NPR 0.00
+- If "Advance Payment Received" is not checked: Shows the currency equivalent of 0 (e.g., NPR 0.00)
+- Balance Due is calculated based on actual payment transactions, not the checkbox status
 
 ## Technical Details
 
@@ -95,8 +96,13 @@ if (!empty($booking['advance_payment_received'])) {
     echo formatCurrency($advance['amount']);
 } else {
     // Show 0.00
-    echo 'NPR 0.00';
+    echo formatCurrency(0);
 }
+```
+
+The balance due is calculated from actual payments:
+```php
+$balance_due = $booking['grand_total'] - $total_paid;
 ```
 
 ## Benefits
