@@ -81,63 +81,178 @@
         font-size: 1.2rem;
     }
     
-    /* Stack progress steps vertically */
+    /* Sticky Progress Bar on Mobile */
+    .booking-progress {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Compact horizontal progress steps for mobile */
     .progress-steps {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0;
     }
     
     .step {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        text-align: left;
-        padding: 0.75rem;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.5);
-    }
-    
-    .step.active,
-    .step.completed {
-        /* Using rgba(76, 175, 80, 0.1) which matches var(--primary-green) #4CAF50 with 10% opacity */
-        background: rgba(76, 175, 80, 0.1);
+        flex: 1;
+        text-align: center;
+        position: relative;
+        min-width: 0;
     }
     
     .step:not(:last-child):after {
-        display: none;
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: 60%;
+        width: 80%;
+        height: 2px;
+        background: #ddd;
+        z-index: -1;
+    }
+    
+    .step.completed:not(:last-child):after,
+    .step.active:not(:last-child):after {
+        background: var(--primary-green);
     }
     
     .step-number {
-        margin-right: 15px;
-        margin-bottom: 0;
-        flex-shrink: 0;
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        border-radius: 50%;
+        background: #ddd;
+        color: white;
+        font-weight: bold;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .step.completed .step-number,
+    .step.active .step-number {
+        background: var(--primary-green);
     }
     
     .step-label {
-        display: inline;
-        font-size: 1rem;
+        display: block;
+        font-size: 0.65rem;
         font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
-    /* Booking Summary Bar */
+    .step.completed .step-label,
+    .step.active .step-label {
+        font-weight: 600;
+        color: var(--primary-green);
+    }
+    
+    /* Collapsible Booking Summary Bar for Mobile */
     .booking-summary-bar {
         font-size: 0.9rem;
         padding: 0.75rem 0 !important;
+        cursor: pointer;
     }
     
-    .booking-summary-bar .col-md-8,
-    .booking-summary-bar .col-md-4 {
-        font-size: 0.9rem;
+    .booking-summary-bar .row {
+        position: relative;
+    }
+    
+    .booking-summary-bar .col-md-8 {
+        font-size: 0.85rem;
+        padding-right: 2.5rem;
+    }
+    
+    .booking-summary-bar .col-md-8 > * {
+        display: inline;
+        margin: 0 0.25rem;
     }
     
     .booking-summary-bar .mx-2 {
+        margin: 0 0.25rem !important;
+    }
+    
+    /* Add toggle icon for summary */
+    .booking-summary-bar .container:after {
+        content: '';
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid white;
+        transition: transform 0.3s;
+    }
+    
+    .booking-summary-bar.expanded .container:after {
+        transform: translateY(-50%) rotate(180deg);
+    }
+    
+    /* Expandable summary details */
+    .booking-summary-details {
+        display: none;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 0.9rem;
+    }
+    
+    .booking-summary-bar.expanded .booking-summary-details {
         display: block;
-        margin: 0.5rem 0 !important;
+    }
+    
+    .booking-summary-details > div {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .booking-summary-details > div:last-child {
+        border-bottom: none;
     }
     
     .booking-summary-bar i {
         margin-right: 0.25rem;
+    }
+    
+    /* Fixed Bottom Navigation for Mobile */
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .mobile-bottom-nav .btn {
+        flex: 1;
+        min-height: 48px;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    /* Add padding to main content to prevent overlap with fixed bottom nav */
+    section.py-5 {
+        padding-bottom: 6rem !important;
+    }
+    
+    /* Hide desktop navigation buttons on mobile */
+    .desktop-nav-buttons {
+        display: none !important;
     }
     
     /* Hall Cards */

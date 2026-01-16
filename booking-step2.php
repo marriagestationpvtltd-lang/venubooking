@@ -71,16 +71,22 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
 <div class="booking-summary-bar py-2 bg-success text-white">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-md-8">
+            <div class="col-md-8 col-12">
                 <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?>
-                <span class="mx-2">|</span>
-                <i class="fas fa-clock"></i> <?php echo ucfirst($booking_data['shift']); ?>
-                <span class="mx-2">|</span>
-                <i class="fas fa-users"></i> <?php echo $booking_data['guests']; ?> Guests
-                <span class="mx-2">|</span>
-                <i class="fas fa-tag"></i> <?php echo $booking_data['event_type']; ?>
+                <span class="mx-2 d-none d-md-inline">|</span>
+                <span class="d-block d-md-inline">
+                    <i class="fas fa-clock"></i> <?php echo ucfirst($booking_data['shift']); ?>
+                    <span class="mx-2 d-none d-md-inline">|</span>
+                </span>
+                <span class="d-block d-md-inline">
+                    <i class="fas fa-users"></i> <?php echo $booking_data['guests']; ?> Guests
+                    <span class="mx-2 d-none d-md-inline">|</span>
+                </span>
+                <span class="d-block d-md-inline">
+                    <i class="fas fa-tag"></i> <?php echo $booking_data['event_type']; ?>
+                </span>
             </div>
-            <div class="col-md-4 text-end">
+            <div class="col-md-4 col-12 text-md-end mt-2 mt-md-0">
                 <strong>Total: <span id="totalCost"><?php echo formatCurrency(0); ?></span></strong>
             </div>
         </div>

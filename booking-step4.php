@@ -61,12 +61,14 @@ $current_total = $totals['subtotal'];
 <div class="booking-summary-bar py-2 bg-success text-white">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-md-8">
+            <div class="col-md-8 col-12">
                 <strong><?php echo sanitize($selected_hall['venue_name']); ?> - <?php echo sanitize($selected_hall['name']); ?></strong>
-                <span class="mx-2">|</span>
-                <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?>
+                <span class="mx-2 d-none d-md-inline">|</span>
+                <span class="d-block d-md-inline">
+                    <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?>
+                </span>
             </div>
-            <div class="col-md-4 text-end">
+            <div class="col-md-4 col-12 text-md-end mt-2 mt-md-0">
                 <strong>Total: <span id="totalCost"><?php echo formatCurrency($current_total); ?></span></strong>
             </div>
         </div>

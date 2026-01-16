@@ -176,6 +176,9 @@
     <!-- Nepali Date Picker -->
     <script src="<?php echo BASE_URL; ?>/js/nepali-date-picker.js"></script>
     
+    <!-- Mobile Enhancements -->
+    <script src="<?php echo BASE_URL; ?>/js/mobile-enhancements.js"></script>
+    
     <!-- Custom JS -->
     <script src="<?php echo BASE_URL; ?>/js/main.js"></script>
     
