@@ -53,13 +53,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookingForm = document.getElementById('bookingForm');
     
     if (bookingForm) {
-        // Set minimum date for event_date
+        // Set minimum date for event_date using Nepal timezone
         const eventDateInput = document.getElementById('event_date');
         if (eventDateInput) {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const minDate = tomorrow.toISOString().split('T')[0];
-            eventDateInput.setAttribute('min', minDate);
+            // Check if nepaliDateUtils is available for timezone handling
+            if (typeof window.nepaliDateUtils !== 'undefined' && window.nepaliDateUtils.getTodayInNepal) {
+                const todayInNepal = window.nepaliDateUtils.getTodayInNepal();
+                const tomorrow = new Date(Date.UTC(todayInNepal.year, todayInNepal.month - 1, todayInNepal.day + 1));
+                const minDate = tomorrow.toISOString().split('T')[0];
+                eventDateInput.setAttribute('min', minDate);
+            } else {
+                // Fallback to client time if utils not available
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const minDate = tomorrow.toISOString().split('T')[0];
+                eventDateInput.setAttribute('min', minDate);
+            }
         }
         
         // Form validation
@@ -79,10 +88,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 errors.push('Please select an event date');
             } else {
                 const selectedDate = new Date(eventDate);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
                 
-                if (selectedDate <= today) {
+                // Use Nepal timezone for validation
+                let todayInNepal;
+                if (typeof window.nepaliDateUtils !== 'undefined' && window.nepaliDateUtils.getTodayInNepal) {
+                    const nepalToday = window.nepaliDateUtils.getTodayInNepal();
+                    todayInNepal = new Date(Date.UTC(nepalToday.year, nepalToday.month - 1, nepalToday.day));
+                } else {
+                    // Fallback to client time
+                    todayInNepal = new Date();
+                    todayInNepal.setHours(0, 0, 0, 0);
+                }
+                
+                if (selectedDate <= todayInNepal) {
                     errors.push('Event date must be in the future');
                 }
             }
