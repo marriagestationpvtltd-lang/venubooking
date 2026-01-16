@@ -162,9 +162,9 @@ $current_total = $totals['subtotal'];
                                                                    type="checkbox" 
                                                                    name="services[]" 
                                                                    value="<?php echo $service['id']; ?>" 
-                                                                   id="service<?php echo $service['id']; ?>_mobile"
+                                                                   id="service<?php echo $service['id']; ?>"
                                                                    data-price="<?php echo $service['price']; ?>">
-                                                            <label class="form-check-label" for="service<?php echo $service['id']; ?>_mobile">
+                                                            <label class="form-check-label" for="service<?php echo $service['id']; ?>">
                                                                 <strong><?php echo sanitize($service['name']); ?></strong>
                                                             </label>
                                                         </div>
