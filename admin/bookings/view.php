@@ -1167,7 +1167,7 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .invoice-header {
-    border-bottom: 4px solid #000;
+    border-bottom: 4px solid #4CAF50;
     padding-bottom: 8px;
     margin-bottom: 10px;
 }
@@ -1184,11 +1184,13 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .logo-placeholder {
-    border: 3px solid #000;
+    border: 3px solid #4CAF50;
     padding: 15px 30px;
     display: inline-block;
     font-weight: 900;
     font-size: 18px;
+    color: #2E7D32;
+    background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
 }
 
 .company-info {
@@ -1202,21 +1204,23 @@ $currency = getSetting('currency', 'NPR');
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 1px;
+    color: #1B5E20;
 }
 
 .company-details {
     font-size: 11px;
     margin: 3px 0;
     font-weight: 600;
+    color: #2E7D32;
 }
 
 .invoice-title {
     text-align: center;
-    border-top: 3px solid #000;
-    border-bottom: 3px solid #000;
+    border-top: 3px solid #4CAF50;
+    border-bottom: 3px solid #4CAF50;
     padding: 6px 0;
     margin-top: 5px;
-    background: #f5f5f5;
+    background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
 }
 
 .invoice-title h2 {
@@ -1225,20 +1229,22 @@ $currency = getSetting('currency', 'NPR');
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 1px;
+    color: #1B5E20;
 }
 
 .invoice-details-bar {
     display: flex;
     justify-content: space-between;
-    background: #e8e8e8;
+    background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
     padding: 8px 12px;
     margin-bottom: 10px;
-    border: 2px solid #000;
+    border: 2px solid #F57C00;
 }
 
 .invoice-detail-item {
     font-size: 11px;
     font-weight: 700;
+    color: #E65100;
 }
 
 .invoice-detail-item strong {
@@ -1247,8 +1253,9 @@ $currency = getSetting('currency', 'NPR');
 
 .customer-section {
     margin-bottom: 10px;
-    border: 2px solid #000;
+    border: 2px solid #42A5F5;
     padding: 10px;
+    background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
 }
 
 .customer-section h3 {
@@ -1256,9 +1263,10 @@ $currency = getSetting('currency', 'NPR');
     font-weight: 900;
     margin: 0 0 8px 0;
     padding-bottom: 5px;
-    border-bottom: 2px solid #000;
+    border-bottom: 2px solid #1976D2;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: #0D47A1;
 }
 
 .customer-info-grid {
@@ -1276,11 +1284,13 @@ $currency = getSetting('currency', 'NPR');
 .info-label {
     font-weight: 900;
     min-width: 110px;
+    color: #0D47A1;
 }
 
 .info-value {
     flex: 1;
     font-weight: 600;
+    color: #000;
 }
 
 .booking-table-section {
@@ -1295,19 +1305,20 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .invoice-table th {
-    background: #000;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
     color: #fff;
     padding: 6px 5px;
     text-align: left;
     font-weight: 900;
-    border: 2px solid #000;
+    border: 2px solid #2E7D32;
     font-size: 12px;
 }
 
 .invoice-table td {
     padding: 5px;
-    border: 2px solid #000;
+    border: 2px solid #2E7D32;
     font-weight: 600;
+    color: #000;
 }
 
 .invoice-table td strong {
@@ -1323,13 +1334,14 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .invoice-table .subtotal-row td {
-    background: #e8e8e8;
+    background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
     font-weight: 900;
     font-size: 12px;
+    color: #E65100;
 }
 
 .invoice-table .total-row td {
-    background: #000;
+    background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);
     color: #fff;
     font-weight: 900;
     font-size: 13px;
@@ -1338,9 +1350,9 @@ $currency = getSetting('currency', 'NPR');
 
 .payment-calculation-section {
     margin-bottom: 10px;
-    border: 3px solid #000;
+    border: 3px solid #7E57C2;
     padding: 10px;
-    background: #f9f9f9;
+    background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
 }
 
 .payment-table {
@@ -1357,12 +1369,14 @@ $currency = getSetting('currency', 'NPR');
 .payment-label {
     width: 50%;
     font-weight: 900;
+    color: #4A148C;
 }
 
 .payment-value {
     text-align: right;
     font-size: 12px;
     font-weight: 900;
+    color: #6A1B9A;
 }
 
 .payment-value-words {
@@ -1372,15 +1386,15 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .due-amount-row td {
-    border-top: 3px solid #000;
+    border-top: 3px solid #7E57C2;
     padding-top: 8px;
     font-size: 13px;
     font-weight: 900;
 }
 
 .note-section {
-    background: #f0f0f0;
-    border: 2px solid #000;
+    background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+    border: 2px solid #EF6C00;
     padding: 8px;
     margin-bottom: 10px;
 }
@@ -1391,6 +1405,7 @@ $currency = getSetting('currency', 'NPR');
     margin: 0 0 6px 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: #E65100;
 }
 
 .note-section ul {
@@ -1399,6 +1414,7 @@ $currency = getSetting('currency', 'NPR');
     font-size: 9px;
     line-height: 1.4;
     font-weight: 600;
+    color: #BF360C;
 }
 
 .note-section li {
@@ -1406,7 +1422,7 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .invoice-footer {
-    border-top: 3px solid #000;
+    border-top: 3px solid #4CAF50;
     padding-top: 8px;
 }
 
@@ -1445,11 +1461,11 @@ $currency = getSetting('currency', 'NPR');
 .disclaimer-note {
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 2px solid #000;
+    border-top: 2px solid #F57C00;
     text-align: center;
     font-size: 9px;
     font-weight: 600;
-    color: #333;
+    color: #E65100;
     font-style: italic;
 }
 
@@ -1543,11 +1559,32 @@ $currency = getSetting('currency', 'NPR');
         -webkit-print-color-adjust: exact;
     }
     
-    /* Ensure table borders are strong */
+    /* Ensure table borders are visible with colorful borders */
     .invoice-table,
     .invoice-table th,
     .invoice-table td {
-        border: 2px solid #000 !important;
+        border: 2px solid #2E7D32 !important;
+    }
+    
+    /* Ensure colored borders print correctly */
+    .invoice-header {
+        border-bottom: 4px solid #4CAF50 !important;
+    }
+    
+    .customer-section {
+        border: 2px solid #42A5F5 !important;
+    }
+    
+    .payment-calculation-section {
+        border: 3px solid #7E57C2 !important;
+    }
+    
+    .note-section {
+        border: 2px solid #EF6C00 !important;
+    }
+    
+    .invoice-footer {
+        border-top: 3px solid #4CAF50 !important;
     }
 }
 
