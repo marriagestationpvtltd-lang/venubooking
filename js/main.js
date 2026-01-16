@@ -120,37 +120,125 @@ function showConfirm(title, message, callback) {
     });
 }
 
-// Validate form
+// Validate form with comprehensive checks
 function validateForm(formId) {
     const form = document.getElementById(formId);
     if (!form) return false;
     
     let isValid = true;
-    const inputs = form.querySelectorAll('[required]');
+    let firstInvalidField = null;
+    const inputs = form.querySelectorAll('[required], [data-validate]');
     
     inputs.forEach(input => {
-        if (!input.value.trim()) {
-            input.classList.add('is-invalid');
-            isValid = false;
-        } else {
+        let fieldValid = true;
+        const fieldValue = input.value.trim();
+        
+        // Check required fields
+        if (input.hasAttribute('required') && !fieldValue) {
+            fieldValid = false;
+            showFieldError(input, 'This field is required');
+        }
+        // Validate email fields
+        else if (input.type === 'email' && fieldValue && !validateEmail(fieldValue)) {
+            fieldValid = false;
+            showFieldError(input, 'Please enter a valid email address');
+        }
+        // Validate phone fields
+        else if (input.type === 'tel' && fieldValue && !validatePhone(fieldValue)) {
+            fieldValid = false;
+            showFieldError(input, 'Please enter a valid phone number (10+ digits)');
+        }
+        // Validate number fields
+        else if (input.type === 'number' && fieldValue) {
+            const min = input.getAttribute('min');
+            const max = input.getAttribute('max');
+            const numValue = parseFloat(fieldValue);
+            
+            if (min !== null && numValue < parseFloat(min)) {
+                fieldValid = false;
+                showFieldError(input, `Minimum value is ${min}`);
+            } else if (max !== null && numValue > parseFloat(max)) {
+                fieldValid = false;
+                showFieldError(input, `Maximum value is ${max}`);
+            }
+        }
+        // Valid field
+        else if (fieldValue || !input.hasAttribute('required')) {
             input.classList.remove('is-invalid');
             input.classList.add('is-valid');
+            hideFieldError(input);
+        }
+        
+        if (!fieldValid) {
+            isValid = false;
+            if (!firstInvalidField) {
+                firstInvalidField = input;
+            }
         }
     });
+    
+    // Scroll to first invalid field
+    if (firstInvalidField) {
+        firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstInvalidField.focus();
+    }
     
     return isValid;
 }
 
-// Validate email
+// Show field error
+function showFieldError(input, message) {
+    input.classList.add('is-invalid');
+    input.classList.remove('is-valid');
+    
+    // Add or update error message
+    let errorDiv = input.parentElement.querySelector('.invalid-feedback');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        input.parentElement.appendChild(errorDiv);
+    }
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+// Hide field error
+function hideFieldError(input) {
+    const errorDiv = input.parentElement.querySelector('.invalid-feedback');
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+    }
+}
+
+// Validate email with comprehensive regex
 function validateEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // More comprehensive email validation
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return re.test(email);
 }
 
-// Validate phone
+// Validate phone with support for multiple formats
 function validatePhone(phone) {
-    const re = /^[+]?[\d\s()-]{10,}$/;
-    return re.test(phone);
+    // Remove spaces and special characters for validation
+    const cleaned = phone.replace(/[\s()-]/g, '');
+    // Accept 10-15 digits with optional + prefix
+    const re = /^[+]?\d{10,15}$/;
+    return re.test(cleaned);
+}
+
+// Validate required fields are filled
+function validateRequiredFields(formElement) {
+    const requiredFields = formElement.querySelectorAll('[required]');
+    let allValid = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            allValid = false;
+        }
+    });
+    
+    return allValid;
 }
 
 // Smooth scroll
@@ -159,6 +247,32 @@ function smoothScroll(target) {
     if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+}
+
+// Handle missing data with defaults
+function getValueOrDefault(value, defaultValue = 'N/A') {
+    if (value === null || value === undefined || value === '') {
+        return defaultValue;
+    }
+    return value;
+}
+
+// Format number with default handling
+function formatNumber(value, decimals = 2, defaultValue = 0) {
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+        return formatNumber(defaultValue, decimals);
+    }
+    return num.toFixed(decimals);
+}
+
+// Safe currency formatting with null handling
+function safeCurrency(amount) {
+    const value = parseFloat(amount);
+    if (isNaN(value)) {
+        return formatCurrency(0);
+    }
+    return formatCurrency(value);
 }
 
 // Initialize tooltips
