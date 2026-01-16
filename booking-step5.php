@@ -201,7 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
         <div class="row">
             <!-- Customer Information Form -->
             <div class="col-lg-8">
-                <h2 class="mb-4">Your Information</h2>
+                <h2 class="mb-4">Complete Your Booking</h2>
+                <p class="text-muted mb-4">Follow the steps below to complete your booking</p>
                 
                 <?php if ($error): ?>
                     <div class="alert alert-danger">
@@ -210,7 +211,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 <?php endif; ?>
 
                 <form id="customerForm" method="POST" enctype="multipart/form-data">
-                    <div class="card mb-4">
+                    <!-- Step 1: Customer Information -->
+                    <div class="card mb-4" id="customer_info_section">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Step 1: Your Information</h5>
+                        </div>
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
@@ -237,13 +242,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                 <textarea class="form-control" id="special_requests" name="special_requests" rows="3" 
                                           placeholder="Any special requirements or requests for your event..."><?php echo sanitize($special_requests); ?></textarea>
                             </div>
+                            
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-success btn-lg" id="continue_to_bill_btn">
+                                    Continue to View Bill <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Payment Confirmation Options -->
-                    <div class="card mb-4">
+                    <!-- Step 2: Bill Summary (Initially Hidden) -->
+                    <div class="card mb-4" id="bill_summary_section" style="display: none;">
                         <div class="card-header bg-success text-white">
-                            <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Options</h5>
+                            <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Step 2: Your Total Bill</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-building text-success me-2"></i>Hall Cost:</td>
+                                            <td class="text-end"><strong><?php echo formatCurrency($totals['hall_price']); ?></strong></td>
+                                        </tr>
+                                        <?php if ($totals['menu_total'] > 0): ?>
+                                        <tr>
+                                            <td><i class="fas fa-utensils text-success me-2"></i>Menu Cost:</td>
+                                            <td class="text-end"><strong><?php echo formatCurrency($totals['menu_total']); ?></strong></td>
+                                        </tr>
+                                        <?php endif; ?>
+                                        <?php if ($totals['services_total'] > 0): ?>
+                                        <tr>
+                                            <td><i class="fas fa-star text-success me-2"></i>Services Cost:</td>
+                                            <td class="text-end"><strong><?php echo formatCurrency($totals['services_total']); ?></strong></td>
+                                        </tr>
+                                        <?php endif; ?>
+                                        <tr>
+                                            <td>Subtotal:</td>
+                                            <td class="text-end"><strong><?php echo formatCurrency($totals['subtotal']); ?></strong></td>
+                                        </tr>
+                                        <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
+                                        <tr>
+                                            <td>Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</td>
+                                            <td class="text-end"><strong><?php echo formatCurrency($totals['tax_amount']); ?></strong></td>
+                                        </tr>
+                                        <?php endif; ?>
+                                        <tr class="border-top">
+                                            <td class="fs-5"><strong>Grand Total:</strong></td>
+                                            <td class="text-end fs-4"><strong class="text-success"><?php echo formatCurrency($totals['grand_total']); ?></strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Advance Payment Required:</strong> <?php echo formatCurrency($advance['amount']); ?> 
+                                <small>(<?php echo $advance['percentage']; ?>% of total)</small>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-success btn-lg" id="continue_to_payment_btn">
+                                    Continue to Payment Options <i class="fas fa-arrow-right"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="back_to_info_btn">
+                                    <i class="fas fa-arrow-left"></i> Back to Information
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Payment Confirmation Options (Initially Hidden) -->
+                    <div class="card mb-4" id="payment_options_section" style="display: none;">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Step 3: Payment Options</h5>
                         </div>
                         <div class="card-body">
                             <p class="mb-3">Choose how you would like to proceed with your booking:</p>
@@ -348,16 +419,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                         </div>
                     </div>
 
-                    <div class="row">
+                    <!-- Step 4: Navigation Buttons (Initially Hidden) -->
+                    <div class="row" id="final_buttons_section" style="display: none;">
                         <div class="col-md-6">
-                            <a href="booking-step4.php" class="btn btn-outline-secondary btn-lg w-100">
-                                <i class="fas fa-arrow-left"></i> Back
-                            </a>
+                            <button type="button" class="btn btn-outline-secondary btn-lg w-100" id="back_to_payment_btn">
+                                <i class="fas fa-arrow-left"></i> Back to Payment Options
+                            </button>
                         </div>
                         <div class="col-md-6">
                             <button type="submit" name="submit_booking" class="btn btn-success btn-lg w-100" id="submit_btn">
                                 <i class="fas fa-check"></i> Confirm Booking
                             </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Back Button for Step 1 (Initially Visible) -->
+                    <div class="row" id="initial_back_button">
+                        <div class="col-12">
+                            <a href="booking-step4.php" class="btn btn-outline-secondary btn-lg w-100">
+                                <i class="fas fa-arrow-left"></i> Back to Services
+                            </a>
                         </div>
                     </div>
                 </form>
@@ -503,6 +584,77 @@ document.addEventListener('DOMContentLoaded', function() {
     const customerForm = document.getElementById('customerForm');
     const submitBtn = document.getElementById('submit_btn');
     
+    // Section elements
+    const customerInfoSection = document.getElementById('customer_info_section');
+    const billSummarySection = document.getElementById('bill_summary_section');
+    const paymentOptionsSection = document.getElementById('payment_options_section');
+    const finalButtonsSection = document.getElementById('final_buttons_section');
+    const initialBackButton = document.getElementById('initial_back_button');
+    
+    // Button elements
+    const continueToBillBtn = document.getElementById('continue_to_bill_btn');
+    const continueToPaymentBtn = document.getElementById('continue_to_payment_btn');
+    const backToInfoBtn = document.getElementById('back_to_info_btn');
+    const backToPaymentBtn = document.getElementById('back_to_payment_btn');
+    
+    // Step 1 -> Step 2: Show Bill Summary
+    continueToBillBtn.addEventListener('click', function() {
+        // Validate customer info fields
+        const fullName = document.getElementById('full_name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        
+        if (!fullName) {
+            document.getElementById('full_name').classList.add('is-invalid');
+            document.getElementById('full_name').focus();
+            return;
+        } else {
+            document.getElementById('full_name').classList.remove('is-invalid');
+        }
+        
+        if (!phone) {
+            document.getElementById('phone').classList.add('is-invalid');
+            document.getElementById('phone').focus();
+            return;
+        } else {
+            document.getElementById('phone').classList.remove('is-invalid');
+        }
+        
+        // Hide customer info section, show bill summary
+        customerInfoSection.style.display = 'none';
+        initialBackButton.style.display = 'none';
+        billSummarySection.style.display = 'block';
+        
+        // Scroll to top of the section
+        billSummarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    
+    // Step 2 -> Step 1: Back to Customer Info
+    backToInfoBtn.addEventListener('click', function() {
+        billSummarySection.style.display = 'none';
+        customerInfoSection.style.display = 'block';
+        initialBackButton.style.display = 'block';
+        
+        customerInfoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    
+    // Step 2 -> Step 3: Show Payment Options
+    continueToPaymentBtn.addEventListener('click', function() {
+        billSummarySection.style.display = 'none';
+        paymentOptionsSection.style.display = 'block';
+        finalButtonsSection.style.display = 'flex';
+        
+        paymentOptionsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    
+    // Step 3 -> Step 2: Back to Bill Summary
+    backToPaymentBtn.addEventListener('click', function() {
+        paymentOptionsSection.style.display = 'none';
+        finalButtonsSection.style.display = 'none';
+        billSummarySection.style.display = 'block';
+        
+        billSummarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    
     // Toggle payment details section
     function togglePaymentSection() {
         if (paymentWithRadio && paymentWithRadio.checked) {
@@ -601,8 +753,56 @@ document.addEventListener('DOMContentLoaded', function() {
     if (paymentMethodSelect && paymentMethodSelect.value) {
         showPaymentMethodDetails();
     }
+    
+    // If there was a form error, determine which step to show based on error
+    <?php if ($error): ?>
+    // Show the relevant sections based on the error - keep step context
+    var paymentWithSelected = <?php echo (isset($payment_option) && $payment_option === 'with') ? 'true' : 'false'; ?>;
+    if (paymentWithSelected) {
+        // Payment-related error - show all steps up to payment
+        customerInfoSection.style.display = 'block';
+        billSummarySection.style.display = 'block';
+        paymentOptionsSection.style.display = 'block';
+        finalButtonsSection.style.display = 'flex';
+        initialBackButton.style.display = 'none';
+        // Scroll to the payment section where the error likely occurred
+        paymentOptionsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        // Other validation error - show customer info section
+        customerInfoSection.style.display = 'block';
+        initialBackButton.style.display = 'block';
+        customerInfoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    <?php endif; ?>
 });
 </script>
+
+<style>
+/* Visual feedback for step-by-step flow - ensures consistent validation styling when dynamically applied */
+.card-header {
+    position: relative;
+}
+
+/* Bootstrap validation styling - ensuring consistency when applied via JavaScript */
+.form-control.is-invalid {
+    border-color: #dc3545;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+/* Smooth transitions for sections */
+.card {
+    transition: all 0.3s ease-in-out;
+}
+</style>
 
 <?php
 require_once __DIR__ . '/includes/footer.php';
