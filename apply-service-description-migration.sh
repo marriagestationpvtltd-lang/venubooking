@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Apply Service Description and Category Migration
+# This script adds description and category columns to booking_services table
+
+echo "======================================"
+echo "Service Description/Category Migration"
+echo "======================================"
+echo ""
+
+# Get database credentials
+if [ -f .env ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+elif [ -f config/database.php ]; then
+    echo "Reading database config from config/database.php..."
+    DB_HOST=$(php -r "include 'config/database.php'; echo DB_HOST;")
+    DB_NAME=$(php -r "include 'config/database.php'; echo DB_NAME;")
+    DB_USER=$(php -r "include 'config/database.php'; echo DB_USER;")
+    DB_PASS=$(php -r "include 'config/database.php'; echo DB_PASS;")
+else
+    echo "Please enter your database credentials:"
+    read -p "Database host [localhost]: " DB_HOST
+    DB_HOST=${DB_HOST:-localhost}
+    read -p "Database name [venubooking]: " DB_NAME
+    DB_NAME=${DB_NAME:-venubooking}
+    read -p "Database user [root]: " DB_USER
+    DB_USER=${DB_USER:-root}
+    read -sp "Database password: " DB_PASS
+    echo ""
+fi
+
+echo ""
+echo "Applying migration to database: $DB_NAME"
+echo ""
+
+# Apply migration
+mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < database/migrations/add_service_description_category_to_bookings.sql
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "✅ Migration applied successfully!"
+    echo ""
+    echo "What changed:"
+    echo "- Added 'description' column to booking_services table"
+    echo "- Added 'category' column to booking_services table"
+    echo "- Updated existing records with data from master table"
+    echo ""
+    echo "Benefits:"
+    echo "- Full historical data preservation for booked services"
+    echo "- Services retain description/category even if deleted from master table"
+    echo "- Better display of service details in booking views and invoices"
+    echo ""
+    echo "Next steps:"
+    echo "1. Test creating a new booking with services"
+    echo "2. Verify services display with description and category"
+    echo "3. Test editing existing bookings"
+else
+    echo ""
+    echo "❌ Migration failed. Please check error messages above."
+    echo ""
+    exit 1
+fi

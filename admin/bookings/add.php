@@ -109,13 +109,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Insert booking services
                 if (!empty($selected_services)) {
                     foreach ($selected_services as $service_id) {
-                        $stmt = $db->prepare("SELECT name, price FROM additional_services WHERE id = ?");
+                        $stmt = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
                         $stmt->execute([$service_id]);
                         $service = $stmt->fetch();
                         
                         if ($service) {
-                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price) VALUES (?, ?, ?, ?)");
-                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price']]);
+                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES (?, ?, ?, ?, ?, ?)");
+                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
                         }
                     }
                 }
