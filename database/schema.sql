@@ -1,7 +1,7 @@
 -- Venue Booking System Database Schema
--- Create Database
-CREATE DATABASE IF NOT EXISTS venubooking;
-USE venubooking;
+-- NOTE: Make sure you have selected your database before running this script
+-- For command line: mysql -u username -p database_name < database/schema.sql
+-- For phpMyAdmin: Select your database first, then import this file
 
 -- Table: venues
 CREATE TABLE venues (

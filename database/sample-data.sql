@@ -1,5 +1,6 @@
 -- Sample Data for Venue Booking System
-USE venubooking;
+-- NOTE: Make sure you have selected your database before running this script
+-- This file requires that schema.sql has been imported first
 
 -- Insert Venues
 INSERT INTO venues (name, location, address, description, image, contact_phone, contact_email) VALUES

@@ -2,7 +2,7 @@
 -- This ensures complete historical data preservation for booked services
 -- Even if a service is deleted from the master table, its full details remain visible
 
-USE venubooking;
+-- NOTE: Make sure you have selected your database before running this script
 
 -- Add description and category columns to booking_services table
 ALTER TABLE booking_services 

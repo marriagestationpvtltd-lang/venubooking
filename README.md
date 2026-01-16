@@ -91,19 +91,40 @@ cd venubooking
 
 ### 2. Database Setup
 
+**Option A: Quick Setup (Recommended)**
+
+Use the complete database setup file that includes everything:
+
+```bash
+# Create your database first
+mysql -u root -p -e "CREATE DATABASE your_database_name;"
+
+# Import the complete setup
+mysql -u root -p your_database_name < database/complete-database-setup.sql
+```
+
+**Option B: For Shared Hosting (cPanel)**
+
+1. Create database via cPanel → MySQL Databases
+2. Note the full database name (with prefix)
+3. Open phpMyAdmin, select your database
+4. Import `database/complete-database-setup.sql`
+
+**Option C: Manual Setup (Schema + Sample Data)**
+
 1. Create a new MySQL database:
 ```sql
-CREATE DATABASE venubooking;
+CREATE DATABASE your_database_name;
 ```
 
 2. Import the schema:
 ```bash
-mysql -u root -p venubooking < database/schema.sql
+mysql -u root -p your_database_name < database/schema.sql
 ```
 
 3. Import sample data (optional):
 ```bash
-mysql -u root -p venubooking < database/sample-data.sql
+mysql -u root -p your_database_name < database/sample-data.sql
 ```
 
 ### 3. Configuration
@@ -116,7 +137,7 @@ cp .env.example .env
 2. Edit `.env` file with your database credentials:
 ```
 DB_HOST=localhost
-DB_NAME=venubooking
+DB_NAME=your_database_name  # Use full name with prefix on shared hosting
 DB_USER=root
 DB_PASS=your_password
 CURRENCY=NPR

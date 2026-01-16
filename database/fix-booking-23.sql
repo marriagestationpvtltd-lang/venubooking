@@ -2,7 +2,7 @@
 -- This script adds the missing booking record with ID=23
 -- Run this if you already have the database setup but are missing booking ID=23
 
-USE venubooking;
+-- NOTE: Make sure you have selected your database before running this script
 
 -- Check if booking #23 already exists
 SELECT 'Checking for existing booking #23...' as Status;

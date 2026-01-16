@@ -31,32 +31,50 @@ I've created a **COMPLETE A-Z database implementation** that includes:
 
 ## 🚀 How to Install (Choose ONE method)
 
-### Method 1: Automated Script (Easiest)
+### Method 1: Shared Hosting (cPanel) - Most Common
+
+**Step 1:** Create Database in cPanel
+- Go to cPanel → MySQL Databases
+- Create new database (note the full name with prefix)
+- Create or assign a database user with ALL PRIVILEGES
+
+**Step 2:** Import in phpMyAdmin
+1. Open phpMyAdmin (from cPanel or direct link)
+2. **Click on your database name in the left sidebar** (IMPORTANT!)
+3. Click "Import" tab
+4. Choose file: `database/complete-database-setup.sql`
+5. Click "Go"
+
+**Step 3:** Update .env file
+```
+DB_NAME=username_venubooking  # Full name with prefix
+DB_USER=username_dbuser
+DB_PASS=your_password
+```
+
+### Method 2: Local Development - Command Line
+
+```bash
+# Create database
+mysql -u root -p -e "CREATE DATABASE your_database_name;"
+
+# Import the complete setup
+cd /path/to/venubooking
+mysql -u root -p your_database_name < database/complete-database-setup.sql
+```
+
+### Method 3: Automated Script (Local Only)
 
 ```bash
 cd /path/to/venubooking
 bash setup-database.sh
 ```
 
-Follow the prompts and enter your MySQL password. The script will:
+Follow the prompts - the script will:
 - ✅ Create database
 - ✅ Import all tables
 - ✅ Load sample data
 - ✅ Verify installation
-
-### Method 2: MySQL Command Line
-
-```bash
-cd /path/to/venubooking
-mysql -u root -p < database/complete-database-setup.sql
-```
-
-### Method 3: phpMyAdmin
-
-1. Open phpMyAdmin
-2. Go to "Import" tab
-3. Choose file: `database/complete-database-setup.sql`
-4. Click "Go"
 
 ## 📋 Files Created
 
@@ -111,11 +129,12 @@ Check these:
 
 1. **Database Connection:**
    - Verify `.env` file exists with correct credentials
+   - Make sure DB_NAME matches your actual database name (including prefix on shared hosting)
    - Test: `php -r "require 'includes/db.php'; getDB();"`
 
 2. **Verify Tables:**
    ```sql
-   USE venubooking;
+   -- Make sure you're connected to your database
    SHOW TABLES;
    ```
    Should show 18 tables
