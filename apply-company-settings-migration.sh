@@ -37,7 +37,8 @@ echo "Applying company settings migration..."
 if [ -z "$DB_PASS" ]; then
     mysql -h"$DB_HOST" -u"$DB_USER" "$DB_NAME" < database/migrations/add_company_settings.sql
 else
-    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < database/migrations/add_company_settings.sql
+    # Use secure password input to avoid exposing password in process list
+    mysql -h"$DB_HOST" -u"$DB_USER" -p "$DB_NAME" < database/migrations/add_company_settings.sql
 fi
 
 if [ $? -eq 0 ]; then

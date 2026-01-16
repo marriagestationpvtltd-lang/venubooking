@@ -43,12 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_FILES['setting_company_logo']) && $_FILES['setting_company_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
             $upload_result = handleImageUpload($_FILES['setting_company_logo'], 'logo');
             if ($upload_result['success']) {
-                // Delete old company logo if exists
+                $_POST['setting_company_logo'] = $upload_result['filename'];
+                // Only delete old logo after successful upload
                 $old_company_logo = getSetting('company_logo', '');
-                if (!empty($old_company_logo)) {
+                if (!empty($old_company_logo) && $old_company_logo !== $upload_result['filename']) {
                     deleteUploadedFile($old_company_logo);
                 }
-                $_POST['setting_company_logo'] = $upload_result['filename'];
             } else {
                 throw new Exception('Company logo upload failed: ' . $upload_result['message']);
             }

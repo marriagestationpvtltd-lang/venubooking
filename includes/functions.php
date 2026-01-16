@@ -1687,8 +1687,13 @@ function getBookingPayments($booking_id) {
  * @return array|null Array with 'path' and 'url' keys, or null if no valid logo exists
  */
 function getCompanyLogo() {
-    // Try company_logo first, fallback to site_logo
-    $logo_filename = getSetting('company_logo', getSetting('site_logo', ''));
+    // Try company_logo first
+    $logo_filename = getSetting('company_logo', '');
+    
+    // Fallback to site_logo if company_logo is empty
+    if (empty($logo_filename)) {
+        $logo_filename = getSetting('site_logo', '');
+    }
     
     if (empty($logo_filename)) {
         return null;
