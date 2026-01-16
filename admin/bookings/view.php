@@ -122,7 +122,7 @@ $company_name = getSetting('company_name', getSetting('site_name', 'Wedding Venu
 $company_address = getSetting('company_address', getSetting('contact_address', 'Nepal'));
 $company_phone = getSetting('company_phone', getSetting('contact_phone', 'N/A'));
 $company_email = getSetting('company_email', getSetting('contact_email', ''));
-$company_logo = getSetting('company_logo', getSetting('site_logo', ''));
+$company_logo = getCompanyLogo(); // Returns validated logo info or null
 
 // Get payment mode from latest transaction
 $payment_mode = 'Not specified';
@@ -137,8 +137,8 @@ if (!empty($payment_transactions)) {
         <!-- Header Section -->
         <div class="invoice-header">
             <div class="company-logo-space">
-                <?php if (!empty($company_logo) && file_exists(UPLOAD_PATH . $company_logo)): ?>
-                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($company_logo); ?>" 
+                <?php if ($company_logo !== null): ?>
+                    <img src="<?php echo $company_logo['url']; ?>" 
                          alt="<?php echo htmlspecialchars($company_name); ?>" 
                          class="company-logo-img">
                 <?php else: ?>

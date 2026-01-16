@@ -1679,3 +1679,30 @@ function getBookingPayments($booking_id) {
     $stmt->execute([$booking_id]);
     return $stmt->fetchAll();
 }
+
+/**
+ * Get company logo for invoices with proper validation and fallback
+ * Returns an array with 'path' (validated safe path) and 'url' (for display)
+ * 
+ * @return array|null Array with 'path' and 'url' keys, or null if no valid logo exists
+ */
+function getCompanyLogo() {
+    // Try company_logo first, fallback to site_logo
+    $logo_filename = getSetting('company_logo', getSetting('site_logo', ''));
+    
+    if (empty($logo_filename)) {
+        return null;
+    }
+    
+    // Validate the file path for security
+    if (!validateUploadedFilePath($logo_filename)) {
+        return null;
+    }
+    
+    // Return validated path and URL
+    return [
+        'path' => UPLOAD_PATH . $logo_filename,
+        'url' => UPLOAD_URL . htmlspecialchars($logo_filename, ENT_QUOTES, 'UTF-8'),
+        'filename' => $logo_filename
+    ];
+}

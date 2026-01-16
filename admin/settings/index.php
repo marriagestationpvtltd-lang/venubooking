@@ -359,13 +359,14 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                             <input type="file" class="form-control" name="setting_company_logo" accept="image/*">
                             <div class="form-text">Logo specifically for printed invoices and bills. Recommended: 200x80px PNG. If not set, website logo will be used.</div>
                             <?php 
-                            $invoice_logo = $settings['company_logo'] ?? $settings['site_logo'] ?? '';
-                            if (!empty($invoice_logo)): 
+                            $logo_info = getCompanyLogo();
+                            $has_company_logo = !empty($settings['company_logo']);
+                            if ($logo_info !== null): 
                             ?>
                                 <div class="image-preview">
-                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($invoice_logo); ?>" alt="Current Company Logo">
+                                    <img src="<?php echo $logo_info['url']; ?>" alt="Current Company Logo">
                                     <p class="text-muted small mt-1">
-                                        <?php echo !empty($settings['company_logo']) ? 'Current company logo' : 'Using website logo (no company logo set)'; ?>
+                                        <?php echo $has_company_logo ? 'Current company logo' : 'Using website logo (no company logo set)'; ?>
                                     </p>
                                 </div>
                             <?php endif; ?>
