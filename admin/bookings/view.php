@@ -275,7 +275,12 @@ $currency = getSetting('currency', 'NPR');
                     <?php if (!empty($booking['services'])): ?>
                         <?php foreach ($booking['services'] as $service): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($additional_items_label); ?> - <?php echo htmlspecialchars($service['service_name']); ?></td>
+                            <td>
+                                <strong><?php echo htmlspecialchars($additional_items_label); ?></strong> - <?php echo htmlspecialchars($service['service_name']); ?>
+                                <?php if (!empty($service['description'])): ?>
+                                    <br><small style="font-weight: 500; color: #666;"><?php echo htmlspecialchars($service['description']); ?></small>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-center">1</td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
@@ -771,8 +776,14 @@ $currency = getSetting('currency', 'NPR');
                                 <td class="fw-semibold">
                                     <i class="fas fa-check-circle text-success me-2"></i>
                                     <?php echo htmlspecialchars($service['service_name']); ?>
+                                    <?php if (!empty($service['category'])): ?>
+                                        <span class="badge bg-secondary ms-2"><?php echo htmlspecialchars($service['category']); ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($service['description'])): ?>
+                                        <br><small class="text-muted ms-4"><?php echo htmlspecialchars($service['description']); ?></small>
+                                    <?php endif; ?>
                                 </td>
-                                <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service['price']); ?></td>
+                                <td class="text-end fw-bold text-primary align-top"><?php echo formatCurrency($service['price']); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
