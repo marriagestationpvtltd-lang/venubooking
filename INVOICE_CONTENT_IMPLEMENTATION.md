@@ -9,26 +9,34 @@ This implementation removes all hardcoded data from the bill print feature, ensu
 1. **Invoice Title**: "Wedding Booking Confirmation & Partial Payment Receipt"
 2. **Cancellation Policy**: All 5 policy terms
 3. **Invoice Disclaimer**: Footer disclaimer note
+4. **Package Label**: "Marriage Package"
+5. **Additional Items Label**: "Additional Items"
 
 ### Database Migration
 A new migration file has been created: `database/migrations/add_invoice_content_settings.sql`
 
-This adds three new settings to the `settings` table:
+This adds five new settings to the `settings` table:
 - `invoice_title` - The main title displayed on printed invoices
 - `cancellation_policy` - Multi-line cancellation policy (each line becomes a bullet point)
 - `invoice_disclaimer` - Disclaimer note shown at the bottom
+- `invoice_package_label` - Label for hall/venue package line item
+- `invoice_additional_items_label` - Label for additional services line items
 
 ### Admin Interface Updates
 The Admin Settings page (`admin/settings/index.php`) has been updated with a new "Invoice Content" section under the Company/Invoice tab. Administrators can now customize:
 - Invoice title
 - Cancellation policy (textarea with multiple lines)
 - Invoice disclaimer
+- Package label
+- Additional items label
 
 ### Bill Print Updates
 The booking view page (`admin/bookings/view.php`) has been updated to:
 - Pull invoice title from `getSetting('invoice_title')` instead of hardcoded value
 - Pull cancellation policy from `getSetting('cancellation_policy')` and dynamically generate bullet points
 - Pull disclaimer from `getSetting('invoice_disclaimer')` instead of hardcoded text
+- Pull package label from `getSetting('invoice_package_label')` instead of hardcoded "Marriage Package"
+- Pull additional items label from `getSetting('invoice_additional_items_label')` instead of hardcoded "Additional Items"
 
 ## Installation Instructions
 
@@ -54,6 +62,8 @@ mysql -u your_user -p your_database < database/migrations/add_invoice_content_se
    - **Invoice Title**: Update the main invoice header
    - **Cancellation Policy**: Enter policy terms (one per line)
    - **Invoice Disclaimer**: Update the footer disclaimer
+   - **Package Label**: Update the label for hall/venue packages
+   - **Additional Items Label**: Update the label for additional services
 5. Click **Save Settings**
 
 ### Step 3: Verify Changes
@@ -74,6 +84,8 @@ If settings are not configured, the system uses these defaults:
   - Cancellations made less than 30 days before the event are non-refundable.
   - Date changes are subject to availability and must be requested at least 15 days in advance.
 - **Invoice Disclaimer**: "Note: This is a computer-generated estimate bill. Please create a complete invoice yourself."
+- **Package Label**: "Marriage Package"
+- **Additional Items Label**: "Additional Items"
 
 ## Technical Details
 
@@ -113,6 +125,8 @@ All displayed content is properly escaped using `htmlspecialchars()` to prevent 
 - [ ] Invoice title appears correctly on printed bills
 - [ ] Cancellation policy lines appear as bullet points
 - [ ] Invoice disclaimer appears at the bottom
+- [ ] Package label appears on invoice for hall/venue
+- [ ] Additional items label appears on invoice for services
 - [ ] All content is properly escaped (no XSS vulnerabilities)
 - [ ] Multi-line content displays correctly
 - [ ] Changes persist after page reload
@@ -121,13 +135,13 @@ All displayed content is properly escaped using `htmlspecialchars()` to prevent 
 
 ### Settings Not Showing in Admin Panel
 - Verify the migration was applied successfully
-- Check database for `invoice_title`, `cancellation_policy`, and `invoice_disclaimer` in the `settings` table
+- Check database for `invoice_title`, `cancellation_policy`, `invoice_disclaimer`, `invoice_package_label`, and `invoice_additional_items_label` in the `settings` table
 - Clear any application caches
 
 ### Content Not Appearing on Invoice
 - Verify settings are saved in the database
 - Check that `getSetting()` function is working correctly
-- Verify the setting keys match exactly: `invoice_title`, `cancellation_policy`, `invoice_disclaimer`
+- Verify the setting keys match exactly: `invoice_title`, `cancellation_policy`, `invoice_disclaimer`, `invoice_package_label`, `invoice_additional_items_label`
 
 ### Formatting Issues
 - For cancellation policy, ensure each policy term is on a separate line
