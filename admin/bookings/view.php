@@ -116,12 +116,6 @@ if (!empty($payment_transactions)) {
 }
 $advance = calculateAdvancePayment($booking['grand_total']);
 
-// Calculate advance received amount based on admin setting (for invoice display only)
-$advance_received = 0;
-if (!empty($booking['advance_payment_received'])) {
-    $advance_received = $advance['amount'];
-}
-
 // Calculate balance due: Grand Total - Total Paid (actual payments)
 $balance_due = $booking['grand_total'] - $total_paid;
 
