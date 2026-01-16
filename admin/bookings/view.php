@@ -116,14 +116,14 @@ if (!empty($payment_transactions)) {
 }
 $advance = calculateAdvancePayment($booking['grand_total']);
 
-// Calculate advance received amount based on admin setting
+// Calculate advance received amount based on admin setting (for invoice display only)
 $advance_received = 0;
 if (!empty($booking['advance_payment_received'])) {
     $advance_received = $advance['amount'];
 }
 
-// Calculate balance due: Grand Total - Advance Received
-$balance_due = $booking['grand_total'] - $advance_received;
+// Calculate balance due: Grand Total - Total Paid (actual payments)
+$balance_due = $booking['grand_total'] - $total_paid;
 
 // Company details from settings - use company-specific or fallback to general
 // Note: getSetting() caches results, but we check primary first to avoid unnecessary fallback queries
@@ -333,9 +333,9 @@ $currency = getSetting('currency', 'NPR');
                     <td class="payment-value"><?php 
                         // Display advance amount only if marked as received by admin
                         if (!empty($booking['advance_payment_received'])) {
-                            echo htmlspecialchars($currency) . ' ' . number_format($advance['amount'], 2);
+                            echo formatCurrency($advance['amount']);
                         } else {
-                            echo htmlspecialchars($currency) . ' 0.00';
+                            echo formatCurrency(0);
                         }
                     ?></td>
                 </tr>
@@ -1120,7 +1120,7 @@ $currency = getSetting('currency', 'NPR');
                                         Advance Payment Not Received
                                     </small>
                                 </div>
-                                <h5 class="mb-0 fw-bold">NPR 0.00</h5>
+                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency(0); ?></h5>
                             </div>
                         </div>
                         <?php endif; ?>
