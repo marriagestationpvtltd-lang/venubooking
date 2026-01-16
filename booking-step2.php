@@ -10,6 +10,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'guests' => $_POST['guests'],
         'event_type' => $_POST['event_type']
     ];
+    
+    // Check if there's a preferred venue
+    if (isset($_POST['preferred_venue_id']) && is_numeric($_POST['preferred_venue_id']) && $_POST['preferred_venue_id'] > 0) {
+        $preferred_venue_id = intval($_POST['preferred_venue_id']);
+        // Redirect to same page with venue_id in query string
+        header('Location: booking-step2.php?venue_id=' . $preferred_venue_id);
+        exit;
+    }
 } elseif (!isset($_SESSION['booking_data'])) {
     header('Location: index.php');
     exit;
@@ -19,6 +27,12 @@ $booking_data = $_SESSION['booking_data'];
 
 // Get available venues
 $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']);
+
+// Check if there's a preferred venue from query string
+$preferred_venue_id = null;
+if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
+    $preferred_venue_id = intval($_GET['venue_id']);
+}
 ?>
 
 <!-- Booking Progress -->
@@ -136,9 +150,34 @@ $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']
 $extra_js = '
 <script>
 const bookingData = ' . json_encode($booking_data) . ';
+const preferredVenueId = ' . ($preferred_venue_id ? $preferred_venue_id : 'null') . ';
 </script>
 <script src="' . BASE_URL . '/js/booking-flow.js"></script>
 <script src="' . BASE_URL . '/js/booking-step2.js"></script>
+<script>
+// Auto-show halls for preferred venue
+if (preferredVenueId) {
+    document.addEventListener("DOMContentLoaded", function() {
+        // Find the venue in the list
+        const venueCards = document.querySelectorAll(".venue-card");
+        venueCards.forEach(card => {
+            const viewHallsBtn = card.querySelector("button[onclick*=\"showHalls\"]");
+            if (viewHallsBtn) {
+                const onclickAttr = viewHallsBtn.getAttribute("onclick");
+                // More robust extraction - match showHalls with venue ID and name
+                const matches = onclickAttr.match(/showHalls\\((\\d+),\\s*['\"](.*?)['\"]/);
+                if (matches && parseInt(matches[1]) === preferredVenueId) {
+                    const venueId = parseInt(matches[1]);
+                    const venueName = matches[2];
+                    setTimeout(() => {
+                        showHalls(venueId, venueName);
+                    }, 500);
+                }
+            }
+        });
+    });
+}
+</script>
 ';
 require_once __DIR__ . '/includes/footer.php';
 ?>

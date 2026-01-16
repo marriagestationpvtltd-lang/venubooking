@@ -183,6 +183,42 @@ function getAvailableVenues($date, $shift) {
 }
 
 /**
+ * Get all active venues for homepage display
+ */
+function getAllActiveVenues() {
+    $db = getDB();
+    
+    // Get all active venues
+    $sql = "SELECT v.* FROM venues v 
+            WHERE v.status = 'active' 
+            ORDER BY v.name";
+    
+    $stmt = $db->prepare($sql);
+    $stmt->execute();
+    $venues = $stmt->fetchAll();
+    
+    // Process venue images
+    foreach ($venues as &$venue) {
+        $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
+        
+        // Validate filename structure
+        if (!empty($safe_filename) && !preg_match(SAFE_FILENAME_PATTERN, $safe_filename)) {
+            $safe_filename = '';
+        }
+        
+        $exists = !empty($safe_filename) && file_exists(UPLOAD_PATH . $safe_filename);
+        
+        if (!$exists) {
+            $venue['image'] = '';
+        } else {
+            $venue['image'] = $safe_filename;
+        }
+    }
+    
+    return $venues;
+}
+
+/**
  * Get halls for a venue
  */
 function getHallsForVenue($venue_id, $min_capacity = 0) {
