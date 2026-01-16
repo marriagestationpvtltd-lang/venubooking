@@ -197,7 +197,7 @@ function getAllActiveVenues() {
     $stmt->execute();
     $venues = $stmt->fetchAll();
     
-    // Process venue images
+    // Process venue images and get hall images
     foreach ($venues as &$venue) {
         $safe_filename = !empty($venue['image']) ? basename($venue['image']) : '';
         
@@ -213,9 +213,51 @@ function getAllActiveVenues() {
         } else {
             $venue['image'] = $safe_filename;
         }
+        
+        // Get all hall images for this venue
+        $venue['gallery_images'] = getVenueGalleryImages($venue['id']);
     }
     
     return $venues;
+}
+
+/**
+ * Get all hall images for a venue (from all halls belonging to the venue)
+ */
+function getVenueGalleryImages($venue_id) {
+    $db = getDB();
+    
+    // Get all hall images for halls belonging to this venue, ordered by display_order
+    $sql = "SELECT hi.image_path, hi.is_primary, hi.display_order, h.name as hall_name
+            FROM hall_images hi
+            INNER JOIN halls h ON hi.hall_id = h.id
+            WHERE h.venue_id = ? AND h.status = 'active'
+            ORDER BY hi.is_primary DESC, hi.display_order ASC, hi.id ASC";
+    
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$venue_id]);
+    $images = $stmt->fetchAll();
+    
+    // Process and validate each image
+    $validated_images = [];
+    foreach ($images as $image) {
+        $safe_filename = !empty($image['image_path']) ? basename($image['image_path']) : '';
+        
+        // Validate filename structure
+        if (!empty($safe_filename) && preg_match(SAFE_FILENAME_PATTERN, $safe_filename)) {
+            $exists = file_exists(UPLOAD_PATH . $safe_filename);
+            
+            if ($exists) {
+                $validated_images[] = [
+                    'image_path' => $safe_filename,
+                    'is_primary' => $image['is_primary'],
+                    'hall_name' => $image['hall_name']
+                ];
+            }
+        }
+    }
+    
+    return $validated_images;
 }
 
 /**
