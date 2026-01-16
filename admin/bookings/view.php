@@ -114,8 +114,16 @@ $payment_transactions = getBookingPayments($booking_id);
 if (!empty($payment_transactions)) {
     $total_paid = array_sum(array_column($payment_transactions, 'paid_amount'));
 }
-$balance_due = $booking['grand_total'] - $total_paid;
 $advance = calculateAdvancePayment($booking['grand_total']);
+
+// Calculate advance received amount based on admin setting
+$advance_received = 0;
+if (!empty($booking['advance_payment_received'])) {
+    $advance_received = $advance['amount'];
+}
+
+// Calculate balance due: Grand Total - Advance Received
+$balance_due = $booking['grand_total'] - $advance_received;
 
 // Company details from settings - use company-specific or fallback to general
 // Note: getSetting() caches results, but we check primary first to avoid unnecessary fallback queries
@@ -322,7 +330,14 @@ $currency = getSetting('currency', 'NPR');
                 </tr>
                 <tr>
                     <td class="payment-label">Advance Payment Received:</td>
-                    <td class="payment-value"><?php echo htmlspecialchars($currency); ?> <?php echo number_format($total_paid, 2); ?></td>
+                    <td class="payment-value"><?php 
+                        // Display advance amount only if marked as received by admin
+                        if (!empty($booking['advance_payment_received'])) {
+                            echo htmlspecialchars($currency) . ' ' . number_format($advance['amount'], 2);
+                        } else {
+                            echo htmlspecialchars($currency) . ' 0.00';
+                        }
+                    ?></td>
                 </tr>
                 <tr class="due-amount-row">
                     <td class="payment-label"><strong>Balance Due Amount:</strong></td>
