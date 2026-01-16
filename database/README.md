@@ -6,14 +6,23 @@ This directory contains all database-related files for the Venue Booking System.
 
 ### For Production Deployment
 
-**`production-ready.sql`** - ⭐ **RECOMMENDED FOR PRODUCTION**
+**`production-shared-hosting.sql`** - ⭐ **RECOMMENDED FOR SHARED HOSTING**
+- Complete production database for shared hosting environments
+- Pre-configured for database: digitallami_partybooking
+- Creates all 18 required tables
+- Includes default admin user (admin/Admin@123)
+- Includes comprehensive test data (venues, halls, menus, services, bookings)
+- **Perfect for immediate deployment with demo data!**
+- See [SHARED_HOSTING_SETUP.md](../SHARED_HOSTING_SETUP.md) for detailed instructions
+
+**`production-ready.sql`** - ⭐ **RECOMMENDED FOR VPS/DEDICATED**
 - Production-ready database in ONE file
 - Creates all 18 required tables
 - Includes default admin user (admin/Admin@123)
 - Includes essential system settings only
 - Includes placeholder payment methods (inactive by default)
 - **NO sample data** - clean database ready for your real data
-- **Use this for production/live websites!**
+- **Use this for production/live websites when you don't need test data!**
 
 ### For Development/Testing
 
@@ -286,8 +295,13 @@ See the comprehensive guides:
 
 ## 🎯 Quick Decision Guide
 
-**I'm deploying to a live/production server:**
+**I'm deploying to shared hosting with cPanel:**
+→ Use `production-shared-hosting.sql` + Read [SHARED_HOSTING_SETUP.md](../SHARED_HOSTING_SETUP.md)
+   (Includes test data for immediate demonstration)
+
+**I'm deploying to VPS/dedicated server:**
 → Use `production-ready.sql` + Read [PRODUCTION_DATABASE_GUIDE.md](PRODUCTION_DATABASE_GUIDE.md)
+   (Clean database, no test data)
 
 **I'm setting up for local development/testing:**
 → Use `complete-database-setup.sql` (includes sample data for testing)
