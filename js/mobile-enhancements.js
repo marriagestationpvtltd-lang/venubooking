@@ -10,9 +10,15 @@
 (function() {
     'use strict';
 
+    // Constants
+    const MOBILE_BREAKPOINT = 767;
+    const MAX_MENU_HEIGHT = 300;
+    const COLLAPSED_HEIGHT = 200;
+    const SCROLL_OFFSET = 100;
+
     // Check if we're on mobile
     function isMobile() {
-        return window.innerWidth <= 767;
+        return window.innerWidth <= MOBILE_BREAKPOINT;
     }
 
     // Initialize mobile enhancements on DOM ready
@@ -71,9 +77,15 @@
         if (!desktopNavButtons || desktopNavButtons.dataset.mobileEnhanced) return;
 
         const backButton = desktopNavButtons.querySelector('.btn-outline-secondary');
-        const continueButton = desktopNavButtons.querySelector('.btn-success[type="submit"], .btn-success:not([type="button"])');
+        const continueButton = desktopNavButtons.querySelector('.btn-success');
         
-        if (!backButton && !continueButton) return;
+        // Filter for submit buttons
+        let submitButton = null;
+        if (continueButton && continueButton.type === 'submit') {
+            submitButton = continueButton;
+        }
+        
+        if (!backButton && !submitButton && !continueButton) return;
 
         desktopNavButtons.dataset.mobileEnhanced = 'true';
 
@@ -104,7 +116,7 @@
             mobileContinue.className = 'btn btn-success';
             
             // If it's a submit button, make sure it submits the correct form
-            if (continueButton.type === 'submit') {
+            if (submitButton && continueButton === submitButton) {
                 const form = continueButton.closest('form');
                 if (form) {
                     mobileContinue.addEventListener('click', function(e) {
@@ -129,10 +141,10 @@
         // Make menu items collapsible if they're too long
         menuCards.forEach(function(card) {
             const menuItems = card.querySelector('.menu-items');
-            if (menuItems && menuItems.scrollHeight > 300) {
+            if (menuItems && menuItems.scrollHeight > MAX_MENU_HEIGHT) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'collapsible-wrapper collapsed';
-                wrapper.style.maxHeight = '200px';
+                wrapper.style.maxHeight = COLLAPSED_HEIGHT + 'px';
                 wrapper.style.overflow = 'hidden';
                 wrapper.style.position = 'relative';
                 
@@ -154,7 +166,7 @@
                         wrapper.classList.remove('collapsed');
                         toggleBtn.textContent = 'Show less';
                     } else {
-                        wrapper.style.maxHeight = '200px';
+                        wrapper.style.maxHeight = COLLAPSED_HEIGHT + 'px';
                         wrapper.classList.add('collapsed');
                         toggleBtn.textContent = 'Show more';
                     }
@@ -185,9 +197,8 @@
      */
     function scrollToError(errorElement) {
         if (errorElement) {
-            const offset = 100; // Account for fixed headers
             const elementPosition = errorElement.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - offset;
+            const offsetPosition = elementPosition + window.pageYOffset - SCROLL_OFFSET;
 
             window.scrollTo({
                 top: offsetPosition,
@@ -202,12 +213,23 @@
     // Expose scrollToError globally for form validation handlers
     window.scrollToError = scrollToError;
 
+    // Cache for invalid element query to avoid repeated DOM searches
+    let invalidCheckScheduled = false;
+
     // Handle form validation errors
     document.addEventListener('invalid', function(e) {
         e.preventDefault();
-        const firstInvalid = document.querySelector('.is-invalid, :invalid');
-        if (firstInvalid) {
-            scrollToError(firstInvalid);
+        
+        // Use requestAnimationFrame to batch multiple invalid events
+        if (!invalidCheckScheduled) {
+            invalidCheckScheduled = true;
+            requestAnimationFrame(function() {
+                const firstInvalid = document.querySelector('.is-invalid, :invalid');
+                if (firstInvalid) {
+                    scrollToError(firstInvalid);
+                }
+                invalidCheckScheduled = false;
+            });
         }
     }, true);
 

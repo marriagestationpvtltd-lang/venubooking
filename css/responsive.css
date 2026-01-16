@@ -181,12 +181,16 @@
     
     /* Add toggle icon for summary */
     .booking-summary-bar .container:after {
-        content: '▼';
+        content: '';
         position: absolute;
         right: 1rem;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 0.75rem;
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid white;
         transition: transform 0.3s;
     }
     
