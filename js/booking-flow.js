@@ -211,7 +211,7 @@ function initNepaliCalendar() {
             day: today.getDate()
         };
         
-        // Convert today's AD date to BS using NepaliFunctions.AD2BS()
+        // Convert today's AD date to BS using nepaliDateUtils.adToBS()
         const todayBS = window.nepaliDateUtils.adToBS(todayAD.year, todayAD.month, todayAD.day);
         
         // Set today's BS date in YYYY-MM-DD format in the input
