@@ -19,3 +19,12 @@ ON DUPLICATE KEY UPDATE setting_key = setting_key;
 INSERT INTO settings (setting_key, setting_value, setting_type) 
 VALUES ('invoice_disclaimer', 'Note: This is a computer-generated estimate bill. Please create a complete invoice yourself.', 'textarea')
 ON DUPLICATE KEY UPDATE setting_key = setting_key;
+
+-- Add invoice line item labels
+INSERT INTO settings (setting_key, setting_value, setting_type) 
+VALUES ('invoice_package_label', 'Marriage Package', 'text')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;
+
+INSERT INTO settings (setting_key, setting_value, setting_type) 
+VALUES ('invoice_additional_items_label', 'Additional Items', 'text')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;

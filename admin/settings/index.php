@@ -404,6 +404,20 @@ Date changes are subject to availability and must be requested at least 15 days 
                             <textarea class="form-control" name="setting_invoice_disclaimer" rows="3"><?php echo htmlspecialchars($settings['invoice_disclaimer'] ?? 'Note: This is a computer-generated estimate bill. Please create a complete invoice yourself.'); ?></textarea>
                             <div class="form-text">Disclaimer note shown at the bottom of invoices</div>
                         </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Package Label</label>
+                            <input type="text" class="form-control" name="setting_invoice_package_label" 
+                                   value="<?php echo htmlspecialchars($settings['invoice_package_label'] ?? 'Marriage Package'); ?>">
+                            <div class="form-text">Label for hall/venue package on invoice (e.g., "Marriage Package", "Event Package")</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Additional Items Label</label>
+                            <input type="text" class="form-control" name="setting_invoice_additional_items_label" 
+                                   value="<?php echo htmlspecialchars($settings['invoice_additional_items_label'] ?? 'Additional Items'); ?>">
+                            <div class="form-text">Label for additional services on invoice</div>
+                        </div>
                     </div>
                 </div>
 

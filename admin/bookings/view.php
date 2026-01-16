@@ -156,6 +156,8 @@ Cancellations made 30 days before the event will receive 50% refund of total amo
 Cancellations made less than 30 days before the event are non-refundable.
 Date changes are subject to availability and must be requested at least 15 days in advance.');
 $invoice_disclaimer = getSetting('invoice_disclaimer', 'Note: This is a computer-generated estimate bill. Please create a complete invoice yourself.');
+$package_label = getSetting('invoice_package_label', 'Marriage Package');
+$additional_items_label = getSetting('invoice_additional_items_label', 'Additional Items');
 ?>
 
 <div class="print-invoice-only" style="display: none;">
@@ -250,7 +252,7 @@ $invoice_disclaimer = getSetting('invoice_disclaimer', 'Note: This is a computer
                 <tbody>
                     <!-- Hall/Venue -->
                     <tr>
-                        <td><strong>Marriage Package</strong> - <?php echo htmlspecialchars($booking['hall_name']); ?></td>
+                        <td><strong><?php echo htmlspecialchars($package_label); ?></strong> - <?php echo htmlspecialchars($booking['hall_name']); ?></td>
                         <td class="text-center">1</td>
                         <td class="text-right"><?php echo number_format($booking['hall_price'], 2); ?></td>
                         <td class="text-right"><?php echo number_format($booking['hall_price'], 2); ?></td>
@@ -272,7 +274,7 @@ $invoice_disclaimer = getSetting('invoice_disclaimer', 'Note: This is a computer
                     <?php if (!empty($booking['services'])): ?>
                         <?php foreach ($booking['services'] as $service): ?>
                         <tr>
-                            <td>Additional Items - <?php echo htmlspecialchars($service['service_name']); ?></td>
+                            <td><?php echo htmlspecialchars($additional_items_label); ?> - <?php echo htmlspecialchars($service['service_name']); ?></td>
                             <td class="text-center">1</td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
