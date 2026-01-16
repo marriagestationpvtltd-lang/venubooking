@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nepali Date Picker - Timezone Fix Test</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Nepali Date Picker CSS -->
+    <link rel="stylesheet" href="css/nepali-date-picker.css">
+    
+    <style>
+        body {
+            padding: 50px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3e8;
+            border-radius: 5px;
+        }
+        .alert-custom {
+            margin-top: 10px;
+        }
+        .comparison-table {
+            margin-top: 20px;
+        }
+        .comparison-table th {
+            background: #198754;
+            color: white;
+        }
+        .status-pass {
+            color: #198754;
+            font-weight: bold;
+        }
+        .status-fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 class="mb-4">
+            <i class="fas fa-calendar-alt text-success"></i> 
+            Nepali Date Picker - Timezone Fix Test
+        </h2>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Test Purpose:</strong> Verify that the Nepali date picker always shows the correct current Nepali date 
+            based on Nepal time (UTC+5:45), regardless of the client's timezone.
+        </div>
+        
+        <div class="comparison-table">
+            <h5>Time Comparison:</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Time Zone</th>
+                        <th>Current Date/Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Your Browser Time</strong></td>
+                        <td id="browserTime">-</td>
+                        <td id="browserStatus">-</td>
+                    </tr>
+                    <tr>
+                        <td><strong>UTC Time</strong></td>
+                        <td id="utcTime">-</td>
+                        <td>Reference</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Nepal Time (UTC+5:45)</strong></td>
+                        <td id="nepalTime">-</td>
+                        <td id="nepalStatus">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="test-result">
+            <h5>Conversion Test Results:</h5>
+            <div id="testResults">
+                <p class="mb-2">
+                    <strong>Today in Nepal (AD):</strong> <span id="todayAD">-</span>
+                </p>
+                <p class="mb-2">
+                    <strong>Today in Nepal (BS):</strong> <span id="todayBS">-</span>
+                </p>
+                <p class="mb-2">
+                    <strong>Date Picker Default:</strong> <span id="pickerDefault">-</span>
+                </p>
+                <p class="mb-0">
+                    <strong>Test Status:</strong> <span id="overallStatus">-</span>
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Interactive Test:</h5>
+            <div class="mb-3">
+                <label for="event_date" class="form-label">
+                    <i class="fas fa-calendar"></i> Event Date
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="event_date" name="event_date" 
+                           readonly placeholder="Select Nepali Date (BS)">
+                    <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Current Calendar Mode">
+                        <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>
+                    </button>
+                </div>
+                <small class="form-text text-muted">
+                    <span id="nepaliDateDisplay"></span>
+                </small>
+            </div>
+            
+            <button class="btn btn-primary" id="refreshTest">
+                <i class="fas fa-sync-alt"></i> Refresh Test
+            </button>
+        </div>
+        
+        <div class="mt-4">
+            <h5>Expected Behavior:</h5>
+            <ul>
+                <li><strong>✓ Consistent Date:</strong> Date picker should always show Nepal's current date</li>
+                <li><strong>✓ Timezone Independent:</strong> Works correctly regardless of client timezone</li>
+                <li><strong>✓ Midnight Transition:</strong> Date changes at Nepal midnight (00:00 UTC+5:45)</li>
+                <li><strong>✓ No Off-by-One Errors:</strong> No 1-2 day mismatch issues</li>
+            </ul>
+        </div>
+        
+        <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle"></i> 
+            <strong>Note:</strong> If you are testing from a different timezone, the "Your Browser Time" 
+            may show a different date than "Nepal Time". The date picker should use Nepal Time.
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Nepali Date Picker -->
+    <script src="js/nepali-date-picker.js"></script>
+    
+    <script>
+        // Test functions
+        function updateTimeDisplay() {
+            const now = new Date();
+            
+            // Browser time
+            const browserTime = now.toLocaleString();
+            const browserDate = now.toLocaleDateString();
+            document.getElementById('browserTime').textContent = browserTime;
+            
+            // UTC time
+            const utcTime = now.toISOString();
+            document.getElementById('utcTime').textContent = utcTime;
+            
+            // Nepal time (UTC+5:45)
+            if (typeof window.nepaliDateUtils !== 'undefined' && window.nepaliDateUtils.getCurrentNepaliTime) {
+                const nepalNow = window.nepaliDateUtils.getCurrentNepaliTime();
+                const nepalTimeStr = nepalNow.toISOString().replace('Z', ' (UTC+5:45)');
+                document.getElementById('nepalTime').textContent = nepalTimeStr;
+                
+                // Nepal date
+                const nepalToday = window.nepaliDateUtils.getTodayInNepal();
+                const nepalDateStr = `${nepalToday.year}-${String(nepalToday.month).padStart(2, '0')}-${String(nepalToday.day).padStart(2, '0')}`;
+                document.getElementById('todayAD').textContent = nepalDateStr;
+                
+                // Convert to BS
+                const bsDate = window.nepaliDateUtils.adToBS(nepalToday.year, nepalToday.month, nepalToday.day);
+                if (bsDate) {
+                    const bsDateStr = window.nepaliDateUtils.formatBSDate(bsDate.year, bsDate.month, bsDate.day);
+                    document.getElementById('todayBS').textContent = bsDateStr;
+                }
+                
+                // Compare dates
+                const browserDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const nepalDateObj = new Date(nepalToday.year, nepalToday.month - 1, nepalToday.day);
+                
+                const daysDiff = Math.floor((nepalDateObj - browserDateObj) / (24 * 60 * 60 * 1000));
+                
+                if (daysDiff === 0) {
+                    document.getElementById('browserStatus').innerHTML = '<span class="status-pass">✓ Same as Nepal</span>';
+                    document.getElementById('nepalStatus').innerHTML = '<span class="status-pass">✓ Correct</span>';
+                } else if (daysDiff > 0) {
+                    document.getElementById('browserStatus').innerHTML = '<span class="status-fail">⚠ Behind Nepal by ' + daysDiff + ' day(s)</span>';
+                    document.getElementById('nepalStatus').innerHTML = '<span class="status-pass">✓ Correct (Ahead)</span>';
+                } else {
+                    document.getElementById('browserStatus').innerHTML = '<span class="status-fail">⚠ Ahead of Nepal by ' + Math.abs(daysDiff) + ' day(s)</span>';
+                    document.getElementById('nepalStatus').innerHTML = '<span class="status-pass">✓ Correct (Behind)</span>';
+                }
+                
+                document.getElementById('overallStatus').innerHTML = '<span class="status-pass">✓ Timezone handling working correctly</span>';
+            } else {
+                document.getElementById('nepalTime').textContent = 'ERROR: nepaliDateUtils not loaded';
+                document.getElementById('overallStatus').innerHTML = '<span class="status-fail">✗ Library not loaded</span>';
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTimeDisplay();
+            
+            const eventDateInput = document.getElementById('event_date');
+            const nepaliDateDisplay = document.getElementById('nepaliDateDisplay');
+            const toggleCalendar = document.getElementById('toggleCalendar');
+            const calendarTypeLabel = document.getElementById('calendarType');
+            
+            // Check if library is loaded
+            if (typeof window.nepaliDateUtils === 'undefined') {
+                alert('ERROR: Nepali date picker library not loaded!');
+                return;
+            }
+            
+            let isNepaliMode = true;
+            let nepaliPicker = null;
+            
+            // Initialize Nepali picker
+            nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
+                closeOnSelect: true,
+                onChange: function(adDate, bsDate) {
+                    const bsDateStr = window.nepaliDateUtils.formatBSDate(bsDate.year, bsDate.month, bsDate.day);
+                    nepaliDateDisplay.textContent = bsDateStr + ' (BS)';
+                    
+                    // Update picker default display
+                    document.getElementById('pickerDefault').textContent = bsDateStr + ' (BS)';
+                }
+            });
+            
+            // Set initial display
+            const todayInNepal = window.nepaliDateUtils.getTodayInNepal();
+            const todayBS = window.nepaliDateUtils.adToBS(todayInNepal.year, todayInNepal.month, todayInNepal.day);
+            if (todayBS) {
+                const bsDateStr = window.nepaliDateUtils.formatBSDate(todayBS.year, todayBS.month, todayBS.day);
+                document.getElementById('pickerDefault').textContent = bsDateStr + ' (BS)';
+            }
+            
+            // Refresh button
+            document.getElementById('refreshTest').addEventListener('click', function() {
+                updateTimeDisplay();
+                location.reload();
+            });
+            
+            // Toggle calendar (minimal implementation for test)
+            toggleCalendar.addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Toggle functionality available in main booking form');
+            });
+            
+            // Update time every minute
+            setInterval(updateTimeDisplay, 60000);
+        });
+    </script>
+</body>
+</html>

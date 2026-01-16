@@ -76,6 +76,42 @@
     // Fallback date for when conversion fails or date is out of range
     const FALLBACK_BS_DATE = { year: 2081, month: 1, day: 1 };
 
+    // Nepal timezone offset: UTC+5:45 = 345 minutes
+    const NEPAL_TIMEZONE_OFFSET_MINUTES = 345;
+
+    /**
+     * Get current date and time in Nepal timezone (UTC+5:45)
+     * This ensures consistent date calculation regardless of client's timezone
+     * and prevents 1-2 day mismatches when client is in different timezone
+     * 
+     * @returns {Date} Date object representing current time in Nepal
+     */
+    function getCurrentNepaliTime() {
+        // Get current UTC time
+        const now = new Date();
+        const utcTime = now.getTime();
+        
+        // Add Nepal timezone offset (5 hours 45 minutes = 345 minutes)
+        const nepalTime = new Date(utcTime + (NEPAL_TIMEZONE_OFFSET_MINUTES * 60 * 1000));
+        
+        return nepalTime;
+    }
+
+    /**
+     * Get today's date in Nepal timezone
+     * Returns an object with year, month, day in Nepal's current date
+     * 
+     * @returns {Object} { year, month, day } in Nepal timezone
+     */
+    function getTodayInNepal() {
+        const nepalNow = getCurrentNepaliTime();
+        return {
+            year: nepalNow.getUTCFullYear(),
+            month: nepalNow.getUTCMonth() + 1, // JS months are 0-indexed
+            day: nepalNow.getUTCDate()
+        };
+    }
+
     /**
      * Count total days from reference BS date to target BS date
      */
@@ -254,8 +290,9 @@
             }
             
             if (!this.currentBSDate) {
-                const today = new Date();
-                this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                // Use Nepal timezone for consistent date calculation
+                const todayInNepal = getTodayInNepal();
+                this.currentBSDate = adToBS(todayInNepal.year, todayInNepal.month, todayInNepal.day);
             }
             
             // Bind events
@@ -319,10 +356,10 @@
                     }
                 }
                 
-                // Fallback to today's date
+                // Fallback to today's date in Nepal timezone
                 if (!this.currentBSDate) {
-                    const today = new Date();
-                    this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                    const todayInNepal = getTodayInNepal();
+                    this.currentBSDate = adToBS(todayInNepal.year, todayInNepal.month, todayInNepal.day);
                 }
             }
             
@@ -366,8 +403,8 @@
         render() {
             // Safety check - ensure we have a current date before rendering
             if (!this.currentBSDate) {
-                const today = new Date();
-                this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                const todayInNepal = getTodayInNepal();
+                this.currentBSDate = adToBS(todayInNepal.year, todayInNepal.month, todayInNepal.day);
             }
             
             const html = `
@@ -392,8 +429,8 @@
         renderCalendar() {
             // Safety check - ensure we have a current date
             if (!this.currentBSDate) {
-                const today = new Date();
-                this.currentBSDate = adToBS(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                const todayInNepal = getTodayInNepal();
+                this.currentBSDate = adToBS(todayInNepal.year, todayInNepal.month, todayInNepal.day);
                 // If still null, use fallback
                 if (!this.currentBSDate) {
                     this.currentBSDate = { ...FALLBACK_BS_DATE };
@@ -575,7 +612,9 @@
         formatBSDate,
         getDaysInBSMonth,
         nepaliMonths,
-        nepaliMonthsNepali
+        nepaliMonthsNepali,
+        getCurrentNepaliTime,
+        getTodayInNepal
     };
 
 })();
