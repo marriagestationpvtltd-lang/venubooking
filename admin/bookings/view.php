@@ -1612,31 +1612,31 @@ $currency = getSetting('currency', 'NPR');
     
     .header-content {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
+        flex-direction: column;
+        align-items: center;
         margin-bottom: 3px;
     }
     
     .company-logo-space {
-        text-align: right;
-        flex-shrink: 0;
-        margin-left: 10px;
+        text-align: center;
+        margin-bottom: 5px;
+        order: -1;
     }
     
     .company-logo-img {
-        max-width: 100px;
-        max-height: 35px;
+        max-width: 180px;
+        max-height: 80px;
     }
     
     .logo-placeholder {
-        padding: 5px 12px;
-        font-size: 12pt;
+        padding: 8px 20px;
+        font-size: 14pt;
         border: 1px solid #333;
     }
     
     .company-info {
-        text-align: left;
-        flex: 1;
+        text-align: center;
+        width: 100%;
     }
     
     .company-name {
