@@ -117,11 +117,12 @@ if (!empty($payment_transactions)) {
 $balance_due = $booking['grand_total'] - $total_paid;
 $advance = calculateAdvancePayment($booking['grand_total']);
 
-// Company details from settings
-$company_name = getSetting('company_name', 'Wedding Venue Booking');
-$company_address = getSetting('company_address', 'Nepal');
-$company_phone = getSetting('company_phone', 'N/A');
-$company_email = getSetting('company_email', '');
+// Company details from settings - use company-specific or fallback to general
+$company_name = getSetting('company_name', getSetting('site_name', 'Wedding Venue Booking'));
+$company_address = getSetting('company_address', getSetting('contact_address', 'Nepal'));
+$company_phone = getSetting('company_phone', getSetting('contact_phone', 'N/A'));
+$company_email = getSetting('company_email', getSetting('contact_email', ''));
+$company_logo = getSetting('company_logo', getSetting('site_logo', ''));
 
 // Get payment mode from latest transaction
 $payment_mode = 'Not specified';
@@ -136,8 +137,13 @@ if (!empty($payment_transactions)) {
         <!-- Header Section -->
         <div class="invoice-header">
             <div class="company-logo-space">
-                <!-- Logo placeholder - can be replaced with actual logo -->
-                <div class="logo-placeholder">LOGO</div>
+                <?php if (!empty($company_logo) && file_exists(UPLOAD_PATH . $company_logo)): ?>
+                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($company_logo); ?>" 
+                         alt="<?php echo htmlspecialchars($company_name); ?>" 
+                         class="company-logo-img">
+                <?php else: ?>
+                    <div class="logo-placeholder"><?php echo htmlspecialchars($company_name); ?></div>
+                <?php endif; ?>
             </div>
             <div class="company-info">
                 <h1 class="company-name"><?php echo htmlspecialchars($company_name); ?></h1>
@@ -1126,6 +1132,12 @@ if (!empty($payment_transactions)) {
 .company-logo-space {
     text-align: center;
     margin-bottom: 10px;
+}
+
+.company-logo-img {
+    max-width: 250px;
+    max-height: 100px;
+    object-fit: contain;
 }
 
 .logo-placeholder {

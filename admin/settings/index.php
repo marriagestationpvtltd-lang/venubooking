@@ -40,6 +40,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        if (isset($_FILES['setting_company_logo']) && $_FILES['setting_company_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_result = handleImageUpload($_FILES['setting_company_logo'], 'logo');
+            if ($upload_result['success']) {
+                // Delete old company logo if exists
+                $old_company_logo = getSetting('company_logo', '');
+                if (!empty($old_company_logo)) {
+                    deleteUploadedFile($old_company_logo);
+                }
+                $_POST['setting_company_logo'] = $upload_result['filename'];
+            } else {
+                throw new Exception('Company logo upload failed: ' . $upload_result['message']);
+            }
+        }
+        
         // Update all settings
         foreach ($_POST as $key => $value) {
             if (strpos($key, 'setting_') === 0) {
@@ -150,6 +164,11 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#email">
                         <i class="fas fa-envelope"></i> Email Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#company">
+                        <i class="fas fa-building"></i> Company/Invoice
                     </a>
                 </li>
                 <li class="nav-item">
@@ -291,6 +310,65 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                             <input type="text" class="form-control" name="setting_footer_copyright" 
                                    value="<?php echo htmlspecialchars($settings['footer_copyright'] ?? ''); ?>">
                             <div class="form-text">Custom copyright text (leave empty for auto-generated)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Company/Invoice Settings Tab -->
+                <div class="tab-pane fade" id="company">
+                    <h6 class="mb-3 text-success"><i class="fas fa-building"></i> Company & Invoice Details</h6>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> These details will appear on printed invoices and booking bills. If not specified, the system will use basic settings as fallback.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Company Name</label>
+                            <input type="text" class="form-control" name="setting_company_name" 
+                                   value="<?php echo htmlspecialchars($settings['company_name'] ?? ''); ?>" 
+                                   placeholder="<?php echo htmlspecialchars($settings['site_name'] ?? 'Wedding Venue Booking'); ?>">
+                            <div class="form-text">Company name for invoices (defaults to website name)</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Company Phone</label>
+                            <input type="text" class="form-control" name="setting_company_phone" 
+                                   value="<?php echo htmlspecialchars($settings['company_phone'] ?? ''); ?>"
+                                   placeholder="<?php echo htmlspecialchars($settings['contact_phone'] ?? ''); ?>">
+                            <div class="form-text">Company phone for invoices (defaults to contact phone)</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Company Email</label>
+                            <input type="email" class="form-control" name="setting_company_email" 
+                                   value="<?php echo htmlspecialchars($settings['company_email'] ?? ''); ?>"
+                                   placeholder="<?php echo htmlspecialchars($settings['contact_email'] ?? ''); ?>">
+                            <div class="form-text">Company email for invoices (defaults to contact email)</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Company Address</label>
+                            <textarea class="form-control" name="setting_company_address" rows="3" 
+                                      placeholder="<?php echo htmlspecialchars($settings['contact_address'] ?? ''); ?>"><?php echo htmlspecialchars($settings['company_address'] ?? ''); ?></textarea>
+                            <div class="form-text">Full company address for invoices (defaults to business address)</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Company Logo (for Invoices/Bills)</label>
+                            <input type="file" class="form-control" name="setting_company_logo" accept="image/*">
+                            <div class="form-text">Logo specifically for printed invoices and bills. Recommended: 200x80px PNG. If not set, website logo will be used.</div>
+                            <?php 
+                            $invoice_logo = $settings['company_logo'] ?? $settings['site_logo'] ?? '';
+                            if (!empty($invoice_logo)): 
+                            ?>
+                                <div class="image-preview">
+                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($invoice_logo); ?>" alt="Current Company Logo">
+                                    <p class="text-muted small mt-1">
+                                        <?php echo !empty($settings['company_logo']) ? 'Current company logo' : 'Using website logo (no company logo set)'; ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
