@@ -43,15 +43,16 @@ else
     # Password provided (development environment)
     # Create temporary config file for secure password passing
     TMP_CNF=$(mktemp)
+    # Set restrictive permissions immediately to prevent race conditions
+    chmod 600 "$TMP_CNF"
     cat > "$TMP_CNF" << EOF
 [client]
 password=$DB_PASS
 EOF
-    chmod 600 "$TMP_CNF"
     
     mysql --defaults-extra-file="$TMP_CNF" -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" < database/migrations/add_service_description_category_to_bookings.sql
     
-    # Clean up temporary file
+    # Clean up temporary file securely
     rm -f "$TMP_CNF"
 fi
 

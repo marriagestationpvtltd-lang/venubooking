@@ -132,7 +132,7 @@ header('Content-Type: text/html; charset=UTF-8');
                 foreach ($samples as $sample) {
                     echo '<tr>';
                     echo '<td>' . htmlspecialchars($sample['id']) . '</td>';
-                    echo '<td><a href="admin/bookings/view.php?id=' . $sample['booking_id'] . '" target="_blank">' . htmlspecialchars($sample['booking_number']) . '</a></td>';
+                    echo '<td><a href="admin/bookings/view.php?id=' . htmlspecialchars($sample['booking_id'], ENT_QUOTES, 'UTF-8') . '" target="_blank">' . htmlspecialchars($sample['booking_number']) . '</a></td>';
                     echo '<td>' . htmlspecialchars($sample['service_id']) . '</td>';
                     echo '<td>' . htmlspecialchars($sample['service_name']) . '</td>';
                     echo '<td>NPR ' . number_format($sample['price'], 2) . '</td>';
@@ -223,7 +223,7 @@ header('Content-Type: text/html; charset=UTF-8');
             echo '<h2>Test 5: Test SQL Query Directly</h2>';
             echo '<p>Testing the exact query used in getBookingDetails()...</p>';
             
-            $testBookingId = $db->query("SELECT id FROM bookings WHERE id IN (SELECT booking_id FROM booking_services) LIMIT 1")->fetch();
+            $testBookingId = $db->query("SELECT DISTINCT b.id FROM bookings b INNER JOIN booking_services bs ON b.id = bs.booking_id LIMIT 1")->fetch();
             
             if ($testBookingId) {
                 $stmt = $db->prepare("
