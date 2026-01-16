@@ -197,7 +197,7 @@ $currency = getSetting('currency', 'NPR');
                 <strong>Invoice Date:</strong> <?php echo date('F d, Y', strtotime($booking['created_at'])); ?>
             </div>
             <div class="invoice-detail-item">
-                <strong>Booking Date:</strong> <?php echo date('F d, Y', strtotime($booking['created_at'])); ?>
+                <strong>Booking Date:</strong> <?php echo date('F d, Y', strtotime($booking['event_date'])); ?>
             </div>
             <div class="invoice-detail-item">
                 <strong>Booking No:</strong> <?php echo htmlspecialchars($booking['booking_number']); ?>
