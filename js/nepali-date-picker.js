@@ -83,7 +83,12 @@
     // Fallback date for when conversion fails or date is out of range
     const FALLBACK_BS_DATE = { year: 2081, month: 1, day: 1 };
 
-    // Nepal timezone offset: UTC+5:45 = 345 minutes
+    /**
+     * Nepal timezone offset from UTC
+     * Nepal Time = UTC + 5 hours 45 minutes
+     * Calculation: (5 * 60) + 45 = 345 minutes
+     * @constant {number}
+     */
     const NEPAL_TIMEZONE_OFFSET_MINUTES = 345;
 
     /**
