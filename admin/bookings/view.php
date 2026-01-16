@@ -284,8 +284,9 @@ $currency = getSetting('currency', 'NPR');
                                 <?php endif; ?>
                             </td>
                             <td class="text-center">1</td>
-                            <td class="text-right"><?php echo number_format(floatval($service['price'] ?? 0), 2); ?></td>
-                            <td class="text-right"><?php echo number_format(floatval($service['price'] ?? 0), 2); ?></td>
+                            <?php $service_price = floatval($service['price'] ?? 0); ?>
+                            <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
+                            <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>

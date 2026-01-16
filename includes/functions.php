@@ -24,7 +24,12 @@ function sanitize($data) {
  * Handles missing data gracefully throughout the application
  */
 function getValueOrDefault($value, $default = 'N/A') {
-    if (is_null($value) || $value === '' || (is_string($value) && trim($value) === '')) {
+    // Check for null or empty string
+    if (is_null($value) || $value === '') {
+        return $default;
+    }
+    // Check for whitespace-only strings
+    if (is_string($value) && trim($value) === '') {
         return $default;
     }
     return $value;

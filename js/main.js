@@ -213,6 +213,9 @@ function hideFieldError(input) {
 // Validate email with comprehensive regex
 function validateEmail(email) {
     // More comprehensive email validation
+    // Ensures: local-part@domain.tld format
+    // Allows: alphanumeric, dots, underscores, hyphens, plus signs
+    // Requires: at least 2 characters in TLD
     const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return re.test(email);
 }
@@ -261,7 +264,9 @@ function getValueOrDefault(value, defaultValue = 'N/A') {
 function formatNumber(value, decimals = 2, defaultValue = 0) {
     const num = parseFloat(value);
     if (isNaN(num)) {
-        return formatNumber(defaultValue, decimals);
+        // Safely handle default value to prevent recursion
+        const safeDefault = parseFloat(defaultValue);
+        return isNaN(safeDefault) ? '0.00' : safeDefault.toFixed(decimals);
     }
     return num.toFixed(decimals);
 }
