@@ -228,9 +228,8 @@ header('Content-Type: text/html; charset=UTF-8');
             if ($testBookingId) {
                 $stmt = $db->prepare("
                     SELECT bs.id, bs.booking_id, bs.service_id, bs.service_name, bs.price, 
-                           s.description, s.category 
+                           bs.description, bs.category 
                     FROM booking_services bs 
-                    LEFT JOIN additional_services s ON bs.service_id = s.id 
                     WHERE bs.booking_id = ?
                 ");
                 $stmt->execute([$testBookingId['id']]);
@@ -239,7 +238,7 @@ header('Content-Type: text/html; charset=UTF-8');
                 echo '<div class="test-result test-pass">✅ Query executed successfully. Results: <strong>' . count($results) . '</strong></div>';
                 
                 if (count($results) > 0) {
-                    echo '<table><thead><tr><th>ID</th><th>Service Name</th><th>Price</th><th>Description</th><th>Category</th></tr></thead><tbody>';
+                    echo '<table><thead><tr><th>ID</th><th>Service Name</th><th>Price</th><th>Description</th><th>Category</th><th>Source</th></tr></thead><tbody>';
                     foreach ($results as $row) {
                         echo '<tr>';
                         echo '<td>' . htmlspecialchars($row['id']) . '</td>';
@@ -247,9 +246,11 @@ header('Content-Type: text/html; charset=UTF-8');
                         echo '<td>NPR ' . number_format($row['price'], 2) . '</td>';
                         echo '<td>' . htmlspecialchars($row['description'] ?? 'NULL') . '</td>';
                         echo '<td>' . htmlspecialchars($row['category'] ?? 'NULL') . '</td>';
+                        echo '<td><span style="color: green;">Denormalized</span></td>';
                         echo '</tr>';
                     }
                     echo '</tbody></table>';
+                    echo '<p class="info">ℹ️ Using enhanced query with denormalized description/category columns from booking_services table.</p>';
                 }
             } else {
                 echo '<div class="warning">⚠️ No bookings with services to test query</div>';
