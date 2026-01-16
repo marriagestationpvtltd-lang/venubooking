@@ -544,8 +544,6 @@ function numberToWords($number) {
             '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
         );
         
-        $scales = array('', 'Thousand', 'Lakh', 'Crore');
-        
         $integer = str_pad($integer, 9, '0', STR_PAD_LEFT);
         $crore = substr($integer, 0, 2);
         $lakh = substr($integer, 2, 2);
@@ -560,7 +558,8 @@ function numberToWords($number) {
             if ($crore < 20) {
                 $result[] = $ones[$crore] . ' Crore';
             } else {
-                $result[] = $tens[intval($crore / 10)] . ' ' . $ones[$crore % 10] . ' Crore';
+                $remainder = $ones[$crore % 10];
+                $result[] = trim($tens[intval($crore / 10)] . ' ' . $remainder) . ' Crore';
             }
         }
         
@@ -569,7 +568,8 @@ function numberToWords($number) {
             if ($lakh < 20) {
                 $result[] = $ones[$lakh] . ' Lakh';
             } else {
-                $result[] = $tens[intval($lakh / 10)] . ' ' . $ones[$lakh % 10] . ' Lakh';
+                $remainder = $ones[$lakh % 10];
+                $result[] = trim($tens[intval($lakh / 10)] . ' ' . $remainder) . ' Lakh';
             }
         }
         
@@ -578,7 +578,8 @@ function numberToWords($number) {
             if ($thousand < 20) {
                 $result[] = $ones[$thousand] . ' Thousand';
             } else {
-                $result[] = $tens[intval($thousand / 10)] . ' ' . $ones[$thousand % 10] . ' Thousand';
+                $remainder = $ones[$thousand % 10];
+                $result[] = trim($tens[intval($thousand / 10)] . ' ' . $remainder) . ' Thousand';
             }
         }
         

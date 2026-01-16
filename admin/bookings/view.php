@@ -160,7 +160,7 @@ if (!empty($payment_transactions)) {
                 <strong>Invoice Date:</strong> <?php echo date('F d, Y', strtotime($booking['created_at'])); ?>
             </div>
             <div class="invoice-detail-item">
-                <strong>Booking Date (BS):</strong> <span id="nepali-date-display"><?php echo date('Y-m-d', strtotime($booking['created_at'])); ?></span>
+                <strong>Booking Date:</strong> <?php echo date('F d, Y', strtotime($booking['created_at'])); ?>
             </div>
             <div class="invoice-detail-item">
                 <strong>Booking No:</strong> <?php echo htmlspecialchars($booking['booking_number']); ?>
@@ -1439,19 +1439,6 @@ if (!empty($payment_transactions)) {
                 whatsappForm.submit();
             }, WHATSAPP_REDIRECT_DELAY);
         });
-    }
-})();
-
-// Simple Nepali Date Display (BS format approximation)
-// For accurate conversion, a full Nepali calendar library would be needed
-// This provides a basic display format
-(function() {
-    const nepaliDateDisplay = document.getElementById('nepali-date-display');
-    if (nepaliDateDisplay) {
-        const englishDate = nepaliDateDisplay.textContent;
-        // Keep as is for now - can be enhanced with actual Nepali calendar conversion
-        // For production, integrate with nepali-date-picker.js or similar library
-        nepaliDateDisplay.textContent = englishDate + ' (BS)';
     }
 })();
 
