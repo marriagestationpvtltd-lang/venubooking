@@ -183,13 +183,15 @@ CREATE TABLE bookings (
     special_requests TEXT,
     booking_status ENUM('pending', 'payment_submitted', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
     payment_status ENUM('pending', 'partial', 'paid', 'cancelled') DEFAULT 'pending',
+    advance_payment_received TINYINT(1) DEFAULT 0 COMMENT 'Whether advance payment has been received (0=No, 1=Yes)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
     FOREIGN KEY (hall_id) REFERENCES halls(id),
     INDEX idx_event_date (event_date),
     INDEX idx_booking_number (booking_number),
-    INDEX idx_status (booking_status)
+    INDEX idx_status (booking_status),
+    INDEX idx_advance_payment_received (advance_payment_received)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================

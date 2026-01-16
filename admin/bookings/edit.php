@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $post_selected_payment_methods = isset($_POST['payment_methods']) ? $_POST['payment_methods'] : [];
     $booking_status = $_POST['booking_status'];
     $payment_status = $_POST['payment_status'];
+    $advance_payment_received = isset($_POST['advance_payment_received']) ? 1 : 0;
     
     // Store old status for email notification
     $old_booking_status = $booking['booking_status'];
@@ -97,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         hall_id = ?, event_date = ?, shift = ?, 
                         event_type = ?, number_of_guests = ?, hall_price = ?, menu_total = ?, 
                         services_total = ?, subtotal = ?, tax_amount = ?, grand_total = ?, 
-                        special_requests = ?, booking_status = ?, payment_status = ?
+                        special_requests = ?, booking_status = ?, payment_status = ?, advance_payment_received = ?
                         WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
@@ -116,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $special_requests,
                     $booking_status,
                     $payment_status,
+                    $advance_payment_received,
                     $booking_id
                 ]);
                 
@@ -393,6 +395,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                                 </select>
                                 <small class="text-muted">Flow: Pending → Partial → Paid</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="advance_payment_received" name="advance_payment_received" value="1" <?php echo ($booking['advance_payment_received'] == 1) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="advance_payment_received">
+                                        <strong>Advance Payment Received</strong>
+                                        <small class="text-muted d-block">Check this box if the customer has paid the advance payment</small>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
