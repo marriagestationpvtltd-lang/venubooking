@@ -7,13 +7,18 @@ $error = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $current_password = $_POST['current_password'] ?? '';
-    $new_password = $_POST['new_password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    
-    // Validation
-    if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
-        $error = 'All fields are required';
+    // Verify CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!verifyCSRFToken($csrf_token)) {
+        $error = 'Invalid security token. Please try again.';
+    } else {
+        $current_password = $_POST['current_password'] ?? '';
+        $new_password = $_POST['new_password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+        
+        // Validation
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            $error = 'All fields are required';
     } elseif ($new_password !== $confirm_password) {
         $error = 'New password and confirm password do not match';
     } elseif (strlen($new_password) < 6) {
@@ -46,7 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    }
 }
+
+// Generate CSRF token
+$csrf_token = generateCSRFToken();
 ?>
 
 <style>
@@ -90,6 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form method="POST" action="" id="changePasswordForm">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+            
             <div class="mb-3">
                 <label for="current_password" class="form-label">
                     <i class="fas fa-lock"></i> Current Password *
