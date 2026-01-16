@@ -383,7 +383,8 @@ section.py-5 .btn-lg {
     .navbar,
     footer,
     .btn,
-    .action-buttons {
+    .action-buttons,
+    .mobile-bottom-nav {
         display: none !important;
     }
     
@@ -394,5 +395,98 @@ section.py-5 .btn-lg {
     
     body {
         background: white;
+    }
+}
+
+/* Mobile Collapsible Booking Summary Cards */
+@media (max-width: 767px) {
+    .booking-summary-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        background: white;
+        overflow: hidden;
+    }
+    
+    .booking-summary-card .card-header {
+        background: #f8f9fa;
+        padding: 1rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    
+    .booking-summary-card .card-header:hover {
+        background: #e9ecef;
+    }
+    
+    .booking-summary-card .card-header .toggle-icon {
+        transition: transform 0.3s;
+        font-size: 0.85rem;
+    }
+    
+    .booking-summary-card .card-header.collapsed .toggle-icon {
+        transform: rotate(180deg);
+    }
+    
+    .booking-summary-card .card-body {
+        padding: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .booking-summary-card .collapse {
+        transition: height 0.3s ease;
+    }
+}
+
+/* Smooth scroll for validation errors */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Validation error styling */
+.invalid-feedback {
+    display: block;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Mobile-specific enhancements */
+@media (max-width: 767px) {
+    /* Better spacing for headings */
+    section.py-5 .container h2.mb-4 {
+        font-size: 1.75rem;
+        margin-bottom: 1rem !important;
+    }
+    
+    section.py-5 .container .lead {
+        font-size: 1rem;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Category headers */
+    section.py-5 .mb-4 > h4 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Improve alert visibility */
+    .alert {
+        font-size: 0.95rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
     }
 }
