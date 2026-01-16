@@ -522,6 +522,92 @@ function formatCurrency($amount) {
 }
 
 /**
+ * Convert number to words (for invoices)
+ * Supports numbers up to 99,999,999.99
+ */
+function numberToWords($number) {
+    $number = number_format($number, 2, '.', '');
+    list($integer, $fraction) = explode('.', $number);
+    
+    $output = '';
+    
+    if ($integer == 0) {
+        $output = 'Zero';
+    } else {
+        $ones = array(
+            '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+            'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+            'Seventeen', 'Eighteen', 'Nineteen'
+        );
+        
+        $tens = array(
+            '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
+        );
+        
+        $scales = array('', 'Thousand', 'Lakh', 'Crore');
+        
+        $integer = str_pad($integer, 9, '0', STR_PAD_LEFT);
+        $crore = substr($integer, 0, 2);
+        $lakh = substr($integer, 2, 2);
+        $thousand = substr($integer, 4, 2);
+        $hundred = substr($integer, 6, 1);
+        $ten = substr($integer, 7, 2);
+        
+        $result = array();
+        
+        // Crores
+        if ($crore > 0) {
+            if ($crore < 20) {
+                $result[] = $ones[$crore] . ' Crore';
+            } else {
+                $result[] = $tens[intval($crore / 10)] . ' ' . $ones[$crore % 10] . ' Crore';
+            }
+        }
+        
+        // Lakhs
+        if ($lakh > 0) {
+            if ($lakh < 20) {
+                $result[] = $ones[$lakh] . ' Lakh';
+            } else {
+                $result[] = $tens[intval($lakh / 10)] . ' ' . $ones[$lakh % 10] . ' Lakh';
+            }
+        }
+        
+        // Thousands
+        if ($thousand > 0) {
+            if ($thousand < 20) {
+                $result[] = $ones[$thousand] . ' Thousand';
+            } else {
+                $result[] = $tens[intval($thousand / 10)] . ' ' . $ones[$thousand % 10] . ' Thousand';
+            }
+        }
+        
+        // Hundreds
+        if ($hundred > 0) {
+            $result[] = $ones[$hundred] . ' Hundred';
+        }
+        
+        // Tens and ones
+        if ($ten > 0) {
+            if ($ten < 20) {
+                $result[] = $ones[$ten];
+            } else {
+                $result[] = trim($tens[intval($ten / 10)] . ' ' . $ones[$ten % 10]);
+            }
+        }
+        
+        $output = trim(implode(' ', $result));
+    }
+    
+    // Add paisa if fraction exists
+    if (intval($fraction) > 0) {
+        $output .= ' and ' . intval($fraction) . '/100';
+    }
+    
+    return $output;
+}
+
+/**
  * Calculate advance payment amount
  * 
  * @param float $total_amount The total booking amount

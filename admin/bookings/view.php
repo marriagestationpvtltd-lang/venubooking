@@ -106,6 +106,219 @@ if (isset($_POST['action'])) {
     </div>
 <?php endif; ?>
 
+<!-- Print-Only Invoice Layout -->
+<?php
+// Calculate payment details for invoice
+$total_paid = 0;
+$payment_transactions = getBookingPayments($booking_id);
+if (!empty($payment_transactions)) {
+    $total_paid = array_sum(array_column($payment_transactions, 'paid_amount'));
+}
+$balance_due = $booking['grand_total'] - $total_paid;
+$advance = calculateAdvancePayment($booking['grand_total']);
+
+// Company details from settings
+$company_name = getSetting('company_name', 'Wedding Venue Booking');
+$company_address = getSetting('company_address', 'Nepal');
+$company_phone = getSetting('company_phone', 'N/A');
+$company_email = getSetting('company_email', '');
+
+// Get payment mode from latest transaction
+$payment_mode = 'Not specified';
+if (!empty($payment_transactions)) {
+    $latest_payment = $payment_transactions[0];
+    $payment_mode = !empty($latest_payment['payment_method_name']) ? $latest_payment['payment_method_name'] : 'Not specified';
+}
+?>
+
+<div class="print-invoice-only" style="display: none;">
+    <div class="invoice-container">
+        <!-- Header Section -->
+        <div class="invoice-header">
+            <div class="company-logo-space">
+                <!-- Logo placeholder - can be replaced with actual logo -->
+                <div class="logo-placeholder">LOGO</div>
+            </div>
+            <div class="company-info">
+                <h1 class="company-name"><?php echo htmlspecialchars($company_name); ?></h1>
+                <p class="company-details">
+                    <?php echo htmlspecialchars($company_address); ?><br>
+                    Phone: <?php echo htmlspecialchars($company_phone); ?>
+                    <?php if ($company_email): ?>
+                        <br>Email: <?php echo htmlspecialchars($company_email); ?>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <div class="invoice-title">
+                <h2>Wedding Booking Confirmation<br>& Partial Payment Receipt</h2>
+            </div>
+        </div>
+
+        <!-- Invoice Details Bar -->
+        <div class="invoice-details-bar">
+            <div class="invoice-detail-item">
+                <strong>Invoice Date:</strong> <?php echo date('F d, Y', strtotime($booking['created_at'])); ?>
+            </div>
+            <div class="invoice-detail-item">
+                <strong>Booking Date (BS):</strong> <span id="nepali-date-display"><?php echo date('Y-m-d', strtotime($booking['created_at'])); ?></span>
+            </div>
+            <div class="invoice-detail-item">
+                <strong>Booking No:</strong> <?php echo htmlspecialchars($booking['booking_number']); ?>
+            </div>
+        </div>
+
+        <!-- Customer Details Section -->
+        <div class="customer-section">
+            <h3>Customer Details</h3>
+            <div class="customer-info-grid">
+                <div class="info-row">
+                    <span class="info-label">Booked By:</span>
+                    <span class="info-value"><?php echo htmlspecialchars($booking['full_name']); ?></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Mobile Number:</span>
+                    <span class="info-value"><?php echo htmlspecialchars($booking['phone']); ?></span>
+                </div>
+                <?php if ($booking['email']): ?>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value"><?php echo htmlspecialchars($booking['email']); ?></span>
+                </div>
+                <?php endif; ?>
+                <div class="info-row">
+                    <span class="info-label">Event Date:</span>
+                    <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> (<?php echo ucfirst($booking['shift']); ?>)</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Venue:</span>
+                    <span class="info-value"><?php echo htmlspecialchars($booking['venue_name']); ?> - <?php echo htmlspecialchars($booking['hall_name']); ?></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Number of Guests:</span>
+                    <span class="info-value"><?php echo $booking['number_of_guests']; ?></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Details Table -->
+        <div class="booking-table-section">
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="text-center">Quantity</th>
+                        <th class="text-right">Rate</th>
+                        <th class="text-right">Amount (NPR)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Hall/Venue -->
+                    <tr>
+                        <td><strong>Marriage Package</strong> - <?php echo htmlspecialchars($booking['hall_name']); ?></td>
+                        <td class="text-center">1</td>
+                        <td class="text-right"><?php echo number_format($booking['hall_price'], 2); ?></td>
+                        <td class="text-right"><?php echo number_format($booking['hall_price'], 2); ?></td>
+                    </tr>
+                    
+                    <!-- Menus -->
+                    <?php if (!empty($booking['menus'])): ?>
+                        <?php foreach ($booking['menus'] as $menu): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($menu['menu_name']); ?></td>
+                            <td class="text-center"><?php echo $menu['number_of_guests']; ?></td>
+                            <td class="text-right"><?php echo number_format($menu['price_per_person'], 2); ?></td>
+                            <td class="text-right"><?php echo number_format($menu['total_price'], 2); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <!-- Services / Snacks / Additional Items -->
+                    <?php if (!empty($booking['services'])): ?>
+                        <?php foreach ($booking['services'] as $service): ?>
+                        <tr>
+                            <td>Snacks / Additional Items - <?php echo htmlspecialchars($service['service_name']); ?></td>
+                            <td class="text-center">1</td>
+                            <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
+                            <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <!-- Subtotal -->
+                    <tr class="subtotal-row">
+                        <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
+                        <td class="text-right"><strong><?php echo number_format($booking['subtotal'], 2); ?></strong></td>
+                    </tr>
+                    
+                    <!-- Tax -->
+                    <tr>
+                        <td colspan="3" class="text-right">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</td>
+                        <td class="text-right"><?php echo number_format($booking['tax_amount'], 2); ?></td>
+                    </tr>
+                    
+                    <!-- Grand Total -->
+                    <tr class="total-row">
+                        <td colspan="3" class="text-right"><strong>GRAND TOTAL:</strong></td>
+                        <td class="text-right"><strong><?php echo number_format($booking['grand_total'], 2); ?></strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Payment Calculation Section -->
+        <div class="payment-calculation-section">
+            <table class="payment-table">
+                <tr>
+                    <td class="payment-label">Advance Payment Received (<?php echo $advance['percentage']; ?>%):</td>
+                    <td class="payment-value">NPR <?php echo number_format($total_paid, 2); ?></td>
+                </tr>
+                <tr class="due-amount-row">
+                    <td class="payment-label"><strong>Total Due Amount:</strong></td>
+                    <td class="payment-value"><strong>NPR <?php echo number_format($balance_due, 2); ?></strong></td>
+                </tr>
+                <tr>
+                    <td class="payment-label">Amount in Words:</td>
+                    <td class="payment-value-words"><?php echo numberToWords($booking['grand_total']); ?> Only</td>
+                </tr>
+                <tr>
+                    <td class="payment-label">Payment Mode:</td>
+                    <td class="payment-value"><?php echo htmlspecialchars($payment_mode); ?></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Important Note Section -->
+        <div class="note-section">
+            <h3>Important - Cancellation Policy</h3>
+            <ul>
+                <li>Advance payment is non-refundable in case of cancellation.</li>
+                <li>Full payment must be completed 7 days before the event date.</li>
+                <li>Cancellations made 30 days before the event will receive 50% refund of total amount (excluding advance).</li>
+                <li>Cancellations made less than 30 days before the event are non-refundable.</li>
+                <li>Date changes are subject to availability and must be requested at least 15 days in advance.</li>
+            </ul>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="invoice-footer">
+            <div class="signature-section">
+                <div class="signature-line">
+                    <p>_____________________</p>
+                    <p><strong><?php echo htmlspecialchars($company_name); ?></strong></p>
+                    <p>Authorized Signature</p>
+                </div>
+            </div>
+            <div class="thank-you-section">
+                <p><strong>Thank you for choosing <?php echo htmlspecialchars($company_name); ?>!</strong></p>
+                <p>For any queries, please contact us at: <?php echo htmlspecialchars($company_phone); ?></p>
+                <?php if ($company_email): ?>
+                    <p>Email: <?php echo htmlspecialchars($company_email); ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Page Header -->
 <div class="row mb-4">
     <div class="col-12">
@@ -893,25 +1106,299 @@ if (isset($_POST['action'])) {
     letter-spacing: 0.5px;
 }
 
+/* Print Invoice Styles */
+.print-invoice-only {
+    display: none;
+}
+
+.invoice-container {
+    font-family: 'Arial', sans-serif;
+    color: #000;
+    line-height: 1.4;
+}
+
+.invoice-header {
+    border-bottom: 3px solid #000;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.company-logo-space {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.logo-placeholder {
+    border: 2px solid #000;
+    padding: 20px 40px;
+    display: inline-block;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.company-info {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.company-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.company-details {
+    font-size: 11px;
+    margin: 5px 0;
+}
+
+.invoice-title {
+    text-align: center;
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+    padding: 8px 0;
+    margin-top: 10px;
+}
+
+.invoice-title h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.invoice-details-bar {
+    display: flex;
+    justify-content: space-between;
+    background: #f0f0f0;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border: 1px solid #000;
+}
+
+.invoice-detail-item {
+    font-size: 11px;
+}
+
+.customer-section {
+    margin-bottom: 20px;
+    border: 1px solid #000;
+    padding: 15px;
+}
+
+.customer-section h3 {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #000;
+    text-transform: uppercase;
+}
+
+.customer-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.info-row {
+    display: flex;
+    font-size: 11px;
+}
+
+.info-label {
+    font-weight: bold;
+    min-width: 120px;
+}
+
+.info-value {
+    flex: 1;
+}
+
+.booking-table-section {
+    margin-bottom: 20px;
+}
+
+.invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.invoice-table th {
+    background: #000;
+    color: #fff;
+    padding: 8px;
+    text-align: left;
+    font-weight: bold;
+    border: 1px solid #000;
+}
+
+.invoice-table td {
+    padding: 6px 8px;
+    border: 1px solid #000;
+}
+
+.invoice-table .text-center {
+    text-align: center;
+}
+
+.invoice-table .text-right {
+    text-align: right;
+}
+
+.invoice-table .subtotal-row td {
+    background: #f0f0f0;
+    font-weight: bold;
+}
+
+.invoice-table .total-row td {
+    background: #000;
+    color: #fff;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.payment-calculation-section {
+    margin-bottom: 20px;
+    border: 2px solid #000;
+    padding: 15px;
+}
+
+.payment-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.payment-table td {
+    padding: 6px 0;
+    font-size: 11px;
+}
+
+.payment-label {
+    width: 50%;
+    font-weight: bold;
+}
+
+.payment-value {
+    text-align: right;
+    font-size: 12px;
+}
+
+.payment-value-words {
+    text-align: right;
+    font-style: italic;
+}
+
+.due-amount-row td {
+    border-top: 2px solid #000;
+    padding-top: 10px;
+    font-size: 13px;
+}
+
+.note-section {
+    background: #f8f8f8;
+    border: 1px solid #000;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.note-section h3 {
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+}
+
+.note-section ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.note-section li {
+    margin-bottom: 5px;
+}
+
+.invoice-footer {
+    border-top: 2px solid #000;
+    padding-top: 15px;
+}
+
+.signature-section {
+    margin-bottom: 15px;
+}
+
+.signature-line {
+    text-align: right;
+    font-size: 11px;
+}
+
+.signature-line p {
+    margin: 3px 0;
+}
+
+.thank-you-section {
+    text-align: center;
+    font-size: 11px;
+}
+
+.thank-you-section p {
+    margin: 3px 0;
+}
+
 /* Print Styles */
 @media print {
-    .btn, .card-header, nav, footer, .alert, .quick-action-section {
-        display: none !important;
+    /* Hide all non-invoice content */
+    body * {
+        visibility: hidden;
     }
-    .card {
-        border: 1px solid #dee2e6 !important;
-        box-shadow: none !important;
+    
+    .print-invoice-only,
+    .print-invoice-only * {
+        visibility: visible;
+    }
+    
+    .print-invoice-only {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    
+    /* A4 Page Settings */
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .invoice-container {
+        width: 100%;
+        max-width: 180mm;
+        margin: 0 auto;
+    }
+    
+    /* Ensure no page breaks within important sections */
+    .invoice-header,
+    .customer-section,
+    .booking-table-section,
+    .payment-calculation-section,
+    .note-section {
         page-break-inside: avoid;
     }
-    .shadow-sm {
+    
+    /* Remove any box shadows and unnecessary styling */
+    * {
         box-shadow: none !important;
-    }
-    .col-lg-8, .col-lg-4 {
-        width: 100% !important;
-    }
-    .sticky-top {
-        position: relative !important;
-        top: 0 !important;
+        text-shadow: none !important;
     }
 }
 
@@ -954,6 +1441,20 @@ if (isset($_POST['action'])) {
         });
     }
 })();
+
+// Simple Nepali Date Display (BS format approximation)
+// For accurate conversion, a full Nepali calendar library would be needed
+// This provides a basic display format
+(function() {
+    const nepaliDateDisplay = document.getElementById('nepali-date-display');
+    if (nepaliDateDisplay) {
+        const englishDate = nepaliDateDisplay.textContent;
+        // Keep as is for now - can be enhanced with actual Nepali calendar conversion
+        // For production, integrate with nepali-date-picker.js or similar library
+        nepaliDateDisplay.textContent = englishDate + ' (BS)';
+    }
+})();
+
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
