@@ -147,6 +147,18 @@ if (!empty($payment_transactions)) {
     $latest_payment = $payment_transactions[0];
     $payment_mode = !empty($latest_payment['payment_method_name']) ? $latest_payment['payment_method_name'] : 'Not specified';
 }
+
+// Get invoice content from settings
+$invoice_title = getSetting('invoice_title', 'Wedding Booking Confirmation & Partial Payment Receipt');
+$cancellation_policy = getSetting('cancellation_policy', 'Advance payment is non-refundable in case of cancellation.
+Full payment must be completed 7 days before the event date.
+Cancellations made 30 days before the event will receive 50% refund of total amount (excluding advance).
+Cancellations made less than 30 days before the event are non-refundable.
+Date changes are subject to availability and must be requested at least 15 days in advance.');
+$invoice_disclaimer = getSetting('invoice_disclaimer', 'Note: This is a computer-generated estimate bill. Please create a complete invoice yourself.');
+$package_label = getSetting('invoice_package_label', 'Marriage Package');
+$additional_items_label = getSetting('invoice_additional_items_label', 'Additional Items');
+$currency = getSetting('currency', 'NPR');
 ?>
 
 <div class="print-invoice-only" style="display: none;">
@@ -173,7 +185,7 @@ if (!empty($payment_transactions)) {
                 </p>
             </div>
             <div class="invoice-title">
-                <h2>Wedding Booking Confirmation<br>& Partial Payment Receipt</h2>
+                <h2><?php echo nl2br(htmlspecialchars($invoice_title)); ?></h2>
             </div>
         </div>
 
@@ -235,13 +247,13 @@ if (!empty($payment_transactions)) {
                         <th>Description</th>
                         <th class="text-center">Quantity</th>
                         <th class="text-right">Rate</th>
-                        <th class="text-right">Amount (NPR)</th>
+                        <th class="text-right">Amount (<?php echo htmlspecialchars($currency); ?>)</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Hall/Venue -->
                     <tr>
-                        <td><strong>Marriage Package</strong> - <?php echo htmlspecialchars($booking['hall_name']); ?></td>
+                        <td><strong><?php echo htmlspecialchars($package_label); ?></strong> - <?php echo htmlspecialchars($booking['hall_name']); ?></td>
                         <td class="text-center">1</td>
                         <td class="text-right"><?php echo number_format($booking['hall_price'], 2); ?></td>
                         <td class="text-right"><?php echo number_format($booking['hall_price'], 2); ?></td>
@@ -263,7 +275,7 @@ if (!empty($payment_transactions)) {
                     <?php if (!empty($booking['services'])): ?>
                         <?php foreach ($booking['services'] as $service): ?>
                         <tr>
-                            <td>Additional Items - <?php echo htmlspecialchars($service['service_name']); ?></td>
+                            <td><?php echo htmlspecialchars($additional_items_label); ?> - <?php echo htmlspecialchars($service['service_name']); ?></td>
                             <td class="text-center">1</td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
@@ -297,15 +309,15 @@ if (!empty($payment_transactions)) {
             <table class="payment-table">
                 <tr>
                     <td class="payment-label">Advance Payment Required (<?php echo $advance['percentage']; ?>%):</td>
-                    <td class="payment-value">NPR <?php echo number_format($advance['amount'], 2); ?></td>
+                    <td class="payment-value"><?php echo htmlspecialchars($currency); ?> <?php echo number_format($advance['amount'], 2); ?></td>
                 </tr>
                 <tr>
                     <td class="payment-label">Advance Payment Received:</td>
-                    <td class="payment-value">NPR <?php echo number_format($total_paid, 2); ?></td>
+                    <td class="payment-value"><?php echo htmlspecialchars($currency); ?> <?php echo number_format($total_paid, 2); ?></td>
                 </tr>
                 <tr class="due-amount-row">
                     <td class="payment-label"><strong>Balance Due Amount:</strong></td>
-                    <td class="payment-value"><strong>NPR <?php echo number_format($balance_due, 2); ?></strong></td>
+                    <td class="payment-value"><strong><?php echo htmlspecialchars($currency); ?> <?php echo number_format($balance_due, 2); ?></strong></td>
                 </tr>
                 <tr>
                     <td class="payment-label">Amount in Words:</td>
@@ -322,11 +334,13 @@ if (!empty($payment_transactions)) {
         <div class="note-section">
             <h3>Important - Cancellation Policy</h3>
             <ul>
-                <li>Advance payment is non-refundable in case of cancellation.</li>
-                <li>Full payment must be completed 7 days before the event date.</li>
-                <li>Cancellations made 30 days before the event will receive 50% refund of total amount (excluding advance).</li>
-                <li>Cancellations made less than 30 days before the event are non-refundable.</li>
-                <li>Date changes are subject to availability and must be requested at least 15 days in advance.</li>
+                <?php 
+                // Split cancellation policy by lines and display as list items
+                $policy_lines = array_filter(array_map('trim', explode("\n", $cancellation_policy)));
+                foreach ($policy_lines as $line): 
+                ?>
+                    <li><?php echo htmlspecialchars($line); ?></li>
+                <?php endforeach; ?>
             </ul>
         </div>
 
@@ -347,7 +361,7 @@ if (!empty($payment_transactions)) {
                 <?php endif; ?>
             </div>
             <div class="disclaimer-note">
-                <p><strong>Note:</strong> This is a computer-generated estimate bill. Please create a complete invoice yourself.</p>
+                <p><?php echo nl2br(htmlspecialchars($invoice_disclaimer)); ?></p>
             </div>
         </div>
     </div>
