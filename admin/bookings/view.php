@@ -339,7 +339,7 @@ if (!empty($payment_transactions)) {
                 <?php endif; ?>
             </div>
             <div class="disclaimer-note">
-                <p><strong>Note:</strong> This is a computer-generated bill. This is an estimate bill. Please make complete invoice yourself.</p>
+                <p><strong>Note:</strong> This is a computer-generated bill. This is an estimate bill. Please make a complete invoice yourself.</p>
             </div>
         </div>
     </div>
@@ -1425,7 +1425,7 @@ if (!empty($payment_transactions)) {
     padding-top: 15px;
     border-top: 2px solid #000;
     text-align: center;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
     color: #333;
     font-style: italic;
@@ -1480,14 +1480,26 @@ if (!empty($payment_transactions)) {
     }
     
     /* Remove any box shadows and unnecessary styling */
-    * {
+    .invoice-header,
+    .customer-section,
+    .booking-table-section,
+    .payment-calculation-section,
+    .note-section,
+    .invoice-footer {
         box-shadow: none !important;
         text-shadow: none !important;
     }
     
     /* Force black color for text in print */
     .invoice-container,
-    .invoice-container * {
+    .invoice-container p,
+    .invoice-container td,
+    .invoice-container th,
+    .invoice-container span,
+    .invoice-container strong,
+    .invoice-container h1,
+    .invoice-container h2,
+    .invoice-container h3 {
         color: #000 !important;
     }
     
