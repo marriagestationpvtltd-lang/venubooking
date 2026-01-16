@@ -24,6 +24,15 @@ try {
         exit;
     }
     
+    // Validate date format (YYYY-MM-DD)
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid date format'
+        ]);
+        exit;
+    }
+    
     // Fetch bookings within the date range
     $stmt = $db->prepare("SELECT b.id, b.booking_number, b.event_date, b.shift, 
                           b.event_type, b.booking_status,

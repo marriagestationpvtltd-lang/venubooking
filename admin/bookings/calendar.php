@@ -119,6 +119,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const calendarEl = document.getElementById("calendar");
     const bookingDetailsEl = document.getElementById("booking-details");
     
+    // Pre-calculated booking counts for performance
+    let bookingCounts = {};
+    
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         headerToolbar: {
@@ -132,6 +135,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        // Pre-calculate booking counts
+                        bookingCounts = {};
+                        data.events.forEach(event => {
+                            const dateStr = event.start;
+                            bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
+                        });
                         successCallback(data.events);
                     } else {
                         failureCallback(data.message || "Failed to load bookings");
@@ -150,16 +159,14 @@ document.addEventListener("DOMContentLoaded", function() {
             loadBookingsForDate(info.event.startStr);
         },
         dayCellDidMount: function(info) {
-            // Add booking count badge to date cells
+            // Add booking count badge to date cells using pre-calculated counts
             const dateStr = info.date.toISOString().split("T")[0];
-            const events = calendar.getEvents().filter(e => 
-                e.startStr === dateStr
-            );
+            const count = bookingCounts[dateStr] || 0;
             
-            if (events.length > 0) {
+            if (count > 0) {
                 const badge = document.createElement("span");
                 badge.className = "booking-count-badge";
-                badge.textContent = events.length;
+                badge.textContent = count;
                 info.el.querySelector(".fc-daygrid-day-number").appendChild(badge);
             }
         }
@@ -243,8 +250,16 @@ document.addEventListener("DOMContentLoaded", function() {
                     "fullday": "clock"
                 };
                 
+                const paymentColors = {
+                    "paid": "success",
+                    "partial": "warning",
+                    "pending": "danger",
+                    "cancelled": "secondary"
+                };
+                
                 const statusColor = statusColors[booking.booking_status] || "secondary";
                 const shiftIcon = shiftIcons[booking.shift] || "clock";
+                const paymentColor = paymentColors[booking.payment_status] || "danger";
                 
                 html += `
                     <div class="booking-detail-card">
@@ -298,7 +313,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         
                         <div class="mt-2 pt-2 border-top">
                             <strong class="text-success">${booking.grand_total_formatted}</strong>
-                            <span class="badge bg-${booking.payment_status === "paid" ? "success" : booking.payment_status === "partial" ? "warning" : "danger"} float-end">
+                            <span class="badge bg-${paymentColor} float-end">
                                 ${booking.payment_status.toUpperCase()}
                             </span>
                         </div>
