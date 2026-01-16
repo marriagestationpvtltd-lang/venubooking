@@ -95,39 +95,88 @@ $current_total = $totals['subtotal'];
                 }
                 ?>
 
-                <?php foreach ($grouped_services as $category => $category_services): ?>
-                    <div class="mb-4">
-                        <h4 class="mb-3"><?php echo sanitize($category); ?></h4>
-                        <div class="row g-3">
-                            <?php foreach ($category_services as $service): ?>
-                                <div class="col-md-6">
-                                    <div class="service-card card">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div class="flex-grow-1">
-                                                    <h5 class="card-title">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input service-checkbox" 
-                                                                   type="checkbox" 
-                                                                   name="services[]" 
-                                                                   value="<?php echo $service['id']; ?>" 
-                                                                   id="service<?php echo $service['id']; ?>"
-                                                                   data-price="<?php echo $service['price']; ?>">
-                                                            <label class="form-check-label" for="service<?php echo $service['id']; ?>">
-                                                                <?php echo sanitize($service['name']); ?>
-                                                            </label>
-                                                        </div>
-                                                    </h5>
-                                                    <p class="card-text text-muted"><?php echo sanitize($service['description']); ?></p>
-                                                </div>
-                                                <div class="ms-3">
-                                                    <span class="h5 text-success"><?php echo formatCurrency($service['price']); ?></span>
+                <?php 
+                $category_index = 0;
+                foreach ($grouped_services as $category => $category_services): 
+                    $category_id = 'category' . $category_index;
+                    $is_first = ($category_index === 0);
+                    $category_index++;
+                ?>
+                    <div class="mb-4 service-category-section">
+                        <!-- Desktop: Always show category -->
+                        <div class="d-none d-md-block">
+                            <h4 class="mb-3"><?php echo sanitize($category); ?></h4>
+                            <div class="row g-3">
+                                <?php foreach ($category_services as $service): ?>
+                                    <div class="col-md-6">
+                                        <div class="service-card card">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h5 class="card-title">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input service-checkbox" 
+                                                                       type="checkbox" 
+                                                                       name="services[]" 
+                                                                       value="<?php echo $service['id']; ?>" 
+                                                                       id="service<?php echo $service['id']; ?>"
+                                                                       data-price="<?php echo $service['price']; ?>">
+                                                                <label class="form-check-label" for="service<?php echo $service['id']; ?>">
+                                                                    <?php echo sanitize($service['name']); ?>
+                                                                </label>
+                                                            </div>
+                                                        </h5>
+                                                        <p class="card-text text-muted"><?php echo sanitize($service['description']); ?></p>
+                                                    </div>
+                                                    <div class="ms-3">
+                                                        <span class="h5 text-success"><?php echo formatCurrency($service['price']); ?></span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Mobile: Collapsible category (first one expanded by default) -->
+                        <div class="d-md-none">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light" style="cursor: pointer;" 
+                                     data-bs-toggle="collapse" 
+                                     data-bs-target="#<?php echo $category_id; ?>" 
+                                     aria-expanded="<?php echo $is_first ? 'true' : 'false'; ?>">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><?php echo sanitize($category); ?></h5>
+                                        <span class="badge bg-success"><?php echo count($category_services); ?> services</span>
+                                    </div>
                                 </div>
-                            <?php endforeach; ?>
+                                <div id="<?php echo $category_id; ?>" class="collapse <?php echo $is_first ? 'show' : ''; ?>">
+                                    <div class="card-body p-2">
+                                        <?php foreach ($category_services as $service): ?>
+                                            <div class="service-card card mb-2">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div class="form-check flex-grow-1">
+                                                            <input class="form-check-input service-checkbox" 
+                                                                   type="checkbox" 
+                                                                   name="services[]" 
+                                                                   value="<?php echo $service['id']; ?>" 
+                                                                   id="service<?php echo $service['id']; ?>_mobile"
+                                                                   data-price="<?php echo $service['price']; ?>">
+                                                            <label class="form-check-label" for="service<?php echo $service['id']; ?>_mobile">
+                                                                <strong><?php echo sanitize($service['name']); ?></strong>
+                                                            </label>
+                                                        </div>
+                                                        <span class="text-success fw-bold"><?php echo formatCurrency($service['price']); ?></span>
+                                                    </div>
+                                                    <p class="card-text text-muted small mb-0"><?php echo sanitize($service['description']); ?></p>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>

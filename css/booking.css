@@ -441,6 +441,45 @@ section.py-5 .btn-lg {
     .booking-summary-card .collapse {
         transition: height 0.3s ease;
     }
+    
+    /* Collapsible sections for menu items and service categories */
+    .card-header[data-bs-toggle="collapse"] {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .card-header[data-bs-toggle="collapse"]:hover {
+        background: #f8f9fa;
+    }
+    
+    .card-header[data-bs-toggle="collapse"] .fa-chevron-down {
+        transition: transform 0.3s ease;
+    }
+    
+    .card-header[data-bs-toggle="collapse"][aria-expanded="true"] .fa-chevron-down {
+        transform: rotate(180deg);
+    }
+    
+    /* Mobile summary collapse improvements */
+    #mobileSummaryCollapse .card-body {
+        font-size: 0.9rem;
+    }
+    
+    /* Improve touch targets for collapse buttons */
+    button[data-bs-toggle="collapse"] {
+        min-height: 44px;
+    }
+    
+    /* Service category mobile cards */
+    .service-category-section .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .service-category-section .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+    }
 }
 
 /* Smooth scroll for validation errors */

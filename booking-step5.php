@@ -446,7 +446,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
 
             <!-- Booking Summary -->
             <div class="col-lg-4">
-                <div class="card shadow-sm sticky-top" style="top: 20px;">
+                <!-- Desktop: Standard sticky sidebar -->
+                <div class="card shadow-sm sticky-top d-none d-lg-block" style="top: 20px;">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0">Booking Summary</h5>
                     </div>
@@ -485,37 +486,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                                 <div class="mb-2">
                                     <small><strong><?php echo sanitize($menu['name']); ?></strong></small><br>
                                     <small class="text-success"><?php echo formatCurrency($menu['price_per_person']); ?>/pax</small>
-                                    
-                                    <?php if (!empty($menu['items'])): ?>
-                                        <div class="mt-1 ms-2">
-                                            <small class="text-muted d-block mb-1">Menu Items:</small>
-                                            <ul class="booking-list small">
-                                                <?php 
-                                                $items_by_category = [];
-                                                foreach ($menu['items'] as $item) {
-                                                    $category = !empty($item['category']) ? $item['category'] : 'Other';
-                                                    $items_by_category[$category][] = $item;
-                                                }
-                                                
-                                                foreach ($items_by_category as $category => $items): 
-                                                ?>
-                                                    <?php if (count($items_by_category) > 1): ?>
-                                                        <li><strong><?php echo sanitize($category); ?>:</strong>
-                                                            <ul>
-                                                                <?php foreach ($items as $item): ?>
-                                                                    <li><?php echo sanitize($item['item_name']); ?></li>
-                                                                <?php endforeach; ?>
-                                                            </ul>
-                                                        </li>
-                                                    <?php else: ?>
-                                                        <?php foreach ($items as $item): ?>
-                                                            <li><?php echo sanitize($item['item_name']); ?></li>
-                                                        <?php endforeach; ?>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        </div>
-                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                             <hr class="my-2">
@@ -566,6 +536,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                         <div class="d-flex justify-content-between">
                             <h5>Grand Total:</h5>
                             <h5 class="text-success"><?php echo formatCurrency($totals['grand_total']); ?></h5>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile: Collapsible summary at top -->
+                <div class="card shadow-sm d-lg-none mb-4">
+                    <div class="card-header bg-success text-white" style="cursor: pointer;" 
+                         data-bs-toggle="collapse" 
+                         data-bs-target="#mobileSummaryCollapse" 
+                         aria-expanded="false">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-receipt me-2"></i>Booking Summary</h6>
+                            <div>
+                                <strong><?php echo formatCurrency($totals['grand_total']); ?></strong>
+                                <i class="fas fa-chevron-down ms-2"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="mobileSummaryCollapse" class="collapse">
+                        <div class="card-body">
+                            <!-- Compact Event Info -->
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1"><i class="fas fa-calendar-check me-1"></i>Event</small>
+                                <div><strong><?php echo sanitize($booking_data['event_type']); ?></strong></div>
+                                <div><small><?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?> • <?php echo ucfirst($booking_data['shift']); ?></small></div>
+                                <div><small><?php echo $booking_data['guests']; ?> guests</small></div>
+                            </div>
+
+                            <!-- Compact Venue Info -->
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1"><i class="fas fa-building me-1"></i>Venue</small>
+                                <div><strong><?php echo sanitize($selected_hall['venue_name']); ?></strong></div>
+                                <div><small><?php echo sanitize($selected_hall['name']); ?></small></div>
+                            </div>
+
+                            <!-- Compact Cost Summary -->
+                            <div class="border-top pt-2">
+                                <div class="d-flex justify-content-between mb-1 small">
+                                    <span>Hall:</span>
+                                    <strong><?php echo formatCurrency($totals['hall_price']); ?></strong>
+                                </div>
+                                <?php if ($totals['menu_total'] > 0): ?>
+                                    <div class="d-flex justify-content-between mb-1 small">
+                                        <span>Menu:</span>
+                                        <strong><?php echo formatCurrency($totals['menu_total']); ?></strong>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($totals['services_total'] > 0): ?>
+                                    <div class="d-flex justify-content-between mb-1 small">
+                                        <span>Services:</span>
+                                        <strong><?php echo formatCurrency($totals['services_total']); ?></strong>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
+                                    <div class="d-flex justify-content-between mb-1 small">
+                                        <span>Tax:</span>
+                                        <strong><?php echo formatCurrency($totals['tax_amount']); ?></strong>
+                                    </div>
+                                <?php endif; ?>
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between">
+                                    <strong>Total:</strong>
+                                    <strong class="text-success fs-5"><?php echo formatCurrency($totals['grand_total']); ?></strong>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
