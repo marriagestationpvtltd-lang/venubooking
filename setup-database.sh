@@ -62,13 +62,24 @@ echo "Enter MySQL password for user '$DB_USER':"
 read -s DB_PASS
 echo ""
 
+# Create a temporary MySQL config file for secure password handling
+MYSQL_CNF=$(mktemp)
+cat > "$MYSQL_CNF" <<EOF
+[client]
+user=$DB_USER
+password=$DB_PASS
+host=$DB_HOST
+EOF
+chmod 600 "$MYSQL_CNF"
+
 # Test database connection
 echo -n "Testing database connection... "
-if mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" -e "SELECT 1;" > /dev/null 2>&1; then
+if mysql --defaults-extra-file="$MYSQL_CNF" -e "SELECT 1;" > /dev/null 2>&1; then
     echo -e "${GREEN}✓${NC}"
 else
     echo -e "${RED}✗${NC}"
     echo -e "${RED}Error:${NC} Could not connect to MySQL with provided credentials"
+    rm -f "$MYSQL_CNF"
     exit 1
 fi
 
@@ -90,12 +101,13 @@ echo "Importing database schema and data..."
 echo "(This may take a few moments...)"
 echo ""
 
-if mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" < "$SQL_FILE"; then
+if mysql --defaults-extra-file="$MYSQL_CNF" < "$SQL_FILE"; then
     echo ""
     echo -e "${GREEN}✓${NC} Database setup completed successfully!"
 else
     echo ""
     echo -e "${RED}✗${NC} Database setup failed!"
+    rm -f "$MYSQL_CNF"
     exit 1
 fi
 
@@ -106,16 +118,16 @@ echo "============================================"
 echo ""
 
 # Verify tables were created
-TABLE_COUNT=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DB_NAME';")
+TABLE_COUNT=$(mysql --defaults-extra-file="$MYSQL_CNF" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DB_NAME';")
 echo -e "Tables created: ${GREEN}$TABLE_COUNT${NC} (expected: 18)"
 
 # Verify bookings
-BOOKING_COUNT=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM bookings;")
+BOOKING_COUNT=$(mysql --defaults-extra-file="$MYSQL_CNF" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM bookings;")
 echo -e "Sample bookings: ${GREEN}$BOOKING_COUNT${NC}"
 
 # Check specific test bookings
-BOOKING_23=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM bookings WHERE id = 23;")
-BOOKING_37=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM bookings WHERE id = 37;")
+BOOKING_23=$(mysql --defaults-extra-file="$MYSQL_CNF" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM bookings WHERE id = 23;")
+BOOKING_37=$(mysql --defaults-extra-file="$MYSQL_CNF" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM bookings WHERE id = 37;")
 
 if [ "$BOOKING_23" = "1" ]; then
     echo -e "Booking #23: ${GREEN}✓ Found${NC}"
@@ -130,12 +142,15 @@ else
 fi
 
 # Verify admin user
-ADMIN_COUNT=$(mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM users WHERE username = 'admin';")
+ADMIN_COUNT=$(mysql --defaults-extra-file="$MYSQL_CNF" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM users WHERE username = 'admin';")
 if [ "$ADMIN_COUNT" = "1" ]; then
     echo -e "Admin user: ${GREEN}✓ Created${NC}"
 else
     echo -e "Admin user: ${RED}✗ Not found${NC}"
 fi
+
+# Clean up temporary config file
+rm -f "$MYSQL_CNF"
 
 echo ""
 echo "============================================"
