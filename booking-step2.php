@@ -165,7 +165,7 @@ if (preferredVenueId) {
             if (viewHallsBtn) {
                 const onclickAttr = viewHallsBtn.getAttribute("onclick");
                 // More robust extraction - match showHalls with venue ID and name
-                const matches = onclickAttr.match(/showHalls\\((\\d+),\\s*['\"](.*?)['\"]/);
+                const matches = onclickAttr.match(/showHalls\\((\\d+),\\s*[\'\\"](.*?)[\'\\"]/);  
                 if (matches && parseInt(matches[1]) === preferredVenueId) {
                     const venueId = parseInt(matches[1]);
                     const venueName = matches[2];
