@@ -147,6 +147,15 @@ if (!empty($payment_transactions)) {
     $latest_payment = $payment_transactions[0];
     $payment_mode = !empty($latest_payment['payment_method_name']) ? $latest_payment['payment_method_name'] : 'Not specified';
 }
+
+// Get invoice content from settings
+$invoice_title = getSetting('invoice_title', 'Wedding Booking Confirmation & Partial Payment Receipt');
+$cancellation_policy = getSetting('cancellation_policy', 'Advance payment is non-refundable in case of cancellation.
+Full payment must be completed 7 days before the event date.
+Cancellations made 30 days before the event will receive 50% refund of total amount (excluding advance).
+Cancellations made less than 30 days before the event are non-refundable.
+Date changes are subject to availability and must be requested at least 15 days in advance.');
+$invoice_disclaimer = getSetting('invoice_disclaimer', 'Note: This is a computer-generated estimate bill. Please create a complete invoice yourself.');
 ?>
 
 <div class="print-invoice-only" style="display: none;">
@@ -173,7 +182,7 @@ if (!empty($payment_transactions)) {
                 </p>
             </div>
             <div class="invoice-title">
-                <h2>Wedding Booking Confirmation<br>& Partial Payment Receipt</h2>
+                <h2><?php echo nl2br(htmlspecialchars($invoice_title)); ?></h2>
             </div>
         </div>
 
@@ -322,11 +331,13 @@ if (!empty($payment_transactions)) {
         <div class="note-section">
             <h3>Important - Cancellation Policy</h3>
             <ul>
-                <li>Advance payment is non-refundable in case of cancellation.</li>
-                <li>Full payment must be completed 7 days before the event date.</li>
-                <li>Cancellations made 30 days before the event will receive 50% refund of total amount (excluding advance).</li>
-                <li>Cancellations made less than 30 days before the event are non-refundable.</li>
-                <li>Date changes are subject to availability and must be requested at least 15 days in advance.</li>
+                <?php 
+                // Split cancellation policy by lines and display as list items
+                $policy_lines = array_filter(array_map('trim', explode("\n", $cancellation_policy)));
+                foreach ($policy_lines as $line): 
+                ?>
+                    <li><?php echo htmlspecialchars($line); ?></li>
+                <?php endforeach; ?>
             </ul>
         </div>
 
@@ -347,7 +358,7 @@ if (!empty($payment_transactions)) {
                 <?php endif; ?>
             </div>
             <div class="disclaimer-note">
-                <p><strong>Note:</strong> This is a computer-generated estimate bill. Please create a complete invoice yourself.</p>
+                <p><?php echo nl2br(htmlspecialchars($invoice_disclaimer)); ?></p>
             </div>
         </div>
     </div>

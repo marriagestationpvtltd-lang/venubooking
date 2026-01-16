@@ -372,6 +372,39 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                             <?php endif; ?>
                         </div>
                     </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h6 class="mb-3 text-success"><i class="fas fa-file-invoice"></i> Invoice Content</h6>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Customize the content that appears on printed invoices and booking bills.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Invoice Title</label>
+                            <input type="text" class="form-control" name="setting_invoice_title" 
+                                   value="<?php echo htmlspecialchars($settings['invoice_title'] ?? 'Wedding Booking Confirmation & Partial Payment Receipt'); ?>">
+                            <div class="form-text">The main title displayed on printed invoices/bills</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Cancellation Policy</label>
+                            <textarea class="form-control" name="setting_cancellation_policy" rows="8"><?php echo htmlspecialchars($settings['cancellation_policy'] ?? 'Advance payment is non-refundable in case of cancellation.
+Full payment must be completed 7 days before the event date.
+Cancellations made 30 days before the event will receive 50% refund of total amount (excluding advance).
+Cancellations made less than 30 days before the event are non-refundable.
+Date changes are subject to availability and must be requested at least 15 days in advance.'); ?></textarea>
+                            <div class="form-text">Cancellation policy terms displayed on invoices. Each line will be shown as a separate bullet point.</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Invoice Disclaimer</label>
+                            <textarea class="form-control" name="setting_invoice_disclaimer" rows="3"><?php echo htmlspecialchars($settings['invoice_disclaimer'] ?? 'Note: This is a computer-generated estimate bill. Please create a complete invoice yourself.'); ?></textarea>
+                            <div class="form-text">Disclaimer note shown at the bottom of invoices</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Email Settings Tab -->
