@@ -41,11 +41,11 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
                             </div>
 
                             <div class="mb-3">
-                                <label for="event_date" class="form-label">
+                                <label for="booking_date" class="form-label">
                                     <i class="fas fa-calendar"></i> Event Date
                                 </label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="event_date" name="event_date" 
+                                    <input type="text" class="form-control" id="booking_date" name="event_date" 
                                            readonly placeholder="Select Nepali Date (BS)" required>
                                     <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Current Calendar Mode (Click to toggle)">
                                         <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>

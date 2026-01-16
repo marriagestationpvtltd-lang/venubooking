@@ -433,6 +433,19 @@
             }
             html += '</tr></thead><tbody><tr>';
             
+            // Get minDate in BS if specified
+            let minDateBS = null;
+            if (this.options.minDate) {
+                try {
+                    const minAD = new Date(this.options.minDate);
+                    if (!isNaN(minAD)) {
+                        minDateBS = adToBS(minAD.getFullYear(), minAD.getMonth() + 1, minAD.getDate());
+                    }
+                } catch (error) {
+                    console.error('Error parsing minDate:', error);
+                }
+            }
+            
             // Empty cells before first day
             for (let i = 0; i < firstDayOfWeek; i++) {
                 html += '<td></td>';
@@ -446,8 +459,24 @@
                     this.selectedBSDate.month === month &&
                     this.selectedBSDate.day === day;
                 
-                const className = isSelected ? 'nepali-day selected' : 'nepali-day';
-                html += `<td><button type="button" class="${className}" data-day="${day}">${day}</button></td>`;
+                // Check if this date is before minDate (past date)
+                let isDisabled = false;
+                if (minDateBS) {
+                    // Compare BS dates
+                    if (year < minDateBS.year || 
+                        (year === minDateBS.year && month < minDateBS.month) ||
+                        (year === minDateBS.year && month === minDateBS.month && day < minDateBS.day)) {
+                        isDisabled = true;
+                    }
+                }
+                
+                let className = isSelected ? 'nepali-day selected' : 'nepali-day';
+                if (isDisabled) {
+                    className += ' disabled';
+                    html += `<td><button type="button" class="${className}" data-day="${day}" disabled>${day}</button></td>`;
+                } else {
+                    html += `<td><button type="button" class="${className}" data-day="${day}">${day}</button></td>`;
+                }
                 
                 currentWeekDay++;
                 if (currentWeekDay > 6) {

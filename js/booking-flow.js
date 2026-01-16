@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookingForm = document.getElementById('bookingForm');
     
     if (bookingForm) {
-        // Set minimum date for event_date
-        const eventDateInput = document.getElementById('event_date');
+        // Set minimum date for booking_date (support both event_date and booking_date)
+        const eventDateInput = document.getElementById('booking_date') || document.getElementById('event_date');
         if (eventDateInput) {
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Form validation
         bookingForm.addEventListener('submit', function(event) {
             const shift = document.getElementById('shift').value;
-            const eventDate = document.getElementById('event_date').value;
+            const eventDate = (document.getElementById('booking_date') || document.getElementById('event_date')).value;
             const guests = parseInt(document.getElementById('guests').value);
             const eventType = document.getElementById('event_type').value;
             
@@ -148,7 +148,8 @@ function updateTotalCost(total) {
 
 // Initialize Nepali calendar toggle
 function initNepaliCalendar() {
-    const eventDateInput = document.getElementById('event_date');
+    // Support both booking_date and event_date for backward compatibility
+    const eventDateInput = document.getElementById('booking_date') || document.getElementById('event_date');
     const nepaliDateDisplay = document.getElementById('nepaliDateDisplay');
     const toggleCalendar = document.getElementById('toggleCalendar');
     const calendarTypeLabel = document.getElementById('calendarType');
@@ -191,11 +192,9 @@ function initNepaliCalendar() {
         }
     }
     
-    // Initialize with Nepali calendar as default
+    // Initialize with Nepali calendar as default and auto-populate with today's date
     function initializeNepaliAsDefault() {
         // Change button label to show current mode (BS)
-        // This helps users understand which calendar they are currently using
-        // Previously showed "AD" which was confusing as it suggested the target, not current state
         calendarTypeLabel.textContent = 'BS';
         
         // Remove type="date" to prevent browser date picker
@@ -204,13 +203,49 @@ function initNepaliCalendar() {
         eventDateInput.setAttribute('readonly', 'readonly');
         eventDateInput.setAttribute('placeholder', 'Select Nepali Date (BS)');
         
-        // Initialize Nepali picker
+        // Get today's date in AD
+        const today = new Date();
+        const todayAD = {
+            year: today.getFullYear(),
+            month: today.getMonth() + 1,
+            day: today.getDate()
+        };
+        
+        // Convert today's AD date to BS using NepaliFunctions.AD2BS()
+        const todayBS = window.nepaliDateUtils.adToBS(todayAD.year, todayAD.month, todayAD.day);
+        
+        // Set today's BS date in YYYY-MM-DD format in the input
+        if (todayBS) {
+            const adDateFormatted = `${todayAD.year}-${String(todayAD.month).padStart(2, '0')}-${String(todayAD.day).padStart(2, '0')}`;
+            eventDateInput.value = adDateFormatted;
+            updateNepaliDisplay();
+        }
+        
+        // Initialize Nepali picker with minDate set to today (disable past dates)
+        const minDateAD = `${todayAD.year}-${String(todayAD.month).padStart(2, '0')}-${String(todayAD.day).padStart(2, '0')}`;
+        
         nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
-            closeOnSelect: true, // Close calendar after date is selected (like English calendar)
+            closeOnSelect: true,
+            minDate: minDateAD, // Disable all past dates
             onChange: function(adDate, bsDate) {
                 updateNepaliDisplay();
             }
         });
+        
+        // Automatically open the calendar popup after initialization with a small delay
+        // Using jQuery as requested
+        if (typeof jQuery !== 'undefined') {
+            jQuery(eventDateInput).delay(300).queue(function(next) {
+                jQuery(this).trigger('focus').trigger('click');
+                next();
+            });
+        } else {
+            // Fallback to vanilla JS if jQuery is not available
+            setTimeout(function() {
+                eventDateInput.focus();
+                eventDateInput.click();
+            }, 300);
+        }
     }
     
     // Initial display update and setup
@@ -239,10 +274,15 @@ function initNepaliCalendar() {
             eventDateInput.setAttribute('readonly', 'readonly');
             eventDateInput.setAttribute('placeholder', 'Select Nepali Date (BS)');
             
-            // Initialize Nepali picker
+            // Get today's date for minDate
+            const today = new Date();
+            const minDateAD = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            
+            // Initialize Nepali picker with minDate
             if (!nepaliPicker) {
                 nepaliPicker = new window.NepaliDatePicker(eventDateInput, {
-                    closeOnSelect: true, // Close calendar after date is selected (like English calendar)
+                    closeOnSelect: true,
+                    minDate: minDateAD, // Disable all past dates
                     onChange: function(adDate, bsDate) {
                         updateNepaliDisplay();
                     }
@@ -274,6 +314,11 @@ function initNepaliCalendar() {
             eventDateInput.removeAttribute('readonly');
             eventDateInput.setAttribute('type', 'date');
             eventDateInput.setAttribute('placeholder', '');
+            
+            // Set min attribute to today's date to disable past dates
+            const today = new Date();
+            const minDateAD = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            eventDateInput.setAttribute('min', minDateAD);
             
             // Destroy Nepali picker
             if (nepaliPicker) {
