@@ -158,6 +158,7 @@ Date changes are subject to availability and must be requested at least 15 days 
 $invoice_disclaimer = getSetting('invoice_disclaimer', 'Note: This is a computer-generated estimate bill. Please create a complete invoice yourself.');
 $package_label = getSetting('invoice_package_label', 'Marriage Package');
 $additional_items_label = getSetting('invoice_additional_items_label', 'Additional Items');
+$currency = getSetting('currency', 'NPR');
 ?>
 
 <div class="print-invoice-only" style="display: none;">
@@ -246,7 +247,7 @@ $additional_items_label = getSetting('invoice_additional_items_label', 'Addition
                         <th>Description</th>
                         <th class="text-center">Quantity</th>
                         <th class="text-right">Rate</th>
-                        <th class="text-right">Amount (NPR)</th>
+                        <th class="text-right">Amount (<?php echo htmlspecialchars($currency); ?>)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -308,15 +309,15 @@ $additional_items_label = getSetting('invoice_additional_items_label', 'Addition
             <table class="payment-table">
                 <tr>
                     <td class="payment-label">Advance Payment Required (<?php echo $advance['percentage']; ?>%):</td>
-                    <td class="payment-value">NPR <?php echo number_format($advance['amount'], 2); ?></td>
+                    <td class="payment-value"><?php echo htmlspecialchars($currency); ?> <?php echo number_format($advance['amount'], 2); ?></td>
                 </tr>
                 <tr>
                     <td class="payment-label">Advance Payment Received:</td>
-                    <td class="payment-value">NPR <?php echo number_format($total_paid, 2); ?></td>
+                    <td class="payment-value"><?php echo htmlspecialchars($currency); ?> <?php echo number_format($total_paid, 2); ?></td>
                 </tr>
                 <tr class="due-amount-row">
                     <td class="payment-label"><strong>Balance Due Amount:</strong></td>
-                    <td class="payment-value"><strong>NPR <?php echo number_format($balance_due, 2); ?></strong></td>
+                    <td class="payment-value"><strong><?php echo htmlspecialchars($currency); ?> <?php echo number_format($balance_due, 2); ?></strong></td>
                 </tr>
                 <tr>
                     <td class="payment-label">Amount in Words:</td>
