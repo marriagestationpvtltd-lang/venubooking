@@ -403,7 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-12">
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="advance_payment_received" name="advance_payment_received" value="1" <?php echo (!empty($booking['advance_payment_received'])) ? 'checked' : ''; ?>>
+                                    <input class="form-check-input" type="checkbox" id="advance_payment_received" name="advance_payment_received" value="1" <?php echo ($booking['advance_payment_received'] == 1) ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="advance_payment_received">
                                         <strong>Advance Payment Received</strong>
                                         <small class="text-muted d-block">Check this box if the customer has paid the advance payment</small>

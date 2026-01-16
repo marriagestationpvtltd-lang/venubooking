@@ -114,6 +114,8 @@ $payment_transactions = getBookingPayments($booking_id);
 if (!empty($payment_transactions)) {
     $total_paid = array_sum(array_column($payment_transactions, 'paid_amount'));
 }
+
+// Calculate advance payment (used in both print invoice and UI display)
 $advance = calculateAdvancePayment($booking['grand_total']);
 
 // Calculate balance due: Grand Total - Total Paid (actual payments)
