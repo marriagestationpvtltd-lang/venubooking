@@ -1699,10 +1699,10 @@ function getCompanyLogo() {
         return null;
     }
     
-    // Return validated path and URL
+    // Return validated path and URL with proper encoding
     return [
         'path' => UPLOAD_PATH . $logo_filename,
-        'url' => UPLOAD_URL . htmlspecialchars($logo_filename, ENT_QUOTES, 'UTF-8'),
+        'url' => UPLOAD_URL . rawurlencode($logo_filename),
         'filename' => $logo_filename
     ];
 }

@@ -118,10 +118,11 @@ $balance_due = $booking['grand_total'] - $total_paid;
 $advance = calculateAdvancePayment($booking['grand_total']);
 
 // Company details from settings - use company-specific or fallback to general
-$company_name = getSetting('company_name', getSetting('site_name', 'Wedding Venue Booking'));
-$company_address = getSetting('company_address', getSetting('contact_address', 'Nepal'));
-$company_phone = getSetting('company_phone', getSetting('contact_phone', 'N/A'));
-$company_email = getSetting('company_email', getSetting('contact_email', ''));
+// Note: getSetting() caches results, so multiple calls don't hit the database repeatedly
+$company_name = getSetting('company_name') ?: getSetting('site_name', 'Wedding Venue Booking');
+$company_address = getSetting('company_address') ?: getSetting('contact_address', 'Nepal');
+$company_phone = getSetting('company_phone') ?: getSetting('contact_phone', 'N/A');
+$company_email = getSetting('company_email') ?: getSetting('contact_email', '');
 $company_logo = getCompanyLogo(); // Returns validated logo info or null
 
 // Get payment mode from latest transaction
