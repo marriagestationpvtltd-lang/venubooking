@@ -746,7 +746,12 @@ $currency = getSetting('currency', 'NPR');
         <?php endif; ?>
 
         <!-- Services -->
-        <?php if (count($booking['services']) > 0): ?>
+        <?php 
+        $services_count = count($booking['services']);
+        if ($services_count > 0): 
+            // Calculate total services cost
+            $services_total_display = array_sum(array_column($booking['services'], 'price'));
+        ?>
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-gradient-secondary text-white">
                 <h5 class="mb-0"><i class="fas fa-concierge-bell me-2"></i> Additional Services</h5>
@@ -761,11 +766,7 @@ $currency = getSetting('currency', 'NPR');
                             </tr>
                         </thead>
                         <tbody>
-                            <?php 
-                            $services_total_display = 0;
-                            foreach ($booking['services'] as $service): 
-                                $services_total_display += $service['price'];
-                            ?>
+                            <?php foreach ($booking['services'] as $service): ?>
                             <tr>
                                 <td class="fw-semibold">
                                     <i class="fas fa-check-circle text-success me-2"></i>
@@ -775,7 +776,7 @@ $currency = getSetting('currency', 'NPR');
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
-                        <?php if (count($booking['services']) > 1): ?>
+                        <?php if ($services_count > 1): ?>
                         <tfoot>
                             <tr class="table-light border-top border-2">
                                 <td class="text-end fw-bold">Total Additional Services:</td>
