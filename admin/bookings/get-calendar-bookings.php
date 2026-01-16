@@ -10,6 +10,16 @@ require_once __DIR__ . '/../../includes/auth.php';
 
 requireLogin();
 
+// Status color mapping for calendar events
+define('STATUS_COLORS', [
+    'confirmed' => '#28a745',
+    'pending' => '#ffc107',
+    'cancelled' => '#dc3545',
+    'completed' => '#007bff',
+    'payment_submitted' => '#17a2b8'
+]);
+define('DEFAULT_STATUS_COLOR', '#6c757d');
+
 try {
     $db = getDB();
     
@@ -51,16 +61,9 @@ try {
     
     // Format events for FullCalendar
     $events = [];
-    $statusColors = [
-        'confirmed' => '#28a745',
-        'pending' => '#ffc107',
-        'cancelled' => '#dc3545',
-        'completed' => '#007bff',
-        'payment_submitted' => '#17a2b8'
-    ];
     
     foreach ($bookings as $booking) {
-        $color = $statusColors[$booking['booking_status']] ?? '#6c757d';
+        $color = STATUS_COLORS[$booking['booking_status']] ?? DEFAULT_STATUS_COLOR;
         
         $events[] = [
             'id' => $booking['id'],

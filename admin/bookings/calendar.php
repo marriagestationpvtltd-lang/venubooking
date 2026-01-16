@@ -209,6 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Function to display bookings for a date
     function displayBookings(date, bookings) {
+        // Parse date without timezone issues by adding midnight time
         const dateObj = new Date(date + "T00:00:00");
         const formattedDate = dateObj.toLocaleDateString("en-US", {
             weekday: "long",
