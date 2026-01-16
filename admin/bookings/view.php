@@ -275,7 +275,12 @@ $currency = getSetting('currency', 'NPR');
                     <?php if (!empty($booking['services'])): ?>
                         <?php foreach ($booking['services'] as $service): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($additional_items_label); ?> - <?php echo htmlspecialchars($service['service_name']); ?></td>
+                            <td>
+                                <strong><?php echo htmlspecialchars($additional_items_label); ?></strong> - <?php echo htmlspecialchars($service['service_name']); ?>
+                                <?php if (!empty($service['description'])): ?>
+                                    <br><span class="service-description-print"><?php echo htmlspecialchars($service['description']); ?></span>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-center">1</td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
@@ -768,11 +773,19 @@ $currency = getSetting('currency', 'NPR');
                         <tbody>
                             <?php foreach ($booking['services'] as $service): ?>
                             <tr>
-                                <td class="fw-semibold">
-                                    <i class="fas fa-check-circle text-success me-2"></i>
-                                    <?php echo htmlspecialchars($service['service_name']); ?>
+                                <td class="fw-semibold service-info-cell">
+                                    <div>
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <?php echo htmlspecialchars($service['service_name']); ?>
+                                        <?php if (!empty($service['category'])): ?>
+                                            <span class="badge bg-secondary ms-2"><?php echo htmlspecialchars($service['category']); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if (!empty($service['description'])): ?>
+                                        <small class="service-description"><?php echo htmlspecialchars($service['description']); ?></small>
+                                    <?php endif; ?>
                                 </td>
-                                <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service['price']); ?></td>
+                                <td class="text-end fw-bold text-primary service-price-cell"><?php echo formatCurrency($service['price']); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -1167,6 +1180,31 @@ $currency = getSetting('currency', 'NPR');
 .badge {
     font-weight: 500;
     letter-spacing: 0.5px;
+}
+
+/* Service Description Styles */
+.service-description {
+    display: block;
+    margin-top: 0.5rem;
+    margin-left: 2rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+.service-description-print {
+    font-weight: 500;
+    color: #666;
+    font-size: 0.85em;
+    line-height: 1.3;
+}
+
+.service-info-cell {
+    vertical-align: top;
+}
+
+.service-price-cell {
+    vertical-align: top;
 }
 
 /* Print Invoice Styles - Enhanced for Better Visibility & One-Page Layout */
