@@ -382,7 +382,7 @@ function createBooking($data) {
                     event_type, number_of_guests, hall_price, menu_total, 
                     services_total, subtotal, tax_amount, grand_total, 
                     special_requests, booking_status, payment_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid')";
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
         
         $stmt = $db->prepare($sql);
         $stmt->execute([
@@ -1650,7 +1650,7 @@ function recordPayment($data) {
         $grand_total = $booking['grand_total'] ?? 0;
         
         // Update payment status
-        $payment_status = 'unpaid';
+        $payment_status = 'pending';
         if ($total_paid >= $grand_total) {
             $payment_status = 'paid';
         } elseif ($total_paid > 0) {
