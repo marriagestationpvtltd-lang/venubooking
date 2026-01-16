@@ -2,9 +2,9 @@
 -- This script sets up the entire database from scratch
 -- Run this to fix HTTP 500 errors related to missing tables or data
 
--- Create Database
-CREATE DATABASE IF NOT EXISTS venubooking;
-USE venubooking;
+-- NOTE: Make sure you have selected your database before running this script
+-- For command line: mysql -u username -p database_name < database/complete-setup.sql
+-- For phpMyAdmin: Select your database first, then import this file
 
 -- Drop existing tables if they exist (to ensure clean setup)
 SET FOREIGN_KEY_CHECKS = 0;

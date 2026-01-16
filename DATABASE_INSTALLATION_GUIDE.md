@@ -40,7 +40,9 @@ Choose **ONE** of the following methods:
 
 ---
 
-### Method 1: MySQL Command Line (Recommended)
+### Method 1: MySQL Command Line (Local Development)
+
+**For local development with full permissions:**
 
 **Step 1:** Open terminal/command prompt
 
@@ -49,44 +51,74 @@ Choose **ONE** of the following methods:
 cd /path/to/venubooking
 ```
 
-**Step 3:** Run the SQL file
+**Step 3:** Create database (if needed)
 ```bash
-mysql -u root -p < database/complete-database-setup.sql
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS your_database_name;"
 ```
 
-**Step 4:** Enter your MySQL password when prompted
+**Step 4:** Run the SQL file
+```bash
+mysql -u root -p your_database_name < database/complete-database-setup.sql
+```
 
-**Step 5:** Wait for completion (you'll see verification output)
+**Step 5:** Enter your MySQL password when prompted
+
+**Step 6:** Wait for completion
 
 ✅ **Done!** Skip to "Verification" section below.
 
 ---
 
-### Method 2: phpMyAdmin
+### Method 2: phpMyAdmin (Recommended for Shared Hosting)
 
-**Step 1:** Open phpMyAdmin in your browser
+**For shared hosting (cPanel, etc.):**
+
+**Step 1:** Create Database in cPanel
+- Go to cPanel → MySQL Databases
+- Click "Create New Database"
+- Database name will have a prefix (e.g., `username_venubooking`)
+- Note the full database name
+
+**Step 2:** Create Database User (if needed)
+- In the same MySQL Databases section
+- Create a new user or use existing
+- Add user to the database with ALL PRIVILEGES
+
+**Step 3:** Open phpMyAdmin
 ```
-http://localhost/phpmyadmin
+Usually: http://your-domain.com/phpmyadmin
+Or via cPanel → phpMyAdmin
 ```
 
-**Step 2:** Click on "SQL" tab at the top
+**Step 4:** Select Your Database
+- **IMPORTANT:** Click on your database name in the left sidebar
+- Make sure it's selected (highlighted)
 
-**Step 3:** Click "Import" tab
-
-**Step 4:** Click "Choose File" and select:
-```
-database/complete-database-setup.sql
-```
-
-**Step 5:** Scroll down and click "Go" button
+**Step 5:** Import the SQL File
+- Click "Import" tab at the top
+- Click "Choose File" and select:
+  ```
+  database/complete-database-setup.sql
+  ```
+- Scroll down and click "Go" button
 
 **Step 6:** Wait for success message
+- You should see "Import has been successfully finished"
+- Check that 18 tables were created
+
+**Step 7:** Update .env File
+```
+DB_HOST=localhost
+DB_NAME=username_venubooking  # Your full database name with prefix
+DB_USER=username_dbuser       # Your database user
+DB_PASS=your_password          # Your database password
+```
 
 ✅ **Done!** Continue to "Verification" section below.
 
 ---
 
-### Method 3: MySQL Workbench
+### Method 3: MySQL Workbench (Local Development)
 
 **Step 1:** Open MySQL Workbench
 
@@ -113,9 +145,8 @@ After installation, verify the setup:
 
 ### 1. Check Database Tables
 
-Run this query in MySQL:
+Run this query in MySQL (make sure you're connected to your database):
 ```sql
-USE venubooking;
 SHOW TABLES;
 ```
 
@@ -160,14 +191,40 @@ http://your-domain.com/admin/bookings/view.php?id=37
 
 ## 🔧 Troubleshooting
 
+### Issue: "Access denied for user" OR Error #1044
+
+**This is the most common issue on shared hosting!**
+
+**Problem:** The SQL file tries to create a database, but you don't have permission.
+
+**Solution:**
+1. **Create database via cPanel first:**
+   - cPanel → MySQL Databases → Create New Database
+   - Note the full database name (includes prefix like `username_dbname`)
+
+2. **Create/assign database user:**
+   - Create user or use existing one
+   - Grant ALL PRIVILEGES to that database
+
+3. **Select database before importing:**
+   - In phpMyAdmin, click on your database name in left sidebar
+   - THEN click Import and choose the SQL file
+
+4. **Update .env file:**
+   ```
+   DB_NAME=username_venubooking  # Full name with prefix!
+   DB_USER=username_dbuser
+   DB_PASS=your_password
+   ```
+
 ### Issue: "Database connection failed"
 
 **Solution 1:** Check `.env` file
 ```bash
-# Make sure these match your MySQL credentials
+# Make sure these match your actual credentials
 DB_HOST=localhost
-DB_NAME=venubooking
-DB_USER=root
+DB_NAME=your_full_database_name  # Include prefix on shared hosting
+DB_USER=your_database_user
 DB_PASS=your_password
 ```
 
@@ -179,21 +236,18 @@ cp .env.example .env
 
 ### Issue: "Table doesn't exist"
 
-**Solution:** The SQL file creates all tables. If some are missing:
+**Solution:** If tables are missing after import:
 
-1. Drop the database:
-```sql
-DROP DATABASE IF EXISTS venubooking;
-```
+1. Make sure you selected the database before importing
+2. Check phpMyAdmin for import errors
+3. Re-import the SQL file with database selected
 
-2. Re-run the complete-database-setup.sql file
+### Issue: "Grant proper permissions" (Local Development)
 
-### Issue: "Access denied for user"
-
-**Solution:** Grant proper permissions
+**Solution for local MySQL:**
 
 ```sql
-GRANT ALL PRIVILEGES ON venubooking.* TO 'root'@'localhost';
+GRANT ALL PRIVILEGES ON your_database_name.* TO 'your_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 

@@ -1,7 +1,7 @@
 -- Migration: Update payment status enum to support 'pending' and 'cancelled'
 -- This script updates the payment_status enum structure
 
-USE venubooking;
+-- NOTE: Make sure you have selected your database before running this script
 
 -- Step 1: Update any existing 'unpaid' records to 'pending' first
 UPDATE bookings 

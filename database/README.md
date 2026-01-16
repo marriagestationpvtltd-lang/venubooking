@@ -45,24 +45,57 @@ These are for incremental updates if you already have a database.
 
 ## 🚀 Quick Start
 
-### Method 1: Use the Automated Script
+### Method 1: Use the Automated Script (Local Development)
 
 ```bash
 cd /path/to/venubooking
 bash setup-database.sh
 ```
 
-### Method 2: Import Directly
+**Note:** This script will:
+- Read your database name from `.env` file
+- Create the database if it doesn't exist
+- Import the complete SQL file
+- Verify the installation
 
+This method requires CREATE DATABASE privileges.
+
+### Method 2: Import Directly (Command Line)
+
+**For local development with full permissions:**
 ```bash
-mysql -u root -p < database/complete-database-setup.sql
+# Create database first
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS your_database_name;"
+# Import the SQL file
+mysql -u root -p your_database_name < database/complete-database-setup.sql
 ```
 
-### Method 3: phpMyAdmin
+**For shared hosting (cPanel, etc.):**
+```bash
+# Database must be created via cPanel first, then:
+mysql -u your_username -p your_database_name < database/complete-database-setup.sql
+```
 
-1. Open phpMyAdmin
-2. Import → Choose File → `complete-database-setup.sql`
-3. Click "Go"
+### Method 3: phpMyAdmin (Recommended for Shared Hosting)
+
+1. **Create Database** (if not already created):
+   - Go to cPanel → MySQL Databases
+   - Create a new database (e.g., `username_venubooking`)
+   - Note the full database name including prefix
+
+2. **Import the SQL File**:
+   - Open phpMyAdmin
+   - **Select your database** from the left sidebar
+   - Click "Import" tab
+   - Choose File → `complete-database-setup.sql`
+   - Click "Go"
+
+3. **Update .env file**:
+   ```
+   DB_NAME=your_database_name  # Use the full name including prefix
+   DB_USER=your_database_user
+   DB_PASS=your_database_password
+   ```
 
 ## ✅ What Gets Installed
 
@@ -114,7 +147,7 @@ This will check:
 ## 📋 Manual Verification
 
 ```sql
-USE venubooking;
+-- Make sure you're connected to your database first
 
 -- Check tables
 SHOW TABLES;
@@ -131,25 +164,42 @@ SELECT username FROM users WHERE role = 'admin';
 
 ## 🔧 Troubleshooting
 
-### "Database already exists"
-The script drops and recreates the database. Your old data will be lost. Backup first if needed.
+### "Access denied to database" (Error #1044)
+
+**This occurs on shared hosting when trying to create a database without proper permissions.**
+
+**Solution:**
+1. Create the database first via cPanel:
+   - Go to cPanel → MySQL Databases
+   - Create a new database (note the full name with prefix, e.g., `username_venubooking`)
+   - Create a database user and grant all privileges to that database
+2. In phpMyAdmin, select that database from the left sidebar
+3. Then import the SQL file - it will only create tables, not the database
+4. Update your `.env` file with the correct database name including prefix
 
 ### "Cannot connect to database"
+
 Check your .env file:
 ```
 DB_HOST=localhost
-DB_NAME=venubooking
-DB_USER=root
+DB_NAME=your_database_name  # Use full name with prefix on shared hosting
+DB_USER=your_database_user
 DB_PASS=your_password
 ```
 
 ### "Missing tables"
-Some PHP hosting environments don't allow DROP DATABASE. In this case:
-1. Manually drop all tables in phpMyAdmin
-2. Then import the SQL file
+
+If some tables are missing after import:
+1. Make sure you selected the correct database before importing
+2. Check for import errors in phpMyAdmin
+3. Try importing again with the database selected
 
 ### "Foreign key constraint fails"
-The script handles this automatically. Make sure you're running the complete file, not portions of it.
+
+The script handles this automatically with `FOREIGN_KEY_CHECKS = 0`. If you see this error:
+1. Make sure you're running the complete file in one go
+2. Don't run partial scripts
+3. Ensure all tables are being created in the correct order
 
 ## 📚 Database Schema Diagram
 

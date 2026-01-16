@@ -11,16 +11,16 @@
 --   6. Payment methods and payment tracking tables
 -- 
 -- HOW TO USE:
--- 1. Make sure MySQL is running
--- 2. Run: mysql -u root -p < database/complete-database-setup.sql
--- 3. Or import via phpMyAdmin
--- 4. Access admin panel at: /admin/ (username: admin, password: Admin@123)
--- 5. IMPORTANT: Change admin password after first login!
+-- 1. Create a database in your MySQL server or cPanel
+-- 2. Select that database before importing this file
+-- 3. For command line: mysql -u username -p database_name < database/complete-database-setup.sql
+-- 4. For phpMyAdmin: Select your database, then Import → Choose File → complete-database-setup.sql
+-- 5. Access admin panel at: /admin/ (username: admin, password: Admin@123)
+-- 6. IMPORTANT: Change admin password after first login!
 -- ============================================================================
 
--- Create Database
-CREATE DATABASE IF NOT EXISTS venubooking;
-USE venubooking;
+-- NOTE: Make sure you have selected your database before running this script
+-- This script does NOT create a database - you must create/select one first
 
 -- Drop existing tables if they exist (for clean setup)
 SET FOREIGN_KEY_CHECKS = 0;
