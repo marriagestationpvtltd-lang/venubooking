@@ -124,25 +124,60 @@ $current_total = $hall_price + $menu_total;
                                     
                                     <?php if (!empty($menu_items)): ?>
                                         <hr>
-                                        <h6 class="mb-2">Menu Items:</h6>
-                                        <div class="menu-items">
-                                            <?php
-                                            $grouped_items = [];
-                                            foreach ($menu_items as $item) {
-                                                $category = $item['category'] ?: 'Other';
-                                                $grouped_items[$category][] = $item;
-                                            }
-                                            foreach ($grouped_items as $category => $items):
-                                            ?>
-                                                <div class="mb-2">
-                                                    <strong class="text-success"><?php echo sanitize($category); ?>:</strong>
-                                                    <ul class="mb-0 ps-3">
-                                                        <?php foreach ($items as $item): ?>
-                                                            <li><?php echo sanitize($item['item_name']); ?></li>
-                                                        <?php endforeach; ?>
-                                                    </ul>
+                                        <!-- Desktop: Show all items -->
+                                        <div class="d-none d-md-block">
+                                            <h6 class="mb-2">Menu Items:</h6>
+                                            <div class="menu-items">
+                                                <?php
+                                                $grouped_items = [];
+                                                foreach ($menu_items as $item) {
+                                                    $category = $item['category'] ?: 'Other';
+                                                    $grouped_items[$category][] = $item;
+                                                }
+                                                foreach ($grouped_items as $category => $items):
+                                                ?>
+                                                    <div class="mb-2">
+                                                        <strong class="text-success"><?php echo sanitize($category); ?>:</strong>
+                                                        <ul class="mb-0 ps-3">
+                                                            <?php foreach ($items as $item): ?>
+                                                                <li><?php echo sanitize($item['item_name']); ?></li>
+                                                            <?php endforeach; ?>
+                                                        </ul>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Mobile: Collapsible with "View Items" button -->
+                                        <div class="d-md-none">
+                                            <button class="btn btn-sm btn-outline-success w-100" type="button" 
+                                                    data-bs-toggle="collapse" 
+                                                    data-bs-target="#menuItems<?php echo $menu['id']; ?>" 
+                                                    aria-expanded="false">
+                                                <i class="fas fa-list me-1"></i> View Menu Items 
+                                                <i class="fas fa-chevron-down ms-1"></i>
+                                            </button>
+                                            <div class="collapse mt-2" id="menuItems<?php echo $menu['id']; ?>">
+                                                <div class="menu-items small">
+                                                    <?php
+                                                    $grouped_items = [];
+                                                    foreach ($menu_items as $item) {
+                                                        $category = $item['category'] ?: 'Other';
+                                                        $grouped_items[$category][] = $item;
+                                                    }
+                                                    foreach ($grouped_items as $category => $items):
+                                                    ?>
+                                                        <div class="mb-2">
+                                                            <strong class="text-success"><?php echo sanitize($category); ?>:</strong>
+                                                            <ul class="mb-0 ps-3">
+                                                                <?php foreach ($items as $item): ?>
+                                                                    <li><?php echo sanitize($item['item_name']); ?></li>
+                                                                <?php endforeach; ?>
+                                                            </ul>
+                                                        </div>
+                                                    <?php endforeach; ?>
                                                 </div>
-                                            <?php endforeach; ?>
+                                            </div>
                                         </div>
                                     <?php endif; ?>
                                 </div>
