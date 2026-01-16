@@ -500,7 +500,72 @@ footer a:hover {
     border-radius: 8px 8px 0 0;
 }
 
-/* Carousel controls styling */
+/* Venue Image Carousel Styling */
+.venue-image-carousel {
+    position: relative;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+}
+
+.venue-image-carousel .carousel-inner {
+    border-radius: 8px 8px 0 0;
+}
+
+.venue-image-carousel .carousel-item {
+    height: 250px;
+}
+
+.venue-image-carousel .venue-image-home {
+    height: 100%;
+    width: 100%;
+}
+
+/* Carousel controls for venue cards */
+.venue-image-carousel .carousel-control-prev,
+.venue-image-carousel .carousel-control-next {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.venue-card-home:hover .venue-image-carousel .carousel-control-prev,
+.venue-card-home:hover .venue-image-carousel .carousel-control-next {
+    opacity: 1;
+}
+
+.venue-image-carousel .carousel-control-prev {
+    left: 10px;
+}
+
+.venue-image-carousel .carousel-control-next {
+    right: 10px;
+}
+
+.venue-image-carousel .carousel-control-prev-icon,
+.venue-image-carousel .carousel-control-next-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Image counter badge */
+.carousel-indicators-counter {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+.carousel-indicators-counter .badge {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+}
+
+/* Carousel controls styling for main venues carousel */
 .venues-section .carousel-control-prev,
 .venues-section .carousel-control-next {
     background-color: rgba(76, 175, 80, 0.3);
