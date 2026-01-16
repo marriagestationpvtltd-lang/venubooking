@@ -165,24 +165,26 @@ $currency = getSetting('currency', 'NPR');
     <div class="invoice-container">
         <!-- Header Section -->
         <div class="invoice-header">
-            <div class="company-logo-space">
-                <?php if ($company_logo !== null): ?>
-                    <img src="<?php echo $company_logo['url']; ?>" 
-                         alt="<?php echo htmlspecialchars($company_name); ?>" 
-                         class="company-logo-img">
-                <?php else: ?>
-                    <div class="logo-placeholder"><?php echo htmlspecialchars($company_name); ?></div>
-                <?php endif; ?>
-            </div>
-            <div class="company-info">
-                <h1 class="company-name"><?php echo htmlspecialchars($company_name); ?></h1>
-                <p class="company-details">
-                    <?php echo htmlspecialchars($company_address); ?><br>
-                    Phone: <?php echo htmlspecialchars($company_phone); ?>
-                    <?php if ($company_email): ?>
-                        <br>Email: <?php echo htmlspecialchars($company_email); ?>
+            <div class="header-content">
+                <div class="company-info">
+                    <h1 class="company-name"><?php echo htmlspecialchars($company_name); ?></h1>
+                    <p class="company-details">
+                        <?php echo htmlspecialchars($company_address); ?><br>
+                        Phone: <?php echo htmlspecialchars($company_phone); ?>
+                        <?php if ($company_email): ?>
+                            <br>Email: <?php echo htmlspecialchars($company_email); ?>
+                        <?php endif; ?>
+                    </p>
+                </div>
+                <div class="company-logo-space">
+                    <?php if ($company_logo !== null): ?>
+                        <img src="<?php echo $company_logo['url']; ?>" 
+                             alt="<?php echo htmlspecialchars($company_name); ?>" 
+                             class="company-logo-img">
+                    <?php else: ?>
+                        <div class="logo-placeholder"><?php echo htmlspecialchars($company_name); ?></div>
                     <?php endif; ?>
-                </p>
+                </div>
             </div>
             <div class="invoice-title">
                 <h2><?php echo nl2br(htmlspecialchars($invoice_title)); ?></h2>
@@ -1225,9 +1227,17 @@ $currency = getSetting('currency', 'NPR');
     margin-bottom: 6px;
 }
 
-.company-logo-space {
-    text-align: center;
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 3px;
+}
+
+.company-logo-space {
+    text-align: right;
+    flex-shrink: 0;
+    margin-left: 10px;
 }
 
 .company-logo-img {
@@ -1247,8 +1257,8 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .company-info {
-    text-align: center;
-    margin-bottom: 3px;
+    text-align: left;
+    flex: 1;
 }
 
 .company-name {
@@ -1256,8 +1266,9 @@ $currency = getSetting('currency', 'NPR');
     font-weight: 900;
     margin: 0;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0px;
     color: #1B5E20;
+    line-height: 1.2;
 }
 
 .company-details {
@@ -1595,8 +1606,17 @@ $currency = getSetting('currency', 'NPR');
         border-bottom: 2px solid #333 !important;
     }
     
-    .company-logo-space {
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
         margin-bottom: 3px;
+    }
+    
+    .company-logo-space {
+        text-align: right;
+        flex-shrink: 0;
+        margin-left: 10px;
     }
     
     .company-logo-img {
@@ -1611,13 +1631,16 @@ $currency = getSetting('currency', 'NPR');
     }
     
     .company-info {
-        margin-bottom: 3px;
+        text-align: left;
+        flex: 1;
     }
     
     .company-name {
         font-size: 16pt;
         margin: 0;
         font-weight: bold;
+        letter-spacing: 0px;
+        line-height: 1.2;
     }
     
     .company-details {
