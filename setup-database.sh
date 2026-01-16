@@ -96,12 +96,23 @@ echo "Starting Database Setup..."
 echo "============================================"
 echo ""
 
+# Create database if it doesn't exist
+echo -n "Creating database '$DB_NAME' if it doesn't exist... "
+if mysql --defaults-extra-file="$MYSQL_CNF" -e "CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;" > /dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC}"
+else
+    echo -e "${RED}✗${NC}"
+    echo -e "${RED}Error:${NC} Could not create database"
+    rm -f "$MYSQL_CNF"
+    exit 1
+fi
+
 # Import SQL file
 echo "Importing database schema and data..."
 echo "(This may take a few moments...)"
 echo ""
 
-if mysql --defaults-extra-file="$MYSQL_CNF" < "$SQL_FILE"; then
+if mysql --defaults-extra-file="$MYSQL_CNF" "$DB_NAME" < "$SQL_FILE"; then
     echo ""
     echo -e "${GREEN}✓${NC} Database setup completed successfully!"
 else

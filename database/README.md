@@ -52,6 +52,14 @@ cd /path/to/venubooking
 bash setup-database.sh
 ```
 
+**Note:** This script will:
+- Read your database name from `.env` file
+- Create the database if it doesn't exist
+- Import the complete SQL file
+- Verify the installation
+
+This method requires CREATE DATABASE privileges.
+
 ### Method 2: Import Directly (Command Line)
 
 **For local development with full permissions:**
