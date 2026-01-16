@@ -209,6 +209,10 @@ if (!empty($payment_transactions)) {
                 </div>
                 <?php endif; ?>
                 <div class="info-row">
+                    <span class="info-label">Event Type:</span>
+                    <span class="info-value"><?php echo htmlspecialchars($booking['event_type']); ?></span>
+                </div>
+                <div class="info-row">
                     <span class="info-label">Event Date:</span>
                     <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> (<?php echo ucfirst($booking['shift']); ?>)</span>
                 </div>
@@ -255,11 +259,11 @@ if (!empty($payment_transactions)) {
                         <?php endforeach; ?>
                     <?php endif; ?>
                     
-                    <!-- Services / Snacks / Additional Items -->
+                    <!-- Services / Additional Items -->
                     <?php if (!empty($booking['services'])): ?>
                         <?php foreach ($booking['services'] as $service): ?>
                         <tr>
-                            <td>Snacks / Additional Items - <?php echo htmlspecialchars($service['service_name']); ?></td>
+                            <td>Additional Items - <?php echo htmlspecialchars($service['service_name']); ?></td>
                             <td class="text-center">1</td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
@@ -292,11 +296,15 @@ if (!empty($payment_transactions)) {
         <div class="payment-calculation-section">
             <table class="payment-table">
                 <tr>
-                    <td class="payment-label">Advance Payment Received (<?php echo $advance['percentage']; ?>%):</td>
+                    <td class="payment-label">Advance Payment Required (<?php echo $advance['percentage']; ?>%):</td>
+                    <td class="payment-value">NPR <?php echo number_format($advance['amount'], 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="payment-label">Advance Payment Received:</td>
                     <td class="payment-value">NPR <?php echo number_format($total_paid, 2); ?></td>
                 </tr>
                 <tr class="due-amount-row">
-                    <td class="payment-label"><strong>Total Due Amount:</strong></td>
+                    <td class="payment-label"><strong>Balance Due Amount:</strong></td>
                     <td class="payment-value"><strong>NPR <?php echo number_format($balance_due, 2); ?></strong></td>
                 </tr>
                 <tr>
