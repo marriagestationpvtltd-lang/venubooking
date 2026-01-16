@@ -757,7 +757,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // If there was a form error, determine which step to show based on error
     <?php if ($error): ?>
     // Show the relevant sections based on the error - keep step context
-    if (<?php echo ($payment_option === 'with') ? 'true' : 'false'; ?>) {
+    var paymentWithSelected = <?php echo (isset($payment_option) && $payment_option === 'with') ? 'true' : 'false'; ?>;
+    if (paymentWithSelected) {
         // Payment-related error - show all steps up to payment
         customerInfoSection.style.display = 'block';
         billSummarySection.style.display = 'block';
@@ -777,11 +778,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-/* Visual feedback for step-by-step flow */
+/* Visual feedback for step-by-step flow - ensures consistent validation styling when dynamically applied */
 .card-header {
     position: relative;
 }
 
+/* Bootstrap validation styling - ensuring consistency when applied via JavaScript */
 .form-control.is-invalid {
     border-color: #dc3545;
     padding-right: calc(1.5em + 0.75rem);
