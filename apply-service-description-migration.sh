@@ -33,8 +33,27 @@ echo ""
 echo "Applying migration to database: $DB_NAME"
 echo ""
 
-# Apply migration
-mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < database/migrations/add_service_description_category_to_bookings.sql
+# Apply migration securely
+# Note: Using -p with password in command line can expose it in process lists
+# For production, consider using mysql_config_editor or .my.cnf file
+if [ -z "$DB_PASS" ]; then
+    # No password provided, prompt securely
+    mysql -h "$DB_HOST" -u "$DB_USER" -p "$DB_NAME" < database/migrations/add_service_description_category_to_bookings.sql
+else
+    # Password provided (development environment)
+    # Create temporary config file for secure password passing
+    TMP_CNF=$(mktemp)
+    cat > "$TMP_CNF" << EOF
+[client]
+password=$DB_PASS
+EOF
+    chmod 600 "$TMP_CNF"
+    
+    mysql --defaults-extra-file="$TMP_CNF" -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" < database/migrations/add_service_description_category_to_bookings.sql
+    
+    # Clean up temporary file
+    rm -f "$TMP_CNF"
+fi
 
 if [ $? -eq 0 ]; then
     echo ""

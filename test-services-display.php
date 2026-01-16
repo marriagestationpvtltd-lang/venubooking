@@ -202,8 +202,8 @@ header('Content-Type: text/html; charset=UTF-8');
                                     echo '<tr>';
                                     echo '<td>' . htmlspecialchars($service['service_name']) . '</td>';
                                     echo '<td>NPR ' . number_format($service['price'], 2) . '</td>';
-                                    echo '<td>' . htmlspecialchars($service['description'] ?? 'N/A') . '</td>';
-                                    echo '<td>' . htmlspecialchars($service['category'] ?? 'N/A') . '</td>';
+                                    echo '<td>' . htmlspecialchars($service['description'] ?? 'No description available') . '</td>';
+                                    echo '<td>' . htmlspecialchars($service['category'] ?? 'Uncategorized') . '</td>';
                                     echo '</tr>';
                                 }
                                 echo '</tbody></table>';
@@ -244,8 +244,8 @@ header('Content-Type: text/html; charset=UTF-8');
                         echo '<td>' . htmlspecialchars($row['id']) . '</td>';
                         echo '<td>' . htmlspecialchars($row['service_name']) . '</td>';
                         echo '<td>NPR ' . number_format($row['price'], 2) . '</td>';
-                        echo '<td>' . htmlspecialchars($row['description'] ?? 'NULL') . '</td>';
-                        echo '<td>' . htmlspecialchars($row['category'] ?? 'NULL') . '</td>';
+                        echo '<td>' . htmlspecialchars($row['description'] ?? 'No description available') . '</td>';
+                        echo '<td>' . htmlspecialchars($row['category'] ?? 'Uncategorized') . '</td>';
                         echo '<td><span style="color: green;">Denormalized</span></td>';
                         echo '</tr>';
                     }
