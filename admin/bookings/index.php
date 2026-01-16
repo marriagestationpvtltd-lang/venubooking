@@ -46,9 +46,14 @@ $bookings = $stmt->fetchAll();
             <h5 class="mb-0"><i class="fas fa-calendar-check text-primary"></i> All Bookings</h5>
             <small class="text-muted">Manage and track all venue bookings</small>
         </div>
-        <a href="add.php" class="btn btn-success">
-            <i class="fas fa-plus"></i> Add Booking
-        </a>
+        <div>
+            <a href="calendar.php" class="btn btn-outline-primary me-2">
+                <i class="fas fa-calendar-alt"></i> Calendar View
+            </a>
+            <a href="add.php" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add Booking
+            </a>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
