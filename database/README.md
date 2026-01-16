@@ -4,23 +4,34 @@ This directory contains all database-related files for the Venue Booking System.
 
 ## 📁 Files
 
-### Main Setup File (Use This!)
+### For Production Deployment
 
-**`complete-database-setup.sql`** - ⭐ **RECOMMENDED**
+**`production-ready.sql`** - ⭐ **RECOMMENDED FOR PRODUCTION**
+- Production-ready database in ONE file
+- Creates all 18 required tables
+- Includes default admin user (admin/Admin@123)
+- Includes essential system settings only
+- Includes placeholder payment methods (inactive by default)
+- **NO sample data** - clean database ready for your real data
+- **Use this for production/live websites!**
+
+### For Development/Testing
+
+**`complete-database-setup.sql`** - ⭐ **RECOMMENDED FOR DEVELOPMENT**
 - Complete A-Z database implementation in ONE file
 - Creates all 18 required tables
 - Includes default admin user (admin/Admin@123)
 - Loads all essential settings
 - Includes sample data (venues, halls, menus, services)
 - Contains test bookings #23 and #37
-- **This is what you need to import!**
+- **Use this for local development and testing!**
 
 ### Original Files (Reference Only)
 
 **`schema.sql`**
 - Base database schema only
-- No sample data
-- Use this if you want a clean start without sample data
+- Missing payment-related tables (outdated)
+- Use `production-ready.sql` instead for clean production setup
 
 **`sample-data.sql`**
 - Sample data only (requires schema.sql first)
@@ -45,57 +56,59 @@ These are for incremental updates if you already have a database.
 
 ## 🚀 Quick Start
 
-### Method 1: Use the Automated Script (Local Development)
+### For Production Deployment
 
+**Command Line (VPS/Dedicated Server):**
 ```bash
-cd /path/to/venubooking
-bash setup-database.sh
+# Create production database first
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS your_production_db;"
+# Import production-ready SQL
+mysql -u root -p your_production_db < database/production-ready.sql
 ```
 
-**Note:** This script will:
-- Read your database name from `.env` file
-- Create the database if it doesn't exist
-- Import the complete SQL file
-- Verify the installation
-
-This method requires CREATE DATABASE privileges.
-
-### Method 2: Import Directly (Command Line)
-
-**For local development with full permissions:**
-```bash
-# Create database first
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS your_database_name;"
-# Import the SQL file
-mysql -u root -p your_database_name < database/complete-database-setup.sql
-```
-
-**For shared hosting (cPanel, etc.):**
-```bash
-# Database must be created via cPanel first, then:
-mysql -u your_username -p your_database_name < database/complete-database-setup.sql
-```
-
-### Method 3: phpMyAdmin (Recommended for Shared Hosting)
-
-1. **Create Database** (if not already created):
+**phpMyAdmin (Shared Hosting - RECOMMENDED):**
+1. **Create Database** in cPanel:
    - Go to cPanel → MySQL Databases
-   - Create a new database (e.g., `username_venubooking`)
-   - Note the full database name including prefix
+   - Create new database (e.g., `username_venubooking`)
+   - Create database user with strong password
+   - Grant all privileges to the user on that database
 
 2. **Import the SQL File**:
    - Open phpMyAdmin
    - **Select your database** from the left sidebar
    - Click "Import" tab
-   - Choose File → `complete-database-setup.sql`
+   - Choose File → `production-ready.sql`
    - Click "Go"
 
 3. **Update .env file**:
    ```
-   DB_NAME=your_database_name  # Use the full name including prefix
+   DB_NAME=your_database_name  # Use full name with prefix
    DB_USER=your_database_user
-   DB_PASS=your_database_password
+   DB_PASS=your_strong_password
    ```
+
+4. **CRITICAL SECURITY STEPS**:
+   - Login to admin panel at: `/admin/`
+   - Default credentials: `admin` / `Admin@123`
+   - **IMMEDIATELY change the admin password!**
+   - Update company information in Settings
+   - Configure payment methods before activating them
+
+### For Development/Testing
+
+**Use Automated Script:**
+```bash
+cd /path/to/venubooking
+bash setup-database.sh  # Uses complete-database-setup.sql with sample data
+```
+
+**Or Import Manually:**
+```bash
+# Create database
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS venubooking_dev;"
+# Import with sample data for testing
+mysql -u root -p venubooking_dev < database/complete-database-setup.sql
+```
 
 ## ✅ What Gets Installed
 
@@ -223,6 +236,19 @@ settings (standalone)
 site_images (standalone)
 ```
 
+## 📚 Detailed Documentation
+
+For comprehensive guides, see:
+
+- **[PRODUCTION_DATABASE_GUIDE.md](PRODUCTION_DATABASE_GUIDE.md)** - Complete production deployment guide
+- **[SQL_FILES_COMPARISON.md](SQL_FILES_COMPARISON.md)** - Detailed comparison of all SQL files to help you choose
+
+### Quick Reference:
+
+- **Production/Live Website?** → Use `production-ready.sql`
+- **Development/Testing?** → Use `complete-database-setup.sql`
+- **Need help choosing?** → Read [SQL_FILES_COMPARISON.md](SQL_FILES_COMPARISON.md)
+
 ## 🔐 Security Notes
 
 1. **Change Default Password**
@@ -246,18 +272,30 @@ site_images (standalone)
 - All prices are in NPR (Nepalese Rupees)
 - Default tax rate: 13%
 - Default advance payment: 30%
-- All dates are in 2026 for sample data
 - Booking numbers format: BK-YYYYMMDD-XXXX
-- Sample data can be deleted after setup
+- Sample data in complete-database-setup.sql uses 2026 dates
 
 ## 🆘 Need Help?
 
 See the comprehensive guides:
-- `DATABASE_INSTALLATION_GUIDE.md` - Detailed installation instructions
-- `QUICK_START_DATABASE.md` - Quick reference guide
-- `README.md` - Main project documentation
+- **[PRODUCTION_DATABASE_GUIDE.md](PRODUCTION_DATABASE_GUIDE.md)** - Step-by-step production setup
+- **[SQL_FILES_COMPARISON.md](SQL_FILES_COMPARISON.md)** - Which SQL file should you use?
+- `DATABASE_INSTALLATION_GUIDE.md` - Detailed installation instructions (project root)
+- `QUICK_START_DATABASE.md` - Quick reference guide (project root)
+- `README.md` - Main project documentation (project root)
+
+## 🎯 Quick Decision Guide
+
+**I'm deploying to a live/production server:**
+→ Use `production-ready.sql` + Read [PRODUCTION_DATABASE_GUIDE.md](PRODUCTION_DATABASE_GUIDE.md)
+
+**I'm setting up for local development/testing:**
+→ Use `complete-database-setup.sql` (includes sample data for testing)
+
+**I'm not sure which to use:**
+→ Read [SQL_FILES_COMPARISON.md](SQL_FILES_COMPARISON.md) for detailed comparison
 
 ---
 
-**Last Updated:** January 2026
-**Database Version:** 1.0 (Complete A-Z Implementation)
+**Last Updated:** January 2026  
+**Database Version:** 2.0 (Production-Ready Edition)

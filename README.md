@@ -91,41 +91,42 @@ cd venubooking
 
 ### 2. Database Setup
 
-**Option A: Quick Setup (Recommended)**
+**Choose the right SQL file for your needs:**
 
-Use the complete database setup file that includes everything:
+**For Production/Live Deployment (Recommended):**
+
+Use `production-ready.sql` for a clean database without sample data:
 
 ```bash
 # Create your database first
 mysql -u root -p -e "CREATE DATABASE your_database_name;"
 
-# Import the complete setup
-mysql -u root -p your_database_name < database/complete-database-setup.sql
+# Import production-ready SQL
+mysql -u root -p your_database_name < database/production-ready.sql
 ```
 
-**Option B: For Shared Hosting (cPanel)**
+**For phpMyAdmin (Shared Hosting):**
 
 1. Create database via cPanel → MySQL Databases
 2. Note the full database name (with prefix)
 3. Open phpMyAdmin, select your database
-4. Import `database/complete-database-setup.sql`
+4. Import `database/production-ready.sql`
 
-**Option C: Manual Setup (Schema + Sample Data)**
+**For Development/Testing:**
 
-1. Create a new MySQL database:
-```sql
-CREATE DATABASE your_database_name;
-```
+Use `complete-database-setup.sql` which includes sample data for testing:
 
-2. Import the schema:
 ```bash
-mysql -u root -p your_database_name < database/schema.sql
+# Create your database first
+mysql -u root -p -e "CREATE DATABASE your_database_name;"
+
+# Import complete setup with sample data
+mysql -u root -p your_database_name < database/complete-database-setup.sql
 ```
 
-3. Import sample data (optional):
-```bash
-mysql -u root -p your_database_name < database/sample-data.sql
-```
+📚 **Need help choosing?** See [database/SQL_FILES_COMPARISON.md](database/SQL_FILES_COMPARISON.md) for detailed comparison.
+
+📖 **Production deployment?** See [database/PRODUCTION_DATABASE_GUIDE.md](database/PRODUCTION_DATABASE_GUIDE.md) for step-by-step guide.
 
 ### 3. Configuration
 
