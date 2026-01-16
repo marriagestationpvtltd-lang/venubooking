@@ -203,6 +203,10 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
                     <i class="fas fa-user"></i> <?php echo htmlspecialchars($current_user['full_name']); ?>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/admin/change-password.php">
+                        <i class="fas fa-key"></i> Change Password
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/index.php" target="_blank">
                         <i class="fas fa-eye"></i> View Site
                     </a></li>
