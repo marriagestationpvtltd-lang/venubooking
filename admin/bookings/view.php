@@ -294,11 +294,13 @@ $currency = getSetting('currency', 'NPR');
                         <td class="text-right"><strong><?php echo number_format($booking['subtotal'], 2); ?></strong></td>
                     </tr>
                     
+                    <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
                     <!-- Tax -->
                     <tr>
                         <td colspan="3" class="text-right">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</td>
                         <td class="text-right"><?php echo number_format($booking['tax_amount'], 2); ?></td>
                     </tr>
+                    <?php endif; ?>
                     
                     <!-- Grand Total -->
                     <tr class="total-row">
@@ -1051,10 +1053,12 @@ $currency = getSetting('currency', 'NPR');
                             <span class="text-muted">Subtotal:</span>
                             <strong class="text-dark"><?php echo formatCurrency($booking['subtotal']); ?></strong>
                         </div>
+                        <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
                         <div class="d-flex justify-content-between mb-3 align-items-center">
                             <span class="text-muted">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
                             <strong class="text-dark"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
                         </div>
+                        <?php endif; ?>
                         <hr class="my-3">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0 fw-bold">Grand Total:</h5>
