@@ -1098,6 +1098,32 @@ $currency = getSetting('currency', 'NPR');
                                 <h5 class="mb-0 fw-bold"><?php echo formatCurrency($advance['amount']); ?></h5>
                             </div>
                         </div>
+                        
+                        <?php if (!empty($booking['advance_payment_received'])): ?>
+                        <div class="alert alert-success mt-2 mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="d-block fw-semibold mb-1">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Advance Payment Received
+                                    </small>
+                                </div>
+                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency($advance['amount']); ?></h5>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-danger mt-2 mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="d-block fw-semibold mb-1">
+                                        <i class="fas fa-times-circle me-1"></i>
+                                        Advance Payment Not Received
+                                    </small>
+                                </div>
+                                <h5 class="mb-0 fw-bold">NPR 0.00</h5>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
