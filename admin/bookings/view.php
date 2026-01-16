@@ -338,6 +338,9 @@ if (!empty($payment_transactions)) {
                     <p>Email: <?php echo htmlspecialchars($company_email); ?></p>
                 <?php endif; ?>
             </div>
+            <div class="disclaimer-note">
+                <p><strong>Note:</strong> This is a computer-generated bill. This is an estimate bill. Please make complete invoice yourself.</p>
+            </div>
         </div>
     </div>
 </div>
@@ -1129,19 +1132,20 @@ if (!empty($payment_transactions)) {
     letter-spacing: 0.5px;
 }
 
-/* Print Invoice Styles */
+/* Print Invoice Styles - Enhanced for Better Visibility */
 .print-invoice-only {
     display: none;
 }
 
 .invoice-container {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Arial', 'Helvetica', sans-serif;
     color: #000;
-    line-height: 1.4;
+    line-height: 1.5;
+    font-weight: 500;
 }
 
 .invoice-header {
-    border-bottom: 3px solid #000;
+    border-bottom: 4px solid #000;
     padding-bottom: 15px;
     margin-bottom: 20px;
 }
@@ -1158,11 +1162,11 @@ if (!empty($payment_transactions)) {
 }
 
 .logo-placeholder {
-    border: 2px solid #000;
+    border: 3px solid #000;
     padding: 20px 40px;
     display: inline-block;
-    font-weight: bold;
-    font-size: 18px;
+    font-weight: 900;
+    font-size: 20px;
 }
 
 .company-info {
@@ -1171,78 +1175,90 @@ if (!empty($payment_transactions)) {
 }
 
 .company-name {
-    font-size: 24px;
-    font-weight: bold;
+    font-size: 28px;
+    font-weight: 900;
     margin: 0;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .company-details {
-    font-size: 11px;
+    font-size: 13px;
     margin: 5px 0;
+    font-weight: 600;
 }
 
 .invoice-title {
     text-align: center;
-    border-top: 2px solid #000;
-    border-bottom: 2px solid #000;
-    padding: 8px 0;
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    padding: 10px 0;
     margin-top: 10px;
+    background: #f5f5f5;
 }
 
 .invoice-title h2 {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 18px;
+    font-weight: 900;
     margin: 0;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .invoice-details-bar {
     display: flex;
     justify-content: space-between;
-    background: #f0f0f0;
-    padding: 10px 15px;
+    background: #e8e8e8;
+    padding: 12px 15px;
     margin-bottom: 20px;
-    border: 1px solid #000;
+    border: 2px solid #000;
 }
 
 .invoice-detail-item {
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.invoice-detail-item strong {
+    font-weight: 900;
 }
 
 .customer-section {
     margin-bottom: 20px;
-    border: 1px solid #000;
+    border: 2px solid #000;
     padding: 15px;
 }
 
 .customer-section h3 {
-    font-size: 14px;
-    font-weight: bold;
-    margin: 0 0 10px 0;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #000;
+    font-size: 16px;
+    font-weight: 900;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .customer-info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 10px;
 }
 
 .info-row {
     display: flex;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .info-label {
-    font-weight: bold;
-    min-width: 120px;
+    font-weight: 900;
+    min-width: 130px;
 }
 
 .info-value {
     flex: 1;
+    font-weight: 600;
 }
 
 .booking-table-section {
@@ -1252,21 +1268,28 @@ if (!empty($payment_transactions)) {
 .invoice-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .invoice-table th {
     background: #000;
     color: #fff;
-    padding: 8px;
+    padding: 10px 8px;
     text-align: left;
-    font-weight: bold;
-    border: 1px solid #000;
+    font-weight: 900;
+    border: 2px solid #000;
+    font-size: 14px;
 }
 
 .invoice-table td {
-    padding: 6px 8px;
-    border: 1px solid #000;
+    padding: 8px;
+    border: 2px solid #000;
+    font-weight: 600;
+}
+
+.invoice-table td strong {
+    font-weight: 900;
 }
 
 .invoice-table .text-center {
@@ -1278,21 +1301,24 @@ if (!empty($payment_transactions)) {
 }
 
 .invoice-table .subtotal-row td {
-    background: #f0f0f0;
-    font-weight: bold;
+    background: #e8e8e8;
+    font-weight: 900;
+    font-size: 14px;
 }
 
 .invoice-table .total-row td {
     background: #000;
     color: #fff;
-    font-weight: bold;
-    font-size: 12px;
+    font-weight: 900;
+    font-size: 15px;
+    padding: 10px 8px;
 }
 
 .payment-calculation-section {
     margin-bottom: 20px;
-    border: 2px solid #000;
+    border: 3px solid #000;
     padding: 15px;
+    background: #f9f9f9;
 }
 
 .payment-table {
@@ -1301,58 +1327,64 @@ if (!empty($payment_transactions)) {
 }
 
 .payment-table td {
-    padding: 6px 0;
-    font-size: 11px;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .payment-label {
     width: 50%;
-    font-weight: bold;
+    font-weight: 900;
 }
 
 .payment-value {
     text-align: right;
-    font-size: 12px;
+    font-size: 14px;
+    font-weight: 900;
 }
 
 .payment-value-words {
     text-align: right;
     font-style: italic;
+    font-weight: 700;
 }
 
 .due-amount-row td {
-    border-top: 2px solid #000;
-    padding-top: 10px;
-    font-size: 13px;
+    border-top: 3px solid #000;
+    padding-top: 12px;
+    font-size: 15px;
+    font-weight: 900;
 }
 
 .note-section {
-    background: #f8f8f8;
-    border: 1px solid #000;
+    background: #f0f0f0;
+    border: 2px solid #000;
     padding: 15px;
     margin-bottom: 20px;
 }
 
 .note-section h3 {
-    font-size: 12px;
-    font-weight: bold;
+    font-size: 14px;
+    font-weight: 900;
     margin: 0 0 10px 0;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .note-section ul {
     margin: 0;
     padding-left: 20px;
-    font-size: 10px;
-    line-height: 1.6;
+    font-size: 12px;
+    line-height: 1.7;
+    font-weight: 600;
 }
 
 .note-section li {
-    margin-bottom: 5px;
+    margin-bottom: 6px;
 }
 
 .invoice-footer {
-    border-top: 2px solid #000;
+    border-top: 3px solid #000;
     padding-top: 15px;
 }
 
@@ -1362,20 +1394,41 @@ if (!empty($payment_transactions)) {
 
 .signature-line {
     text-align: right;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .signature-line p {
-    margin: 3px 0;
+    margin: 5px 0;
+}
+
+.signature-line strong {
+    font-weight: 900;
 }
 
 .thank-you-section {
     text-align: center;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .thank-you-section p {
-    margin: 3px 0;
+    margin: 5px 0;
+}
+
+.thank-you-section strong {
+    font-weight: 900;
+}
+
+.disclaimer-note {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid #000;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: #333;
+    font-style: italic;
 }
 
 /* Print Styles */
@@ -1407,6 +1460,8 @@ if (!empty($payment_transactions)) {
     body {
         margin: 0;
         padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
     
     .invoice-container {
@@ -1428,6 +1483,30 @@ if (!empty($payment_transactions)) {
     * {
         box-shadow: none !important;
         text-shadow: none !important;
+    }
+    
+    /* Force black color for text in print */
+    .invoice-container,
+    .invoice-container * {
+        color: #000 !important;
+    }
+    
+    /* Ensure backgrounds print */
+    .invoice-title,
+    .invoice-details-bar,
+    .note-section,
+    .payment-calculation-section,
+    .subtotal-row,
+    .total-row {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* Ensure table borders are strong */
+    .invoice-table,
+    .invoice-table th,
+    .invoice-table td {
+        border: 2px solid #000 !important;
     }
 }
 
