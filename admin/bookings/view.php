@@ -1516,7 +1516,7 @@ $currency = getSetting('currency', 'NPR');
     padding-top: 4px;
     border-top: 1px solid #F57C00;
     text-align: center;
-    font-size: 7px;
+    font-size: 7.5px;
     font-weight: 600;
     color: #E65100;
     font-style: italic;
@@ -1557,7 +1557,7 @@ $currency = getSetting('currency', 'NPR');
     
     .invoice-container {
         width: 100%;
-        max-width: 190mm;
+        max-width: 186mm;
         margin: 0 auto;
         padding: 0;
     }
@@ -1723,7 +1723,7 @@ $currency = getSetting('currency', 'NPR');
     }
     
     .note-section li {
-        margin-bottom: 0.5px;
+        margin-bottom: 1px;
     }
     
     .invoice-footer {
@@ -1740,7 +1740,7 @@ $currency = getSetting('currency', 'NPR');
     }
     
     .signature-line p {
-        margin: 0.5px 0;
+        margin: 1px 0;
     }
     
     .thank-you-section {
@@ -1748,13 +1748,13 @@ $currency = getSetting('currency', 'NPR');
     }
     
     .thank-you-section p {
-        margin: 0.5px 0;
+        margin: 1px 0;
     }
     
     .disclaimer-note {
         margin-top: 3px;
         padding-top: 3px;
-        font-size: 6px;
+        font-size: 7.5px;
     }
     
     /* Remove any box shadows and unnecessary styling */
