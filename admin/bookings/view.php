@@ -209,6 +209,10 @@ if (!empty($payment_transactions)) {
                 </div>
                 <?php endif; ?>
                 <div class="info-row">
+                    <span class="info-label">Event Type:</span>
+                    <span class="info-value"><?php echo htmlspecialchars($booking['event_type']); ?></span>
+                </div>
+                <div class="info-row">
                     <span class="info-label">Event Date:</span>
                     <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> (<?php echo ucfirst($booking['shift']); ?>)</span>
                 </div>
@@ -255,11 +259,11 @@ if (!empty($payment_transactions)) {
                         <?php endforeach; ?>
                     <?php endif; ?>
                     
-                    <!-- Services / Snacks / Additional Items -->
+                    <!-- Services / Additional Items -->
                     <?php if (!empty($booking['services'])): ?>
                         <?php foreach ($booking['services'] as $service): ?>
                         <tr>
-                            <td>Snacks / Additional Items - <?php echo htmlspecialchars($service['service_name']); ?></td>
+                            <td>Additional Items - <?php echo htmlspecialchars($service['service_name']); ?></td>
                             <td class="text-center">1</td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
                             <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
@@ -292,11 +296,15 @@ if (!empty($payment_transactions)) {
         <div class="payment-calculation-section">
             <table class="payment-table">
                 <tr>
-                    <td class="payment-label">Advance Payment Received (<?php echo $advance['percentage']; ?>%):</td>
+                    <td class="payment-label">Advance Payment Required (<?php echo $advance['percentage']; ?>%):</td>
+                    <td class="payment-value">NPR <?php echo number_format($advance['amount'], 2); ?></td>
+                </tr>
+                <tr>
+                    <td class="payment-label">Advance Payment Received:</td>
                     <td class="payment-value">NPR <?php echo number_format($total_paid, 2); ?></td>
                 </tr>
                 <tr class="due-amount-row">
-                    <td class="payment-label"><strong>Total Due Amount:</strong></td>
+                    <td class="payment-label"><strong>Balance Due Amount:</strong></td>
                     <td class="payment-value"><strong>NPR <?php echo number_format($balance_due, 2); ?></strong></td>
                 </tr>
                 <tr>
@@ -337,6 +345,9 @@ if (!empty($payment_transactions)) {
                 <?php if ($company_email): ?>
                     <p>Email: <?php echo htmlspecialchars($company_email); ?></p>
                 <?php endif; ?>
+            </div>
+            <div class="disclaimer-note">
+                <p><strong>Note:</strong> This is a computer-generated estimate bill. Please create a complete invoice yourself.</p>
             </div>
         </div>
     </div>
@@ -1129,144 +1140,164 @@ if (!empty($payment_transactions)) {
     letter-spacing: 0.5px;
 }
 
-/* Print Invoice Styles */
+/* Print Invoice Styles - Enhanced for Better Visibility & One-Page Layout */
 .print-invoice-only {
     display: none;
 }
 
 .invoice-container {
-    font-family: 'Arial', sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     color: #000;
-    line-height: 1.4;
+    line-height: 1.3;
+    font-weight: 500;
 }
 
 .invoice-header {
-    border-bottom: 3px solid #000;
-    padding-bottom: 15px;
-    margin-bottom: 20px;
+    border-bottom: 4px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .company-logo-space {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .company-logo-img {
-    max-width: 250px;
-    max-height: 100px;
+    max-width: 200px;
+    max-height: 70px;
     object-fit: contain;
 }
 
 .logo-placeholder {
-    border: 2px solid #000;
-    padding: 20px 40px;
+    border: 3px solid #000;
+    padding: 15px 30px;
     display: inline-block;
-    font-weight: bold;
+    font-weight: 900;
     font-size: 18px;
 }
 
 .company-info {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .company-name {
     font-size: 24px;
-    font-weight: bold;
+    font-weight: 900;
     margin: 0;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .company-details {
     font-size: 11px;
-    margin: 5px 0;
+    margin: 3px 0;
+    font-weight: 600;
 }
 
 .invoice-title {
     text-align: center;
-    border-top: 2px solid #000;
-    border-bottom: 2px solid #000;
-    padding: 8px 0;
-    margin-top: 10px;
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    padding: 6px 0;
+    margin-top: 5px;
+    background: #f5f5f5;
 }
 
 .invoice-title h2 {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: 900;
     margin: 0;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .invoice-details-bar {
     display: flex;
     justify-content: space-between;
-    background: #f0f0f0;
-    padding: 10px 15px;
-    margin-bottom: 20px;
-    border: 1px solid #000;
+    background: #e8e8e8;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border: 2px solid #000;
 }
 
 .invoice-detail-item {
     font-size: 11px;
+    font-weight: 700;
+}
+
+.invoice-detail-item strong {
+    font-weight: 900;
 }
 
 .customer-section {
-    margin-bottom: 20px;
-    border: 1px solid #000;
-    padding: 15px;
+    margin-bottom: 10px;
+    border: 2px solid #000;
+    padding: 10px;
 }
 
 .customer-section h3 {
-    font-size: 14px;
-    font-weight: bold;
-    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 900;
+    margin: 0 0 8px 0;
     padding-bottom: 5px;
-    border-bottom: 1px solid #000;
+    border-bottom: 2px solid #000;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .customer-info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 6px;
 }
 
 .info-row {
     display: flex;
     font-size: 11px;
+    font-weight: 500;
 }
 
 .info-label {
-    font-weight: bold;
-    min-width: 120px;
+    font-weight: 900;
+    min-width: 110px;
 }
 
 .info-value {
     flex: 1;
+    font-weight: 600;
 }
 
 .booking-table-section {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .invoice-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 11px;
+    font-weight: 600;
 }
 
 .invoice-table th {
     background: #000;
     color: #fff;
-    padding: 8px;
+    padding: 6px 5px;
     text-align: left;
-    font-weight: bold;
-    border: 1px solid #000;
+    font-weight: 900;
+    border: 2px solid #000;
+    font-size: 12px;
 }
 
 .invoice-table td {
-    padding: 6px 8px;
-    border: 1px solid #000;
+    padding: 5px;
+    border: 2px solid #000;
+    font-weight: 600;
+}
+
+.invoice-table td strong {
+    font-weight: 900;
 }
 
 .invoice-table .text-center {
@@ -1278,21 +1309,24 @@ if (!empty($payment_transactions)) {
 }
 
 .invoice-table .subtotal-row td {
-    background: #f0f0f0;
-    font-weight: bold;
+    background: #e8e8e8;
+    font-weight: 900;
+    font-size: 12px;
 }
 
 .invoice-table .total-row td {
     background: #000;
     color: #fff;
-    font-weight: bold;
-    font-size: 12px;
+    font-weight: 900;
+    font-size: 13px;
+    padding: 6px 5px;
 }
 
 .payment-calculation-section {
-    margin-bottom: 20px;
-    border: 2px solid #000;
-    padding: 15px;
+    margin-bottom: 10px;
+    border: 3px solid #000;
+    padding: 10px;
+    background: #f9f9f9;
 }
 
 .payment-table {
@@ -1301,81 +1335,108 @@ if (!empty($payment_transactions)) {
 }
 
 .payment-table td {
-    padding: 6px 0;
+    padding: 4px 0;
     font-size: 11px;
+    font-weight: 700;
 }
 
 .payment-label {
     width: 50%;
-    font-weight: bold;
+    font-weight: 900;
 }
 
 .payment-value {
     text-align: right;
     font-size: 12px;
+    font-weight: 900;
 }
 
 .payment-value-words {
     text-align: right;
     font-style: italic;
+    font-weight: 700;
 }
 
 .due-amount-row td {
-    border-top: 2px solid #000;
-    padding-top: 10px;
+    border-top: 3px solid #000;
+    padding-top: 8px;
     font-size: 13px;
+    font-weight: 900;
 }
 
 .note-section {
-    background: #f8f8f8;
-    border: 1px solid #000;
-    padding: 15px;
-    margin-bottom: 20px;
+    background: #f0f0f0;
+    border: 2px solid #000;
+    padding: 8px;
+    margin-bottom: 10px;
 }
 
 .note-section h3 {
     font-size: 12px;
-    font-weight: bold;
-    margin: 0 0 10px 0;
+    font-weight: 900;
+    margin: 0 0 6px 0;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .note-section ul {
     margin: 0;
-    padding-left: 20px;
-    font-size: 10px;
-    line-height: 1.6;
+    padding-left: 15px;
+    font-size: 9px;
+    line-height: 1.4;
+    font-weight: 600;
 }
 
 .note-section li {
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 .invoice-footer {
-    border-top: 2px solid #000;
-    padding-top: 15px;
+    border-top: 3px solid #000;
+    padding-top: 8px;
 }
 
 .signature-section {
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .signature-line {
     text-align: right;
     font-size: 11px;
+    font-weight: 700;
 }
 
 .signature-line p {
     margin: 3px 0;
 }
 
+.signature-line strong {
+    font-weight: 900;
+}
+
 .thank-you-section {
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: 600;
 }
 
 .thank-you-section p {
     margin: 3px 0;
+}
+
+.thank-you-section strong {
+    font-weight: 900;
+}
+
+.disclaimer-note {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px solid #000;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: #333;
+    font-style: italic;
 }
 
 /* Print Styles */
@@ -1398,36 +1459,81 @@ if (!empty($payment_transactions)) {
         width: 100%;
     }
     
-    /* A4 Page Settings */
+    /* A4 Page Settings - Reduced margins for one-page layout */
     @page {
         size: A4;
-        margin: 15mm;
+        margin: 10mm 12mm;
     }
     
     body {
         margin: 0;
         padding: 0;
+        color-adjust: exact;
+        -webkit-print-color-adjust: exact;
     }
     
     .invoice-container {
         width: 100%;
-        max-width: 180mm;
+        max-width: 186mm;
         margin: 0 auto;
     }
     
-    /* Ensure no page breaks within important sections */
+    /* Prevent page breaks to keep everything on one page */
     .invoice-header,
     .customer-section,
     .booking-table-section,
     .payment-calculation-section,
-    .note-section {
+    .note-section,
+    .invoice-footer {
         page-break-inside: avoid;
     }
     
+    /* Force entire invoice to stay on one page */
+    .invoice-container {
+        page-break-after: avoid;
+        page-break-before: avoid;
+    }
+    
     /* Remove any box shadows and unnecessary styling */
-    * {
+    .invoice-header,
+    .customer-section,
+    .booking-table-section,
+    .payment-calculation-section,
+    .note-section,
+    .invoice-footer {
         box-shadow: none !important;
         text-shadow: none !important;
+    }
+    
+    /* Force black color for text in print */
+    .invoice-container,
+    .invoice-container p,
+    .invoice-container td,
+    .invoice-container th,
+    .invoice-container span,
+    .invoice-container strong,
+    .invoice-container h1,
+    .invoice-container h2,
+    .invoice-container h3 {
+        color: #000 !important;
+    }
+    
+    /* Ensure backgrounds print */
+    .invoice-title,
+    .invoice-details-bar,
+    .note-section,
+    .payment-calculation-section,
+    .subtotal-row,
+    .total-row {
+        color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    /* Ensure table borders are strong */
+    .invoice-table,
+    .invoice-table th,
+    .invoice-table td {
+        border: 2px solid #000 !important;
     }
 }
 
