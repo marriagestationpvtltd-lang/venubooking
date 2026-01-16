@@ -1195,7 +1195,7 @@ $currency = getSetting('currency', 'NPR');
 .service-description-print {
     font-weight: 500;
     color: #666;
-    font-size: 7.5px;
+    font-size: 8.5px;
     line-height: 1.2;
 }
 
@@ -1261,10 +1261,11 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .company-details {
-    font-size: 9px;
+    font-size: 10px;
     margin: 2px 0;
     font-weight: 600;
     color: #2E7D32;
+    line-height: 1.3;
 }
 
 .invoice-title {
@@ -1295,7 +1296,7 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .invoice-detail-item {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     color: #E65100;
 }
@@ -1330,8 +1331,9 @@ $currency = getSetting('currency', 'NPR');
 
 .info-row {
     display: flex;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 500;
+    line-height: 1.3;
 }
 
 .info-label {
@@ -1353,8 +1355,9 @@ $currency = getSetting('currency', 'NPR');
 .invoice-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
+    line-height: 1.3;
 }
 
 .invoice-table th {
@@ -1364,7 +1367,7 @@ $currency = getSetting('currency', 'NPR');
     text-align: left;
     font-weight: 900;
     border: 1px solid #2E7D32;
-    font-size: 9px;
+    font-size: 10px;
 }
 
 .invoice-table td {
@@ -1389,7 +1392,7 @@ $currency = getSetting('currency', 'NPR');
 .invoice-table .subtotal-row td {
     background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
     font-weight: 900;
-    font-size: 9px;
+    font-size: 10px;
     color: #E65100;
 }
 
@@ -1415,8 +1418,9 @@ $currency = getSetting('currency', 'NPR');
 
 .payment-table td {
     padding: 2px 0;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
+    line-height: 1.3;
 }
 
 .payment-label {
@@ -1427,7 +1431,7 @@ $currency = getSetting('currency', 'NPR');
 
 .payment-value {
     text-align: right;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 900;
     color: #6A1B9A;
 }
@@ -1453,7 +1457,7 @@ $currency = getSetting('currency', 'NPR');
 }
 
 .note-section h3 {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 900;
     margin: 0 0 3px 0;
     text-transform: uppercase;
@@ -1464,7 +1468,7 @@ $currency = getSetting('currency', 'NPR');
 .note-section ul {
     margin: 0;
     padding-left: 12px;
-    font-size: 7.5px;
+    font-size: 8.5px;
     line-height: 1.3;
     font-weight: 600;
     color: #BF360C;
@@ -1485,7 +1489,7 @@ $currency = getSetting('currency', 'NPR');
 
 .signature-line {
     text-align: right;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 700;
 }
 
@@ -1499,7 +1503,7 @@ $currency = getSetting('currency', 'NPR');
 
 .thank-you-section {
     text-align: center;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 600;
 }
 
@@ -1516,13 +1520,13 @@ $currency = getSetting('currency', 'NPR');
     padding-top: 4px;
     border-top: 1px solid #F57C00;
     text-align: center;
-    font-size: 7.5px;
+    font-size: 8.5px;
     font-weight: 600;
     color: #E65100;
     font-style: italic;
 }
 
-/* Print Styles - Optimized for Single Page Output */
+/* Print Styles - Optimized for Single Page Output with Readable Font Sizes */
 @media print {
     /* Hide all non-invoice content */
     body * {
@@ -1542,10 +1546,10 @@ $currency = getSetting('currency', 'NPR');
         width: 100%;
     }
     
-    /* A4 Page Settings - Minimal margins for one-page layout */
+    /* A4 Page Settings - Optimized margins for single-page readable layout */
     @page {
-        size: A4;
-        margin: 8mm 10mm;
+        size: A4 portrait;
+        margin: 10mm 12mm;
     }
     
     body {
@@ -1560,9 +1564,19 @@ $currency = getSetting('currency', 'NPR');
         max-width: 186mm;
         margin: 0 auto;
         padding: 0;
+        font-size: 10pt;
+        line-height: 1.3;
     }
     
-    /* Critical: Prevent page breaks */
+    /* Critical: Prevent page breaks and keep on one page */
+    .invoice-container {
+        page-break-after: avoid !important;
+        page-break-before: avoid !important;
+        break-inside: avoid-page !important;
+        break-after: avoid-page !important;
+        break-before: avoid-page !important;
+    }
+    
     .invoice-header,
     .invoice-details-bar,
     .customer-section,
@@ -1571,164 +1585,221 @@ $currency = getSetting('currency', 'NPR');
     .note-section,
     .invoice-footer {
         page-break-inside: avoid !important;
-        page-break-after: avoid !important;
-        page-break-before: avoid !important;
         break-inside: avoid !important;
     }
     
-    /* Force entire invoice to stay on one page */
-    .invoice-container {
-        page-break-after: avoid !important;
-        page-break-before: avoid !important;
-        break-inside: avoid !important;
-        break-after: avoid !important;
-        break-before: avoid !important;
-    }
-    
-    /* Compress spacing further in print */
+    /* Header - Compact but readable */
     .invoice-header {
-        padding-bottom: 3px;
-        margin-bottom: 4px;
-        border-bottom: 2px solid #4CAF50 !important;
+        padding-bottom: 4px;
+        margin-bottom: 5px;
+        border-bottom: 2px solid #333 !important;
+    }
+    
+    .company-logo-space {
+        margin-bottom: 3px;
     }
     
     .company-logo-img {
-        max-width: 120px;
-        max-height: 40px;
+        max-width: 100px;
+        max-height: 35px;
     }
     
     .logo-placeholder {
-        padding: 6px 15px;
-        font-size: 12px;
+        padding: 5px 12px;
+        font-size: 12pt;
+        border: 1px solid #333;
+    }
+    
+    .company-info {
+        margin-bottom: 3px;
     }
     
     .company-name {
-        font-size: 16px;
+        font-size: 16pt;
         margin: 0;
+        font-weight: bold;
     }
     
     .company-details {
-        font-size: 8px;
-        margin: 1px 0;
+        font-size: 9pt;
+        margin: 2px 0;
+        line-height: 1.3;
     }
     
     .invoice-title {
-        padding: 2px 0;
-        margin-top: 2px;
+        padding: 3px 0;
+        margin-top: 3px;
+        border-top: 1px solid #333;
+        border-bottom: 1px solid #333;
+        background: #f5f5f5 !important;
     }
     
     .invoice-title h2 {
-        font-size: 11px;
+        font-size: 11pt;
         margin: 0;
+        font-weight: bold;
     }
     
+    /* Invoice details bar - readable */
     .invoice-details-bar {
-        padding: 3px 6px;
-        margin-bottom: 4px;
-        border: 1px solid #F57C00 !important;
+        padding: 4px 8px;
+        margin-bottom: 5px;
+        border: 1px solid #666 !important;
+        background: #f9f9f9 !important;
+        display: flex;
+        justify-content: space-between;
     }
     
     .invoice-detail-item {
-        font-size: 8px;
+        font-size: 9pt;
+        font-weight: bold;
     }
     
+    /* Customer section - readable and compact */
     .customer-section {
-        margin-bottom: 4px;
-        padding: 4px;
-        border: 1px solid #42A5F5 !important;
+        margin-bottom: 5px;
+        padding: 5px;
+        border: 1px solid #666 !important;
+        background: #f9f9f9 !important;
     }
     
     .customer-section h3 {
-        font-size: 9px;
+        font-size: 10pt;
         margin: 0 0 3px 0;
         padding-bottom: 2px;
+        border-bottom: 1px solid #999;
+        font-weight: bold;
     }
     
     .customer-info-grid {
         gap: 2px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
     }
     
     .info-row {
-        font-size: 8px;
+        font-size: 9pt;
+        line-height: 1.4;
     }
     
     .info-label {
-        min-width: 80px;
+        min-width: 85px;
+        font-weight: bold;
     }
     
+    .info-value {
+        font-weight: normal;
+    }
+    
+    /* Booking table - larger, readable fonts */
     .booking-table-section {
-        margin-bottom: 4px;
+        margin-bottom: 5px;
     }
     
     .invoice-table {
-        font-size: 8px;
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
     }
     
     .invoice-table th {
-        padding: 2px 3px;
-        font-size: 8px;
-        border: 1px solid #2E7D32 !important;
+        padding: 4px 5px;
+        font-size: 9pt;
+        border: 1px solid #333 !important;
+        background: #e0e0e0 !important;
+        font-weight: bold;
+        text-align: left;
     }
     
     .invoice-table td {
-        padding: 2px 3px;
-        border: 1px solid #2E7D32 !important;
+        padding: 3px 5px;
+        border: 1px solid #666 !important;
+        font-size: 9pt;
+        line-height: 1.3;
     }
     
     .invoice-table .subtotal-row td {
-        font-size: 8px;
+        font-size: 9pt;
+        background: #f5f5f5 !important;
+        font-weight: bold;
     }
     
     .invoice-table .total-row td {
-        font-size: 9px;
-        padding: 3px;
+        font-size: 10pt;
+        padding: 4px 5px;
+        background: #e0e0e0 !important;
+        font-weight: bold;
     }
     
+    /* Payment calculation - readable */
     .payment-calculation-section {
-        margin-bottom: 4px;
-        padding: 4px;
-        border: 1px solid #7E57C2 !important;
+        margin-bottom: 5px;
+        padding: 5px;
+        border: 1px solid #666 !important;
+        background: #f9f9f9 !important;
+    }
+    
+    .payment-table {
+        width: 100%;
     }
     
     .payment-table td {
-        padding: 1px 0;
-        font-size: 8px;
+        padding: 2px 0;
+        font-size: 9pt;
+        line-height: 1.4;
+    }
+    
+    .payment-label {
+        font-weight: bold;
     }
     
     .payment-value {
-        font-size: 8px;
+        font-size: 9pt;
+        font-weight: bold;
+        text-align: right;
+    }
+    
+    .payment-value-words {
+        font-size: 9pt;
+        font-style: italic;
     }
     
     .due-amount-row td {
         padding-top: 3px;
-        font-size: 9px;
-        border-top: 1px solid #7E57C2;
+        font-size: 10pt;
+        border-top: 1px solid #666;
+        font-weight: bold;
     }
     
+    /* Note section - concise but readable */
     .note-section {
-        padding: 3px;
-        margin-bottom: 4px;
-        border: 1px solid #EF6C00 !important;
+        padding: 4px;
+        margin-bottom: 5px;
+        border: 1px solid #666 !important;
+        background: #fffbf0 !important;
     }
     
     .note-section h3 {
-        font-size: 8px;
+        font-size: 9pt;
         margin: 0 0 2px 0;
+        font-weight: bold;
     }
     
     .note-section ul {
-        padding-left: 10px;
-        font-size: 7px;
-        line-height: 1.2;
+        padding-left: 15px;
+        font-size: 8pt;
+        line-height: 1.3;
+        margin: 2px 0;
     }
     
     .note-section li {
         margin-bottom: 1px;
     }
     
+    /* Footer - readable */
     .invoice-footer {
-        padding-top: 3px;
-        border-top: 2px solid #4CAF50 !important;
+        padding-top: 4px;
+        border-top: 2px solid #333 !important;
     }
     
     .signature-section {
@@ -1736,28 +1807,42 @@ $currency = getSetting('currency', 'NPR');
     }
     
     .signature-line {
-        font-size: 7px;
+        font-size: 9pt;
+        text-align: right;
     }
     
     .signature-line p {
-        margin: 1px 0;
+        margin: 2px 0;
+        line-height: 1.3;
     }
     
     .thank-you-section {
-        font-size: 7px;
+        font-size: 8pt;
+        text-align: center;
+        line-height: 1.3;
     }
     
     .thank-you-section p {
-        margin: 1px 0;
+        margin: 2px 0;
     }
     
     .disclaimer-note {
         margin-top: 3px;
         padding-top: 3px;
-        font-size: 7.5px;
+        font-size: 8pt;
+        border-top: 1px solid #ccc;
+        text-align: center;
+        line-height: 1.3;
     }
     
-    /* Remove any box shadows and unnecessary styling */
+    /* Service description in print - readable */
+    .service-description-print {
+        font-size: 8pt;
+        line-height: 1.3;
+        color: #666 !important;
+    }
+    
+    /* Remove decorative elements to save space */
     .invoice-header,
     .customer-section,
     .booking-table-section,
@@ -1768,7 +1853,7 @@ $currency = getSetting('currency', 'NPR');
         text-shadow: none !important;
     }
     
-    /* Force black color for text in print */
+    /* Ensure text is black for good contrast */
     .invoice-container,
     .invoice-container p,
     .invoice-container td,
@@ -1781,22 +1866,18 @@ $currency = getSetting('currency', 'NPR');
         color: #000 !important;
     }
     
-    /* Ensure backgrounds print */
+    /* Simplified backgrounds for print */
     .invoice-title,
     .invoice-details-bar,
+    .customer-section,
     .note-section,
     .payment-calculation-section,
-    .subtotal-row,
-    .total-row {
-        color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-    
-    /* Service description in print - make compact */
-    .service-description-print {
-        font-size: 7px;
-        line-height: 1.2;
+    .subtotal-row td,
+    .total-row td,
+    .invoice-table th {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
     }
 }
 
