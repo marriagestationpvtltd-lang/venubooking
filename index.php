@@ -183,7 +183,7 @@ if (!empty($venues)):
                                 }
                                 
                                 // Generate unique carousel ID for this venue
-                                $carousel_id = 'venueCarousel' . $venue['id'];
+                                $carousel_id = 'venueImageCarousel' . $venue['id'];
                                 
                                 // Truncate description and add ellipsis only if needed
                                 $description = sanitize($venue['description']);
