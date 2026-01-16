@@ -503,7 +503,6 @@ footer a:hover {
 /* Carousel controls styling */
 .venues-section .carousel-control-prev,
 .venues-section .carousel-control-next {
-    width: 5%;
     background-color: rgba(76, 175, 80, 0.3);
     border-radius: 50%;
     width: 50px;

@@ -164,10 +164,19 @@ if (!empty($venues)):
                             <?php foreach ($chunk as $venue): 
                                 // Get image URL
                                 if (!empty($venue['image'])) {
-                                    $safe_url = UPLOAD_URL . rawurlencode($venue['image']);
+                                    // Ensure UPLOAD_URL ends with a slash
+                                    $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
+                                    $safe_url = $upload_url_base . rawurlencode($venue['image']);
                                     $venue_image_url = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
                                 } else {
                                     $venue_image_url = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                                }
+                                
+                                // Truncate description and add ellipsis only if needed
+                                $description = sanitize($venue['description']);
+                                $truncated_description = substr($description, 0, 100);
+                                if (strlen($description) > 100) {
+                                    $truncated_description .= '...';
                                 }
                             ?>
                                 <div class="col-md-4">
@@ -181,7 +190,7 @@ if (!empty($venues)):
                                                 <?php echo sanitize($venue['location']); ?>
                                             </p>
                                             <p class="card-text text-muted">
-                                                <?php echo sanitize(substr($venue['description'], 0, 100)); ?>...
+                                                <?php echo $truncated_description; ?>
                                             </p>
                                             <button type="button" 
                                                     class="btn btn-success w-100 venue-book-btn"
