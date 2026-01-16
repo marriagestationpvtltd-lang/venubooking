@@ -175,6 +175,8 @@ CREATE TABLE booking_services (
     service_id INT NOT NULL,
     service_name VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     FOREIGN KEY (service_id) REFERENCES additional_services(id)

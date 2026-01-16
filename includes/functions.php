@@ -424,13 +424,13 @@ function createBooking($data) {
         // Insert booking services
         if (!empty($data['services'])) {
             foreach ($data['services'] as $service_id) {
-                $stmt = $db->prepare("SELECT name, price FROM additional_services WHERE id = ?");
+                $stmt = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
                 $stmt->execute([$service_id]);
                 $service = $stmt->fetch();
                 
                 if ($service) {
-                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price) VALUES (?, ?, ?, ?)");
-                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price']]);
+                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
                 }
             }
         }
@@ -495,12 +495,11 @@ function getBookingDetails($booking_id) {
             
             // Get services - using denormalized data from booking_services table
             // This ensures historical data is displayed even if services are deleted from master table
-            // LEFT JOIN with additional_services to get description and category when available
+            // Description and category are now stored in booking_services for full historical preservation
             $stmt = $db->prepare("
                 SELECT bs.id, bs.booking_id, bs.service_id, bs.service_name, bs.price, 
-                       s.description, s.category 
+                       bs.description, bs.category 
                 FROM booking_services bs 
-                LEFT JOIN additional_services s ON bs.service_id = s.id 
                 WHERE bs.booking_id = ?
             ");
             if ($stmt) {
