@@ -222,10 +222,12 @@ unset($_SESSION['booking_completed']);
                                     <span>Subtotal:</span>
                                     <strong class="text-success"><?php echo formatCurrency($booking['subtotal']); ?></strong>
                                 </div>
+                                <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
                                 <div class="d-flex justify-content-between mb-1">
                                     <span>Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
                                     <strong class="text-success"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
                                 </div>
+                                <?php endif; ?>
                                 <hr class="my-2">
                                 <div class="d-flex justify-content-between">
                                     <h5>Grand Total:</h5>

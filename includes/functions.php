@@ -1450,10 +1450,12 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <span>Subtotal:</span>
                         <span><?php echo formatCurrency($booking['subtotal']); ?></span>
                     </div>
+                    <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
                     <div class="cost-row">
                         <span>Tax (<?php echo htmlspecialchars(getSetting('tax_rate', '13'), ENT_QUOTES, 'UTF-8'); ?>%):</span>
                         <span><?php echo formatCurrency($booking['tax_amount']); ?></span>
                     </div>
+                    <?php endif; ?>
                     <div class="cost-row total-row">
                         <span>Grand Total:</span>
                         <span><?php echo formatCurrency($booking['grand_total']); ?></span>
