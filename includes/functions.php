@@ -493,8 +493,9 @@ function getBookingDetails($booking_id) {
                 }
             }
             
-            // Get services
-            $stmt = $db->prepare("SELECT bs.*, s.name as service_name, s.price FROM booking_services bs INNER JOIN additional_services s ON bs.service_id = s.id WHERE bs.booking_id = ?");
+            // Get services - using denormalized data from booking_services table
+            // This ensures historical data is displayed even if services are deleted from master table
+            $stmt = $db->prepare("SELECT bs.id, bs.booking_id, bs.service_id, bs.service_name, bs.price FROM booking_services bs WHERE bs.booking_id = ?");
             if ($stmt) {
                 $stmt->execute([$booking_id]);
                 $booking['services'] = $stmt->fetchAll();
