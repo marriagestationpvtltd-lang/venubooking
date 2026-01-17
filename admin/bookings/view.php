@@ -353,7 +353,7 @@ $currency = getSetting('currency', 'NPR');
                     <td class="payment-label">Advance Payment Received:</td>
                     <td class="payment-value"><?php 
                         // Display advance amount only if marked as received by admin
-                        if (!empty($booking['advance_payment_received'])) {
+                        if ($booking['advance_payment_received'] == 1) {
                             echo formatCurrency($advance['amount']);
                         } else {
                             echo formatCurrency(0);
@@ -592,7 +592,7 @@ $currency = getSetting('currency', 'NPR');
                                 <small class="text-muted d-block mt-3">
                                     <i class="fas fa-info-circle me-1"></i>
                                     Current Status: 
-                                    <?php if (!empty($booking['advance_payment_received'])): ?>
+                                    <?php if ($booking['advance_payment_received'] == 1): ?>
                                         <span class="badge bg-success">
                                             <i class="fas fa-check-circle me-1"></i> Received
                                         </span>
@@ -1167,7 +1167,7 @@ $currency = getSetting('currency', 'NPR');
                             </div>
                         </div>
                         
-                        <?php if (!empty($booking['advance_payment_received'])): ?>
+                        <?php if ($booking['advance_payment_received'] == 1): ?>
                         <div class="alert alert-success mt-2 mb-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
