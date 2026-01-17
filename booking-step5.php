@@ -227,8 +227,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 <p class="text-muted mb-4">Follow the steps below to complete your booking</p>
                 
                 <?php if ($error): ?>
-                    <div class="alert alert-danger">
+                    <div class="alert alert-danger alert-dismissible fade show" id="errorAlert">
                         <i class="fas fa-exclamation-circle"></i> <?php echo sanitize($error); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php endif; ?>
 
@@ -823,6 +824,45 @@ document.addEventListener('DOMContentLoaded', function() {
     if (paymentMethodSelect && paymentMethodSelect.value) {
         showPaymentMethodDetails();
     }
+    
+    // Remove error alert when user starts correcting their input
+    <?php if ($error): ?>
+    const errorAlert = document.getElementById('errorAlert');
+    if (errorAlert && customerForm) {
+        // Get all form inputs
+        const formInputs = customerForm.querySelectorAll('input, select, textarea');
+        
+        // Helper function to determine the appropriate event type for each input
+        function getEventType(input) {
+            const tagName = input.tagName.toUpperCase();
+            if (input.type === 'file' || tagName === 'SELECT' || 
+                input.type === 'radio' || input.type === 'checkbox') {
+                return 'change';
+            }
+            return 'input';
+        }
+        
+        // Flag to track if alert has been dismissed
+        let alertDismissed = false;
+        
+        // Add event listener to each input to hide error when user makes changes
+        formInputs.forEach(function(input) {
+            const eventType = getEventType(input);
+            
+            input.addEventListener(eventType, function() {
+                // Only process if alert hasn't been dismissed yet
+                if (!alertDismissed && errorAlert && errorAlert.classList.contains('show')) {
+                    // Use Bootstrap's native alert dismissal
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                        const bsAlert = bootstrap.Alert.getOrCreateInstance(errorAlert);
+                        bsAlert.close();
+                        alertDismissed = true;
+                    }
+                }
+            });
+        });
+    }
+    <?php endif; ?>
     
     // If there was a form error, determine which step to show based on error
     <?php if ($error): ?>
