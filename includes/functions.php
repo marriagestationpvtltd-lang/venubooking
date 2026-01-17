@@ -539,6 +539,10 @@ function getBookingDetails($booking_id) {
         $booking = $stmt->fetch();
         
         if ($booking) {
+            // Cast numeric fields to proper types to ensure strict comparisons work correctly
+            // advance_payment_received is TINYINT(1) DEFAULT 0, so it will never be NULL
+            $booking['advance_payment_received'] = (int)$booking['advance_payment_received'];
+            
             // Get menus
             $stmt = $db->prepare("SELECT bm.*, m.name as menu_name FROM booking_menus bm INNER JOIN menus m ON bm.menu_id = m.id WHERE bm.booking_id = ?");
             if ($stmt) {
@@ -584,6 +588,54 @@ function getBookingDetails($booking_id) {
         error_log("Error in getBookingDetails: " . $e->getMessage());
         throw new Exception("Unable to retrieve booking information");
     }
+}
+
+/**
+ * Calculate booking status display variables from booking data
+ * Returns an array with display values for status badges
+ * 
+ * @param array $booking Booking data array
+ * @return array Array containing display variables
+ */
+function calculateBookingStatusVariables($booking) {
+    // Validate required keys
+    if (!isset($booking['booking_status']) || !isset($booking['payment_status'])) {
+        throw new InvalidArgumentException('Booking array must contain booking_status and payment_status keys');
+    }
+    
+    // Map booking statuses to Bootstrap color classes
+    $booking_status_colors = [
+        'confirmed' => 'success',
+        'pending' => 'warning',
+        'cancelled' => 'danger',
+        'completed' => 'primary',
+        'payment_submitted' => 'info'
+    ];
+    
+    // Map payment statuses to Bootstrap color classes
+    $payment_status_colors = [
+        'paid' => 'success',
+        'partial' => 'warning',
+        'pending' => 'danger'
+    ];
+    
+    // Map payment statuses to Font Awesome icons
+    $payment_status_icons = [
+        'paid' => 'fa-check-circle',
+        'partial' => 'fa-clock',
+        'pending' => 'fa-exclamation-circle'
+    ];
+    
+    $booking_status = $booking['booking_status'];
+    $payment_status = $booking['payment_status'];
+    
+    return [
+        'booking_status_display' => ucfirst(str_replace('_', ' ', $booking_status)),
+        'booking_status_color' => $booking_status_colors[$booking_status] ?? 'info',
+        'payment_status_display' => ucfirst($payment_status),
+        'payment_status_color' => $payment_status_colors[$payment_status] ?? 'danger',
+        'payment_status_icon' => $payment_status_icons[$payment_status] ?? 'fa-exclamation-circle'
+    ];
 }
 
 /**
