@@ -1062,8 +1062,7 @@ $currency = getSetting('currency', 'NPR');
                                         $balance_due_display = $booking['grand_total'] - $total_paid;
                                         // If advance payment is marked as received, subtract it from balance due
                                         if ($booking['advance_payment_received'] === 1) {
-                                            $advance_calc = calculateAdvancePayment($booking['grand_total']);
-                                            $balance_due_display -= $advance_calc['amount'];
+                                            $balance_due_display -= $advance['amount'];
                                         }
                                         echo formatCurrency($balance_due_display); 
                                         ?>

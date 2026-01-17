@@ -76,7 +76,7 @@ $bookings = $stmt->fetchAll();
                     <?php foreach ($bookings as $booking): 
                         $balance_due = $booking['grand_total'] - $booking['total_paid'];
                         // If advance payment is marked as received, subtract it from balance due
-                        if (isset($booking['advance_payment_received']) && $booking['advance_payment_received'] == 1) {
+                        if ($booking['advance_payment_received'] === 1) {
                             $advance_calc = calculateAdvancePayment($booking['grand_total']);
                             $balance_due -= $advance_calc['amount'];
                         }
