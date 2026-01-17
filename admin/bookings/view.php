@@ -97,8 +97,8 @@ if (isset($_POST['action'])) {
             $stmt = $db->prepare("UPDATE bookings SET advance_payment_received = ? WHERE id = ?");
             $stmt->execute([$new_advance_status, $booking_id]);
             
-            $old_status_text = $old_advance_status ? 'received' : 'not received';
-            $new_status_text = $new_advance_status ? 'received' : 'not received';
+            $old_status_text = ($old_advance_status === 1) ? 'received' : 'not received';
+            $new_status_text = ($new_advance_status === 1) ? 'received' : 'not received';
             logActivity($current_user['id'], 'Updated advance payment status', 'bookings', $booking_id, "Advance payment changed from {$old_status_text} to {$new_status_text} for booking: {$booking['booking_number']}");
             
             $success_message = "Advance payment status updated successfully to: " . ucfirst($new_status_text);
@@ -353,7 +353,7 @@ $currency = getSetting('currency', 'NPR');
                     <td class="payment-label">Advance Payment Received:</td>
                     <td class="payment-value"><?php 
                         // Display advance amount only if marked as received by admin
-                        if ($booking['advance_payment_received'] == 1) {
+                        if ($booking['advance_payment_received'] === 1) {
                             echo formatCurrency($advance['amount']);
                         } else {
                             echo formatCurrency(0);
@@ -575,7 +575,7 @@ $currency = getSetting('currency', 'NPR');
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" role="switch" 
                                                    id="advance_payment_received" name="advance_payment_received" 
-                                                   value="1" <?php echo ($booking['advance_payment_received'] == 1) ? 'checked' : ''; ?>
+                                                   value="1" <?php echo ($booking['advance_payment_received'] === 1) ? 'checked' : ''; ?>
                                                    style="width: 3em; height: 1.5em; cursor: pointer;">
                                             <label class="form-check-label fw-semibold ms-2" for="advance_payment_received" style="cursor: pointer;">
                                                 <strong>Advance Payment Received</strong>
@@ -592,7 +592,7 @@ $currency = getSetting('currency', 'NPR');
                                 <small class="text-muted d-block mt-3">
                                     <i class="fas fa-info-circle me-1"></i>
                                     Current Status: 
-                                    <?php if ($booking['advance_payment_received'] == 1): ?>
+                                    <?php if ($booking['advance_payment_received'] === 1): ?>
                                         <span class="badge bg-success">
                                             <i class="fas fa-check-circle me-1"></i> Received
                                         </span>
@@ -1167,7 +1167,7 @@ $currency = getSetting('currency', 'NPR');
                             </div>
                         </div>
                         
-                        <?php if ($booking['advance_payment_received'] == 1): ?>
+                        <?php if ($booking['advance_payment_received'] === 1): ?>
                         <div class="alert alert-success mt-2 mb-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
