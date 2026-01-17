@@ -224,9 +224,12 @@ CREATE TABLE booking_services (
     price DECIMAL(10, 2) NOT NULL,
     description TEXT,
     category VARCHAR(100),
+    added_by ENUM('user', 'admin') DEFAULT 'user' COMMENT 'Who added the service: user during booking or admin later',
+    quantity INT DEFAULT 1 COMMENT 'Quantity of service',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    FOREIGN KEY (service_id) REFERENCES additional_services(id)
+    FOREIGN KEY (service_id) REFERENCES additional_services(id),
+    INDEX idx_booking_services_added_by (added_by)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
