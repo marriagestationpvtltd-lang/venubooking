@@ -1831,8 +1831,8 @@ function calculatePaymentSummary($booking_id) {
     
     $db = getDB();
     
-    // Get booking totals from database
-    $stmt = $db->prepare("SELECT hall_price, menu_total, services_total, subtotal, tax_amount, grand_total 
+    // Get booking totals and advance payment status from database
+    $stmt = $db->prepare("SELECT hall_price, menu_total, services_total, subtotal, tax_amount, grand_total, advance_payment_received 
                           FROM bookings WHERE id = ?");
     $stmt->execute([$booking_id]);
     $booking = $stmt->fetch();
@@ -1849,12 +1849,20 @@ function calculatePaymentSummary($booking_id) {
     $payment_result = $stmt->fetch();
     $total_paid = floatval($payment_result['total_paid']);
     
-    // Calculate due amount (never negative)
+    // Calculate due amount
     $grand_total = floatval($booking['grand_total']);
-    $due_amount = max(0, $grand_total - $total_paid);
+    $due_amount = $grand_total - $total_paid;
     
     // Calculate advance payment info for reference
     $advance = calculateAdvancePayment($grand_total);
+    
+    // If advance payment is marked as received, subtract it from balance due
+    if (isset($booking['advance_payment_received']) && $booking['advance_payment_received'] === 1) {
+        $due_amount -= $advance['amount'];
+    }
+    
+    // Ensure due amount is never negative
+    $due_amount = max(0, $due_amount);
     
     return [
         'subtotal' => floatval($booking['subtotal']),
