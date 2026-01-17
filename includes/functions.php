@@ -1820,8 +1820,15 @@ function getBookingPayments($booking_id) {
  * 
  * @param int $booking_id Booking ID
  * @return array Payment summary with keys: subtotal, tax_amount, grand_total, total_paid, due_amount, advance_amount, advance_percentage
+ * @throws Exception if booking_id is invalid or booking not found
  */
 function calculatePaymentSummary($booking_id) {
+    // Validate booking_id
+    $booking_id = intval($booking_id);
+    if ($booking_id <= 0) {
+        throw new Exception("Invalid booking ID: {$booking_id}");
+    }
+    
     $db = getDB();
     
     // Get booking totals from database
@@ -1831,7 +1838,7 @@ function calculatePaymentSummary($booking_id) {
     $booking = $stmt->fetch();
     
     if (!$booking) {
-        throw new Exception("Booking not found");
+        throw new Exception("Booking not found: {$booking_id}");
     }
     
     // Calculate total paid from verified payments only
