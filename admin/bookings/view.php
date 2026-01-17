@@ -127,23 +127,17 @@ if (isset($_POST['action'])) {
 
 <!-- Print-Only Invoice Layout -->
 <?php
-// Calculate payment details for invoice
-$total_paid = 0;
+// Calculate payment details using centralized function (single source of truth)
+$payment_summary = calculatePaymentSummary($booking_id);
+$total_paid = $payment_summary['total_paid'];
+$balance_due = $payment_summary['due_amount'];
+$advance = [
+    'amount' => $payment_summary['advance_amount'],
+    'percentage' => $payment_summary['advance_percentage']
+];
+
+// Get payment transactions for display
 $payment_transactions = getBookingPayments($booking_id);
-if (!empty($payment_transactions)) {
-    $total_paid = array_sum(array_column($payment_transactions, 'paid_amount'));
-}
-
-// Calculate advance payment (used in both print invoice and UI display)
-$advance = calculateAdvancePayment($booking['grand_total']);
-
-// Calculate balance due: Grand Total - Total Paid (actual payments)
-$balance_due = $booking['grand_total'] - $total_paid;
-
-// If advance payment is marked as received, subtract it from balance due
-if ($booking['advance_payment_received'] === 1) {
-    $balance_due -= $advance['amount'];
-}
 
 // Company details from settings - use company-specific or fallback to general
 // Note: getSetting() caches results, but we check primary first to avoid unnecessary fallback queries
@@ -1041,7 +1035,7 @@ $currency = getSetting('currency', 'NPR');
                                 <td colspan="3" class="text-end">
                                     <strong class="text-success fs-4">
                                         <?php 
-                                        $total_paid = array_sum(array_column($payment_transactions, 'paid_amount'));
+                                        // Use centralized calculation (already calculated above)
                                         echo formatCurrency($total_paid); 
                                         ?>
                                     </strong>
@@ -1058,13 +1052,8 @@ $currency = getSetting('currency', 'NPR');
                                 <td colspan="3" class="text-end">
                                     <strong class="text-danger fs-4">
                                         <?php 
-                                        // Recalculate to ensure consistency
-                                        $balance_due_display = $booking['grand_total'] - $total_paid;
-                                        // If advance payment is marked as received, subtract it from balance due
-                                        if ($booking['advance_payment_received'] === 1) {
-                                            $balance_due_display -= $advance['amount'];
-                                        }
-                                        echo formatCurrency($balance_due_display); 
+                                        // Use centralized calculation (already calculated above)
+                                        echo formatCurrency($balance_due); 
                                         ?>
                                     </strong>
                                 </td>

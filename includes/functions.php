@@ -1808,6 +1808,59 @@ function getBookingPayments($booking_id) {
 }
 
 /**
+ * Calculate payment summary for a booking
+ * Single source of truth for all payment calculations
+ * 
+ * Formula:
+ * - Subtotal = Hall Price + Menu Total + Services Total
+ * - Tax Amount = (Tax Rate > 0) ? (Subtotal × Tax Rate / 100) : 0
+ * - Grand Total = Subtotal + Tax Amount
+ * - Paid Amount = SUM(paid_amount) from verified payments
+ * - Due Amount = max(0, Grand Total - Paid Amount)
+ * 
+ * @param int $booking_id Booking ID
+ * @return array Payment summary with keys: subtotal, tax_amount, grand_total, total_paid, due_amount, advance_amount, advance_percentage
+ */
+function calculatePaymentSummary($booking_id) {
+    $db = getDB();
+    
+    // Get booking totals from database
+    $stmt = $db->prepare("SELECT hall_price, menu_total, services_total, subtotal, tax_amount, grand_total 
+                          FROM bookings WHERE id = ?");
+    $stmt->execute([$booking_id]);
+    $booking = $stmt->fetch();
+    
+    if (!$booking) {
+        throw new Exception("Booking not found");
+    }
+    
+    // Calculate total paid from verified payments only
+    $stmt = $db->prepare("SELECT COALESCE(SUM(paid_amount), 0) as total_paid 
+                          FROM payments 
+                          WHERE booking_id = ? AND payment_status = 'verified'");
+    $stmt->execute([$booking_id]);
+    $payment_result = $stmt->fetch();
+    $total_paid = floatval($payment_result['total_paid']);
+    
+    // Calculate due amount (never negative)
+    $grand_total = floatval($booking['grand_total']);
+    $due_amount = max(0, $grand_total - $total_paid);
+    
+    // Calculate advance payment info for reference
+    $advance = calculateAdvancePayment($grand_total);
+    
+    return [
+        'subtotal' => floatval($booking['subtotal']),
+        'tax_amount' => floatval($booking['tax_amount']),
+        'grand_total' => $grand_total,
+        'total_paid' => $total_paid,
+        'due_amount' => $due_amount,
+        'advance_amount' => $advance['amount'],
+        'advance_percentage' => $advance['percentage']
+    ];
+}
+
+/**
  * Get company logo for invoices with proper validation and fallback
  * Returns an array with 'path' (validated safe path) and 'url' (for display)
  * 
