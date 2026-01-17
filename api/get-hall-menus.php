@@ -2,10 +2,25 @@
 /**
  * API Endpoint: Get menus assigned to a specific hall
  * Used in admin booking add/edit forms
+ * Requires admin authentication
  */
+
+// Start session for authentication check
+session_start();
 
 header('Content-Type: application/json');
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/auth.php';
+
+// Check if user is logged in
+if (!isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Authentication required'
+    ]);
+    exit;
+}
 
 // Validate hall_id parameter
 if (!isset($_GET['hall_id']) || empty($_GET['hall_id'])) {

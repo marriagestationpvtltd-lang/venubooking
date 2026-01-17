@@ -19,11 +19,11 @@ else
 fi
 
 # Validate required environment variables
-if [ -z "$DB_USER" ] || [ -z "$DB_PASS" ] || [ -z "$DB_NAME" ]; then
+if [ -z "$DB_USER" ] || [ -z "$DB_NAME" ]; then
     echo "Error: Missing required database credentials!"
     echo "Please ensure .env file contains:"
     echo "  DB_USER=your_username"
-    echo "  DB_PASS=your_password"
+    echo "  DB_PASS=your_password (or leave empty to prompt)"
     echo "  DB_NAME=your_database"
     echo "  DB_HOST=localhost (optional, defaults to localhost)"
     exit 1
@@ -31,9 +31,29 @@ fi
 
 # Apply migration
 echo "Applying migration to add status column to hall_menus table..."
-mysql -h "${DB_HOST:-localhost}" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < database/migrations/add_hall_menus_status.sql
 
-if [ $? -eq 0 ]; then
+# Use password from environment if available, otherwise prompt
+if [ -n "$DB_PASS" ]; then
+    # Create temporary MySQL config file for secure password passing
+    MYSQL_CONFIG=$(mktemp)
+    cat > "$MYSQL_CONFIG" << EOF
+[client]
+password=$DB_PASS
+EOF
+    chmod 600 "$MYSQL_CONFIG"
+    
+    mysql --defaults-extra-file="$MYSQL_CONFIG" -h "${DB_HOST:-localhost}" -u "$DB_USER" "$DB_NAME" < database/migrations/add_hall_menus_status.sql
+    RESULT=$?
+    
+    # Clean up temp file
+    rm -f "$MYSQL_CONFIG"
+else
+    # Prompt for password
+    mysql -h "${DB_HOST:-localhost}" -u "$DB_USER" -p "$DB_NAME" < database/migrations/add_hall_menus_status.sql
+    RESULT=$?
+fi
+
+if [ $RESULT -eq 0 ]; then
     echo ""
     echo "✓ Migration applied successfully!"
     echo ""
