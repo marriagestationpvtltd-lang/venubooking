@@ -140,6 +140,11 @@ $advance = calculateAdvancePayment($booking['grand_total']);
 // Calculate balance due: Grand Total - Total Paid (actual payments)
 $balance_due = $booking['grand_total'] - $total_paid;
 
+// If advance payment is marked as received, subtract it from balance due
+if ($booking['advance_payment_received'] === 1) {
+    $balance_due -= $advance['amount'];
+}
+
 // Company details from settings - use company-specific or fallback to general
 // Note: getSetting() caches results, but we check primary first to avoid unnecessary fallback queries
 $company_name = getSetting('company_name');
@@ -1053,8 +1058,14 @@ $currency = getSetting('currency', 'NPR');
                                 <td colspan="3" class="text-end">
                                     <strong class="text-danger fs-4">
                                         <?php 
-                                        $balance_due = $booking['grand_total'] - $total_paid;
-                                        echo formatCurrency($balance_due); 
+                                        // Recalculate to ensure consistency
+                                        $balance_due_display = $booking['grand_total'] - $total_paid;
+                                        // If advance payment is marked as received, subtract it from balance due
+                                        if ($booking['advance_payment_received'] === 1) {
+                                            $advance_calc = calculateAdvancePayment($booking['grand_total']);
+                                            $balance_due_display -= $advance_calc['amount'];
+                                        }
+                                        echo formatCurrency($balance_due_display); 
                                         ?>
                                     </strong>
                                 </td>
