@@ -75,6 +75,11 @@ $bookings = $stmt->fetchAll();
                 <tbody>
                     <?php foreach ($bookings as $booking): 
                         $balance_due = $booking['grand_total'] - $booking['total_paid'];
+                        // If advance payment is marked as received, subtract it from balance due
+                        if ($booking['advance_payment_received'] === 1) {
+                            $advance_calc = calculateAdvancePayment($booking['grand_total']);
+                            $balance_due -= $advance_calc['amount'];
+                        }
                         $payment_percentage = $booking['grand_total'] > 0 ? ($booking['total_paid'] / $booking['grand_total']) * 100 : 0;
                     ?>
                         <tr class="booking-row">

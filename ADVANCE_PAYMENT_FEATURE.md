@@ -102,10 +102,22 @@ if (!empty($booking['advance_payment_received'])) {
 }
 ```
 
-The balance due is calculated from actual payments:
+The balance due is calculated from actual payments and advance payment status:
 ```php
 $balance_due = $booking['grand_total'] - $total_paid;
+
+// If advance payment is marked as received, subtract it from balance due
+if ($booking['advance_payment_received'] === 1) {
+    $balance_due -= $advance['amount'];
+}
 ```
+
+**Note**: As of the latest update, the balance due calculation now properly accounts for the advance payment when it's marked as received. This ensures that when the admin marks "Advance Payment Received", the balance due will correctly show:
+- Balance Due = Grand Total - Total Paid - Advance Amount (when marked as received)
+
+For example, if Grand Total is NPR 100,000 and Advance (25%) is NPR 25,000:
+- When advance NOT marked as received: Balance Due = NPR 100,000 - Total Paid
+- When advance IS marked as received: Balance Due = NPR 75,000 - Total Paid
 
 ## Benefits
 - ✅ Accurate invoice display showing actual advance payment received
