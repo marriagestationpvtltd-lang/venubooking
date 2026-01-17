@@ -148,8 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $service = $stmt->fetch();
                         
                         if ($service) {
-                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, 'user', 1)");
-                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
+                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, 'user', ?)");
+                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], DEFAULT_SERVICE_QUANTITY]);
                         }
                     }
                 }

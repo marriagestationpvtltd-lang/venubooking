@@ -24,3 +24,15 @@ SELECT
     SUM(CASE WHEN added_by = 'user' THEN 1 ELSE 0 END) as user_services,
     SUM(CASE WHEN added_by = 'admin' THEN 1 ELSE 0 END) as admin_services
 FROM booking_services;
+
+-- ====================================
+-- ROLLBACK INSTRUCTIONS
+-- ====================================
+-- To rollback this migration, run the following SQL:
+-- 
+-- DROP INDEX idx_booking_services_added_by ON booking_services;
+-- ALTER TABLE booking_services DROP COLUMN quantity;
+-- ALTER TABLE booking_services DROP COLUMN added_by;
+-- 
+-- Note: This will permanently delete all admin-added services data.
+-- Make a backup before rollback if you need to preserve the data.

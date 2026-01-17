@@ -13,6 +13,11 @@ require_once __DIR__ . '/db.php';
 define('SAFE_FILENAME_PATTERN', '/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]+$/');
 
 /**
+ * Default service quantity for user-selected services
+ */
+define('DEFAULT_SERVICE_QUANTITY', 1);
+
+/**
  * Sanitize input to prevent XSS
  */
 function sanitize($data) {
@@ -496,8 +501,8 @@ function createBooking($data) {
                 $service = $stmt->fetch();
                 
                 if ($service) {
-                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
+                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, 'user', ?)");
+                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], DEFAULT_SERVICE_QUANTITY]);
                 }
             }
         }
@@ -2010,10 +2015,14 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
         $service_name = trim($service_name);
         $description = trim($description);
         $quantity = max(1, intval($quantity));
-        $price = max(0, floatval($price));
+        $price = floatval($price);
         
         if (empty($service_name)) {
             throw new Exception("Service name is required");
+        }
+        
+        if ($price <= 0) {
+            throw new Exception("Price must be greater than 0");
         }
         
         // Insert admin service
