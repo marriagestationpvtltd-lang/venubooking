@@ -12,9 +12,6 @@ $venues = $db->query("SELECT id, name FROM venues WHERE status = 'active' ORDER 
 // Fetch halls
 $halls = $db->query("SELECT h.id, h.name, v.name as venue_name, h.capacity FROM halls h INNER JOIN venues v ON h.venue_id = v.id WHERE h.status = 'active' ORDER BY v.name, h.name")->fetchAll();
 
-// Fetch menus
-$menus = $db->query("SELECT id, name, price_per_person FROM menus WHERE status = 'active' ORDER BY name")->fetchAll();
-
 // Fetch services
 $services = $db->query("SELECT id, name, price, category FROM additional_services WHERE status = 'active' ORDER BY category, name")->fetchAll();
 
