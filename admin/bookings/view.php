@@ -1190,6 +1190,26 @@ $currency = getSetting('currency', 'NPR');
                             </div>
                         </div>
                         <?php endif; ?>
+                        
+                        <!-- Balance Due Amount -->
+                        <div class="alert alert-info mt-2 mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="d-block fw-semibold mb-1">
+                                        <i class="fas fa-dollar-sign me-1"></i>
+                                        Balance Due Amount
+                                    </small>
+                                    <small class="text-muted">
+                                        <?php if ($booking['advance_payment_received'] === 1): ?>
+                                            (After advance deduction)
+                                        <?php else: ?>
+                                            (Full amount)
+                                        <?php endif; ?>
+                                    </small>
+                                </div>
+                                <h5 class="mb-0 fw-bold text-danger"><?php echo formatCurrency($balance_due); ?></h5>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
