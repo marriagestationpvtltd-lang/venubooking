@@ -144,6 +144,11 @@ if (count($bookings_with_services) > 0) {
         echo "<h2>Test 4: Service Separation for Booking #{$booking['booking_number']}</h2>";
         
         try {
+            // Check if function exists
+            if (!function_exists('getBookingDetails')) {
+                throw new Exception("getBookingDetails function not found. Check includes/functions.php");
+            }
+            
             // Fetch booking details
             $booking_details = getBookingDetails($booking['id']);
             
