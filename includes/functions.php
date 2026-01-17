@@ -2052,6 +2052,18 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
         
         $db->commit();
         return $service_id;
+    } catch (PDOException $e) {
+        $db->rollBack();
+        $error_msg = $e->getMessage();
+        error_log("Error adding admin service (PDOException): " . $error_msg);
+        
+        // Check for specific errors
+        if (strpos($error_msg, "Unknown column 'added_by'") !== false || 
+            strpos($error_msg, "Unknown column 'quantity'") !== false) {
+            error_log("ADMIN SERVICES ERROR: Database schema is missing required columns. Please run fix_admin_services.php or apply database migration.");
+        }
+        
+        return false;
     } catch (Exception $e) {
         $db->rollBack();
         error_log("Error adding admin service: " . $e->getMessage());
