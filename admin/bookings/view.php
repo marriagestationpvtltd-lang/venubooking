@@ -226,6 +226,21 @@ $invoice_disclaimer = getSetting('invoice_disclaimer', 'Note: This is a computer
 $package_label = getSetting('invoice_package_label', 'Marriage Package');
 $additional_items_label = getSetting('invoice_additional_items_label', 'Additional Items');
 $currency = getSetting('currency', 'NPR');
+
+// Separate user and admin services for display in print invoice
+// Note: This logic is duplicated later for the screen view section (around line 930)
+// to maintain separation of concerns between print and screen displays
+$user_services = [];
+$admin_services = [];
+if (!empty($booking['services']) && is_array($booking['services'])) {
+    foreach ($booking['services'] as $service) {
+        if (isset($service['added_by']) && $service['added_by'] === 'admin') {
+            $admin_services[] = $service;
+        } else {
+            $user_services[] = $service;
+        }
+    }
+}
 ?>
 
 <div class="print-invoice-only" style="display: none;">
