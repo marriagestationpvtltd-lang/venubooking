@@ -364,7 +364,7 @@ $currency = getSetting('currency', 'NPR');
                 </tr>
                 <tr>
                     <td class="payment-label">Amount in Words:</td>
-                    <td class="payment-value-words"><?php echo numberToWords($booking['grand_total']); ?> Only</td>
+                    <td class="payment-value-words"><?php echo numberToWords($balance_due); ?> Only</td>
                 </tr>
                 <tr>
                     <td class="payment-label">Payment Mode:</td>
