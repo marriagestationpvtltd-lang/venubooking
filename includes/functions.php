@@ -2092,6 +2092,7 @@ function deleteAdminService($service_id) {
 
 /**
  * Recalculate booking totals after adding/removing admin services
+ * This function recalculates all totals based on actual data in the database
  * 
  * @param int $booking_id Booking ID
  * @return bool Success status
@@ -2101,13 +2102,25 @@ function recalculateBookingTotals($booking_id) {
     
     try {
         // Get current booking data
-        $stmt = $db->prepare("SELECT hall_price, menu_total FROM bookings WHERE id = ?");
+        $stmt = $db->prepare("SELECT hall_id FROM bookings WHERE id = ?");
         $stmt->execute([$booking_id]);
         $booking = $stmt->fetch();
         
         if (!$booking) {
             throw new Exception("Booking not found");
         }
+        
+        // Calculate hall price
+        $stmt = $db->prepare("SELECT base_price FROM halls WHERE id = ?");
+        $stmt->execute([$booking['hall_id']]);
+        $hall = $stmt->fetch();
+        $hall_price = floatval($hall['base_price'] ?? 0);
+        
+        // Calculate menu total from booking_menus
+        $stmt = $db->prepare("SELECT SUM(total_price) as total FROM booking_menus WHERE booking_id = ?");
+        $stmt->execute([$booking_id]);
+        $result = $stmt->fetch();
+        $menu_total = floatval($result['total'] ?? 0);
         
         // Calculate total from all services (user + admin)
         $stmt = $db->prepare("SELECT SUM(price * quantity) as total FROM booking_services WHERE booking_id = ?");
@@ -2116,8 +2129,6 @@ function recalculateBookingTotals($booking_id) {
         $services_total = floatval($result['total'] ?? 0);
         
         // Calculate new totals
-        $hall_price = floatval($booking['hall_price']);
-        $menu_total = floatval($booking['menu_total']);
         $subtotal = $hall_price + $menu_total + $services_total;
         
         $tax_rate = floatval(getSetting('tax_rate', '13'));
@@ -2127,10 +2138,10 @@ function recalculateBookingTotals($booking_id) {
         // Update booking totals
         $stmt = $db->prepare("
             UPDATE bookings 
-            SET services_total = ?, subtotal = ?, tax_amount = ?, grand_total = ?
+            SET hall_price = ?, menu_total = ?, services_total = ?, subtotal = ?, tax_amount = ?, grand_total = ?
             WHERE id = ?
         ");
-        $stmt->execute([$services_total, $subtotal, $tax_amount, $grand_total, $booking_id]);
+        $stmt->execute([$hall_price, $menu_total, $services_total, $subtotal, $tax_amount, $grand_total, $booking_id]);
         
         return true;
     } catch (Exception $e) {

@@ -89,14 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare("UPDATE customers SET full_name = ?, phone = ?, email = ?, address = ? WHERE id = ?");
                 $stmt->execute([$full_name, $phone, $email, $address, $customer_id]);
                 
-                // Calculate totals
-                $totals = calculateBookingTotal($hall_id, $post_selected_menus, $number_of_guests, $post_selected_services);
-                
-                // Update booking
+                // Update booking basic info (totals will be recalculated after services are inserted)
                 $sql = "UPDATE bookings SET 
                         hall_id = ?, event_date = ?, shift = ?, 
-                        event_type = ?, number_of_guests = ?, hall_price = ?, menu_total = ?, 
-                        services_total = ?, subtotal = ?, tax_amount = ?, grand_total = ?, 
+                        event_type = ?, number_of_guests = ?, 
                         special_requests = ?, booking_status = ?, payment_status = ?
                         WHERE id = ?";
                 
@@ -107,12 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $shift,
                     $event_type,
                     $number_of_guests,
-                    $totals['hall_price'],
-                    $totals['menu_total'],
-                    $totals['services_total'],
-                    $totals['subtotal'],
-                    $totals['tax_amount'],
-                    $totals['grand_total'],
                     $special_requests,
                     $booking_status,
                     $payment_status,
@@ -154,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
-                // Recalculate totals to include admin services
+                // Recalculate totals to include all services (user + admin)
                 recalculateBookingTotals($booking_id);
                 
                 // Link payment methods to booking
