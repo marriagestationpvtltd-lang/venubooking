@@ -4,7 +4,24 @@
  * 
  * This script tests the admin services feature to ensure it's working correctly.
  * Run this after applying the database fix.
+ * 
+ * SECURITY: This file should be deleted after use!
  */
+
+// Security check - require admin authentication
+session_start();
+require_once __DIR__ . '/includes/auth.php';
+
+// Check if user is logged in and is admin
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    die('<!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><title>Access Denied</title></head>
+    <body style="font-family: Arial; padding: 50px; text-align: center;">
+        <h1>🔒 Access Denied</h1>
+        <p>This page requires admin authentication.</p>
+        <p><a href="/admin/login.php">Login as Admin</a></p>
+    </body></html>');
+}
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -328,10 +345,45 @@ require_once __DIR__ . '/includes/functions.php';
                     </ul>
                 </div>
             </div>
+            
+            <?php if (isset($_GET['delete_me']) && $_GET['delete_me'] === 'yes'): ?>
+                <?php
+                // Self-delete this file
+                $deleted = @unlink(__FILE__);
+                if ($deleted) {
+                    echo '<div class="test pass">
+                        <div class="test-name">🗑️ File Deleted Successfully</div>
+                        <div class="test-details">This test file has been removed from your server.</div>
+                    </div>';
+                } else {
+                    echo '<div class="test fail">
+                        <div class="test-name">❌ Could Not Delete File</div>
+                        <div class="test-details">Please manually delete <code>test_admin_services.php</code> from your server.</div>
+                    </div>';
+                }
+                ?>
+            <?php else: ?>
+                <div class="test fail" style="background: #fff3cd; border-left-color: #ffc107; color: #856404;">
+                    <div class="test-name">⚠️ SECURITY WARNING</div>
+                    <div class="test-details">
+                        This file exposes sensitive database information and should be deleted immediately!
+                        <div style="margin-top: 10px;">
+                            <a href="?delete_me=yes" 
+                               onclick="return confirm('Are you sure you want to delete this test file?')"
+                               style="display: inline-block; padding: 8px 16px; background: #dc3545; color: white; text-decoration: none; border-radius: 4px; margin-right: 10px;">
+                                🗑️ Delete This File Now
+                            </a>
+                            <span style="font-size: 12px; color: #666;">Or manually delete <code>test_admin_services.php</code></span>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+                </div>
+            </div>
         <?php endif; ?>
         
         <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; color: #666; font-size: 14px;">
-            <p><strong>Note:</strong> Delete this test file (<code>test_admin_services.php</code>) after verification for security.</p>
+            <p><strong>⚠️ SECURITY:</strong> This test file should be deleted after verification. It is protected by admin authentication but should not remain on the server.</p>
         </div>
     </div>
 </body>

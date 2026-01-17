@@ -10,12 +10,50 @@
  * 1. Access this file via your browser: http://yoursite.com/fix_admin_services.php
  * 2. Follow the on-screen instructions
  * 3. Delete this file after successful execution
+ * 
+ * SECURITY WARNING: This file makes database changes. Delete it after use!
  */
+
+// Security check - require admin authentication
+session_start();
+require_once __DIR__ . '/includes/auth.php';
+
+// Check if user is logged in and is admin
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    die('<!DOCTYPE html>
+    <html><head><meta charset="UTF-8"><title>Access Denied</title></head>
+    <body style="font-family: Arial; padding: 50px; text-align: center;">
+        <h1>🔒 Access Denied</h1>
+        <p>This database migration requires admin authentication.</p>
+        <p><a href="/admin/login.php">Login as Admin</a></p>
+    </body></html>');
+}
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once __DIR__ . '/config/db.php';
+// Handle self-delete request
+if (isset($_GET['delete_me']) && $_GET['delete_me'] === 'yes') {
+    $deleted = @unlink(__FILE__);
+    if ($deleted) {
+        die('<!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>File Deleted</title></head>
+        <body style="font-family: Arial; padding: 50px; text-align: center;">
+            <h1 style="color: green;">✅ File Deleted Successfully</h1>
+            <p>The fix_admin_services.php file has been removed from your server.</p>
+            <p><a href="/admin/bookings/">Go to Bookings</a></p>
+        </body></html>');
+    } else {
+        die('<!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>Delete Failed</title></head>
+        <body style="font-family: Arial; padding: 50px; text-align: center;">
+            <h1 style="color: red;">❌ Could Not Delete File</h1>
+            <p>Please manually delete fix_admin_services.php from your server.</p>
+            <p>This may be a permissions issue. Contact your hosting provider if needed.</p>
+        </body></html>');
+    }
+}
+
 require_once __DIR__ . '/includes/db.php';
 
 ?>
@@ -178,8 +216,16 @@ require_once __DIR__ . '/includes/db.php';
                         Your database has been updated. You can now add admin services to bookings.
                     </div>';
                     
+                    // Self-delete option
                     echo '<div class="status warning">
-                        ⚠️ <strong>Important:</strong> Delete this file (<code>fix_admin_services.php</code>) from your server for security reasons.
+                        ⚠️ <strong>Security:</strong> This file makes database changes and should be deleted immediately!
+                        <div style="margin-top: 15px;">
+                            <a href="?delete_me=yes" 
+                               onclick="return confirm(\'Are you sure you want to delete this fix file? Make sure the migration was successful first!\')"
+                               class="btn btn-success">
+                                🗑️ Delete This File Now
+                            </a>
+                        </div>
                     </div>';
                     
                 } catch (Exception $e) {
