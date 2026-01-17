@@ -227,8 +227,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 <p class="text-muted mb-4">Follow the steps below to complete your booking</p>
                 
                 <?php if ($error): ?>
-                    <div class="alert alert-danger">
+                    <div class="alert alert-danger alert-dismissible fade show" id="errorAlert">
                         <i class="fas fa-exclamation-circle"></i> <?php echo sanitize($error); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php endif; ?>
 
@@ -823,6 +824,32 @@ document.addEventListener('DOMContentLoaded', function() {
     if (paymentMethodSelect && paymentMethodSelect.value) {
         showPaymentMethodDetails();
     }
+    
+    // Remove error alert when user starts correcting their input
+    <?php if ($error): ?>
+    const errorAlert = document.getElementById('errorAlert');
+    if (errorAlert) {
+        // Get all form inputs
+        const formInputs = customerForm.querySelectorAll('input, select, textarea');
+        
+        // Add event listener to each input to hide error when user makes changes
+        formInputs.forEach(function(input) {
+            // Use 'input' event for text fields, 'change' for selects and file inputs
+            const eventType = (input.type === 'file' || input.tagName === 'SELECT' || input.type === 'radio' || input.type === 'checkbox') ? 'change' : 'input';
+            
+            input.addEventListener(eventType, function() {
+                if (errorAlert && errorAlert.style.display !== 'none') {
+                    // Fade out the error alert
+                    errorAlert.style.transition = 'opacity 0.3s ease-out';
+                    errorAlert.style.opacity = '0';
+                    setTimeout(function() {
+                        errorAlert.style.display = 'none';
+                    }, 300);
+                }
+            });
+        });
+    }
+    <?php endif; ?>
     
     // If there was a form error, determine which step to show based on error
     <?php if ($error): ?>
