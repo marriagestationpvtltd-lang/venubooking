@@ -28,6 +28,12 @@ if (!$hall) {
 $venues_stmt = $db->query("SELECT id, name FROM venues WHERE status = 'active' ORDER BY name");
 $venues = $venues_stmt->fetchAll();
 
+// Fetch all active menus for assignment
+$available_menus = getAllActiveMenus();
+
+// Fetch currently assigned menus for this hall
+$assigned_menu_ids = getAssignedMenuIds($hall_id);
+
 // Handle image upload
 if (isset($_POST['upload_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['hall_image'])) {
@@ -138,6 +144,10 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             if ($result) {
+                // Handle menu assignments
+                $selected_menus = isset($_POST['menus']) ? $_POST['menus'] : [];
+                updateHallMenus($hall_id, $selected_menus);
+                
                 // Log activity
                 logActivity($current_user['id'], 'Updated hall', 'halls', $hall_id, "Updated hall: $name");
                 
@@ -147,6 +157,9 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare("SELECT * FROM halls WHERE id = ?");
                 $stmt->execute([$hall_id]);
                 $hall = $stmt->fetch();
+                
+                // Refresh assigned menus
+                $assigned_menu_ids = getAssignedMenuIds($hall_id);
             } else {
                 $error_message = 'Failed to update hall. Please try again.';
             }
@@ -268,6 +281,35 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         <textarea class="form-control" id="features" name="features" rows="2" 
                                   placeholder="e.g., Air conditioning, Stage, Sound system, LED screens"><?php echo htmlspecialchars($hall['features']); ?></textarea>
                         <small class="text-muted">Separate features with commas</small>
+                    </div>
+
+                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">Assign Menus to Hall</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Select Menus Available for This Hall</label>
+                        <small class="text-muted d-block mb-2">Choose which menus customers can select when booking this hall</small>
+                        <?php if (empty($available_menus)): ?>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No active menus found. 
+                                <a href="<?php echo BASE_URL; ?>/admin/menus/add.php" class="alert-link">Add menus</a> first to assign them to halls.
+                            </div>
+                        <?php else: ?>
+                            <div class="row">
+                                <?php foreach ($available_menus as $menu): ?>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="menus[]" 
+                                                   value="<?php echo $menu['id']; ?>" 
+                                                   id="menu_<?php echo $menu['id']; ?>"
+                                                   <?php echo in_array($menu['id'], $assigned_menu_ids) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="menu_<?php echo $menu['id']; ?>">
+                                                <?php echo htmlspecialchars($menu['name']); ?> 
+                                                <span class="text-muted">(<?php echo formatCurrency($menu['price_per_person']); ?>/person)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="d-flex justify-content-between">

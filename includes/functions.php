@@ -353,6 +353,7 @@ function getMenusForHall($hall_id) {
             INNER JOIN hall_menus hm ON m.id = hm.menu_id
             WHERE hm.hall_id = ? 
             AND m.status = 'active'
+            AND hm.status = 'active'
             ORDER BY m.price_per_person DESC";
     
     $stmt = $db->prepare($sql);
@@ -1906,4 +1907,80 @@ function getCompanyLogo() {
         'url' => UPLOAD_URL . rawurlencode($logo_filename),
         'filename' => $logo_filename
     ];
+}
+
+/**
+ * Get all active menus (for admin interface)
+ */
+function getAllActiveMenus() {
+    $db = getDB();
+    $sql = "SELECT id, name, price_per_person FROM menus WHERE status = 'active' ORDER BY name";
+    $stmt = $db->query($sql);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get assigned menu IDs for a hall
+ */
+function getAssignedMenuIds($hall_id) {
+    $db = getDB();
+    $sql = "SELECT menu_id FROM hall_menus WHERE hall_id = ? AND status = 'active'";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$hall_id]);
+    return array_column($stmt->fetchAll(), 'menu_id');
+}
+
+/**
+ * Update hall-menu assignments
+ */
+function updateHallMenus($hall_id, $menu_ids) {
+    $db = getDB();
+    
+    try {
+        $db->beginTransaction();
+        
+        // Get current assignments
+        $current_menus = getAssignedMenuIds($hall_id);
+        
+        // Convert to arrays for comparison
+        $menu_ids = is_array($menu_ids) ? $menu_ids : [];
+        $menu_ids = array_map('intval', $menu_ids);
+        
+        // Find menus to add
+        $menus_to_add = array_diff($menu_ids, $current_menus);
+        
+        // Find menus to remove (mark as inactive)
+        $menus_to_remove = array_diff($current_menus, $menu_ids);
+        
+        // Add new menu assignments
+        foreach ($menus_to_add as $menu_id) {
+            // Check if assignment already exists but is inactive
+            $stmt = $db->prepare("SELECT id FROM hall_menus WHERE hall_id = ? AND menu_id = ?");
+            $stmt->execute([$hall_id, $menu_id]);
+            $existing = $stmt->fetch();
+            
+            if ($existing) {
+                // Reactivate existing assignment
+                $stmt = $db->prepare("UPDATE hall_menus SET status = 'active' WHERE id = ?");
+                $stmt->execute([$existing['id']]);
+            } else {
+                // Create new assignment
+                $stmt = $db->prepare("INSERT INTO hall_menus (hall_id, menu_id, status) VALUES (?, ?, 'active')");
+                $stmt->execute([$hall_id, $menu_id]);
+            }
+        }
+        
+        // Mark removed menus as inactive
+        foreach ($menus_to_remove as $menu_id) {
+            $stmt = $db->prepare("UPDATE hall_menus SET status = 'inactive' WHERE hall_id = ? AND menu_id = ?");
+            $stmt->execute([$hall_id, $menu_id]);
+        }
+        
+        $db->commit();
+        return true;
+    } catch (Exception $e) {
+        $db->rollBack();
+        error_log("Error updating hall menus: " . $e->getMessage());
+        return false;
+    }
 }
