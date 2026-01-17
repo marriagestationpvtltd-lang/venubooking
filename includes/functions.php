@@ -539,6 +539,9 @@ function getBookingDetails($booking_id) {
         $booking = $stmt->fetch();
         
         if ($booking) {
+            // Cast numeric fields to proper types to ensure strict comparisons work correctly
+            $booking['advance_payment_received'] = isset($booking['advance_payment_received']) ? (int)$booking['advance_payment_received'] : 0;
+            
             // Get menus
             $stmt = $db->prepare("SELECT bm.*, m.name as menu_name FROM booking_menus bm INNER JOIN menus m ON bm.menu_id = m.id WHERE bm.booking_id = ?");
             if ($stmt) {
