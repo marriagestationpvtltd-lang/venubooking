@@ -84,6 +84,19 @@ if (isset($_POST['action'])) {
                 
                 // Re-fetch booking to get updated status
                 $booking = getBookingDetails($booking_id);
+                
+                // Recalculate helper variables for consistent display
+                $booking_status_display = ucfirst(str_replace('_', ' ', $booking['booking_status']));
+                $booking_status_color = $booking['booking_status'] == 'confirmed' ? 'success' : 
+                    ($booking['booking_status'] == 'pending' ? 'warning' : 
+                    ($booking['booking_status'] == 'cancelled' ? 'danger' : 
+                    ($booking['booking_status'] == 'completed' ? 'primary' : 'info')));
+                
+                $payment_status_display = ucfirst($booking['payment_status']);
+                $payment_status_color = $booking['payment_status'] == 'paid' ? 'success' : 
+                    ($booking['payment_status'] == 'partial' ? 'warning' : 'danger');
+                $payment_status_icon = $booking['payment_status'] == 'paid' ? 'fa-check-circle' : 
+                    ($booking['payment_status'] == 'partial' ? 'fa-clock' : 'fa-exclamation-circle');
             } catch (Exception $e) {
                 $error_message = 'Failed to update booking status. Please try again.';
             }
@@ -105,6 +118,19 @@ if (isset($_POST['action'])) {
             
             // Re-fetch booking to get updated status
             $booking = getBookingDetails($booking_id);
+            
+            // Recalculate helper variables for consistent display
+            $booking_status_display = ucfirst(str_replace('_', ' ', $booking['booking_status']));
+            $booking_status_color = $booking['booking_status'] == 'confirmed' ? 'success' : 
+                ($booking['booking_status'] == 'pending' ? 'warning' : 
+                ($booking['booking_status'] == 'cancelled' ? 'danger' : 
+                ($booking['booking_status'] == 'completed' ? 'primary' : 'info')));
+            
+            $payment_status_display = ucfirst($booking['payment_status']);
+            $payment_status_color = $booking['payment_status'] == 'paid' ? 'success' : 
+                ($booking['payment_status'] == 'partial' ? 'warning' : 'danger');
+            $payment_status_icon = $booking['payment_status'] == 'paid' ? 'fa-check-circle' : 
+                ($booking['payment_status'] == 'partial' ? 'fa-clock' : 'fa-exclamation-circle');
         } catch (Exception $e) {
             $error_message = 'Failed to update advance payment status. Please try again.';
         }
