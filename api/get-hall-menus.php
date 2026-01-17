@@ -4,11 +4,8 @@
  * Used in admin booking add/edit forms
  */
 
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/functions.php';
-
 header('Content-Type: application/json');
+require_once __DIR__ . '/../includes/functions.php';
 
 // Validate hall_id parameter
 if (!isset($_GET['hall_id']) || empty($_GET['hall_id'])) {

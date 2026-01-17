@@ -18,6 +18,17 @@ else
     exit 1
 fi
 
+# Validate required environment variables
+if [ -z "$DB_USER" ] || [ -z "$DB_PASS" ] || [ -z "$DB_NAME" ]; then
+    echo "Error: Missing required database credentials!"
+    echo "Please ensure .env file contains:"
+    echo "  DB_USER=your_username"
+    echo "  DB_PASS=your_password"
+    echo "  DB_NAME=your_database"
+    echo "  DB_HOST=localhost (optional, defaults to localhost)"
+    exit 1
+fi
+
 # Apply migration
 echo "Applying migration to add status column to hall_menus table..."
 mysql -h "${DB_HOST:-localhost}" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < database/migrations/add_hall_menus_status.sql
