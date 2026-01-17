@@ -255,14 +255,17 @@ CREATE TABLE booking_menus (
 CREATE TABLE booking_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
-    service_id INT NOT NULL,
+    service_id INT NOT NULL DEFAULT 0 COMMENT '0 for admin services, >0 for user services referencing additional_services',
     service_name VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     description TEXT,
     category VARCHAR(100),
+    added_by ENUM('user', 'admin') DEFAULT 'user' COMMENT 'Who added the service: user during booking or admin later',
+    quantity INT DEFAULT 1 COMMENT 'Quantity of service',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    FOREIGN KEY (service_id) REFERENCES additional_services(id)
+    INDEX idx_booking_services_added_by (added_by),
+    INDEX idx_booking_services_service_id (service_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================

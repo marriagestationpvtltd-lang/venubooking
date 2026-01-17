@@ -54,7 +54,7 @@ if (isset($_POST['action'])) {
                 $status_vars = calculateBookingStatusVariables($booking);
                 extract($status_vars);
             } else {
-                $error_message = 'Failed to add admin service. Please try again.';
+                $error_message = 'Failed to add admin service. Please check error logs or run fix_admin_services.php to update database schema.';
             }
         }
     } elseif ($action === 'delete_admin_service') {

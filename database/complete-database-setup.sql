@@ -215,14 +215,17 @@ CREATE TABLE booking_menus (
 CREATE TABLE booking_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
-    service_id INT NOT NULL,
+    service_id INT NOT NULL DEFAULT 0 COMMENT '0 for admin services, >0 for user services referencing additional_services',
     service_name VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     description TEXT,
     category VARCHAR(100),
+    added_by ENUM('user', 'admin') DEFAULT 'user' COMMENT 'Who added the service: user during booking or admin later',
+    quantity INT DEFAULT 1 COMMENT 'Quantity of service',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    FOREIGN KEY (service_id) REFERENCES additional_services(id)
+    INDEX idx_booking_services_added_by (added_by),
+    INDEX idx_booking_services_service_id (service_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
@@ -559,29 +562,29 @@ INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_gues
 (37, 1, 1899.00, 600, 1139400.00);
 
 -- Insert booking services for booking #1
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES
-(1, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration'),
-(1, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography'),
-(1, 5, 'DJ Service', 20000.00, 'Professional DJ with sound system and lighting', 'Entertainment');
+INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(1, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
+(1, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
+(1, 5, 'DJ Service', 20000.00, 'Professional DJ with sound system and lighting', 'Entertainment', 'user', 1);
 
 -- Insert booking services for booking #2
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES
-(2, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration'),
-(2, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography');
+INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(2, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
+(2, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1);
 
 -- Insert booking services for booking #23
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES
-(23, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration'),
-(23, 2, 'Stage Decoration', 25000.00, 'Professional stage setup with backdrop and lighting', 'Decoration'),
-(23, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography'),
-(23, 8, 'Valet Parking', 10000.00, 'Professional valet parking service for guests', 'Logistics');
+INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(23, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
+(23, 2, 'Stage Decoration', 25000.00, 'Professional stage setup with backdrop and lighting', 'Decoration', 'user', 1),
+(23, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
+(23, 8, 'Valet Parking', 10000.00, 'Professional valet parking service for guests', 'Logistics', 'user', 1);
 
 -- Insert booking services for booking #37
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES
-(37, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration'),
-(37, 2, 'Stage Decoration', 25000.00, 'Professional stage setup with backdrop and lighting', 'Decoration'),
-(37, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography'),
-(37, 4, 'Videography Package', 40000.00, 'HD video coverage with edited highlights', 'Videography');
+INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(37, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
+(37, 2, 'Stage Decoration', 25000.00, 'Professional stage setup with backdrop and lighting', 'Decoration', 'user', 1),
+(37, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
+(37, 4, 'Videography Package', 40000.00, 'HD video coverage with edited highlights', 'Videography', 'user', 1);
 
 -- Insert payment methods for bookings (link active payment methods to bookings)
 INSERT INTO booking_payment_methods (booking_id, payment_method_id) VALUES

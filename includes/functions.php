@@ -31,6 +31,13 @@ define('ADMIN_SERVICE_NO_REF_ID', 0);
 define('ADMIN_SERVICE_DEFAULT_CATEGORY', '');
 
 /**
+ * Database column names for admin services feature
+ * These constants ensure consistency across the codebase
+ */
+define('BOOKING_SERVICE_ADDED_BY_COLUMN', 'added_by');
+define('BOOKING_SERVICE_QUANTITY_COLUMN', 'quantity');
+
+/**
  * Sanitize input to prevent XSS
  */
 function sanitize($data) {
@@ -2052,8 +2059,24 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
         
         $db->commit();
         return $service_id;
+    } catch (PDOException $e) {
+        $db->rollBack();
+        $error_code = $e->getCode();
+        $error_msg = $e->getMessage();
+        
+        // Check for specific errors without exposing full message
+        if (strpos($error_msg, "Unknown column '" . BOOKING_SERVICE_ADDED_BY_COLUMN . "'") !== false || 
+            strpos($error_msg, "Unknown column '" . BOOKING_SERVICE_QUANTITY_COLUMN . "'") !== false) {
+            error_log("ADMIN SERVICES ERROR: Database schema is missing required columns (" . BOOKING_SERVICE_ADDED_BY_COLUMN . ", " . BOOKING_SERVICE_QUANTITY_COLUMN . "). Please run fix_admin_services.php or apply database migration.");
+        } else {
+            // Log generic database error without details
+            error_log("Admin service database error. Error code: " . $error_code);
+        }
+        
+        return false;
     } catch (Exception $e) {
         $db->rollBack();
+        // Log general error without sensitive details
         error_log("Error adding admin service: " . $e->getMessage());
         return false;
     }
