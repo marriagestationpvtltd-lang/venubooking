@@ -13,6 +13,8 @@ ADD COLUMN quantity INT DEFAULT 1 AFTER added_by;
 CREATE INDEX idx_booking_services_added_by ON booking_services(added_by);
 
 -- Update existing records to mark them as user-added services
+-- Default values: added_by = 'user' (services selected by user during booking)
+--                 quantity = 1 (default quantity for existing services)
 UPDATE booking_services 
 SET added_by = 'user', quantity = 1 
 WHERE added_by IS NULL;

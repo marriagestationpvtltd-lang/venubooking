@@ -18,6 +18,19 @@ define('SAFE_FILENAME_PATTERN', '/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]
 define('DEFAULT_SERVICE_QUANTITY', 1);
 
 /**
+ * Service type constants
+ */
+define('USER_SERVICE_TYPE', 'user');
+define('ADMIN_SERVICE_TYPE', 'admin');
+
+/**
+ * Admin service defaults
+ * Admin services don't reference the master services table, so service_id is 0
+ */
+define('ADMIN_SERVICE_NO_REF_ID', 0);
+define('ADMIN_SERVICE_DEFAULT_CATEGORY', '');
+
+/**
  * Sanitize input to prevent XSS
  */
 function sanitize($data) {
@@ -501,8 +514,8 @@ function createBooking($data) {
                 $service = $stmt->fetch();
                 
                 if ($service) {
-                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, 'user', ?)");
-                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], DEFAULT_SERVICE_QUANTITY]);
+                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
                 }
             }
         }
@@ -2029,9 +2042,9 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
         $stmt = $db->prepare("
             INSERT INTO booking_services 
             (booking_id, service_id, service_name, price, description, category, added_by, quantity) 
-            VALUES (?, 0, ?, ?, ?, '', 'admin', ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$booking_id, $service_name, $price, $description, $quantity]);
+        $stmt->execute([$booking_id, ADMIN_SERVICE_NO_REF_ID, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity]);
         $service_id = $db->lastInsertId();
         
         // Recalculate booking totals
@@ -2068,7 +2081,7 @@ function deleteAdminService($service_id) {
             throw new Exception("Service not found");
         }
         
-        if ($service['added_by'] !== 'admin') {
+        if ($service['added_by'] !== ADMIN_SERVICE_TYPE) {
             throw new Exception("Only admin-added services can be deleted");
         }
         
@@ -2165,10 +2178,10 @@ function getAdminServices($booking_id) {
                    (price * quantity) as total_price,
                    created_at
             FROM booking_services 
-            WHERE booking_id = ? AND added_by = 'admin'
+            WHERE booking_id = ? AND added_by = ?
             ORDER BY created_at DESC
         ");
-        $stmt->execute([$booking_id]);
+        $stmt->execute([$booking_id, ADMIN_SERVICE_TYPE]);
         return $stmt->fetchAll();
     } catch (Exception $e) {
         error_log("Error getting admin services: " . $e->getMessage());
@@ -2190,10 +2203,10 @@ function getUserServices($booking_id) {
             SELECT id, service_id, service_name, description, category, price, quantity,
                    (price * quantity) as total_price
             FROM booking_services 
-            WHERE booking_id = ? AND added_by = 'user'
+            WHERE booking_id = ? AND added_by = ?
             ORDER BY service_name
         ");
-        $stmt->execute([$booking_id]);
+        $stmt->execute([$booking_id, USER_SERVICE_TYPE]);
         return $stmt->fetchAll();
     } catch (Exception $e) {
         error_log("Error getting user services: " . $e->getMessage());

@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Delete old menus and user services (preserve admin services)
                 $db->prepare("DELETE FROM booking_menus WHERE booking_id = ?")->execute([$booking_id]);
-                $db->prepare("DELETE FROM booking_services WHERE booking_id = ? AND added_by = 'user'")->execute([$booking_id]);
+                $db->prepare("DELETE FROM booking_services WHERE booking_id = ? AND added_by = ?")->execute([$booking_id, USER_SERVICE_TYPE]);
                 
                 // Insert new booking menus
                 if (!empty($post_selected_menus)) {
@@ -138,8 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $service = $stmt->fetch();
                         
                         if ($service) {
-                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, 'user', ?)");
-                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], DEFAULT_SERVICE_QUANTITY]);
+                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
                         }
                     }
                 }
