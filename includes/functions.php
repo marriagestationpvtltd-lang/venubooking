@@ -597,17 +597,43 @@ function getBookingDetails($booking_id) {
  * @return array Array containing display variables
  */
 function calculateBookingStatusVariables($booking) {
+    // Validate required keys
+    if (!isset($booking['booking_status']) || !isset($booking['payment_status'])) {
+        throw new InvalidArgumentException('Booking array must contain booking_status and payment_status keys');
+    }
+    
+    // Map booking statuses to Bootstrap color classes
+    $booking_status_colors = [
+        'confirmed' => 'success',
+        'pending' => 'warning',
+        'cancelled' => 'danger',
+        'completed' => 'primary',
+        'payment_submitted' => 'info'
+    ];
+    
+    // Map payment statuses to Bootstrap color classes
+    $payment_status_colors = [
+        'paid' => 'success',
+        'partial' => 'warning',
+        'pending' => 'danger'
+    ];
+    
+    // Map payment statuses to Font Awesome icons
+    $payment_status_icons = [
+        'paid' => 'fa-check-circle',
+        'partial' => 'fa-clock',
+        'pending' => 'fa-exclamation-circle'
+    ];
+    
+    $booking_status = $booking['booking_status'];
+    $payment_status = $booking['payment_status'];
+    
     return [
-        'booking_status_display' => ucfirst(str_replace('_', ' ', $booking['booking_status'])),
-        'booking_status_color' => $booking['booking_status'] == 'confirmed' ? 'success' : 
-            ($booking['booking_status'] == 'pending' ? 'warning' : 
-            ($booking['booking_status'] == 'cancelled' ? 'danger' : 
-            ($booking['booking_status'] == 'completed' ? 'primary' : 'info'))),
-        'payment_status_display' => ucfirst($booking['payment_status']),
-        'payment_status_color' => $booking['payment_status'] == 'paid' ? 'success' : 
-            ($booking['payment_status'] == 'partial' ? 'warning' : 'danger'),
-        'payment_status_icon' => $booking['payment_status'] == 'paid' ? 'fa-check-circle' : 
-            ($booking['payment_status'] == 'partial' ? 'fa-clock' : 'fa-exclamation-circle')
+        'booking_status_display' => ucfirst(str_replace('_', ' ', $booking_status)),
+        'booking_status_color' => $booking_status_colors[$booking_status] ?? 'info',
+        'payment_status_display' => ucfirst($payment_status),
+        'payment_status_color' => $payment_status_colors[$payment_status] ?? 'danger',
+        'payment_status_icon' => $payment_status_icons[$payment_status] ?? 'fa-exclamation-circle'
     ];
 }
 
