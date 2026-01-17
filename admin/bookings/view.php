@@ -282,16 +282,21 @@ $currency = getSetting('currency', 'NPR');
                         <?php foreach ($booking['services'] as $service): ?>
                         <tr>
                             <td>
-                                <strong><?php echo htmlspecialchars($additional_items_label); ?></strong> - <?php echo htmlspecialchars($service['service_name']); ?>
+                                <strong><?php echo htmlspecialchars($additional_items_label); ?></strong> - <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Service')); ?>
                                 <?php if (!empty($service['description'])): ?>
                                     <br><span class="service-description-print"><?php echo htmlspecialchars($service['description']); ?></span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-center">1</td>
-                            <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
-                            <td class="text-right"><?php echo number_format($service['price'], 2); ?></td>
+                            <?php $service_price = floatval($service['price'] ?? 0); ?>
+                            <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
+                            <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
                         </tr>
                         <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="4" class="text-center text-muted"><em>No additional services selected</em></td>
+                        </tr>
                     <?php endif; ?>
                     
                     <!-- Subtotal -->

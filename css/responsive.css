@@ -245,6 +245,39 @@
         font-weight: 600;
     }
     
+    /* Ensure all buttons are touch-friendly on mobile */
+    .btn,
+    button,
+    a.btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+    
+    /* Ensure form controls are touch-friendly */
+    .form-control,
+    .form-select,
+    input,
+    textarea,
+    select {
+        min-height: 48px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
+        padding: 0.5rem 0.75rem;
+    }
+    
+    textarea.form-control {
+        min-height: 80px;
+    }
+    
+    /* Checkboxes and radios should be larger on mobile */
+    input[type="checkbox"],
+    input[type="radio"] {
+        min-width: 24px;
+        min-height: 24px;
+        margin-right: 0.5rem;
+    }
+    
     /* Add padding to main content to prevent overlap with fixed bottom nav */
     section.py-5 {
         padding-bottom: 6rem !important;
@@ -445,6 +478,49 @@
     /* Tables */
     .table-responsive {
         font-size: 0.85rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Ensure admin tables don't require horizontal scroll */
+    .table {
+        min-width: auto !important;
+    }
+    
+    .table td,
+    .table th {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+    
+    /* Action buttons in tables should stack on mobile */
+    .table .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .table .btn-sm {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        min-height: 32px;
+    }
+    
+    /* Admin panel cards should be full width on mobile */
+    .admin-card,
+    .dashboard-card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Invoice table mobile optimization */
+    .invoice-table {
+        font-size: 0.9rem;
+    }
+    
+    .invoice-table td,
+    .invoice-table th {
+        padding: 0.5rem 0.25rem;
     }
     
     /* Modal */

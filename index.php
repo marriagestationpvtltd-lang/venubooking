@@ -25,11 +25,11 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
                         <h3 class="text-center mb-4 text-success">
                             <i class="fas fa-calendar-check"></i> Start Your Booking
                         </h3>
-                        <form id="bookingForm" method="POST" action="booking-step2.php">
+                        <form id="bookingForm" method="POST" action="booking-step2.php" novalidate>
                             <input type="hidden" id="preferred_venue_id" name="preferred_venue_id" value="">
                             <div class="mb-3">
                                 <label for="shift" class="form-label">
-                                    <i class="fas fa-clock"></i> Select Shift
+                                    <i class="fas fa-clock"></i> Select Shift <span class="text-danger">*</span>
                                 </label>
                                 <select class="form-select" id="shift" name="shift" required>
                                     <option value="">Choose a shift...</option>
@@ -38,35 +38,38 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
                                     <option value="evening">Evening (6:00 PM - 12:00 AM)</option>
                                     <option value="fullday">Full Day</option>
                                 </select>
+                                <div class="invalid-feedback">Please select a shift.</div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="event_date" class="form-label">
-                                    <i class="fas fa-calendar"></i> Event Date
+                                    <i class="fas fa-calendar"></i> Event Date <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="event_date" name="event_date" 
-                                           readonly placeholder="Select Nepali Date (BS)" required>
-                                    <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Current Calendar Mode (Click to toggle)">
+                                           readonly placeholder="Select event date (Click to open calendar)" required>
+                                    <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Toggle between BS/AD calendar">
                                         <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>
                                     </button>
                                 </div>
                                 <small class="form-text text-muted">
                                     <span id="nepaliDateDisplay"></span>
                                 </small>
+                                <div class="invalid-feedback">Please select an event date.</div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="guests" class="form-label">
-                                    <i class="fas fa-users"></i> Number of Guests
+                                    <i class="fas fa-users"></i> Number of Guests <span class="text-danger">*</span>
                                 </label>
                                 <input type="number" class="form-control" id="guests" name="guests" 
-                                       min="10" placeholder="Minimum 10 guests" required>
+                                       min="10" max="10000" placeholder="Enter number of guests (minimum 10)" required>
+                                <div class="invalid-feedback">Please enter number of guests (minimum 10).</div>
                             </div>
 
                             <div class="mb-4">
                                 <label for="event_type" class="form-label">
-                                    <i class="fas fa-tag"></i> Event Type
+                                    <i class="fas fa-tag"></i> Event Type <span class="text-danger">*</span>
                                 </label>
                                 <select class="form-select" id="event_type" name="event_type" required>
                                     <option value="">Choose event type...</option>
@@ -76,6 +79,7 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
                                     <option value="Anniversary">Anniversary</option>
                                     <option value="Other Events">Other Events</option>
                                 </select>
+                                <div class="invalid-feedback">Please select an event type.</div>
                             </div>
 
                             <button type="submit" class="btn btn-success btn-lg w-100">

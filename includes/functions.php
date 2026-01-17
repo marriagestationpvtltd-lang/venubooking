@@ -20,6 +20,72 @@ function sanitize($data) {
 }
 
 /**
+ * Get value or return default if empty/null
+ * Handles missing data gracefully throughout the application
+ */
+function getValueOrDefault($value, $default = 'N/A') {
+    // Check for null or empty string
+    if (is_null($value) || $value === '') {
+        return $default;
+    }
+    // Check for whitespace-only strings
+    if (is_string($value) && trim($value) === '') {
+        return $default;
+    }
+    return $value;
+}
+
+/**
+ * Format number with safe default handling
+ */
+function formatNumber($value, $decimals = 2, $default = 0) {
+    $num = floatval($value);
+    if ($num === 0.0 && $value !== '0' && $value !== 0) {
+        return number_format(floatval($default), $decimals);
+    }
+    return number_format($num, $decimals);
+}
+
+/**
+ * Validate required field
+ */
+function validateRequired($value, $fieldName = 'Field') {
+    if (is_null($value) || trim($value) === '') {
+        return ['valid' => false, 'error' => "$fieldName is required"];
+    }
+    return ['valid' => true];
+}
+
+/**
+ * Validate email format
+ */
+function validateEmailFormat($email) {
+    if (empty($email)) {
+        return ['valid' => true]; // Empty is ok if not required
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['valid' => false, 'error' => 'Invalid email format'];
+    }
+    return ['valid' => true];
+}
+
+/**
+ * Validate phone number
+ */
+function validatePhoneNumber($phone) {
+    if (empty($phone)) {
+        return ['valid' => false, 'error' => 'Phone number is required'];
+    }
+    // Remove spaces and special characters
+    $cleaned = preg_replace('/[\s()-]/', '', $phone);
+    // Check if 10-15 digits
+    if (!preg_match('/^\+?\d{10,15}$/', $cleaned)) {
+        return ['valid' => false, 'error' => 'Phone number must be 10-15 digits'];
+    }
+    return ['valid' => true];
+}
+
+/**
  * Check if hall is available for booking
  */
 function checkHallAvailability($hall_id, $date, $shift) {

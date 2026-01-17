@@ -70,16 +70,38 @@ $transaction_id = '';
 $paid_amount = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
-    // Validate inputs
-    $full_name = trim($_POST['full_name']);
-    $phone = trim($_POST['phone']);
-    $email = trim($_POST['email']);
-    $address = trim($_POST['address']);
-    $special_requests = trim($_POST['special_requests']);
+    // Validate inputs with enhanced validation
+    $full_name = trim($_POST['full_name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+    $special_requests = trim($_POST['special_requests'] ?? '');
     $payment_option = $_POST['payment_option'] ?? 'without';
 
-    if (empty($full_name) || empty($phone)) {
-        $error = 'Full name and phone number are required.';
+    // Validate required fields
+    $validation_errors = [];
+    
+    $nameValidation = validateRequired($full_name, 'Full name');
+    if (!$nameValidation['valid']) {
+        $validation_errors[] = $nameValidation['error'];
+    }
+    
+    $phoneValidation = validatePhoneNumber($phone);
+    if (!$phoneValidation['valid']) {
+        $validation_errors[] = $phoneValidation['error'];
+    }
+    
+    // Validate email if provided
+    if (!empty($email)) {
+        $emailValidation = validateEmailFormat($email);
+        if (!$emailValidation['valid']) {
+            $validation_errors[] = $emailValidation['error'];
+        }
+    }
+    
+    // If there are validation errors, show them
+    if (!empty($validation_errors)) {
+        $error = implode(' ', $validation_errors);
     } elseif ($payment_option === 'with') {
         // Validate payment fields
         $payment_method_id = $_POST['payment_method_id'] ?? '';
@@ -219,26 +241,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="full_name" name="full_name" value="<?php echo sanitize($full_name); ?>" required>
+                                <input type="text" class="form-control" id="full_name" name="full_name" 
+                                       value="<?php echo sanitize($full_name); ?>" 
+                                       placeholder="Enter your full name" 
+                                       required>
+                                <div class="invalid-feedback">Please enter your full name.</div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="phone" name="phone" value="<?php echo sanitize($phone); ?>" required>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       value="<?php echo sanitize($phone); ?>" 
+                                       placeholder="Enter your phone number (10+ digits)" 
+                                       pattern="[+]?[\d\s()-]{10,}"
+                                       required>
+                                <div class="invalid-feedback">Please enter a valid phone number (10+ digits).</div>
                             </div>
 
                             <div class="mb-3">
-                                <label for="email" class="form-label">Email Address</label>
-                                <input type="email" class="form-control" id="email" name="email" value="<?php echo sanitize($email); ?>">
+                                <label for="email" class="form-label">Email Address <span class="text-muted">(Optional)</span></label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="<?php echo sanitize($email); ?>"
+                                       placeholder="your.email@example.com">
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
                             </div>
 
                             <div class="mb-3">
-                                <label for="address" class="form-label">Address</label>
-                                <textarea class="form-control" id="address" name="address" rows="2"><?php echo sanitize($address); ?></textarea>
+                                <label for="address" class="form-label">Address <span class="text-muted">(Optional)</span></label>
+                                <textarea class="form-control" id="address" name="address" rows="2"
+                                          placeholder="Enter your address"><?php echo sanitize($address); ?></textarea>
                             </div>
 
                             <div class="mb-3">
-                                <label for="special_requests" class="form-label">Special Requests</label>
+                                <label for="special_requests" class="form-label">Special Requests <span class="text-muted">(Optional)</span></label>
                                 <textarea class="form-control" id="special_requests" name="special_requests" rows="3" 
                                           placeholder="Any special requirements or requests for your event..."><?php echo sanitize($special_requests); ?></textarea>
                             </div>
