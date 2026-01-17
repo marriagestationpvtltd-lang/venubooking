@@ -916,11 +916,13 @@ $currency = getSetting('currency', 'NPR');
         // Separate user and admin services
         $user_services = [];
         $admin_services = [];
-        foreach ($booking['services'] as $service) {
-            if (isset($service['added_by']) && $service['added_by'] === 'admin') {
-                $admin_services[] = $service;
-            } else {
-                $user_services[] = $service;
+        if (!empty($booking['services']) && is_array($booking['services'])) {
+            foreach ($booking['services'] as $service) {
+                if (isset($service['added_by']) && $service['added_by'] === 'admin') {
+                    $admin_services[] = $service;
+                } else {
+                    $user_services[] = $service;
+                }
             }
         }
         
