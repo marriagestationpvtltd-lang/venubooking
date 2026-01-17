@@ -834,7 +834,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Helper function to determine the appropriate event type for each input
         function getEventType(input) {
-            if (input.type === 'file' || input.tagName === 'SELECT' || 
+            const tagName = input.tagName.toUpperCase();
+            if (input.type === 'file' || tagName === 'SELECT' || 
                 input.type === 'radio' || input.type === 'checkbox') {
                 return 'change';
             }
@@ -852,9 +853,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Only process if alert hasn't been dismissed yet
                 if (!alertDismissed && errorAlert && errorAlert.classList.contains('show')) {
                     // Use Bootstrap's native alert dismissal
-                    const bsAlert = bootstrap.Alert.getOrCreateInstance(errorAlert);
-                    bsAlert.close();
-                    alertDismissed = true;
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                        const bsAlert = bootstrap.Alert.getOrCreateInstance(errorAlert);
+                        bsAlert.close();
+                        alertDismissed = true;
+                    }
                 }
             });
         });
