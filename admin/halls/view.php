@@ -29,6 +29,7 @@ if (!$hall) {
 $menus_stmt = $db->prepare("SELECT m.* FROM menus m 
                             INNER JOIN hall_menus hm ON m.id = hm.menu_id 
                             WHERE hm.hall_id = ? 
+                            AND hm.status = 'active'
                             ORDER BY m.name");
 $menus_stmt->execute([$hall_id]);
 $linked_menus = $menus_stmt->fetchAll();

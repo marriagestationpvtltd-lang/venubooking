@@ -25,8 +25,8 @@ if (!$booking) {
 // Fetch halls
 $halls = $db->query("SELECT h.id, h.name, v.name as venue_name, h.capacity FROM halls h INNER JOIN venues v ON h.venue_id = v.id WHERE h.status = 'active' ORDER BY v.name, h.name")->fetchAll();
 
-// Fetch menus
-$menus = $db->query("SELECT id, name, price_per_person FROM menus WHERE status = 'active' ORDER BY name")->fetchAll();
+// Fetch menus for the currently selected hall
+$menus = getMenusForHall($booking['hall_id']);
 
 // Fetch services
 $services = $db->query("SELECT id, name, price, category FROM additional_services WHERE status = 'active' ORDER BY category, name")->fetchAll();
@@ -305,16 +305,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Select Menus (Optional)</label>
-                                <?php foreach ($menus as $menu): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="menus[]" value="<?php echo $menu['id']; ?>" 
-                                           id="menu_<?php echo $menu['id']; ?>" 
-                                           <?php echo in_array($menu['id'], $selected_menus) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="menu_<?php echo $menu['id']; ?>">
-                                        <?php echo htmlspecialchars($menu['name']) . ' - ' . formatCurrency($menu['price_per_person']) . '/person'; ?>
-                                    </label>
+                                <div id="menus-container">
+                                    <?php if (!empty($menus)): ?>
+                                        <?php foreach ($menus as $menu): ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="menus[]" value="<?php echo $menu['id']; ?>" 
+                                                   id="menu_<?php echo $menu['id']; ?>" 
+                                                   <?php echo in_array($menu['id'], $selected_menus) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="menu_<?php echo $menu['id']; ?>">
+                                                <?php echo htmlspecialchars($menu['name']) . ' - ' . formatCurrency($menu['price_per_person']) . '/person'; ?>
+                                            </label>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> No menus are assigned to this hall.
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                                <?php endforeach; ?>
+                                <div id="menus-loading" class="d-none">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-success" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <span class="ms-2">Loading menus...</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -422,6 +438,68 @@ function confirmDelete() {
         window.location.href = 'edit.php?id=<?php echo $booking_id; ?>&action=delete';
     }
 }
+
+// Dynamic menu loading based on hall selection
+document.addEventListener('DOMContentLoaded', function() {
+    const hallSelect = document.getElementById('hall_id');
+    const menusContainer = document.getElementById('menus-container');
+    const menusLoading = document.getElementById('menus-loading');
+    
+    if (hallSelect) {
+        // Load menus when hall is changed
+        hallSelect.addEventListener('change', function() {
+            const hallId = this.value;
+            
+            if (!hallId) {
+                menusContainer.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Please select a hall first to see available menus.</div>';
+                return;
+            }
+            
+            // Show loading
+            menusContainer.classList.add('d-none');
+            menusLoading.classList.remove('d-none');
+            
+            // Fetch menus for selected hall
+            fetch('<?php echo BASE_URL; ?>/api/get-hall-menus.php?hall_id=' + hallId)
+                .then(response => response.json())
+                .then(data => {
+                    menusLoading.classList.add('d-none');
+                    menusContainer.classList.remove('d-none');
+                    
+                    if (data.success && data.menus && data.menus.length > 0) {
+                        let html = '';
+                        data.menus.forEach(menu => {
+                            html += `
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="menus[]" 
+                                           value="${menu.id}" id="menu_${menu.id}">
+                                    <label class="form-check-label" for="menu_${menu.id}">
+                                        ${escapeHtml(menu.name)} - ${escapeHtml(menu.price_formatted)}/person
+                                    </label>
+                                </div>
+                            `;
+                        });
+                        menusContainer.innerHTML = html;
+                    } else {
+                        menusContainer.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No menus are assigned to this hall. Please assign menus to the hall first.</div>';
+                    }
+                })
+                .catch(error => {
+                    menusLoading.classList.add('d-none');
+                    menusContainer.classList.remove('d-none');
+                    menusContainer.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error loading menus. Please try again.</div>';
+                    console.error('Error fetching menus:', error);
+                });
+        });
+    }
+    
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+});
 </script>
 
 <?php 

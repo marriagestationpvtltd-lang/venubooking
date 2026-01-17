@@ -10,6 +10,9 @@ $error_message = '';
 $venues_stmt = $db->query("SELECT id, name FROM venues WHERE status = 'active' ORDER BY name");
 $venues = $venues_stmt->fetchAll();
 
+// Fetch all active menus for assignment
+$available_menus = getAllActiveMenus();
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $venue_id = intval($_POST['venue_id']);
@@ -51,6 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($result) {
                 $hall_id = $db->lastInsertId();
+                
+                // Handle menu assignments
+                $selected_menus = isset($_POST['menus']) ? $_POST['menus'] : [];
+                updateHallMenus($hall_id, $selected_menus);
                 
                 // Handle image upload if provided
                 if (isset($_FILES['hall_image']) && $_FILES['hall_image']['error'] !== UPLOAD_ERR_NO_FILE) {
@@ -211,6 +218,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="hall_image" class="form-label">Hall Image (Optional)</label>
                         <input type="file" class="form-control" id="hall_image" name="hall_image" accept="image/*">
                         <small class="text-muted">Upload a primary image for this hall. JPG, PNG, GIF, or WebP. Max 5MB</small>
+                    </div>
+
+                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">Assign Menus to Hall</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Select Menus Available for This Hall</label>
+                        <small class="text-muted d-block mb-2">Choose which menus customers can select when booking this hall</small>
+                        <?php if (empty($available_menus)): ?>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No active menus found. 
+                                <a href="<?php echo BASE_URL; ?>/admin/menus/add.php" class="alert-link">Add menus</a> first to assign them to halls.
+                            </div>
+                        <?php else: ?>
+                            <div class="row">
+                                <?php foreach ($available_menus as $menu): ?>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="menus[]" 
+                                                   value="<?php echo $menu['id']; ?>" 
+                                                   id="menu_<?php echo $menu['id']; ?>"
+                                                   <?php echo (isset($_POST['menus']) && in_array($menu['id'], $_POST['menus'])) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="menu_<?php echo $menu['id']; ?>">
+                                                <?php echo htmlspecialchars($menu['name']); ?> 
+                                                <span class="text-muted">(<?php echo formatCurrency($menu['price_per_person']); ?>/person)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="d-flex justify-content-between">
