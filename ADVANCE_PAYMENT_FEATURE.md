@@ -14,12 +14,9 @@ This feature allows admins to mark whether the advance payment for a booking has
    - Added checkbox "Advance Payment Received" in the booking form
    - Checkbox is saved with the booking data
 
-2. **Edit Booking Page** (`admin/bookings/edit.php`)
-   - Added checkbox "Advance Payment Received" in the booking form
-   - Checkbox state reflects the current booking's advance payment status
-   - Checkbox can be updated when editing a booking
-
-3. **View Booking Page** (`admin/bookings/view.php`)
+2. **View Booking Page** (`admin/bookings/view.php`)
+   - Added interactive toggle in the "Quick Actions" section to mark advance payment as received/not received
+   - Toggle form allows admins to quickly change the advance payment status
    - Shows visual indicator in the Payment Summary section:
      - Green alert if advance payment is received
      - Red alert if advance payment is not received
@@ -27,6 +24,10 @@ This feature allows admins to mark whether the advance payment for a booking has
      - Advance amount when marked as received
      - formatCurrency(0) when not received
    - Balance Due is calculated as: Grand Total - Total Paid (actual payments made)
+
+3. **Edit Booking Page** (`admin/bookings/edit.php`)
+   - Allows editing of all booking details (hall, date, menus, services, etc.)
+   - Does NOT include advance payment status (moved to view page for easier access)
 
 ## Installation
 
@@ -55,10 +56,10 @@ mysql -u username -p database_name < database/migrations/add_advance_payment_rec
 
 ### Marking Advance Payment as Received
 1. Go to Admin Panel → Bookings
-2. Click "Edit" on any booking
-3. Scroll down to the "Advance Payment Received" checkbox
-4. Check the box if the customer has paid the advance
-5. Click "Update Booking"
+2. Click "View" on any booking
+3. In the "Quick Actions" section, you'll see "Advance Payment Status"
+4. Check or uncheck the toggle switch as needed
+5. Click "Save Status" button to update
 
 ### Viewing Advance Payment Status
 1. Go to Admin Panel → Bookings
@@ -66,6 +67,7 @@ mysql -u username -p database_name < database/migrations/add_advance_payment_rec
 3. In the "Payment Summary" section on the right, you'll see:
    - Advance Required amount
    - Advance Payment Received status (with amount or 0.00)
+4. In the "Quick Actions" section, you'll see the current status badge
 
 ### Printing Bills/Invoices
 When you print a booking bill:

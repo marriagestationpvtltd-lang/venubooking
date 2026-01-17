@@ -88,6 +88,26 @@ if (isset($_POST['action'])) {
                 $error_message = 'Failed to update booking status. Please try again.';
             }
         }
+    } elseif ($action === 'toggle_advance_payment') {
+        // Handle advance payment status toggle
+        $new_advance_status = isset($_POST['advance_payment_received']) ? 1 : 0;
+        $old_advance_status = $booking['advance_payment_received'];
+        
+        try {
+            $stmt = $db->prepare("UPDATE bookings SET advance_payment_received = ? WHERE id = ?");
+            $stmt->execute([$new_advance_status, $booking_id]);
+            
+            $old_status_text = ($old_advance_status === 1) ? 'received' : 'not received';
+            $new_status_text = ($new_advance_status === 1) ? 'received' : 'not received';
+            logActivity($current_user['id'], 'Updated advance payment status', 'bookings', $booking_id, "Advance payment changed from {$old_status_text} to {$new_status_text} for booking: {$booking['booking_number']}");
+            
+            $success_message = "Advance payment status updated successfully to: " . ucfirst($new_status_text);
+            
+            // Re-fetch booking to get updated status
+            $booking = getBookingDetails($booking_id);
+        } catch (Exception $e) {
+            $error_message = 'Failed to update advance payment status. Please try again.';
+        }
     }
 }
 ?>
@@ -333,7 +353,7 @@ $currency = getSetting('currency', 'NPR');
                     <td class="payment-label">Advance Payment Received:</td>
                     <td class="payment-value"><?php 
                         // Display advance amount only if marked as received by admin
-                        if (!empty($booking['advance_payment_received'])) {
+                        if ($booking['advance_payment_received'] === 1) {
                             echo formatCurrency($advance['amount']);
                         } else {
                             echo formatCurrency(0);
@@ -534,6 +554,53 @@ $currency = getSetting('currency', 'NPR');
                                     <i class="fas fa-info-circle me-1"></i>
                                     Current Status: 
                                     <span class="badge bg-<?php echo $booking_status_color; ?>"><?php echo $booking_status_display; ?></span>
+                                </small>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advance Payment Status Toggle -->
+                <div class="row g-4 mt-2">
+                    <div class="col-12">
+                        <div class="quick-action-section">
+                            <h6 class="fw-bold mb-3 text-dark">
+                                <i class="fas fa-money-check-alt text-primary me-2"></i>
+                                Advance Payment Status
+                            </h6>
+                            <form method="POST" action="" class="advance-payment-form">
+                                <input type="hidden" name="action" value="toggle_advance_payment">
+                                <div class="row g-3 align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" 
+                                                   id="advance_payment_received" name="advance_payment_received" 
+                                                   value="1" <?php echo ($booking['advance_payment_received'] === 1) ? 'checked' : ''; ?>
+                                                   style="width: 3em; height: 1.5em; cursor: pointer;">
+                                            <label class="form-check-label fw-semibold ms-2" for="advance_payment_received" style="cursor: pointer;">
+                                                <strong>Advance Payment Received</strong>
+                                                <small class="text-muted d-block">Check this box if the customer has paid the advance payment</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-success w-100 px-4">
+                                            <i class="fas fa-save me-2"></i> Save Status
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-block mt-3">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Current Status: 
+                                    <?php if ($booking['advance_payment_received'] === 1): ?>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i> Received
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1"></i> Not Received
+                                        </span>
+                                    <?php endif; ?>
                                 </small>
                             </form>
                         </div>
@@ -1100,7 +1167,7 @@ $currency = getSetting('currency', 'NPR');
                             </div>
                         </div>
                         
-                        <?php if (!empty($booking['advance_payment_received'])): ?>
+                        <?php if ($booking['advance_payment_received'] === 1): ?>
                         <div class="alert alert-success mt-2 mb-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
