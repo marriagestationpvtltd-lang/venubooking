@@ -832,19 +832,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get all form inputs
         const formInputs = customerForm.querySelectorAll('input, select, textarea');
         
+        // Helper function to determine the appropriate event type for each input
+        function getEventType(input) {
+            if (input.type === 'file' || input.tagName === 'SELECT' || 
+                input.type === 'radio' || input.type === 'checkbox') {
+                return 'change';
+            }
+            return 'input';
+        }
+        
         // Add event listener to each input to hide error when user makes changes
         formInputs.forEach(function(input) {
-            // Use 'input' event for text fields, 'change' for selects and file inputs
-            const eventType = (input.type === 'file' || input.tagName === 'SELECT' || input.type === 'radio' || input.type === 'checkbox') ? 'change' : 'input';
+            const eventType = getEventType(input);
             
             input.addEventListener(eventType, function() {
-                if (errorAlert && errorAlert.style.display !== 'none') {
-                    // Fade out the error alert
-                    errorAlert.style.transition = 'opacity 0.3s ease-out';
-                    errorAlert.style.opacity = '0';
-                    setTimeout(function() {
-                        errorAlert.style.display = 'none';
-                    }, 300);
+                // Check if alert is still visible by checking if it has the 'show' class
+                if (errorAlert && errorAlert.classList.contains('show')) {
+                    // Use Bootstrap's native alert dismissal
+                    const bsAlert = bootstrap.Alert.getOrCreateInstance(errorAlert);
+                    bsAlert.close();
                 }
             });
         });
