@@ -1857,7 +1857,8 @@ function calculatePaymentSummary($booking_id) {
     $advance = calculateAdvancePayment($grand_total);
     
     // If advance payment is marked as received, subtract it from balance due
-    if (isset($booking['advance_payment_received']) && $booking['advance_payment_received'] === 1) {
+    // Cast to int for strict type comparison reliability
+    if (isset($booking['advance_payment_received']) && intval($booking['advance_payment_received']) === 1) {
         $due_amount -= $advance['amount'];
     }
     
