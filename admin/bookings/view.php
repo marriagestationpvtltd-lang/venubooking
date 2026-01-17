@@ -97,10 +97,11 @@ if (isset($_POST['action'])) {
             $stmt = $db->prepare("UPDATE bookings SET advance_payment_received = ? WHERE id = ?");
             $stmt->execute([$new_advance_status, $booking_id]);
             
-            $status_text = $new_advance_status ? 'received' : 'not received';
-            logActivity($current_user['id'], 'Updated advance payment status', 'bookings', $booking_id, "Advance payment marked as {$status_text} for booking: {$booking['booking_number']}");
+            $old_status_text = $old_advance_status ? 'received' : 'not received';
+            $new_status_text = $new_advance_status ? 'received' : 'not received';
+            logActivity($current_user['id'], 'Updated advance payment status', 'bookings', $booking_id, "Advance payment changed from {$old_status_text} to {$new_status_text} for booking: {$booking['booking_number']}");
             
-            $success_message = "Advance payment status updated successfully to: " . ucfirst($status_text);
+            $success_message = "Advance payment status updated successfully to: " . ucfirst($new_status_text);
             
             // Re-fetch booking to get updated status
             $booking = getBookingDetails($booking_id);
