@@ -89,14 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare("UPDATE customers SET full_name = ?, phone = ?, email = ?, address = ? WHERE id = ?");
                 $stmt->execute([$full_name, $phone, $email, $address, $customer_id]);
                 
-                // Calculate totals
-                $totals = calculateBookingTotal($hall_id, $post_selected_menus, $number_of_guests, $post_selected_services);
-                
-                // Update booking
+                // Update booking basic info (totals will be recalculated after services are inserted)
                 $sql = "UPDATE bookings SET 
                         hall_id = ?, event_date = ?, shift = ?, 
-                        event_type = ?, number_of_guests = ?, hall_price = ?, menu_total = ?, 
-                        services_total = ?, subtotal = ?, tax_amount = ?, grand_total = ?, 
+                        event_type = ?, number_of_guests = ?, 
                         special_requests = ?, booking_status = ?, payment_status = ?
                         WHERE id = ?";
                 
@@ -107,21 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $shift,
                     $event_type,
                     $number_of_guests,
-                    $totals['hall_price'],
-                    $totals['menu_total'],
-                    $totals['services_total'],
-                    $totals['subtotal'],
-                    $totals['tax_amount'],
-                    $totals['grand_total'],
                     $special_requests,
                     $booking_status,
                     $payment_status,
                     $booking_id
                 ]);
                 
-                // Delete old menus and services
+                // Delete old menus and user services (preserve admin services)
                 $db->prepare("DELETE FROM booking_menus WHERE booking_id = ?")->execute([$booking_id]);
-                $db->prepare("DELETE FROM booking_services WHERE booking_id = ?")->execute([$booking_id]);
+                $db->prepare("DELETE FROM booking_services WHERE booking_id = ? AND added_by = ?")->execute([$booking_id, USER_SERVICE_TYPE]);
                 
                 // Insert new booking menus
                 if (!empty($post_selected_menus)) {
@@ -140,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
-                // Insert new booking services
+                // Insert new booking services (user services)
                 if (!empty($post_selected_services)) {
                     foreach ($post_selected_services as $service_id) {
                         $stmt = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
@@ -148,11 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $service = $stmt->fetch();
                         
                         if ($service) {
-                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES (?, ?, ?, ?, ?, ?)");
-                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
+                            $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
                         }
                     }
                 }
+                
+                // Recalculate totals to include all services (user + admin)
+                recalculateBookingTotals($booking_id);
                 
                 // Link payment methods to booking
                 linkPaymentMethodsToBooking($booking_id, $post_selected_payment_methods);
@@ -349,6 +342,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
                     </div>
+                    
+                    <?php
+                    // Get admin services for this booking
+                    $admin_services = getAdminServices($booking_id);
+                    if (!empty($admin_services)):
+                    ?>
+                    <div class="alert alert-info mt-3">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Admin Added Services (Cannot be edited here)
+                        </h6>
+                        <p class="mb-2 small">These services were added by admin and can only be managed from the <a href="view.php?id=<?php echo $booking_id; ?>" class="alert-link">booking view page</a>.</p>
+                        <table class="table table-sm table-bordered bg-white mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th class="text-center" width="100">Quantity</th>
+                                    <th class="text-end" width="120">Price</th>
+                                    <th class="text-end" width="120">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($admin_services as $service): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars($service['service_name']); ?></strong>
+                                        <?php if (!empty($service['description'])): ?>
+                                            <br><small class="text-muted"><?php echo htmlspecialchars($service['description']); ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center"><?php echo $service['quantity']; ?></td>
+                                    <td class="text-end"><?php echo formatCurrency($service['price']); ?></td>
+                                    <td class="text-end"><strong><?php echo formatCurrency($service['total_price']); ?></strong></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php endif; ?>
 
                     <div class="mb-3">
                         <label for="special_requests" class="form-label">Special Requests</label>

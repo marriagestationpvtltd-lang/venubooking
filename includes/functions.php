@@ -13,6 +13,24 @@ require_once __DIR__ . '/db.php';
 define('SAFE_FILENAME_PATTERN', '/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*\.[a-zA-Z0-9]+$/');
 
 /**
+ * Default service quantity for user-selected services
+ */
+define('DEFAULT_SERVICE_QUANTITY', 1);
+
+/**
+ * Service type constants
+ */
+define('USER_SERVICE_TYPE', 'user');
+define('ADMIN_SERVICE_TYPE', 'admin');
+
+/**
+ * Admin service defaults
+ * Admin services don't reference the master services table, so service_id is 0
+ */
+define('ADMIN_SERVICE_NO_REF_ID', 0);
+define('ADMIN_SERVICE_DEFAULT_CATEGORY', '');
+
+/**
  * Sanitize input to prevent XSS
  */
 function sanitize($data) {
@@ -496,8 +514,8 @@ function createBooking($data) {
                 $service = $stmt->fetch();
                 
                 if ($service) {
-                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
+                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
                 }
             }
         }
@@ -567,11 +585,14 @@ function getBookingDetails($booking_id) {
             // Get services - using denormalized data from booking_services table
             // This ensures historical data is displayed even if services are deleted from master table
             // Description and category are now stored in booking_services for full historical preservation
+            // Now includes quantity and added_by for admin-added services support
             $stmt = $db->prepare("
                 SELECT bs.id, bs.booking_id, bs.service_id, bs.service_name, bs.price, 
-                       bs.description, bs.category 
+                       bs.description, bs.category, bs.quantity, bs.added_by,
+                       (bs.price * bs.quantity) as total_price
                 FROM booking_services bs 
                 WHERE bs.booking_id = ?
+                ORDER BY bs.added_by, bs.service_name
             ");
             if ($stmt) {
                 $stmt->execute([$booking_id]);
@@ -1982,5 +2003,213 @@ function updateHallMenus($hall_id, $menu_ids) {
         $db->rollBack();
         error_log("Error updating hall menus: " . $e->getMessage());
         return false;
+    }
+}
+
+/**
+ * Add admin service to a booking
+ * Admins can add additional services after the booking is created
+ * 
+ * @param int $booking_id Booking ID
+ * @param string $service_name Service name
+ * @param string $description Service description (optional)
+ * @param int $quantity Quantity
+ * @param float $price Price per unit
+ * @return bool|int Returns service ID on success, false on failure
+ */
+function addAdminService($booking_id, $service_name, $description, $quantity, $price) {
+    $db = getDB();
+    
+    try {
+        $db->beginTransaction();
+        
+        // Validate inputs
+        $booking_id = intval($booking_id);
+        $service_name = trim($service_name);
+        $description = trim($description);
+        $quantity = max(1, intval($quantity));
+        $price = floatval($price);
+        
+        if (empty($service_name)) {
+            throw new Exception("Service name is required");
+        }
+        
+        if ($price <= 0) {
+            throw new Exception("Price must be greater than 0");
+        }
+        
+        // Insert admin service
+        $stmt = $db->prepare("
+            INSERT INTO booking_services 
+            (booking_id, service_id, service_name, price, description, category, added_by, quantity) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$booking_id, ADMIN_SERVICE_NO_REF_ID, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity]);
+        $service_id = $db->lastInsertId();
+        
+        // Recalculate booking totals
+        recalculateBookingTotals($booking_id);
+        
+        $db->commit();
+        return $service_id;
+    } catch (Exception $e) {
+        $db->rollBack();
+        error_log("Error adding admin service: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Delete admin service from a booking
+ * Only admin-added services can be deleted
+ * 
+ * @param int $service_id Service ID
+ * @return bool Success status
+ */
+function deleteAdminService($service_id) {
+    $db = getDB();
+    
+    try {
+        $db->beginTransaction();
+        
+        // Get service details and verify it's an admin service
+        $stmt = $db->prepare("SELECT booking_id, added_by FROM booking_services WHERE id = ?");
+        $stmt->execute([$service_id]);
+        $service = $stmt->fetch();
+        
+        if (!$service) {
+            throw new Exception("Service not found");
+        }
+        
+        if ($service['added_by'] !== ADMIN_SERVICE_TYPE) {
+            throw new Exception("Only admin-added services can be deleted");
+        }
+        
+        $booking_id = $service['booking_id'];
+        
+        // Delete the service
+        $stmt = $db->prepare("DELETE FROM booking_services WHERE id = ?");
+        $stmt->execute([$service_id]);
+        
+        // Recalculate booking totals
+        recalculateBookingTotals($booking_id);
+        
+        $db->commit();
+        return true;
+    } catch (Exception $e) {
+        $db->rollBack();
+        error_log("Error deleting admin service: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Recalculate booking totals after adding/removing admin services
+ * This function recalculates all totals based on actual data in the database
+ * 
+ * @param int $booking_id Booking ID
+ * @return bool Success status
+ */
+function recalculateBookingTotals($booking_id) {
+    $db = getDB();
+    
+    try {
+        // Get current booking data
+        $stmt = $db->prepare("SELECT hall_id FROM bookings WHERE id = ?");
+        $stmt->execute([$booking_id]);
+        $booking = $stmt->fetch();
+        
+        if (!$booking) {
+            throw new Exception("Booking not found");
+        }
+        
+        // Calculate hall price
+        $stmt = $db->prepare("SELECT base_price FROM halls WHERE id = ?");
+        $stmt->execute([$booking['hall_id']]);
+        $hall = $stmt->fetch();
+        $hall_price = floatval($hall['base_price'] ?? 0);
+        
+        // Calculate menu total from booking_menus
+        $stmt = $db->prepare("SELECT SUM(total_price) as total FROM booking_menus WHERE booking_id = ?");
+        $stmt->execute([$booking_id]);
+        $result = $stmt->fetch();
+        $menu_total = floatval($result['total'] ?? 0);
+        
+        // Calculate total from all services (user + admin)
+        $stmt = $db->prepare("SELECT SUM(price * quantity) as total FROM booking_services WHERE booking_id = ?");
+        $stmt->execute([$booking_id]);
+        $result = $stmt->fetch();
+        $services_total = floatval($result['total'] ?? 0);
+        
+        // Calculate new totals
+        $subtotal = $hall_price + $menu_total + $services_total;
+        
+        $tax_rate = floatval(getSetting('tax_rate', '13'));
+        $tax_amount = $subtotal * ($tax_rate / 100);
+        $grand_total = $subtotal + $tax_amount;
+        
+        // Update booking totals
+        $stmt = $db->prepare("
+            UPDATE bookings 
+            SET hall_price = ?, menu_total = ?, services_total = ?, subtotal = ?, tax_amount = ?, grand_total = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$hall_price, $menu_total, $services_total, $subtotal, $tax_amount, $grand_total, $booking_id]);
+        
+        return true;
+    } catch (Exception $e) {
+        error_log("Error recalculating booking totals: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get admin services for a booking
+ * 
+ * @param int $booking_id Booking ID
+ * @return array Array of admin services
+ */
+function getAdminServices($booking_id) {
+    $db = getDB();
+    
+    try {
+        $stmt = $db->prepare("
+            SELECT id, service_name, description, quantity, price, 
+                   (price * quantity) as total_price,
+                   created_at
+            FROM booking_services 
+            WHERE booking_id = ? AND added_by = ?
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$booking_id, ADMIN_SERVICE_TYPE]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting admin services: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get user services for a booking (services selected during booking)
+ * 
+ * @param int $booking_id Booking ID
+ * @return array Array of user services
+ */
+function getUserServices($booking_id) {
+    $db = getDB();
+    
+    try {
+        $stmt = $db->prepare("
+            SELECT id, service_id, service_name, description, category, price, quantity,
+                   (price * quantity) as total_price
+            FROM booking_services 
+            WHERE booking_id = ? AND added_by = ?
+            ORDER BY service_name
+        ");
+        $stmt->execute([$booking_id, USER_SERVICE_TYPE]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting user services: " . $e->getMessage());
+        return [];
     }
 }

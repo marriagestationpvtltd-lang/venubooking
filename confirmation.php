@@ -172,17 +172,71 @@ unset($_SESSION['booking_completed']);
                             <?php endif; ?>
 
                             <!-- Services -->
-                            <?php if (!empty($booking['services'])): ?>
+                            <?php 
+                            // Separate user and admin services
+                            $user_services = [];
+                            $admin_services = [];
+                            if (!empty($booking['services']) && is_array($booking['services'])) {
+                                foreach ($booking['services'] as $service) {
+                                    if (isset($service['added_by']) && $service['added_by'] === 'admin') {
+                                        $admin_services[] = $service;
+                                    } else {
+                                        $user_services[] = $service;
+                                    }
+                                }
+                            }
+                            
+                            if (!empty($user_services)): 
+                            ?>
                                 <div class="col-md-12 mb-3">
                                     <h6 class="text-success mb-2"><i class="fas fa-star me-2"></i>Additional Services</h6>
                                     <div class="row">
-                                        <?php foreach ($booking['services'] as $service): ?>
+                                        <?php foreach ($user_services as $service): ?>
+                                            <?php 
+                                                $service_price = floatval($service['price'] ?? 0);
+                                                $service_qty = intval($service['quantity'] ?? 1);
+                                                $service_total = $service_price * $service_qty;
+                                            ?>
                                             <div class="col-md-6 mb-1">
                                                 <i class="fas fa-check-circle text-success me-1"></i>
                                                 <strong><?php echo sanitize($service['service_name']); ?></strong>
-                                                <span class="text-muted ms-1"><?php echo formatCurrency($service['price']); ?></span>
+                                                <?php if ($service_qty > 1): ?>
+                                                    <span class="text-muted ms-1">(<?php echo $service_qty; ?> × <?php echo formatCurrency($service_price); ?> = <?php echo formatCurrency($service_total); ?>)</span>
+                                                <?php else: ?>
+                                                    <span class="text-muted ms-1"><?php echo formatCurrency($service_price); ?></span>
+                                                <?php endif; ?>
                                             </div>
                                         <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <?php if (!empty($admin_services)): ?>
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="text-info mb-2"><i class="fas fa-user-shield me-2"></i>Admin Added Services</h6>
+                                    <div class="alert alert-info py-2">
+                                        <small class="d-block mb-2">These services were added by the admin after your booking was created.</small>
+                                        <div class="row">
+                                            <?php foreach ($admin_services as $service): ?>
+                                                <?php 
+                                                    $service_price = floatval($service['price'] ?? 0);
+                                                    $service_qty = intval($service['quantity'] ?? 1);
+                                                    $service_total = $service_price * $service_qty;
+                                                ?>
+                                                <div class="col-md-6 mb-1">
+                                                    <i class="fas fa-cog text-warning me-1"></i>
+                                                    <strong><?php echo sanitize($service['service_name']); ?></strong>
+                                                    <?php if ($service_qty > 1): ?>
+                                                        <span class="text-muted ms-1">(<?php echo $service_qty; ?> × <?php echo formatCurrency($service_price); ?> = <?php echo formatCurrency($service_total); ?>)</span>
+                                                    <?php else: ?>
+                                                        <span class="text-muted ms-1"><?php echo formatCurrency($service_price); ?></span>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($service['description'])): ?>
+                                                        <br><small class="text-muted ms-3"><?php echo sanitize($service['description']); ?></small>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                 </div>
                             <?php endif; ?>

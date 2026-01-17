@@ -31,7 +31,52 @@ extract($status_vars); // Extract variables: booking_status_display, booking_sta
 if (isset($_POST['action'])) {
     $action = $_POST['action'];
     
-    if ($action === 'send_payment_request_email') {
+    if ($action === 'add_admin_service') {
+        // Handle adding admin service
+        $service_name = trim($_POST['service_name'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $quantity = max(1, intval($_POST['quantity'] ?? 1));
+        $price = max(0, floatval($_POST['price'] ?? 0));
+        
+        if (empty($service_name)) {
+            $error_message = 'Service name is required.';
+        } elseif ($price <= 0) {
+            $error_message = 'Price must be greater than 0.';
+        } else {
+            $service_id = addAdminService($booking_id, $service_name, $description, $quantity, $price);
+            
+            if ($service_id) {
+                logActivity($current_user['id'], 'Added admin service', 'bookings', $booking_id, "Added service: {$service_name} (Qty: {$quantity}, Price: {$price})");
+                $success_message = 'Admin service added successfully!';
+                
+                // Re-fetch booking to get updated services and totals
+                $booking = getBookingDetails($booking_id);
+                $status_vars = calculateBookingStatusVariables($booking);
+                extract($status_vars);
+            } else {
+                $error_message = 'Failed to add admin service. Please try again.';
+            }
+        }
+    } elseif ($action === 'delete_admin_service') {
+        // Handle deleting admin service
+        $service_id = intval($_POST['service_id'] ?? 0);
+        
+        if ($service_id > 0) {
+            if (deleteAdminService($service_id)) {
+                logActivity($current_user['id'], 'Deleted admin service', 'bookings', $booking_id, "Deleted admin service ID: {$service_id}");
+                $success_message = 'Admin service deleted successfully!';
+                
+                // Re-fetch booking to get updated services and totals
+                $booking = getBookingDetails($booking_id);
+                $status_vars = calculateBookingStatusVariables($booking);
+                extract($status_vars);
+            } else {
+                $error_message = 'Failed to delete admin service. Please try again.';
+            }
+        } else {
+            $error_message = 'Invalid service ID.';
+        }
+    } elseif ($action === 'send_payment_request_email') {
         // Send payment request via email
         if (!empty($booking['email'])) {
             $result = sendBookingNotification($booking_id, 'payment_request');
@@ -295,9 +340,14 @@ $currency = getSetting('currency', 'NPR');
                         <?php endforeach; ?>
                     <?php endif; ?>
                     
-                    <!-- Services / Additional Items -->
-                    <?php if (!empty($booking['services'])): ?>
-                        <?php foreach ($booking['services'] as $service): ?>
+                    <!-- User Services / Additional Items -->
+                    <?php if (!empty($user_services)): ?>
+                        <?php foreach ($user_services as $service): ?>
+                        <?php 
+                            $service_price = floatval($service['price'] ?? 0);
+                            $service_qty = intval($service['quantity'] ?? 1);
+                            $service_total = $service_price * $service_qty;
+                        ?>
                         <tr>
                             <td>
                                 <strong><?php echo htmlspecialchars($additional_items_label); ?></strong> - <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Service')); ?>
@@ -308,13 +358,36 @@ $currency = getSetting('currency', 'NPR');
                                     <br><span class="service-description-print"><?php echo htmlspecialchars($service['description']); ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td class="text-center">1</td>
-                            <?php $service_price = floatval($service['price'] ?? 0); ?>
+                            <td class="text-center"><?php echo $service_qty; ?></td>
                             <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
-                            <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
+                            <td class="text-right"><?php echo number_format($service_total, 2); ?></td>
                         </tr>
                         <?php endforeach; ?>
-                    <?php else: ?>
+                    <?php endif; ?>
+                    
+                    <!-- Admin Added Services -->
+                    <?php if (!empty($admin_services)): ?>
+                        <?php foreach ($admin_services as $service): ?>
+                        <?php 
+                            $service_price = floatval($service['price'] ?? 0);
+                            $service_qty = intval($service['quantity'] ?? 1);
+                            $service_total = $service_price * $service_qty;
+                        ?>
+                        <tr>
+                            <td>
+                                <strong>Admin Service</strong> - <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Service')); ?>
+                                <?php if (!empty($service['description'])): ?>
+                                    <br><span class="service-description-print"><?php echo htmlspecialchars($service['description']); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center"><?php echo $service_qty; ?></td>
+                            <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
+                            <td class="text-right"><?php echo number_format($service_total, 2); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <?php if (empty($user_services) && empty($admin_services)): ?>
                         <tr class="no-services-row">
                             <td colspan="4" class="text-center text-muted"><em>No additional services selected</em></td>
                         </tr>
@@ -840,14 +913,32 @@ $currency = getSetting('currency', 'NPR');
 
         <!-- Services -->
         <?php 
-        $services_count = count($booking['services']);
-        if ($services_count > 0): 
-            // Calculate total services cost
-            $services_total_display = array_sum(array_column($booking['services'], 'price'));
+        // Separate user and admin services
+        $user_services = [];
+        $admin_services = [];
+        if (!empty($booking['services']) && is_array($booking['services'])) {
+            foreach ($booking['services'] as $service) {
+                if (isset($service['added_by']) && $service['added_by'] === 'admin') {
+                    $admin_services[] = $service;
+                } else {
+                    $user_services[] = $service;
+                }
+            }
+        }
+        
+        $user_services_count = count($user_services);
+        if ($user_services_count > 0): 
+            // Calculate total user services cost
+            $user_services_total = 0;
+            foreach ($user_services as $service) {
+                $service_price = floatval($service['price'] ?? 0);
+                $service_qty = intval($service['quantity'] ?? 1);
+                $user_services_total += ($service_price * $service_qty);
+            }
         ?>
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-gradient-secondary text-white">
-                <h5 class="mb-0"><i class="fas fa-concierge-bell me-2"></i> Additional Services</h5>
+                <h5 class="mb-0"><i class="fas fa-concierge-bell me-2"></i> Additional Services (User Selected)</h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -855,11 +946,18 @@ $currency = getSetting('currency', 'NPR');
                         <thead class="table-light">
                             <tr>
                                 <th class="fw-semibold">Service</th>
+                                <th class="fw-semibold text-center">Quantity</th>
                                 <th class="fw-semibold text-end">Price</th>
+                                <th class="fw-semibold text-end">Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($booking['services'] as $service): ?>
+                            <?php foreach ($user_services as $service): ?>
+                            <?php 
+                                $service_price = floatval($service['price'] ?? 0);
+                                $service_qty = intval($service['quantity'] ?? 1);
+                                $service_total = $service_price * $service_qty;
+                            ?>
                             <tr>
                                 <td class="fw-semibold service-info-cell">
                                     <div>
@@ -873,16 +971,18 @@ $currency = getSetting('currency', 'NPR');
                                         <small class="service-description"><?php echo htmlspecialchars($service['description']); ?></small>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-end fw-bold text-primary service-price-cell"><?php echo formatCurrency($service['price']); ?></td>
+                                <td class="text-center"><?php echo $service_qty; ?></td>
+                                <td class="text-end fw-bold text-primary service-price-cell"><?php echo formatCurrency($service_price); ?></td>
+                                <td class="text-end fw-bold text-success"><?php echo formatCurrency($service_total); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
-                        <?php if ($services_count > 1): ?>
+                        <?php if ($user_services_count > 1): ?>
                         <tfoot>
                             <tr class="table-light border-top border-2">
-                                <td class="text-end fw-bold">Total Additional Services:</td>
+                                <td colspan="3" class="text-end fw-bold">Total User Services:</td>
                                 <td class="text-end">
-                                    <strong class="text-success fs-5"><?php echo formatCurrency($services_total_display); ?></strong>
+                                    <strong class="text-success fs-5"><?php echo formatCurrency($user_services_total); ?></strong>
                                 </td>
                             </tr>
                         </tfoot>
@@ -892,6 +992,128 @@ $currency = getSetting('currency', 'NPR');
             </div>
         </div>
         <?php endif; ?>
+        
+        <!-- Admin Added Services -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-gradient-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-shield me-2"></i> Admin Added Services
+                    <small class="float-end badge bg-dark"><?php echo count($admin_services); ?> service(s)</small>
+                </h5>
+            </div>
+            <div class="card-body">
+                <?php if (count($admin_services) > 0): ?>
+                <div class="table-responsive mb-3">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="fw-semibold">Service</th>
+                                <th class="fw-semibold text-center">Quantity</th>
+                                <th class="fw-semibold text-end">Price</th>
+                                <th class="fw-semibold text-end">Total</th>
+                                <th class="fw-semibold text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $admin_services_total = 0;
+                            foreach ($admin_services as $service): 
+                                $service_price = floatval($service['price'] ?? 0);
+                                $service_qty = intval($service['quantity'] ?? 1);
+                                $service_total = $service_price * $service_qty;
+                                $admin_services_total += $service_total;
+                            ?>
+                            <tr>
+                                <td class="service-info-cell">
+                                    <div>
+                                        <i class="fas fa-cog text-warning me-2"></i>
+                                        <strong><?php echo htmlspecialchars($service['service_name']); ?></strong>
+                                    </div>
+                                    <?php if (!empty($service['description'])): ?>
+                                        <small class="service-description text-muted"><?php echo htmlspecialchars($service['description']); ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info"><?php echo $service_qty; ?></span>
+                                </td>
+                                <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service_price); ?></td>
+                                <td class="text-end fw-bold text-success"><?php echo formatCurrency($service_total); ?></td>
+                                <td class="text-center">
+                                    <form method="POST" style="display: inline-block;" onsubmit="return confirm('Are you sure you want to delete this service?');">
+                                        <input type="hidden" name="action" value="delete_admin_service">
+                                        <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Delete Service">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light border-top border-2">
+                                <td colspan="3" class="text-end fw-bold">Total Admin Services:</td>
+                                <td colspan="2" class="text-end">
+                                    <strong class="text-success fs-5"><?php echo formatCurrency($admin_services_total); ?></strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <?php else: ?>
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No admin services have been added yet. Use the form below to add services.
+                </div>
+                <?php endif; ?>
+                
+                <!-- Add Admin Service Form -->
+                <div class="border-top pt-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Add New Admin Service
+                    </h6>
+                    <form method="POST" action="">
+                        <input type="hidden" name="action" value="add_admin_service">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="service_name" class="form-label fw-semibold">
+                                    Service Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="service_name" name="service_name" 
+                                       placeholder="e.g., Extra Decoration" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="description" class="form-label fw-semibold">
+                                    Description <small class="text-muted">(Optional)</small>
+                                </label>
+                                <input type="text" class="form-control" id="description" name="description" 
+                                       placeholder="Brief description">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="quantity" class="form-label fw-semibold">
+                                    Quantity <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" 
+                                       min="1" value="1" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="price" class="form-label fw-semibold">
+                                    Price <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       min="0" step="0.01" placeholder="0.00" required>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus me-2"></i> Add Service
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         
         <!-- Payment Methods -->
         <?php 
