@@ -1338,7 +1338,7 @@ $currency = getSetting('currency', 'NPR');
 .service-category-print {
     font-weight: 600;
     color: #444;
-    font-size: 8.5px;
+    font-size: 9px;
     margin-left: 4px;
 }
 
@@ -2008,7 +2008,7 @@ $currency = getSetting('currency', 'NPR');
     
     /* Service category in print - readable */
     .service-category-print {
-        font-size: 8pt;
+        font-size: 9px;
         font-weight: 600;
         color: #444 !important;
         margin-left: 4px;
