@@ -301,6 +301,9 @@ $currency = getSetting('currency', 'NPR');
                         <tr>
                             <td>
                                 <strong><?php echo htmlspecialchars($additional_items_label); ?></strong> - <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Service')); ?>
+                                <?php if (!empty($service['category'])): ?>
+                                    <span class="service-category-print">[<?php echo htmlspecialchars($service['category']); ?>]</span>
+                                <?php endif; ?>
                                 <?php if (!empty($service['description'])): ?>
                                     <br><span class="service-description-print"><?php echo htmlspecialchars($service['description']); ?></span>
                                 <?php endif; ?>
@@ -312,7 +315,7 @@ $currency = getSetting('currency', 'NPR');
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr>
+                        <tr class="no-services-row">
                             <td colspan="4" class="text-center text-muted"><em>No additional services selected</em></td>
                         </tr>
                     <?php endif; ?>
@@ -1332,6 +1335,13 @@ $currency = getSetting('currency', 'NPR');
     line-height: 1.2;
 }
 
+.service-category-print {
+    font-weight: 600;
+    color: #444;
+    font-size: 8.5px;
+    margin-left: 4px;
+}
+
 .service-info-cell {
     vertical-align: top;
 }
@@ -1994,6 +2004,19 @@ $currency = getSetting('currency', 'NPR');
         font-size: 8pt;
         line-height: 1.3;
         color: #666 !important;
+    }
+    
+    /* Service category in print - readable */
+    .service-category-print {
+        font-size: 8pt;
+        font-weight: 600;
+        color: #444 !important;
+        margin-left: 4px;
+    }
+    
+    /* Hide "no services" row when printing */
+    .no-services-row {
+        display: none !important;
     }
     
     /* Remove decorative elements to save space */
