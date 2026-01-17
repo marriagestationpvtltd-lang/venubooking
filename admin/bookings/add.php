@@ -413,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <input class="form-check-input" type="checkbox" name="menus[]" 
                                            value="${menu.id}" id="menu_${menu.id}">
                                     <label class="form-check-label" for="menu_${menu.id}">
-                                        ${escapeHtml(menu.name)} - ${menu.price_formatted}/person
+                                        ${escapeHtml(menu.name)} - ${escapeHtml(menu.price_formatted)}/person
                                     </label>
                                 </div>
                             `;

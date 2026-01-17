@@ -10,5 +10,6 @@ AFTER menu_id;
 -- Update getMenusForHall query to filter by hall_menus.status as well
 -- Note: This is handled in the application code (includes/functions.php)
 
--- For backward compatibility, set all existing assignments to 'active'
-UPDATE hall_menus SET status = 'active' WHERE status IS NULL;
+-- For backward compatibility, set all existing assignments to 'active' (if column somehow isn't set)
+-- Note: Due to DEFAULT 'active', all existing rows will already have status = 'active'
+-- This is kept for documentation purposes only
