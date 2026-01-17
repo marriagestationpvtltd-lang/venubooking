@@ -828,7 +828,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Remove error alert when user starts correcting their input
     <?php if ($error): ?>
     const errorAlert = document.getElementById('errorAlert');
-    if (errorAlert) {
+    if (errorAlert && customerForm) {
         // Get all form inputs
         const formInputs = customerForm.querySelectorAll('input, select, textarea');
         
@@ -841,16 +841,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'input';
         }
         
+        // Flag to track if alert has been dismissed
+        let alertDismissed = false;
+        
         // Add event listener to each input to hide error when user makes changes
         formInputs.forEach(function(input) {
             const eventType = getEventType(input);
             
             input.addEventListener(eventType, function() {
-                // Check if alert is still visible by checking if it has the 'show' class
-                if (errorAlert && errorAlert.classList.contains('show')) {
+                // Only process if alert hasn't been dismissed yet
+                if (!alertDismissed && errorAlert && errorAlert.classList.contains('show')) {
                     // Use Bootstrap's native alert dismissal
                     const bsAlert = bootstrap.Alert.getOrCreateInstance(errorAlert);
                     bsAlert.close();
+                    alertDismissed = true;
                 }
             });
         });
