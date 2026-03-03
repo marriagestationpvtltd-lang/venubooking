@@ -138,7 +138,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Send notification and redirect only if booking was created successfully
             if (empty($error_message) && isset($booking_id)) {
-                sendBookingNotification($booking_id, 'new');
+                try {
+                    sendBookingNotification($booking_id, 'new');
+                } catch (Exception $e) {
+                    error_log("Booking notification email failed for booking ID {$booking_id}: " . $e->getMessage());
+                }
                 header('Location: view.php?id=' . $booking_id);
                 exit;
             }
