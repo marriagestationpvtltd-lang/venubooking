@@ -122,6 +122,19 @@ if (isset($_POST['action'])) {
         } else {
             $error_message = 'Customer phone number not found. Cannot send WhatsApp message.';
         }
+    } elseif ($action === 'send_booking_confirmation_email') {
+        // Send booking confirmation via email (after advance payment received)
+        if (!empty($booking['email'])) {
+            $result = sendBookingNotification($booking_id, 'confirmed');
+            if ($result['user']) {
+                $success_message = 'Booking confirmation sent successfully via email to ' . htmlspecialchars($booking['email']);
+                logActivity($current_user['id'], 'Sent booking confirmation via email', 'bookings', $booking_id, "Booking confirmation email sent for booking: {$booking['booking_number']}");
+            } else {
+                $error_message = 'Failed to send booking confirmation email. Please check email settings.';
+            }
+        } else {
+            $error_message = 'Customer email not found. Cannot send email.';
+        }
     } elseif ($action === 'update_status') {
         // Handle quick status update
         $new_booking_status = trim($_POST['booking_status'] ?? '');
@@ -770,6 +783,12 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                 <span class="fw-bold small text-uppercase text-muted">Booking Confirmation</span>
                             </div>
                             <div class="d-flex gap-2">
+                                <form method="POST" action="" class="flex-fill">
+                                    <input type="hidden" name="action" value="send_booking_confirmation_email">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm w-100" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
+                                        <i class="fas fa-envelope me-1"></i> Email
+                                    </button>
+                                </form>
                                 <form method="POST" action="" id="confirmationWhatsappForm" class="flex-fill">
                                     <input type="hidden" name="action" value="send_booking_confirmation_whatsapp">
                                     <button type="submit" class="btn btn-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
@@ -777,9 +796,17 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                     </button>
                                 </form>
                             </div>
-                            <?php if (empty($booking['phone'])): ?>
+                            <?php if (empty($booking['phone']) && empty($booking['email'])): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> No contact info available
+                                </small>
+                            <?php elseif (empty($booking['phone'])): ?>
                                 <small class="text-muted d-block mt-2">
                                     <i class="fas fa-info-circle me-1"></i> Phone not available
+                                </small>
+                            <?php elseif (empty($booking['email'])): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> Email not available
                                 </small>
                             <?php endif; ?>
                             <?php else: ?>

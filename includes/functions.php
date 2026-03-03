@@ -1444,6 +1444,9 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     } elseif ($type === 'payment_request') {
         $admin_subject = 'Payment Request Sent - ' . $booking['booking_number'];
         $user_subject = 'Payment Request for Booking - ' . $booking['booking_number'];
+    } elseif ($type === 'confirmed') {
+        $admin_subject = 'Booking Confirmed - ' . $booking['booking_number'];
+        $user_subject = 'Booking Confirmed - ' . $booking['booking_number'];
     } else {
         $status_text = ucfirst($booking['booking_status']);
         $admin_subject = 'Booking Updated - ' . $booking['booking_number'];
@@ -1482,7 +1485,7 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
  * 
  * @param array $booking Booking details
  * @param string $recipient Type of recipient (admin/user)
- * @param string $type Type of notification (new/update/payment_request)
+ * @param string $type Type of notification (new/update/payment_request/confirmed)
  * @param string $old_status Old status (for updates)
  * @return string HTML email content
  */
@@ -1523,7 +1526,12 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
         <div class="container">
             <div class="header">
                 <h1><?php echo htmlspecialchars($site_name); ?></h1>
-                <h2><?php echo $type === 'new' ? 'Booking Confirmation' : ($type === 'payment_request' ? 'Payment Request' : 'Booking Update'); ?></h2>
+                <h2><?php
+                    if ($type === 'new') echo 'Booking Confirmation';
+                    elseif ($type === 'payment_request') echo 'Payment Request';
+                    elseif ($type === 'confirmed') echo 'Booking Confirmed ✅';
+                    else echo 'Booking Update';
+                ?></h2>
             </div>
             
             <div class="content">
@@ -1544,6 +1552,9 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                             <strong>Advance Payment (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong> <?php echo formatCurrency($advance['amount']); ?><br><br>
                             Please complete the advance payment at your earliest convenience to confirm your booking.
                         </div>
+                    <?php elseif ($type === 'confirmed'): ?>
+                        <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
+                        <p>We are pleased to confirm your booking. Please find your booking details below.</p>
                     <?php else: ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>Your booking status has been updated.</p>
@@ -1556,6 +1567,8 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <p><strong>A new booking has been received:</strong></p>
                     <?php elseif ($type === 'payment_request'): ?>
                         <p><strong>Payment request sent for booking:</strong></p>
+                    <?php elseif ($type === 'confirmed'): ?>
+                        <p><strong>Booking confirmation sent for:</strong></p>
                     <?php else: ?>
                         <p><strong>Booking has been updated:</strong></p>
                         <?php if (!empty($old_status)): ?>
@@ -1765,6 +1778,24 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                 <?php if ($recipient === 'user'): ?>
                     <p style="margin-top: 20px;">If you have any questions about your booking, please don't hesitate to contact us.</p>
                 <?php endif; ?>
+                
+                <?php if ($type === 'confirmed'):
+                    $assigned_vendors = getBookingVendorAssignments($booking['id']);
+                    if (!empty($assigned_vendors)): ?>
+                <div class="booking-details">
+                    <div class="section-title">Assigned Vendors</div>
+                    <?php foreach ($assigned_vendors as $va): ?>
+                    <div class="detail-row">
+                        <span class="detail-label"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?>:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($va['vendor_name']); ?>
+                            <?php if (!empty($va['vendor_phone'])): ?>
+                                &nbsp;|&nbsp; <?php echo htmlspecialchars($va['vendor_phone']); ?>
+                            <?php endif; ?>
+                        </span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                    <?php endif; endif; ?>
             </div>
             
             <div class="footer">
