@@ -1,6 +1,7 @@
 <?php
-$page_title = 'Booking Confirmed';
-require_once __DIR__ . '/includes/header.php';
+// Include dependencies before any HTML output to allow redirects
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions.php';
 
 // Check if booking was completed
 if (!isset($_SESSION['booking_completed'])) {
@@ -25,6 +26,9 @@ if ($payment_submitted) {
 
 // Clear the booking completed session
 unset($_SESSION['booking_completed']);
+
+$page_title = 'Booking Confirmed';
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <section class="py-5">
