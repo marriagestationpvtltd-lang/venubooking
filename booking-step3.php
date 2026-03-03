@@ -1,12 +1,17 @@
 <?php
 $page_title = 'Select Menu';
-require_once __DIR__ . '/includes/header.php';
+// Require PHP utilities before any HTML output so session-guard redirects work correctly
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions.php';
 
 // Check if we have booking data and hall selected
 if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
     header('Location: index.php');
     exit;
 }
+
+// Include HTML header only after all redirects have been handled
+require_once __DIR__ . '/includes/header.php';
 
 $booking_data = $_SESSION['booking_data'];
 $selected_hall = $_SESSION['selected_hall'];

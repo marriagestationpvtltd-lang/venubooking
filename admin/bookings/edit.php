@@ -1,6 +1,11 @@
 <?php
 $page_title = 'Edit Booking';
-require_once __DIR__ . '/../includes/header.php';
+// Require PHP utilities before any HTML output so redirects work correctly
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/functions.php';
+requireLogin();
+$current_user = getCurrentUser();
 
 $db = getDB();
 $success_message = '';
@@ -186,6 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Include the HTML header only after all PHP processing (and potential redirects)
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="row">

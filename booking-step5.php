@@ -160,13 +160,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 ]);
                 
                 if (!$payment_result['success']) {
-                    $error = 'Booking created but payment recording failed: ' . $payment_result['error'];
+                    // Log the payment error but do not block the booking confirmation.
+                    // The booking was saved; the user will see payment_submitted = false
+                    // on the confirmation page and can re-submit payment details later.
+                    error_log("Payment recording failed for booking ID {$booking_id}: " . ($payment_result['error'] ?? 'unknown error'));
                 } else {
                     $payment_submitted_successfully = true;
                 }
             }
             
-            // Clear booking session
+            // Clear booking session data and redirect to confirmation
             $_SESSION['booking_completed'] = [
                 'booking_id' => $booking_id,
                 'booking_number' => $booking_result['booking_number'],

@@ -1,10 +1,25 @@
 <?php
 $page_title = 'View Booking Details';
-require_once __DIR__ . '/../includes/header.php';
+// Require PHP utilities before any HTML output so redirects work correctly
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/functions.php';
+requireLogin();
+$current_user = getCurrentUser();
 
 $db = getDB();
 $success_message = '';
 $error_message = '';
+
+// Display flash message from previous redirect (e.g., after creating a booking)
+if (!empty($_SESSION['flash_success'])) {
+    $success_message = $_SESSION['flash_success'];
+    unset($_SESSION['flash_success']);
+}
+if (!empty($_SESSION['flash_error'])) {
+    $error_message = $_SESSION['flash_error'];
+    unset($_SESSION['flash_error']);
+}
 
 // Get booking ID from URL
 $booking_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -161,6 +176,9 @@ if (isset($_POST['action'])) {
         }
     }
 }
+
+// Include the HTML header only after all PHP processing (and potential redirects)
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <?php if ($success_message): ?>
