@@ -168,7 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // These run only when booking was successfully saved (no error)
             if (empty($error_message)) {
                 if ($status_changed) {
-                    sendBookingNotification($booking_id, 'update', $old_booking_status);
+                    try {
+                        sendBookingNotification($booking_id, 'update', $old_booking_status);
+                    } catch (Exception $e) {
+                        error_log("Booking update notification email failed for booking ID {$booking_id}: " . $e->getMessage());
+                    }
                 }
                 
                 $success_message = 'Booking updated successfully!';

@@ -611,7 +611,11 @@ function createBooking($data) {
     
     // Send email notifications after successful commit (outside try-catch so email
     // failures do not roll back or mask the successfully stored booking)
-    sendBookingNotification($booking_id, 'new');
+    try {
+        sendBookingNotification($booking_id, 'new');
+    } catch (Exception $e) {
+        error_log("Booking notification email failed for booking ID {$booking_id}: " . $e->getMessage());
+    }
     
     return ['success' => true, 'booking_id' => $booking_id, 'booking_number' => $booking_number];
 }
