@@ -111,9 +111,6 @@ if (isset($_POST['action'])) {
                 $stmt = $db->prepare("UPDATE bookings SET booking_status = ? WHERE id = ?");
                 $stmt->execute([$new_booking_status, $booking_id]);
                 
-                // Send email notification about status change
-                sendBookingNotification($booking_id, 'update', $old_booking_status);
-                
                 logActivity($current_user['id'], 'Updated booking status', 'bookings', $booking_id, "Status changed from {$old_booking_status} to {$new_booking_status}");
                 
                 $success_message = "Booking status updated successfully from " . ucfirst($old_booking_status) . " to " . ucfirst($new_booking_status);
@@ -126,6 +123,16 @@ if (isset($_POST['action'])) {
                 extract($status_vars);
             } catch (Exception $e) {
                 $error_message = 'Failed to update booking status. Please try again.';
+            }
+            
+            // Send email notification outside try-catch so that email failures do not
+            // mask the successfully updated booking status in the database
+            if (empty($error_message)) {
+                try {
+                    sendBookingNotification($booking_id, 'update', $old_booking_status);
+                } catch (Exception $e) {
+                    error_log("Booking status notification email failed for booking ID {$booking_id}: " . $e->getMessage());
+                }
             }
         }
     } elseif ($action === 'toggle_advance_payment') {
