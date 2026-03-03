@@ -209,8 +209,13 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
  */
 function getAllCities() {
     $db = getDB();
-    $stmt = $db->query("SELECT * FROM cities WHERE status = 'active' ORDER BY name");
-    return $stmt->fetchAll();
+    try {
+        $stmt = $db->query("SELECT * FROM cities WHERE status = 'active' ORDER BY name");
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        error_log('getAllCities() failed: ' . $e->getMessage());
+        return [];
+    }
 }
 
 /**

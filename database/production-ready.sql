@@ -43,10 +43,23 @@ DROP TABLE IF EXISTS additional_services;
 DROP TABLE IF EXISTS hall_images;
 DROP TABLE IF EXISTS halls;
 DROP TABLE IF EXISTS venues;
+DROP TABLE IF EXISTS cities;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS settings;
 DROP TABLE IF EXISTS site_images;
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================================
+-- TABLE: cities
+-- ============================================================================
+CREATE TABLE cities (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
 -- TABLE: venues
@@ -55,6 +68,7 @@ CREATE TABLE venues (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
+    city_id INT NULL,
     address TEXT,
     description TEXT,
     image VARCHAR(255),
@@ -62,7 +76,8 @@ CREATE TABLE venues (
     contact_email VARCHAR(100),
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
@@ -359,6 +374,24 @@ CREATE TABLE site_images (
 -- Then update your password in Admin Panel → Profile/Settings
 INSERT INTO users (username, password, full_name, email, role, status) 
 VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@example.com', 'admin', 'active');
+
+-- Insert default cities (Nepal)
+INSERT INTO cities (name, status) VALUES
+('Kathmandu', 'active'),
+('Pokhara', 'active'),
+('Lalitpur (Patan)', 'active'),
+('Bhaktapur', 'active'),
+('Biratnagar', 'active'),
+('Birgunj', 'active'),
+('Butwal', 'active'),
+('Dharan', 'active'),
+('Hetauda', 'active'),
+('Itahari', 'active'),
+('Janakpur', 'active'),
+('Nepalgunj', 'active'),
+('Bharatpur', 'active'),
+('Dhangadhi', 'active'),
+('Tulsipur', 'active');
 
 -- Insert essential system settings
 -- These are default values - configure them in Admin Panel → Settings
