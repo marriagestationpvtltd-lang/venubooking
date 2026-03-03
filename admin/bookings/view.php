@@ -281,6 +281,12 @@ $advance = [
     'percentage' => $payment_summary['advance_percentage']
 ];
 
+// Calculate vendors total for display in the payment breakdown
+$vendors_total = $payment_summary['vendors_total'];
+
+// Get vendor assignments for print invoice and display
+$vendor_assignments = getBookingVendorAssignments($booking_id);
+
 // Get payment transactions for display
 $payment_transactions = getBookingPayments($booking_id);
 
@@ -525,6 +531,25 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                         </tr>
                     <?php endif; ?>
                     
+                    <!-- Vendor Assignments -->
+                    <?php if (!empty($vendor_assignments)): ?>
+                        <?php foreach ($vendor_assignments as $va): ?>
+                        <?php if (floatval($va['assigned_amount']) > 0): ?>
+                        <tr>
+                            <td>
+                                <strong><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></strong> - <?php echo htmlspecialchars($va['vendor_name']); ?>
+                                <?php if (!empty($va['task_description'])): ?>
+                                    <br><span class="service-description-print"><?php echo htmlspecialchars($va['task_description']); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">1</td>
+                            <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
+                            <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
                     <!-- Subtotal -->
                     <tr class="subtotal-row">
                         <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
@@ -689,7 +714,7 @@ if (!empty($whatsapp_payment_methods)) {
 $whatsapp_text .= "Thank you!";
 
 // Build booking confirmation WhatsApp message (shown after advance payment is received)
-$booking_confirmation_vendors = getBookingVendorAssignments($booking_id);
+$booking_confirmation_vendors = $vendor_assignments;
 $site_name_wa = !empty($company_name) ? $company_name : getSetting('site_name', 'Venue Booking System');
 
 $confirmation_text = "✅ *Booking Confirmation*\n\n";
@@ -1306,7 +1331,6 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
         
         <!-- Vendor Assignments -->
         <?php
-        $vendor_assignments = getBookingVendorAssignments($booking_id);
         $all_vendors = getAvailableVendors($booking['event_date']);
         ?>
         <div class="card shadow-sm border-0 mb-4">
@@ -1438,7 +1462,7 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                 <input type="text" name="task_description" class="form-control"
                                        placeholder="e.g., Wedding Photography">
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <label class="form-label fw-semibold">Amount</label>
                                 <input type="number" name="assigned_amount" class="form-control"
                                        min="0" step="0.01" placeholder="0.00" value="0">
@@ -1737,6 +1761,12 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                         <div class="d-flex justify-content-between mb-2 align-items-center">
                             <span class="text-muted small">Services Total:</span>
                             <strong class="text-dark"><?php echo formatCurrency($booking['services_total']); ?></strong>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($vendors_total > 0): ?>
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">Vendors Total:</span>
+                            <strong class="text-dark"><?php echo formatCurrency($vendors_total); ?></strong>
                         </div>
                         <?php endif; ?>
                         <hr class="my-2">
