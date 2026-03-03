@@ -597,166 +597,146 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
     </div>
 </div>
 
-<!-- Quick Actions Card -->
+<!-- Quick Check Panel -->
+<?php 
+// Prepare WhatsApp data
+$clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
+
+// Calculate advance payment based on configured percentage
+$advance = calculateAdvancePayment($booking['grand_total']);
+
+// Get payment methods for this booking
+$whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
+
+$whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
+    "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . date('F d, Y', strtotime($booking['event_date'])) . " is almost confirmed.\n\n" .
+    "💰 Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
+    "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n";
+
+if (!empty($whatsapp_payment_methods)) {
+    $whatsapp_text .= "📱 Payment Methods:\n\n";
+    foreach ($whatsapp_payment_methods as $idx => $method) {
+        $whatsapp_text .= ($idx + 1) . ". " . $method['name'] . "\n";
+        if (!empty($method['bank_details'])) {
+            $whatsapp_text .= $method['bank_details'] . "\n";
+        }
+        $whatsapp_text .= "\n";
+    }
+    $whatsapp_text .= "After making payment, please contact us with your booking number to confirm.\n\n";
+} else {
+    $whatsapp_text .= "Please contact us for payment details.\n\n";
+}
+
+$whatsapp_text .= "Thank you!";
+?>
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-gradient-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Quick Actions</h5>
+            <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Quick Check</h5>
+                <small class="opacity-75">Manage statuses &amp; send requests in one place</small>
             </div>
-            <div class="card-body p-4">
-                <div class="row g-4">
-                    <!-- Payment Request Buttons -->
-                    <div class="col-lg-6">
-                        <div class="quick-action-section">
-                            <h6 class="fw-bold mb-3 text-dark">
-                                <i class="fas fa-paper-plane text-primary me-2"></i>
-                                Send Payment Request
-                            </h6>
-                        <form method="POST" action="" style="display: inline-block;" class="me-2">
-                            <input type="hidden" name="action" value="send_payment_request_email">
-                            <button type="submit" class="btn btn-primary px-4" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
-                                <i class="fas fa-envelope me-2"></i> Email Request
-                            </button>
-                        </form>
-                        <?php 
-                        // Prepare WhatsApp data
-                        $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
-                        
-                        // Calculate advance payment based on configured percentage
-                        $advance = calculateAdvancePayment($booking['grand_total']);
-                        
-                        // Get payment methods for this booking
-                        $whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
-                        
-                        $whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
-                            "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . date('F d, Y', strtotime($booking['event_date'])) . " is almost confirmed.\n\n" .
-                            "💰 Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
-                            "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n";
-                        
-                        if (!empty($whatsapp_payment_methods)) {
-                            $whatsapp_text .= "📱 Payment Methods:\n\n";
-                            foreach ($whatsapp_payment_methods as $idx => $method) {
-                                $whatsapp_text .= ($idx + 1) . ". " . $method['name'] . "\n";
-                                if (!empty($method['bank_details'])) {
-                                    $whatsapp_text .= $method['bank_details'] . "\n";
-                                }
-                                $whatsapp_text .= "\n";
-                            }
-                            $whatsapp_text .= "After making payment, please contact us with your booking number to confirm.\n\n";
-                        } else {
-                            $whatsapp_text .= "Please contact us for payment details.\n\n";
-                        }
-                        
-                        $whatsapp_text .= "Thank you!";
-                        ?>
-                        <form method="POST" action="" style="display: inline-block;" id="whatsappForm">
-                            <input type="hidden" name="action" value="send_payment_request_whatsapp">
-                            <button type="submit" class="btn btn-success px-4" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
-                                <i class="fab fa-whatsapp me-2"></i> WhatsApp Request
-                            </button>
-                        </form>
-                        <?php if (empty($booking['email']) && empty($booking['phone'])): ?>
-                            <small class="text-muted d-block mt-3">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Customer contact information is not available
-                            </small>
-                        <?php elseif (empty($booking['email'])): ?>
-                            <small class="text-muted d-block mt-3">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Email not available
-                            </small>
-                        <?php elseif (empty($booking['phone'])): ?>
-                            <small class="text-muted d-block mt-3">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Phone number not available
-                            </small>
-                        <?php endif; ?>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Status Update -->
-                    <div class="col-lg-6">
-                        <div class="quick-action-section">
-                            <h6 class="fw-bold mb-3 text-dark">
-                                <i class="fas fa-sync-alt text-primary me-2"></i>
-                                Update Booking Status
-                            </h6>
+            <div class="card-body p-3">
+                <div class="row g-3">
+
+                    <!-- Booking Status -->
+                    <div class="col-lg-4 col-md-6">
+                        <div class="quick-check-item h-100">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-circle-dot text-primary me-2"></i>
+                                <span class="fw-bold small text-uppercase text-muted">Booking Status</span>
+                                <span class="badge bg-<?php echo $booking_status_color; ?> ms-auto">
+                                    <?php echo $booking_status_display; ?>
+                                </span>
+                            </div>
                             <form method="POST" action="" class="status-update-form">
                                 <input type="hidden" name="action" value="update_status">
                                 <input type="hidden" name="old_booking_status" value="<?php echo $booking['booking_status']; ?>">
-                                <div class="row g-3">
-                                    <div class="col-md-8">
-                                        <label for="booking_status" class="form-label fw-semibold">Select New Status</label>
-                                        <select class="form-select form-select-lg" id="booking_status" name="booking_status">
-                                            <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                            <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>Payment Submitted</option>
-                                            <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
-                                            <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                            <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4 d-flex align-items-end">
-                                        <button type="submit" class="btn btn-info w-100">
-                                            <i class="fas fa-check me-2"></i> Update
-                                        </button>
-                                    </div>
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select" id="booking_status" name="booking_status">
+                                        <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                        <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>Payment Submitted</option>
+                                        <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
+                                        <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+                                        <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-check"></i> Update
+                                    </button>
                                 </div>
-                                <small class="text-muted d-block mt-3">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Current Status: 
-                                    <span class="badge bg-<?php echo $booking_status_color; ?>"><?php echo $booking_status_display; ?></span>
-                                </small>
                             </form>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Advance Payment Status Toggle -->
-                <div class="row g-4 mt-2">
-                    <div class="col-12">
-                        <div class="quick-action-section">
-                            <h6 class="fw-bold mb-3 text-dark">
-                                <i class="fas fa-money-check-alt text-primary me-2"></i>
-                                Advance Payment Status
-                            </h6>
+
+                    <!-- Advance Payment Status -->
+                    <div class="col-lg-4 col-md-6">
+                        <div class="quick-check-item h-100">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-money-check-alt text-success me-2"></i>
+                                <span class="fw-bold small text-uppercase text-muted">Advance Payment</span>
+                                <?php if ($booking['advance_payment_received'] === 1): ?>
+                                    <span class="badge bg-success ms-auto"><i class="fas fa-check-circle me-1"></i>Received</span>
+                                <?php else: ?>
+                                    <span class="badge bg-danger ms-auto"><i class="fas fa-times-circle me-1"></i>Not Received</span>
+                                <?php endif; ?>
+                            </div>
                             <form method="POST" action="" class="advance-payment-form">
                                 <input type="hidden" name="action" value="toggle_advance_payment">
-                                <div class="row g-3 align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" role="switch" 
-                                                   id="advance_payment_received" name="advance_payment_received" 
-                                                   value="1" <?php echo ($booking['advance_payment_received'] === 1) ? 'checked' : ''; ?>
-                                                   style="width: 3em; height: 1.5em; cursor: pointer;">
-                                            <label class="form-check-label fw-semibold ms-2" for="advance_payment_received" style="cursor: pointer;">
-                                                <strong>Advance Payment Received</strong>
-                                                <small class="text-muted d-block">Check this box if the customer has paid the advance payment</small>
-                                            </label>
-                                        </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="form-check form-switch flex-grow-1 mb-0">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="advance_payment_received" name="advance_payment_received"
+                                               value="1" <?php echo ($booking['advance_payment_received'] === 1) ? 'checked' : ''; ?>
+                                               style="cursor: pointer;">
+                                        <label class="form-check-label small" for="advance_payment_received" style="cursor: pointer;">
+                                            Mark as received
+                                        </label>
                                     </div>
-                                    <div class="col-md-4">
-                                        <button type="submit" class="btn btn-success w-100 px-4">
-                                            <i class="fas fa-save me-2"></i> Save Status
-                                        </button>
-                                    </div>
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
                                 </div>
-                                <small class="text-muted d-block mt-3">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Current Status: 
-                                    <?php if ($booking['advance_payment_received'] === 1): ?>
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i> Received
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-times-circle me-1"></i> Not Received
-                                        </span>
-                                    <?php endif; ?>
-                                </small>
                             </form>
                         </div>
                     </div>
+
+                    <!-- Send Payment Request -->
+                    <div class="col-lg-4 col-md-12">
+                        <div class="quick-check-item h-100">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-paper-plane text-info me-2"></i>
+                                <span class="fw-bold small text-uppercase text-muted">Send Payment Request</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <form method="POST" action="" class="flex-fill">
+                                    <input type="hidden" name="action" value="send_payment_request_email">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm w-100" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
+                                        <i class="fas fa-envelope me-1"></i> Email
+                                    </button>
+                                </form>
+                                <form method="POST" action="" id="whatsappForm" class="flex-fill">
+                                    <input type="hidden" name="action" value="send_payment_request_whatsapp">
+                                    <button type="submit" class="btn btn-outline-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
+                                        <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                                    </button>
+                                </form>
+                            </div>
+                            <?php if (empty($booking['email']) && empty($booking['phone'])): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> No contact info available
+                                </small>
+                            <?php elseif (empty($booking['email'])): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> Email not available
+                                </small>
+                            <?php elseif (empty($booking['phone'])): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> Phone not available
+                                </small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -1514,45 +1494,36 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
 
     <!-- Summary Sidebar -->
     <div class="col-lg-4">
-        <!-- Booking Status Card -->
+        <!-- Booking Overview Card -->
         <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 20px;">
             <div class="card-header bg-gradient-info text-white">
                 <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Booking Overview</h5>
             </div>
             <div class="card-body p-4">
-                <!-- Status Badges -->
-                <div class="mb-4 pb-4 border-bottom">
-                    <div class="mb-3">
-                        <label class="small text-muted fw-semibold mb-2 d-block">Booking Status</label>
-                        <h5 class="mb-0">
-                            <span class="badge bg-<?php echo $booking_status_color; ?> px-3 py-2">
-                                <i class="fas fa-circle-dot me-2"></i>
-                                <?php echo $booking_status_display; ?>
-                            </span>
-                        </h5>
+                <!-- Status Summary Row -->
+                <div class="mb-3 pb-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-muted fw-semibold">Booking Status</span>
+                        <span class="badge bg-<?php echo $booking_status_color; ?>">
+                            <i class="fas fa-circle-dot me-1"></i><?php echo $booking_status_display; ?>
+                        </span>
                     </div>
-                    <div class="mb-3">
-                        <label class="small text-muted fw-semibold mb-2 d-block">Payment Status</label>
-                        <h5 class="mb-0">
-                            <span class="badge bg-<?php echo $payment_status_color; ?> px-3 py-2">
-                                <i class="fas <?php echo $payment_status_icon; ?> me-2"></i>
-                                <?php echo $payment_status_display; ?>
-                            </span>
-                        </h5>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-muted fw-semibold">Payment Status</span>
+                        <span class="badge bg-<?php echo $payment_status_color; ?>">
+                            <i class="fas <?php echo $payment_status_icon; ?> me-1"></i><?php echo $payment_status_display; ?>
+                        </span>
                     </div>
-                    <div>
-                        <label class="small text-muted fw-semibold mb-2 d-block">
-                            <i class="far fa-calendar-plus me-1"></i>
-                            Booked On
-                        </label>
-                        <p class="mb-0 fw-semibold">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small text-muted fw-semibold">
+                            <i class="far fa-calendar-plus me-1"></i>Booked On
+                        </span>
+                        <span class="small fw-semibold">
                             <?php echo date('M d, Y', strtotime($booking['created_at'])); ?>
-                            <br>
-                            <small class="text-muted"><?php echo date('h:i A', strtotime($booking['created_at'])); ?></small>
-                        </p>
+                        </span>
                     </div>
                 </div>
-                
+
                 <!-- Payment Summary -->
                 <div>
                     <h6 class="fw-bold mb-3 text-dark">
@@ -1595,8 +1566,7 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                         </div>
                         
                         <?php 
-                        // Calculate advance payment
-                        $advance = calculateAdvancePayment($booking['grand_total']);
+                        // $advance already calculated before the Quick Check Panel section
                         ?>
                         <div class="alert alert-warning mb-0">
                             <div class="d-flex justify-content-between align-items-center">
@@ -1713,6 +1683,18 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
     background: #f8f9fa;
     border-radius: 8px;
     border: 1px solid #e9ecef;
+}
+
+.quick-check-item {
+    padding: 0.875rem 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.quick-check-item:hover {
+    background: #f1f3f5;
+    border-color: #ced4da;
 }
 
 .status-update-form .form-select {
