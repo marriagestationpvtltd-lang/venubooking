@@ -1444,6 +1444,9 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     } elseif ($type === 'payment_request') {
         $admin_subject = 'Payment Request Sent - ' . $booking['booking_number'];
         $user_subject = 'Payment Request for Booking - ' . $booking['booking_number'];
+    } elseif ($type === 'confirmed') {
+        $admin_subject = 'Booking Confirmed - ' . $booking['booking_number'];
+        $user_subject = 'Booking Confirmed - ' . $booking['booking_number'];
     } else {
         $status_text = ucfirst($booking['booking_status']);
         $admin_subject = 'Booking Updated - ' . $booking['booking_number'];
@@ -1482,7 +1485,7 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
  * 
  * @param array $booking Booking details
  * @param string $recipient Type of recipient (admin/user)
- * @param string $type Type of notification (new/update/payment_request)
+ * @param string $type Type of notification (new/update/payment_request/confirmed)
  * @param string $old_status Old status (for updates)
  * @return string HTML email content
  */
@@ -1523,7 +1526,12 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
         <div class="container">
             <div class="header">
                 <h1><?php echo htmlspecialchars($site_name); ?></h1>
-                <h2><?php echo $type === 'new' ? 'Booking Confirmation' : ($type === 'payment_request' ? 'Payment Request' : 'Booking Update'); ?></h2>
+                <h2><?php
+                    if ($type === 'new') echo 'Booking Confirmation';
+                    elseif ($type === 'payment_request') echo 'Payment Request';
+                    elseif ($type === 'confirmed') echo 'Booking Confirmed ✅';
+                    else echo 'Booking Update';
+                ?></h2>
             </div>
             
             <div class="content">
@@ -1544,6 +1552,9 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                             <strong>Advance Payment (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong> <?php echo formatCurrency($advance['amount']); ?><br><br>
                             Please complete the advance payment at your earliest convenience to confirm your booking.
                         </div>
+                    <?php elseif ($type === 'confirmed'): ?>
+                        <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
+                        <p>We are pleased to confirm your booking. Please find your booking details below.</p>
                     <?php else: ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>Your booking status has been updated.</p>
@@ -1556,6 +1567,8 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <p><strong>A new booking has been received:</strong></p>
                     <?php elseif ($type === 'payment_request'): ?>
                         <p><strong>Payment request sent for booking:</strong></p>
+                    <?php elseif ($type === 'confirmed'): ?>
+                        <p><strong>Booking confirmation sent for:</strong></p>
                     <?php else: ?>
                         <p><strong>Booking has been updated:</strong></p>
                         <?php if (!empty($old_status)): ?>
@@ -1630,6 +1643,12 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <span class="detail-label">Location:</span>
                         <span class="detail-value"><?php echo htmlspecialchars($booking['location']); ?></span>
                     </div>
+                    <?php if (!empty($booking['map_link'])): ?>
+                    <div class="detail-row">
+                        <span class="detail-label">Google Map:</span>
+                        <span class="detail-value"><a href="<?php echo htmlspecialchars($booking['map_link']); ?>">View on Google Maps</a></span>
+                    </div>
+                    <?php endif; ?>
                     <div class="detail-row">
                         <span class="detail-label">Hall:</span>
                         <span class="detail-value"><?php echo htmlspecialchars($booking['hall_name']); ?> (<?php echo $booking['capacity']; ?> capacity)</span>
@@ -1759,6 +1778,24 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                 <?php if ($recipient === 'user'): ?>
                     <p style="margin-top: 20px;">If you have any questions about your booking, please don't hesitate to contact us.</p>
                 <?php endif; ?>
+                
+                <?php if ($type === 'confirmed'):
+                    $assigned_vendors = getBookingVendorAssignments($booking['id']);
+                    if (!empty($assigned_vendors)): ?>
+                <div class="booking-details">
+                    <div class="section-title">Assigned Vendors</div>
+                    <?php foreach ($assigned_vendors as $va): ?>
+                    <div class="detail-row">
+                        <span class="detail-label"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?>:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($va['vendor_name']); ?>
+                            <?php if (!empty($va['vendor_phone'])): ?>
+                                &nbsp;|&nbsp; <?php echo htmlspecialchars($va['vendor_phone']); ?>
+                            <?php endif; ?>
+                        </span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                    <?php endif; endif; ?>
             </div>
             
             <div class="footer">
@@ -2564,4 +2601,107 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
     }
 
     return 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($text);
+}
+
+/**
+ * Send an email notification to a vendor when they are assigned to a booking.
+ *
+ * @param string $vendor_name
+ * @param string $vendor_email
+ * @param array  $booking  Booking row from getBookingDetails()
+ * @return bool Whether the email was sent successfully
+ */
+function sendVendorAssignmentEmail($vendor_name, $vendor_email, $booking) {
+    $site_name    = getSetting('site_name', 'Venue Booking System');
+    $contact_phone = getSetting('contact_phone', '');
+
+    ob_start();
+    ?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+            .content { background-color: #f9f9f9; padding: 20px; }
+            .booking-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; }
+            .detail-row { padding: 8px 0; border-bottom: 1px solid #eee; }
+            .detail-label { font-weight: bold; color: #555; }
+            .detail-value { color: #333; }
+            .section-title { color: #4CAF50; font-size: 18px; margin: 20px 0 10px 0; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; }
+            .footer { text-align: center; padding: 20px; color: #777; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1><?php echo htmlspecialchars($site_name); ?></h1>
+                <h2>Vendor Assignment Notification</h2>
+            </div>
+            <div class="content">
+                <p>Dear <?php echo htmlspecialchars($vendor_name); ?>,</p>
+                <p>We would like to inform you that you have been officially assigned to the following event. Please find the details below:</p>
+                <div class="booking-details">
+                    <div class="section-title">Event Details</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Booking Number:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['booking_number']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Event Date:</span>
+                        <span class="detail-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Event Type:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['event_type']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Shift:</span>
+                        <span class="detail-value"><?php echo ucfirst($booking['shift']); ?></span>
+                    </div>
+                </div>
+                <div class="booking-details">
+                    <div class="section-title">Venue Details</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Venue Name:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['venue_name']); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Venue Location:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['location']); ?></span>
+                    </div>
+                    <?php if (!empty($booking['map_link'])): ?>
+                    <div class="detail-row">
+                        <span class="detail-label">Google Map:</span>
+                        <span class="detail-value"><a href="<?php echo htmlspecialchars($booking['map_link']); ?>">View on Google Maps</a></span>
+                    </div>
+                    <?php endif; ?>
+                    <div class="detail-row">
+                        <span class="detail-label">Hall:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['hall_name']); ?></span>
+                    </div>
+                </div>
+                <p>Kindly confirm your availability and ensure your presence at the venue as per the schedule. For any clarification, please contact us.</p>
+                <p>Thank you for your cooperation.</p>
+            </div>
+            <div class="footer">
+                <p><strong><?php echo htmlspecialchars($site_name); ?></strong></p>
+                <?php if ($contact_phone): ?>
+                    <p>Phone: <?php echo htmlspecialchars($contact_phone); ?></p>
+                <?php endif; ?>
+                <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                    This is an automated message. Please do not reply to this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    $html = ob_get_clean();
+
+    $subject = 'Vendor Assignment - ' . $booking['booking_number'] . ' (' . date('F d, Y', strtotime($booking['event_date'])) . ')';
+    return sendEmail($vendor_email, $subject, $html, $vendor_name);
 }
