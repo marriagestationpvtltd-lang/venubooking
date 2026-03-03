@@ -360,6 +360,8 @@ require_once __DIR__ . '/includes/header.php';
                 // Build WhatsApp confirmation message
                 $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
                 $wa_text  = "✅ *Booking Confirmation*\n\n";
+                $wa_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
+                $wa_text .= "We are pleased to confirm your booking with " . strip_tags(getSetting('company_name', 'us')) . ". Please find your booking details below:\n\n";
                 $wa_text .= "Booking Status: *Confirmed* ✅\n";
                 $wa_text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
                 $wa_text .= "Booking Date: " . date('F d, Y', strtotime($booking['created_at'])) . "\n";
@@ -380,7 +382,7 @@ require_once __DIR__ . '/includes/header.php';
                         }
                     }
                 }
-                $wa_text .= "\nThank you for choosing " . strip_tags(getSetting('company_name', 'us')) . "!";
+                $wa_text .= "\nWarm regards,\n*" . strip_tags(getSetting('company_name', 'us')) . " Team*";
                 $whatsapp_url = !empty($clean_phone) ? 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($wa_text) : '';
                 ?>
                 <div class="text-center">
