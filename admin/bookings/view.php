@@ -928,6 +928,13 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                 <i class="fas fa-map-marker-alt me-1"></i>
                                 <?php echo htmlspecialchars($booking['location']); ?>
                             </small>
+                            <?php if (!empty($booking['map_link'])): ?>
+                            <small class="d-block mt-1">
+                                <a href="<?php echo htmlspecialchars($booking['map_link'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                    <i class="fas fa-map me-1 text-danger"></i> View on Google Maps
+                                </a>
+                            </small>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-6">

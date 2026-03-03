@@ -103,6 +103,14 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="mb-1">
                                     <strong>Location:</strong> <?php echo sanitize($booking['location']); ?>
                                 </div>
+                                <?php if (!empty($booking['map_link'])): ?>
+                                <div class="mb-1">
+                                    <strong>Map:</strong>
+                                    <a href="<?php echo htmlspecialchars($booking['map_link'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="text-success">
+                                        <i class="fas fa-map-marker-alt me-1"></i>View on Google Maps
+                                    </a>
+                                </div>
+                                <?php endif; ?>
                                 <div class="mb-1">
                                     <strong>Hall:</strong> <?php echo sanitize($booking['hall_name']); ?>
                                 </div>
@@ -251,6 +259,29 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="col-md-12 mb-3">
                                     <h6 class="text-success mb-2"><i class="fas fa-comment me-2"></i>Special Requests</h6>
                                     <p class="mb-0"><?php echo nl2br(sanitize($booking['special_requests'])); ?></p>
+                                </div>
+                            <?php endif; ?>
+
+                            <!-- Assigned Vendors -->
+                            <?php if (!empty($vendors)): ?>
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="text-success mb-2"><i class="fas fa-user-tie me-2"></i>Assigned Vendors</h6>
+                                    <div class="row">
+                                        <?php foreach ($vendors as $vendor): ?>
+                                            <div class="col-md-6 mb-2">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="fas fa-check-circle text-success me-2 mt-1"></i>
+                                                    <div>
+                                                        <strong><?php echo sanitize($vendor['vendor_name']); ?></strong>
+                                                        <span class="text-muted ms-1">(<?php echo sanitize(getVendorTypeLabel($vendor['vendor_type'])); ?>)</span>
+                                                        <?php if (!empty($vendor['vendor_phone'])): ?>
+                                                            <br><small class="text-muted"><i class="fas fa-phone me-1"></i><?php echo sanitize($vendor['vendor_phone']); ?></small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>
