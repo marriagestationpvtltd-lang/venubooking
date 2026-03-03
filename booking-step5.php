@@ -258,7 +258,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <input type="tel" class="form-control" id="phone" name="phone" 
                                        value="<?php echo sanitize($phone); ?>" 
                                        placeholder="Enter your phone number (10+ digits)" 
-                                       pattern="[+]?[\d\s()-]{10,}"
+                                       pattern="[+]?[\d\s\(\)\-]{10,}"
                                        required>
                                 <div class="invalid-feedback">Please enter a valid phone number (10+ digits).</div>
                             </div>
