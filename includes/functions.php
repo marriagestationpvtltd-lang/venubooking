@@ -475,7 +475,7 @@ function getActiveServices() {
 /**
  * Get or create customer
  */
-function getOrCreateCustomer($full_name, $phone, $email = '', $address = '') {
+function getOrCreateCustomer($full_name, $phone, $email = '', $address = '', $city = '') {
     $db = getDB();
     
     // Check if customer exists
@@ -485,13 +485,13 @@ function getOrCreateCustomer($full_name, $phone, $email = '', $address = '') {
     
     if ($customer) {
         // Update customer info
-        $stmt = $db->prepare("UPDATE customers SET full_name = ?, email = ?, address = ? WHERE id = ?");
-        $stmt->execute([$full_name, $email, $address, $customer['id']]);
+        $stmt = $db->prepare("UPDATE customers SET full_name = ?, email = ?, address = ?, city = ? WHERE id = ?");
+        $stmt->execute([$full_name, $email, $address, $city ?: null, $customer['id']]);
         return $customer['id'];
     } else {
         // Create new customer
-        $stmt = $db->prepare("INSERT INTO customers (full_name, phone, email, address) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$full_name, $phone, $email, $address]);
+        $stmt = $db->prepare("INSERT INTO customers (full_name, phone, email, address, city) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$full_name, $phone, $email, $address, $city ?: null]);
         return $db->lastInsertId();
     }
 }

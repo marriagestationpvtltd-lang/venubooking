@@ -30,6 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = trim($_POST['phone']);
     $email = trim($_POST['email']);
     $address = trim($_POST['address']);
+    $city = trim($_POST['city']);
+    $loyalty_points = isset($_POST['loyalty_points']) ? max(0, intval($_POST['loyalty_points'])) : 0;
 
     // Validation
     if (empty($full_name) || empty($phone)) {
@@ -46,7 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         full_name = ?,
                         phone = ?,
                         email = ?,
-                        address = ?
+                        address = ?,
+                        city = ?,
+                        loyalty_points = ?
                         WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
@@ -55,6 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $phone,
                     $email,
                     $address,
+                    $city ?: null,
+                    $loyalty_points,
                     $customer_id
                 ]);
 
@@ -140,6 +146,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="address" class="form-label">Address</label>
                         <textarea class="form-control" id="address" name="address" rows="2" 
                                   placeholder="Enter complete address..."><?php echo htmlspecialchars($customer['address']); ?></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="city" class="form-label">City</label>
+                                <input type="text" class="form-control" id="city" name="city"
+                                       value="<?php echo htmlspecialchars($customer['city'] ?? ''); ?>"
+                                       placeholder="e.g., Kathmandu">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="loyalty_points" class="form-label">Loyalty Points</label>
+                                <input type="number" class="form-control" id="loyalty_points" name="loyalty_points"
+                                       value="<?php echo (int)($customer['loyalty_points'] ?? 0); ?>"
+                                       min="0" placeholder="0">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between">

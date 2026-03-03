@@ -98,6 +98,17 @@ foreach ($bookings as $booking) {
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>City:</strong><br>
+                        <?php echo $customer['city'] ? htmlspecialchars($customer['city']) : '<em class="text-muted">Not provided</em>'; ?>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Loyalty Points:</strong><br>
+                        <span class="badge bg-primary"><?php echo (int)$customer['loyalty_points']; ?> pts</span>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <strong>Address:</strong><br>
                     <?php echo $customer['address'] ? nl2br(htmlspecialchars($customer['address'])) : '<em class="text-muted">Not provided</em>'; ?>
