@@ -155,7 +155,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $db->commit();
                 
-                // Send email notifications if status changed
+            } catch (Exception $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                // Log the error for debugging
+                error_log('Booking update error: ' . $e->getMessage());
+                $error_message = 'Error updating booking. Please try again or contact support.';
+            }
+            
+            // Post-commit operations: send notification and refresh data
+            // These run only when booking was successfully saved (no error)
+            if (empty($error_message)) {
                 if ($status_changed) {
                     sendBookingNotification($booking_id, 'update', $old_booking_status);
                 }
@@ -167,12 +178,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $selected_menus = array_column($booking['menus'], 'menu_id');
                 $selected_services = array_column($booking['services'], 'service_id');
                 $selected_payment_methods = array_column(getBookingPaymentMethods($booking_id), 'id');
-                
-            } catch (Exception $e) {
-                $db->rollBack();
-                // Log the error for debugging
-                error_log('Booking update error: ' . $e->getMessage());
-                $error_message = 'Error updating booking. Please try again or contact support.';
             }
         }
     }

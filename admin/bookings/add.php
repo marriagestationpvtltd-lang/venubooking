@@ -127,17 +127,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $db->commit();
                 
-                // Send email notifications after successful booking
-                sendBookingNotification($booking_id, 'new');
-                
-                header('Location: view.php?id=' . $booking_id);
-                exit;
-                
             } catch (Exception $e) {
-                $db->rollBack();
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
                 // Log the error for debugging
                 error_log('Booking creation error: ' . $e->getMessage());
                 $error_message = 'Error creating booking. Please try again or contact support.';
+            }
+            
+            // Send notification and redirect only if booking was created successfully
+            if (empty($error_message) && isset($booking_id)) {
+                sendBookingNotification($booking_id, 'new');
+                header('Location: view.php?id=' . $booking_id);
+                exit;
             }
         }
     }

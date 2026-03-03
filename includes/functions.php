@@ -516,6 +516,8 @@ function getOrCreateCustomer($full_name, $phone, $email = '', $address = '', $ci
  */
 function createBooking($data) {
     $db = getDB();
+    $booking_id = null;
+    $booking_number = null;
     
     try {
         $db->beginTransaction();
@@ -600,15 +602,18 @@ function createBooking($data) {
         
         $db->commit();
         
-        // Send email notifications after successful booking
-        sendBookingNotification($booking_id, 'new');
-        
-        return ['success' => true, 'booking_id' => $booking_id, 'booking_number' => $booking_number];
-        
     } catch (Exception $e) {
-        $db->rollBack();
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
         return ['success' => false, 'error' => $e->getMessage()];
     }
+    
+    // Send email notifications after successful commit (outside try-catch so email
+    // failures do not roll back or mask the successfully stored booking)
+    sendBookingNotification($booking_id, 'new');
+    
+    return ['success' => true, 'booking_id' => $booking_id, 'booking_number' => $booking_number];
 }
 
 /**
