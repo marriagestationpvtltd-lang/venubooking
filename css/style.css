@@ -613,3 +613,95 @@ footer a:hover {
         height: 40px;
     }
 }
+
+/* ===================== Vendors Section ===================== */
+.vendors-section {
+    background-color: var(--bg-light);
+}
+
+.vendor-card {
+    transition: all 0.3s;
+    border: none;
+}
+
+.vendor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.vendor-photo {
+    height: 200px;
+    background-size: cover;
+    background-position: center center;
+    border-radius: 8px 8px 0 0;
+}
+
+.vendor-photo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e9ecef;
+}
+
+/* Vendor detail info slider */
+.vendor-detail-carousel {
+    position: relative;
+    min-height: 60px;
+}
+
+.vendor-detail-slide {
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.vendor-detail-prev,
+.vendor-detail-next {
+    background-color: rgba(76, 175, 80, 0.5);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.vendor-detail-prev { left: -4px; }
+.vendor-detail-next { right: -4px; }
+
+.vendor-detail-prev .carousel-control-prev-icon,
+.vendor-detail-next .carousel-control-next-icon {
+    width: 12px;
+    height: 12px;
+}
+
+/* Vendors outer carousel controls */
+.vendors-section .vendors-carousel-prev,
+.vendors-section .vendors-carousel-next {
+    background-color: rgba(76, 175, 80, 0.3);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.vendors-section .vendors-carousel-prev { left: -60px; }
+.vendors-section .vendors-carousel-next { right: -60px; }
+
+.vendors-section .vendors-carousel-prev:hover,
+.vendors-section .vendors-carousel-next:hover {
+    background-color: rgba(76, 175, 80, 0.6);
+}
+
+.vendors-section .carousel-indicators button {
+    background-color: var(--primary-green);
+}
+
+@media (max-width: 768px) {
+    .vendors-section .vendors-carousel-prev { left: 0; }
+    .vendors-section .vendors-carousel-next { right: 0; }
+    .vendors-section .vendors-carousel-prev,
+    .vendors-section .vendors-carousel-next {
+        width: 40px;
+        height: 40px;
+    }
+}

@@ -319,6 +319,160 @@ if (!empty($gallery_images)):
 <?php endif; ?>
 
 <?php
+// Get all active vendors and office WhatsApp number for the vendor listing section
+$vendors = getVendors();
+$office_whatsapp = getSetting('whatsapp_number', '');
+$clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
+if (!empty($vendors)):
+?>
+<!-- Vendors Section -->
+<section class="vendors-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-2">Our Vendors</h2>
+        <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
+
+        <div id="vendorsCarousel" class="carousel slide" data-bs-ride="false">
+            <div class="carousel-indicators">
+                <?php
+                $vendor_chunks = array_chunk($vendors, 3);
+                foreach ($vendor_chunks as $vi => $vchunk):
+                ?>
+                    <button type="button" data-bs-target="#vendorsCarousel" data-bs-slide-to="<?php echo $vi; ?>"
+                            <?php echo $vi === 0 ? 'class="active" aria-current="true"' : ''; ?>
+                            aria-label="Slide <?php echo $vi + 1; ?>"></button>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="carousel-inner pb-4">
+                <?php foreach ($vendor_chunks as $vi => $vchunk): ?>
+                    <div class="carousel-item <?php echo $vi === 0 ? 'active' : ''; ?>">
+                        <div class="row g-4 justify-content-center">
+                            <?php foreach ($vchunk as $vendor):
+                                $vendor_type_label = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
+                                $vendor_name       = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
+                                $vendor_location   = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $vendor_address    = htmlspecialchars($vendor['address'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $vendor_notes      = htmlspecialchars($vendor['notes'] ?? '', ENT_QUOTES, 'UTF-8');
+
+                                // Build WhatsApp URL for Contact Us (use plain text values, not HTML-escaped)
+                                $wa_vendor_name = strip_tags($vendor['name']);
+                                $wa_vendor_type = strip_tags(getVendorTypeLabel($vendor['type']));
+                                $wa_message = "Hello, I am interested in your vendor: {$wa_vendor_name} ({$wa_vendor_type}). Please contact me with more details.";
+                                $wa_url = '';
+                                if (!empty($clean_office_whatsapp)) {
+                                    $wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_message);
+                                }
+
+                                // Build additional info slides (address and/or notes)
+                                $extra_slides = [];
+                                if (!empty($vendor['address'])) {
+                                    $extra_slides[] = ['icon' => 'fas fa-map-marker-alt', 'label' => 'Address', 'value' => $vendor_address];
+                                }
+                                if (!empty($vendor['notes'])) {
+                                    $extra_slides[] = ['icon' => 'fas fa-info-circle', 'label' => 'About', 'value' => $vendor_notes];
+                                }
+
+                                $detail_carousel_id = 'vendorDetail' . (int)$vendor['id'];
+                            ?>
+                                <div class="col-md-4">
+                                    <div class="vendor-card card h-100 shadow-sm">
+                                        <!-- Vendor Photo -->
+                                        <?php if (!empty($vendor['photo'])): ?>
+                                            <div class="vendor-photo"
+                                                 style="background-image: url('<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($vendor['photo']), ENT_QUOTES, 'UTF-8'); ?>');">
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="vendor-photo vendor-photo-placeholder">
+                                                <i class="fas fa-user-tie fa-3x text-muted"></i>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <div class="card-body d-flex flex-column">
+                                            <!-- Vendor Type Badge -->
+                                            <span class="badge bg-success mb-2 align-self-start">
+                                                <i class="fas fa-tag me-1"></i><?php echo $vendor_type_label; ?>
+                                            </span>
+                                            <!-- Vendor Name -->
+                                            <h5 class="card-title mb-1"><?php echo $vendor_name; ?></h5>
+                                            <!-- Vendor Location -->
+                                            <?php if (!empty($vendor_location)): ?>
+                                                <p class="card-text text-muted mb-2">
+                                                    <i class="fas fa-map-marker-alt text-success"></i>
+                                                    <?php echo $vendor_location; ?>
+                                                </p>
+                                            <?php endif; ?>
+
+                                            <!-- Additional info slider -->
+                                            <?php if (!empty($extra_slides)): ?>
+                                                <div id="<?php echo $detail_carousel_id; ?>" class="carousel slide vendor-detail-carousel mb-3" data-bs-ride="false">
+                                                    <div class="carousel-inner">
+                                                        <?php foreach ($extra_slides as $si => $slide): ?>
+                                                            <div class="carousel-item <?php echo $si === 0 ? 'active' : ''; ?>">
+                                                                <div class="vendor-detail-slide p-2 rounded bg-light">
+                                                                    <small class="text-muted d-block fw-semibold mb-1">
+                                                                        <i class="<?php echo htmlspecialchars($slide['icon'], ENT_QUOTES, 'UTF-8'); ?> me-1"></i><?php echo htmlspecialchars($slide['label'], ENT_QUOTES, 'UTF-8'); ?>
+                                                                    </small>
+                                                                    <small><?php echo $slide['value']; ?></small>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                    <?php if (count($extra_slides) > 1): ?>
+                                                        <button class="carousel-control-prev vendor-detail-prev" type="button"
+                                                                data-bs-target="#<?php echo $detail_carousel_id; ?>" data-bs-slide="prev">
+                                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                            <span class="visually-hidden">Previous</span>
+                                                        </button>
+                                                        <button class="carousel-control-next vendor-detail-next" type="button"
+                                                                data-bs-target="#<?php echo $detail_carousel_id; ?>" data-bs-slide="next">
+                                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                            <span class="visually-hidden">Next</span>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <!-- Contact Us button -->
+                                            <div class="mt-auto">
+                                                <?php if (!empty($wa_url)): ?>
+                                                    <a href="<?php echo htmlspecialchars($wa_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                                       target="_blank" rel="noopener noreferrer"
+                                                       class="btn btn-success w-100">
+                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                                    </a>
+                                                <?php else: ?>
+                                                    <button class="btn btn-success w-100" disabled>
+                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if (count($vendor_chunks) > 1): ?>
+                <button class="carousel-control-prev vendors-carousel-prev" type="button"
+                        data-bs-target="#vendorsCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next vendors-carousel-next" type="button"
+                        data-bs-target="#vendorsCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php
 $extra_js = '
 <script src="' . BASE_URL . '/js/booking-flow.js"></script>
 <script>
