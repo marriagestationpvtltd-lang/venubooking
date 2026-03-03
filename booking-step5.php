@@ -1,6 +1,7 @@
 <?php
-$page_title = 'Complete Your Booking';
-require_once __DIR__ . '/includes/header.php';
+// Include dependencies before any HTML output to allow redirects
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions.php';
 
 // Check if we have all required booking data
 if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
@@ -8,8 +9,8 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
     exit;
 }
 
-// Save selected services
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Save selected services (only when coming from the services step, not the final booking form)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
     $_SESSION['selected_services'] = $_POST['services'] ?? [];
 }
 
@@ -183,6 +184,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
         }
     }
 }
+
+$page_title = 'Complete Your Booking';
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <!-- Booking Progress -->
