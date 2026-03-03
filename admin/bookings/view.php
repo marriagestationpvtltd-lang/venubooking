@@ -447,7 +447,24 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                     <?php if (!empty($booking['menus'])): ?>
                         <?php foreach ($booking['menus'] as $menu): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($menu['menu_name']); ?></td>
+                            <td>
+                                <?php echo htmlspecialchars($menu['menu_name']); ?>
+                                <?php if (!empty($menu['items'])): ?>
+                                    <?php
+                                    $items_by_cat = [];
+                                    foreach ($menu['items'] as $item) {
+                                        $cat = !empty($item['category']) ? htmlspecialchars($item['category']) : '';
+                                        $items_by_cat[$cat][] = htmlspecialchars($item['item_name']);
+                                    }
+                                    $cat_parts = [];
+                                    foreach ($items_by_cat as $cat => $names) {
+                                        $part = ($cat !== '' ? '<strong>' . $cat . ':</strong> ' : '') . implode(', ', $names);
+                                        $cat_parts[] = $part;
+                                    }
+                                    ?>
+                                    <br><span class="menu-items-print"><?php echo implode(' | ', $cat_parts); ?></span>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-center"><?php echo $menu['number_of_guests']; ?></td>
                             <td class="text-right"><?php echo number_format($menu['price_per_person'], 2); ?></td>
                             <td class="text-right"><?php echo number_format($menu['total_price'], 2); ?></td>
@@ -1941,6 +1958,13 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
     margin-left: 4px;
 }
 
+.menu-items-print {
+    font-weight: normal;
+    color: #555;
+    font-size: 8pt;
+    line-height: 1.2;
+}
+
 .service-info-cell {
     vertical-align: top;
 }
@@ -2279,6 +2303,13 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 
 /* Print Styles - Optimized for Single Page Output with Readable Font Sizes */
 @media print {
+    /* Force all elements to print with exact colors (backgrounds, text, borders) */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
     /* Remove non-invoice elements from document flow to prevent blank pages.
        Using display:none (not visibility:hidden) so elements take up no space. */
     .sidebar,
@@ -2312,6 +2343,7 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
         padding: 0;
         color-adjust: exact;
         -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
     
     .invoice-container {
@@ -2598,6 +2630,13 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
         font-size: 8pt;
         line-height: 1.3;
         color: #666 !important;
+    }
+    
+    /* Menu items list in print - small text below menu name */
+    .menu-items-print {
+        font-size: 8pt;
+        line-height: 1.3;
+        color: #555 !important;
     }
     
     /* Service category in print - readable */
