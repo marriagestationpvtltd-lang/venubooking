@@ -2229,24 +2229,28 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 
 /* Print Styles - Optimized for Single Page Output with Readable Font Sizes */
 @media print {
-    /* Hide all non-invoice content */
-    body * {
-        visibility: hidden;
+    /* Remove non-invoice elements from document flow to prevent blank pages.
+       Using display:none (not visibility:hidden) so elements take up no space. */
+    .sidebar,
+    .top-navbar {
+        display: none !important;
     }
-    
-    .print-invoice-only,
-    .print-invoice-only * {
-        visibility: visible;
+
+    .main-content > *:not(.print-invoice-only) {
+        display: none !important;
     }
-    
+
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
     .print-invoice-only {
         display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
+        position: static !important;
         width: 100%;
     }
-    
+
     /* A4 Page Settings - Optimized margins for single-page readable layout */
     @page {
         size: A4 portrait;
@@ -2267,15 +2271,6 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
         padding: 0;
         font-size: 10pt;
         line-height: 1.3;
-    }
-    
-    /* Critical: Prevent page breaks and keep on one page */
-    .invoice-container {
-        page-break-after: avoid !important;
-        page-break-before: avoid !important;
-        break-inside: avoid-page !important;
-        break-after: avoid-page !important;
-        break-before: avoid-page !important;
     }
     
     .invoice-header,
