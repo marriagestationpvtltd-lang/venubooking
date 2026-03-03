@@ -158,6 +158,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/venues/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'venues') ? 'active' : ''; ?>">
                 <i class="fas fa-building"></i> Venues
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/cities/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'cities') ? 'active' : ''; ?>">
+                <i class="fas fa-map-marker-alt"></i> Cities
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/halls/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'halls') ? 'active' : ''; ?>">
                 <i class="fas fa-door-open"></i> Halls
             </a>

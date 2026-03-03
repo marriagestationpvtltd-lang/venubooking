@@ -6,18 +6,23 @@ $db = getDB();
 $success_message = '';
 $error_message = '';
 
+// Fetch active cities for dropdown
+$cities_stmt = $db->query("SELECT id, name FROM cities WHERE status = 'active' ORDER BY name");
+$cities = $cities_stmt->fetchAll();
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
-    $location = trim($_POST['location']);
+    $city_id = isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null;
     $address = trim($_POST['address']);
     $description = trim($_POST['description']);
     $contact_phone = trim($_POST['contact_phone']);
     $contact_email = trim($_POST['contact_email']);
+    $map_link = trim($_POST['map_link'] ?? '');
     $status = $_POST['status'];
 
     // Validation
-    if (empty($name) || empty($location) || empty($contact_phone)) {
+    if (empty($name) || empty($city_id) || empty($contact_phone)) {
         $error_message = 'Please fill in all required fields.';
     } else {
         try {
@@ -34,24 +39,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             if (empty($error_message)) {
-                $sql = "INSERT INTO venues (name, location, address, description, image, contact_phone, contact_email, status) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO venues (name, city_id, address, description, image, contact_phone, contact_email, map_link, status) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = $db->prepare($sql);
                 $result = $stmt->execute([
                     $name,
-                    $location,
+                    $city_id,
                     $address,
                     $description,
                     $image_filename,
                     $contact_phone,
                     $contact_email,
+                    $map_link ?: null,
                     $status
                 ]);
 
                 if ($result) {
                     $venue_id = $db->lastInsertId();
-                    
+
+                    // Handle additional multi-image uploads
+                    if (isset($_FILES['venue_images']) && is_array($_FILES['venue_images']['name'])) {
+                        $files = $_FILES['venue_images'];
+                        $count = count($files['name']);
+                        for ($i = 0; $i < $count; $i++) {
+                            if ($files['error'][$i] !== UPLOAD_ERR_NO_FILE) {
+                                $single_file = [
+                                    'name'     => $files['name'][$i],
+                                    'type'     => $files['type'][$i],
+                                    'tmp_name' => $files['tmp_name'][$i],
+                                    'error'    => $files['error'][$i],
+                                    'size'     => $files['size'][$i],
+                                ];
+                                $up = handleImageUpload($single_file, 'venue');
+                                if ($up['success']) {
+                                    $is_primary = ($i === 0 && empty($image_filename)) ? 1 : 0;
+                                    $db->prepare("INSERT INTO venue_images (venue_id, image_path, is_primary, display_order) VALUES (?, ?, ?, ?)")
+                                       ->execute([$venue_id, $up['filename'], $is_primary, $i]);
+                                }
+                            }
+                        }
+                    }
+
                     // Log activity
                     logActivity($current_user['id'], 'Added new venue', 'venues', $venue_id, "Added venue: $name");
                     
@@ -116,10 +145,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="location" name="location" 
-                                       value="<?php echo isset($_POST['location']) ? htmlspecialchars($_POST['location']) : ''; ?>" 
-                                       placeholder="e.g., Kathmandu, Nepal" required>
+                                <label for="city_id" class="form-label">City <span class="text-danger">*</span></label>
+                                <select class="form-select" id="city_id" name="city_id" required>
+                                    <option value="">Select a city...</option>
+                                    <?php foreach ($cities as $city): ?>
+                                        <option value="<?php echo $city['id']; ?>"
+                                            <?php echo (isset($_POST['city_id']) && $_POST['city_id'] == $city['id']) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($city['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -157,9 +192,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="mb-3">
-                        <label for="venue_image" class="form-label">Venue Image (Optional)</label>
-                        <input type="file" class="form-control" id="venue_image" name="venue_image" accept="image/*">
-                        <small class="text-muted">Upload an image for this venue. JPG, PNG, GIF, or WebP. Max 5MB</small>
+                        <label for="map_link" class="form-label"><i class="fas fa-map-marker-alt"></i> Google Map Link (Optional)</label>
+                        <input type="url" class="form-control" id="map_link" name="map_link" 
+                               value="<?php echo isset($_POST['map_link']) ? htmlspecialchars($_POST['map_link']) : ''; ?>" 
+                               placeholder="e.g., https://maps.google.com/?q=...">
+                        <small class="text-muted">Paste the Google Maps share link so users can view the exact location.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Venue Photos (Optional)</label>
+                        <input type="file" class="form-control" id="venue_images" name="venue_images[]" accept="image/*" multiple>
+                        <small class="text-muted">Upload one or more photos for this venue. JPG, PNG, GIF, or WebP. Max 5MB each. The first photo uploaded here will be set as the primary gallery image.</small>
                     </div>
 
                     <div class="mb-3">

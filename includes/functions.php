@@ -205,18 +205,34 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
 }
 
 /**
- * Get available venues for a date
+ * Get all active cities
  */
-function getAvailableVenues($date, $shift) {
+function getAllCities() {
+    $db = getDB();
+    $stmt = $db->query("SELECT * FROM cities WHERE status = 'active' ORDER BY name");
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get available venues for a date, optionally filtered by city
+ */
+function getAvailableVenues($date, $shift, $city_id = null) {
     $db = getDB();
     
-    // Get all active venues
-    $sql = "SELECT v.* FROM venues v 
-            WHERE v.status = 'active' 
+    // Get all active venues (optionally filtered by city)
+    $params = [];
+    $where = "v.status = 'active'";
+    if ($city_id) {
+        $where .= " AND v.city_id = ?";
+        $params[] = intval($city_id);
+    }
+    $sql = "SELECT v.*, c.name AS city_name FROM venues v
+            LEFT JOIN cities c ON v.city_id = c.id
+            WHERE $where 
             ORDER BY v.name";
     
     $stmt = $db->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $venues = $stmt->fetchAll();
     
     // Check file existence once and cache results
@@ -268,6 +284,10 @@ function getAvailableVenues($date, $shift) {
             // Ensure we use the sanitized filename
             $venue['image'] = $cache['filename'];
         }
+
+        // Attach gallery images for carousel display: prefer venue-specific, fall back to hall images
+        $venue_gallery = getVenueImages($venue['id']);
+        $venue['gallery_images'] = !empty($venue_gallery) ? $venue_gallery : getVenueGalleryImages($venue['id']);
     }
     
     return $venues;
@@ -280,7 +300,8 @@ function getAllActiveVenues() {
     $db = getDB();
     
     // Get all active venues
-    $sql = "SELECT v.* FROM venues v 
+    $sql = "SELECT v.*, c.name AS city_name FROM venues v
+            LEFT JOIN cities c ON v.city_id = c.id
             WHERE v.status = 'active' 
             ORDER BY v.name";
     
@@ -305,11 +326,46 @@ function getAllActiveVenues() {
             $venue['image'] = $safe_filename;
         }
         
-        // Get all hall images for this venue
-        $venue['gallery_images'] = getVenueGalleryImages($venue['id']);
+        // Get gallery images: prefer venue-specific images, fall back to hall images
+        $venue_imgs = getVenueImages($venue['id']);
+        $venue['gallery_images'] = !empty($venue_imgs) ? $venue_imgs : getVenueGalleryImages($venue['id']);
     }
     
     return $venues;
+}
+
+/**
+ * Get images uploaded directly for a venue (from venue_images table)
+ */
+function getVenueImages($venue_id) {
+    $db = getDB();
+
+    // Check if venue_images table exists to remain backward-compatible
+    try {
+        $sql = "SELECT image_path, is_primary, display_order
+                FROM venue_images
+                WHERE venue_id = ?
+                ORDER BY is_primary DESC, display_order ASC, id ASC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$venue_id]);
+        $images = $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+
+    $validated_images = [];
+    foreach ($images as $image) {
+        $safe_filename = !empty($image['image_path']) ? basename($image['image_path']) : '';
+        if (!empty($safe_filename) && preg_match(SAFE_FILENAME_PATTERN, $safe_filename)
+            && file_exists(UPLOAD_PATH . $safe_filename)) {
+            $validated_images[] = [
+                'image_path' => $safe_filename,
+                'is_primary' => $image['is_primary'],
+                'hall_name'  => null,
+            ];
+        }
+    }
+    return $validated_images;
 }
 
 /**

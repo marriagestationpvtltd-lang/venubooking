@@ -23,16 +23,23 @@ try {
     foreach ($halls as &$hall) {
         $hall['available'] = checkHallAvailability($hall['id'], $date, $shift);
         
-        // Get primary image
+        // Get all images for this hall (for carousel)
         $db = getDB();
-        $stmt = $db->prepare("SELECT image_path FROM hall_images WHERE hall_id = ? AND is_primary = 1 LIMIT 1");
-        $stmt->execute([$hall['id']]);
-        $image = $stmt->fetch();
-        
-        // Return full image URL for consistency with other APIs
-        if ($image && $image['image_path']) {
-            $hall['image'] = $image['image_path'];
-            $hall['image_url'] = UPLOAD_URL . $image['image_path'];
+        $img_stmt = $db->prepare("SELECT image_path, is_primary FROM hall_images WHERE hall_id = ? ORDER BY is_primary DESC, display_order ASC");
+        $img_stmt->execute([$hall['id']]);
+        $hall_images = $img_stmt->fetchAll();
+
+        $hall['image_urls'] = [];
+        foreach ($hall_images as $hi) {
+            if (!empty($hi['image_path'])) {
+                $hall['image_urls'][] = UPLOAD_URL . $hi['image_path'];
+            }
+        }
+
+        // Backward-compatible single image_url (primary or first)
+        if (!empty($hall['image_urls'])) {
+            $hall['image_url'] = $hall['image_urls'][0];
+            $hall['image'] = $hall_images[0]['image_path'];
         } else {
             $hall['image'] = null;
             $hall['image_url'] = null;

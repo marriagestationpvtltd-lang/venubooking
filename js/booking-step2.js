@@ -99,10 +99,39 @@ function displayHalls(halls, venueName) {
     let hallsHtml = '';
     
     halls.forEach(hall => {
+        // Build image/carousel HTML
+        let imageHtml = '';
+        const images = Array.isArray(hall.image_urls) && hall.image_urls.length > 0 ? hall.image_urls : (hall.image_url ? [hall.image_url] : []);
+        if (images.length > 1) {
+            const carouselId = 'hallCarousel' + parseInt(hall.id, 10);
+            const items = images.map((url, idx) =>
+                `<div class="carousel-item ${idx === 0 ? 'active' : ''}">
+                    <img src="${escapeHtml(url)}" class="d-block w-100 hall-image" alt="${escapeHtml(hall.name)}">
+                </div>`
+            ).join('');
+            imageHtml = `
+                <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">${items}</div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    <div class="carousel-indicators-counter position-absolute top-0 end-0 p-2">
+                        <span class="badge bg-dark bg-opacity-75"><i class="fas fa-images"></i> ${images.length}</span>
+                    </div>
+                </div>`;
+        } else if (images.length === 1) {
+            imageHtml = `<img src="${escapeHtml(images[0])}" class="card-img-top hall-image" alt="${escapeHtml(hall.name)}">`;
+        }
+
         const hallCard = `
             <div class="col-md-6 col-lg-4">
                 <div class="hall-card card h-100">
-                    ${hall.image_url ? `<img src="${escapeHtml(hall.image_url)}" class="card-img-top hall-image" alt="${escapeHtml(hall.name)}">` : ''}
+                    ${imageHtml}
                     <div class="card-body">
                         <h5 class="card-title">${escapeHtml(hall.name)}</h5>
                         <div class="mb-3">

@@ -8,7 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'shift' => $_POST['shift'],
         'event_date' => $_POST['event_date'],
         'guests' => $_POST['guests'],
-        'event_type' => $_POST['event_type']
+        'event_type' => $_POST['event_type'],
+        'city_id' => isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null
     ];
     
     // Check if there's a preferred venue
@@ -25,8 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $booking_data = $_SESSION['booking_data'];
 
-// Get available venues
-$venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']);
+// Get available venues, filtered by city if provided
+$city_id = isset($booking_data['city_id']) ? $booking_data['city_id'] : null;
+$venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift'], $city_id);
 
 // Check if there's a preferred venue from query string
 $preferred_venue_id = null;
@@ -96,34 +98,81 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
 <!-- Main Content -->
 <section class="py-5">
     <div class="container">
-        <h2 class="mb-4">Select a Venue</h2>
+        <h2 class="mb-4">Select a Venue
+            <?php if (!empty($booking_data['city_id'])): ?>
+                <?php
+                $db_step2 = getDB();
+                $city_stmt = $db_step2->prepare("SELECT name FROM cities WHERE id = ?");
+                $city_stmt->execute([$booking_data['city_id']]);
+                $selected_city = $city_stmt->fetchColumn();
+                ?>
+                <?php if ($selected_city): ?>
+                    <small class="text-muted fs-6"> — <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($selected_city); ?></small>
+                <?php endif; ?>
+            <?php endif; ?>
+        </h2>
         
         <?php if (empty($venues)): ?>
             <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle"></i> No venues available. Please try a different date.
+                <i class="fas fa-exclamation-triangle"></i> No venues available for the selected city and date. 
+                <a href="index.php" class="alert-link">Try a different city or date.</a>
             </div>
         <?php else: ?>
             <div class="row g-4" id="venuesContainer">
-                <?php foreach ($venues as $venue): 
-                    // Get image URL (already validated and sanitized in getAvailableVenues)
-                    // The image filename is already safe, but we URL-encode it for proper URL construction
-                    if (!empty($venue['image'])) {
-                        $safe_url = UPLOAD_URL . rawurlencode($venue['image']);
-                        $venue_image_url = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                    } else {
-                        // Use placeholder for venues without images
-                        $venue_image_url = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                <?php foreach ($venues as $venue):
+                    // Build images array for carousel (prefer gallery_images, fall back to single image)
+                    $images_to_display = [];
+                    if (!empty($venue['gallery_images'])) {
+                        foreach ($venue['gallery_images'] as $gi) {
+                            $images_to_display[] = htmlspecialchars(UPLOAD_URL . rawurlencode($gi['image_path']), ENT_QUOTES, 'UTF-8');
+                        }
                     }
+                    if (empty($images_to_display) && !empty($venue['image'])) {
+                        $images_to_display[] = htmlspecialchars(UPLOAD_URL . rawurlencode($venue['image']), ENT_QUOTES, 'UTF-8');
+                    }
+                    if (empty($images_to_display)) {
+                        $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                    }
+                    $step2_carousel_id = 'venueStep2Carousel' . $venue['id'];
                 ?>
                     <div class="col-md-6 col-lg-4">
                         <div class="venue-card card h-100 shadow-sm">
-                            <div class="card-img-top venue-image" style="background-image: url('<?php echo $venue_image_url; ?>');">
-                            </div>
+                            <?php if (count($images_to_display) > 1): ?>
+                                <div id="<?php echo $step2_carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+                                        <?php foreach ($images_to_display as $si_idx => $si_url): ?>
+                                            <div class="carousel-item <?php echo $si_idx === 0 ? 'active' : ''; ?>">
+                                                <div class="venue-image" style="background-image: url('<?php echo $si_url; ?>');"></div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $step2_carousel_id; ?>" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $step2_carousel_id; ?>" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                    <div class="carousel-indicators-counter">
+                                        <span class="badge bg-dark bg-opacity-75">
+                                            <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="card-img-top venue-image" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
+                            <?php endif; ?>
                             <div class="card-body">
                                 <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
                                 <p class="card-text">
                                     <i class="fas fa-map-marker-alt text-success"></i> 
-                                    <?php echo sanitize($venue['location']); ?>
+                                    <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
+                                    <?php if (!empty($venue['map_link'])): ?>
+                                        <a href="<?php echo htmlspecialchars($venue['map_link'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="ms-2 text-success" title="View on Google Maps">
+                                            <i class="fas fa-map"></i>
+                                        </a>
+                                    <?php endif; ?>
                                 </p>
                                 <p class="card-text text-muted"><?php echo sanitize(substr($venue['description'], 0, 100)); ?>...</p>
                                 <button type="button" class="btn btn-success w-100" 
