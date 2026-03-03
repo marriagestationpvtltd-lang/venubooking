@@ -431,6 +431,7 @@ function getHallsForVenue($venue_id, $min_capacity = 0) {
 
 /**
  * Get menus for a hall
+ * Falls back to all active menus if no menus are specifically assigned to the hall.
  */
 function getMenusForHall($hall_id) {
     $db = getDB();
@@ -444,7 +445,16 @@ function getMenusForHall($hall_id) {
     
     $stmt = $db->prepare($sql);
     $stmt->execute([$hall_id]);
-    return $stmt->fetchAll();
+    $menus = $stmt->fetchAll();
+    
+    // If no menus are assigned to this hall, fall back to all active menus
+    if (empty($menus)) {
+        $fallback_sql = "SELECT m.* FROM menus m WHERE m.status = 'active' ORDER BY m.price_per_person DESC";
+        $fallback_stmt = $db->query($fallback_sql);
+        $menus = $fallback_stmt->fetchAll();
+    }
+    
+    return $menus;
 }
 
 /**
