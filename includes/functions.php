@@ -641,7 +641,7 @@ function getBookingDetails($booking_id) {
         
         $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
                        h.name as hall_name, h.capacity,
-                       v.name as venue_name, v.location
+                       v.name as venue_name, v.location, v.map_link
                 FROM bookings b
                 INNER JOIN customers c ON b.customer_id = c.id
                 INNER JOIN halls h ON b.hall_id = h.id
