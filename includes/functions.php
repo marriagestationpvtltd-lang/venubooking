@@ -518,6 +518,11 @@ function createBooking($data) {
     $db = getDB();
     $booking_id = null;
     $booking_number = null;
+
+    // Check hall availability before attempting to create the booking
+    if (!checkHallAvailability($data['hall_id'], $data['event_date'], $data['shift'])) {
+        return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and shift. Please select a different date or hall.'];
+    }
     
     try {
         $db->beginTransaction();
@@ -606,7 +611,8 @@ function createBooking($data) {
         if ($db->inTransaction()) {
             $db->rollBack();
         }
-        return ['success' => false, 'error' => $e->getMessage()];
+        error_log('Booking creation error: ' . $e->getMessage());
+        return ['success' => false, 'error' => 'Unable to complete your booking. Please try again or contact support.'];
     }
     
     // Send email notifications after successful commit (outside try-catch so email

@@ -1,12 +1,17 @@
 <?php
 $page_title = 'Additional Services';
-require_once __DIR__ . '/includes/header.php';
+// Require PHP utilities before any HTML output so session-guard redirects work correctly
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions.php';
 
 // Check if we have all required booking data
 if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
     header('Location: index.php');
     exit;
 }
+
+// Include HTML header only after all redirects have been handled
+require_once __DIR__ . '/includes/header.php';
 
 // Save selected menus
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['menus'])) {

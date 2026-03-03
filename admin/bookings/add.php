@@ -1,6 +1,11 @@
 <?php
 $page_title = 'Add New Booking';
-require_once __DIR__ . '/../includes/header.php';
+// Require PHP utilities before any HTML output so redirects work correctly
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/functions.php';
+requireLogin();
+$current_user = getCurrentUser();
 
 $db = getDB();
 $success_message = '';
@@ -143,12 +148,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } catch (Exception $e) {
                     error_log("Booking notification email failed for booking ID {$booking_id}: " . $e->getMessage());
                 }
+                // Store flash message so view.php can display confirmation
+                $_SESSION['flash_success'] = "Booking {$booking_number} created successfully!";
                 header('Location: view.php?id=' . $booking_id);
                 exit;
             }
         }
     }
 }
+
+// Include the HTML header only after all PHP processing (and potential redirects)
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="row">
