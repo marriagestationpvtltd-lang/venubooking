@@ -358,12 +358,13 @@ CREATE TABLE IF NOT EXISTS vendors (
     phone VARCHAR(20),
     email VARCHAR(100),
     address TEXT,
-    location VARCHAR(255) DEFAULT NULL,
+    city_id INT NULL,
     photo VARCHAR(255) DEFAULT NULL,
     notes TEXT,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL,
     INDEX idx_type (type),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -2343,10 +2343,10 @@ function getVendors($type = null) {
     $db = getDB();
     try {
         if ($type) {
-            $stmt = $db->prepare("SELECT * FROM vendors WHERE status = 'active' AND type = ? ORDER BY name");
+            $stmt = $db->prepare("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id WHERE v.status = 'active' AND v.type = ? ORDER BY v.name");
             $stmt->execute([$type]);
         } else {
-            $stmt = $db->prepare("SELECT * FROM vendors WHERE status = 'active' ORDER BY type, name");
+            $stmt = $db->prepare("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id WHERE v.status = 'active' ORDER BY v.type, v.name");
             $stmt->execute();
         }
         return $stmt->fetchAll();
@@ -2365,7 +2365,7 @@ function getVendors($type = null) {
 function getVendor($vendor_id) {
     $db = getDB();
     try {
-        $stmt = $db->prepare("SELECT * FROM vendors WHERE id = ?");
+        $stmt = $db->prepare("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id WHERE v.id = ?");
         $stmt->execute([intval($vendor_id)]);
         return $stmt->fetch();
     } catch (Exception $e) {

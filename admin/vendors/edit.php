@@ -20,6 +20,7 @@ if (!$vendor) {
 }
 
 $vendor_types = getVendorTypes();
+$cities = getAllCities();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF token
@@ -31,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone   = trim($_POST['phone']    ?? '');
     $email   = trim($_POST['email']    ?? '');
     $address = trim($_POST['address']  ?? '');
-    $location = trim($_POST['location'] ?? '');
+    $city_id  = intval($_POST['city_id'] ?? 0);
     $notes   = trim($_POST['notes']    ?? '');
     $status  = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
 
@@ -58,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($error_message)) {
-                $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, phone = ?, email = ?, address = ?, location = ?, photo = ?, notes = ?, status = ? WHERE id = ?");
-                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $location ?: null, $photo, $notes ?: null, $status, $vendor_id]);
+                $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, phone = ?, email = ?, address = ?, city_id = ?, photo = ?, notes = ?, status = ? WHERE id = ?");
+                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $photo, $notes ?: null, $status, $vendor_id]);
 
                 logActivity($current_user['id'], 'Updated vendor', 'vendors', $vendor_id, "Updated vendor: $name ($type)");
 
@@ -137,10 +138,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="col-md-4">
-                            <label for="location" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="location" name="location"
-                                   value="<?php echo htmlspecialchars($vendor['location'] ?? ''); ?>"
-                                   placeholder="e.g., Thamel, Kathmandu">
+                            <label for="city_id" class="form-label">City</label>
+                            <select class="form-select" id="city_id" name="city_id">
+                                <option value="">— Select City —</option>
+                                <?php foreach ($cities as $city): ?>
+                                    <option value="<?php echo $city['id']; ?>"
+                                        <?php echo (intval($vendor['city_id'] ?? 0) === $city['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($city['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
                         <div class="col-md-4">
