@@ -98,6 +98,7 @@ CREATE TABLE hall_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     menu_id INT NOT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
@@ -149,7 +150,7 @@ CREATE TABLE bookings (
     tax_amount DECIMAL(10, 2) DEFAULT 0,
     grand_total DECIMAL(10, 2) NOT NULL,
     special_requests TEXT,
-    booking_status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
+    booking_status ENUM('pending', 'payment_submitted', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
     payment_status ENUM('pending', 'partial', 'paid', 'cancelled') DEFAULT 'pending',
     advance_payment_received TINYINT(1) DEFAULT 0 COMMENT 'Whether advance payment has been received (0=No, 1=Yes)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -179,14 +180,62 @@ CREATE TABLE booking_menus (
 CREATE TABLE booking_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
-    service_id INT NOT NULL,
+    service_id INT NOT NULL DEFAULT 0 COMMENT '0 for admin-added services, >0 references additional_services',
     service_name VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     description TEXT,
     category VARCHAR(100),
+    added_by ENUM('user', 'admin') DEFAULT 'user' COMMENT 'Who added the service: user during booking or admin later',
+    quantity INT DEFAULT 1 COMMENT 'Quantity of service',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    FOREIGN KEY (service_id) REFERENCES additional_services(id)
+    INDEX idx_booking_services_added_by (added_by),
+    INDEX idx_booking_services_service_id (service_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: payment_methods
+CREATE TABLE payment_methods (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    qr_code VARCHAR(255),
+    bank_details TEXT,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: booking_payment_methods (junction table)
+CREATE TABLE booking_payment_methods (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    payment_method_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_booking_payment_method (booking_id, payment_method_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: payments (track payment transactions)
+CREATE TABLE payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    payment_method_id INT,
+    transaction_id VARCHAR(255),
+    paid_amount DECIMAL(10, 2) NOT NULL,
+    payment_slip VARCHAR(255),
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    payment_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id) ON DELETE SET NULL,
+    INDEX idx_booking_id (booking_id),
+    INDEX idx_payment_status (payment_status),
+    INDEX idx_payment_date (payment_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: users (admin users)
