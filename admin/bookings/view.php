@@ -205,8 +205,6 @@ if (isset($_POST['action'])) {
 
         if ($vendor_id_input <= 0) {
             $error_message = 'Please select a vendor.';
-        } elseif (empty($task_description)) {
-            $error_message = 'Task description is required.';
         } else {
             $assignment_id = addVendorAssignment($booking_id, $vendor_id_input, $task_description, $assigned_amount, $assignment_notes);
             if ($assignment_id) {
@@ -1410,9 +1408,9 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Task Description <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Task Description <small class="text-muted">(Optional)</small></label>
                                 <input type="text" name="task_description" class="form-control"
-                                       placeholder="e.g., Wedding Photography" required>
+                                       placeholder="e.g., Wedding Photography">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label fw-semibold">Amount</label>
