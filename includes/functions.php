@@ -2454,9 +2454,6 @@ function addVendorAssignment($booking_id, $vendor_id, $task_description, $assign
         $assigned_amount = max(0, floatval($assigned_amount));
         $notes = trim($notes);
 
-        if (empty($task_description)) {
-            throw new Exception("Task description is required");
-        }
         if ($vendor_id <= 0) {
             throw new Exception("A valid vendor must be selected");
         }
