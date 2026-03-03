@@ -205,18 +205,34 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
 }
 
 /**
- * Get available venues for a date
+ * Get all active cities
  */
-function getAvailableVenues($date, $shift) {
+function getAllCities() {
+    $db = getDB();
+    $stmt = $db->query("SELECT * FROM cities WHERE status = 'active' ORDER BY name");
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get available venues for a date, optionally filtered by city
+ */
+function getAvailableVenues($date, $shift, $city_id = null) {
     $db = getDB();
     
-    // Get all active venues
-    $sql = "SELECT v.* FROM venues v 
-            WHERE v.status = 'active' 
+    // Get all active venues (optionally filtered by city)
+    $params = [];
+    $where = "v.status = 'active'";
+    if ($city_id) {
+        $where .= " AND v.city_id = ?";
+        $params[] = intval($city_id);
+    }
+    $sql = "SELECT v.*, c.name AS city_name FROM venues v
+            LEFT JOIN cities c ON v.city_id = c.id
+            WHERE $where 
             ORDER BY v.name";
     
     $stmt = $db->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $venues = $stmt->fetchAll();
     
     // Check file existence once and cache results
@@ -280,7 +296,8 @@ function getAllActiveVenues() {
     $db = getDB();
     
     // Get all active venues
-    $sql = "SELECT v.* FROM venues v 
+    $sql = "SELECT v.*, c.name AS city_name FROM venues v
+            LEFT JOIN cities c ON v.city_id = c.id
             WHERE v.status = 'active' 
             ORDER BY v.name";
     

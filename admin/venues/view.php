@@ -13,7 +13,7 @@ if ($venue_id <= 0) {
 }
 
 // Fetch venue details
-$stmt = $db->prepare("SELECT * FROM venues WHERE id = ?");
+$stmt = $db->prepare("SELECT v.*, c.name AS city_name FROM venues v LEFT JOIN cities c ON v.city_id = c.id WHERE v.id = ?");
 $stmt->execute([$venue_id]);
 $venue = $stmt->fetch();
 
@@ -69,8 +69,8 @@ $stats = $stats_stmt->fetch();
                         <?php echo htmlspecialchars($venue['name']); ?>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <strong>Location:</strong><br>
-                        <?php echo htmlspecialchars($venue['location']); ?>
+                        <strong>City:</strong><br>
+                        <?php echo $venue['city_name'] ? htmlspecialchars($venue['city_name']) : '<em class="text-muted">Not assigned</em>'; ?>
                     </div>
                 </div>
 

@@ -8,7 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'shift' => $_POST['shift'],
         'event_date' => $_POST['event_date'],
         'guests' => $_POST['guests'],
-        'event_type' => $_POST['event_type']
+        'event_type' => $_POST['event_type'],
+        'city_id' => isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null
     ];
     
     // Check if there's a preferred venue
@@ -25,8 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $booking_data = $_SESSION['booking_data'];
 
-// Get available venues
-$venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift']);
+// Get available venues, filtered by city if provided
+$city_id = isset($booking_data['city_id']) ? $booking_data['city_id'] : null;
+$venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift'], $city_id);
 
 // Check if there's a preferred venue from query string
 $preferred_venue_id = null;
@@ -96,11 +98,24 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
 <!-- Main Content -->
 <section class="py-5">
     <div class="container">
-        <h2 class="mb-4">Select a Venue</h2>
+        <h2 class="mb-4">Select a Venue
+            <?php if (!empty($booking_data['city_id'])): ?>
+                <?php
+                $db_step2 = getDB();
+                $city_stmt = $db_step2->prepare("SELECT name FROM cities WHERE id = ?");
+                $city_stmt->execute([$booking_data['city_id']]);
+                $selected_city = $city_stmt->fetchColumn();
+                ?>
+                <?php if ($selected_city): ?>
+                    <small class="text-muted fs-6"> — <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($selected_city); ?></small>
+                <?php endif; ?>
+            <?php endif; ?>
+        </h2>
         
         <?php if (empty($venues)): ?>
             <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle"></i> No venues available. Please try a different date.
+                <i class="fas fa-exclamation-triangle"></i> No venues available for the selected city and date. 
+                <a href="index.php" class="alert-link">Try a different city or date.</a>
             </div>
         <?php else: ?>
             <div class="row g-4" id="venuesContainer">
@@ -123,7 +138,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                                 <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
                                 <p class="card-text">
                                     <i class="fas fa-map-marker-alt text-success"></i> 
-                                    <?php echo sanitize($venue['location']); ?>
+                                    <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
                                 </p>
                                 <p class="card-text text-muted"><?php echo sanitize(substr($venue['description'], 0, 100)); ?>...</p>
                                 <button type="button" class="btn btn-success w-100" 

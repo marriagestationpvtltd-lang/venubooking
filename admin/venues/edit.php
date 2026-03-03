@@ -24,10 +24,14 @@ if (!$venue) {
     exit;
 }
 
+// Fetch active cities for dropdown
+$cities_stmt = $db->query("SELECT id, name FROM cities WHERE status = 'active' ORDER BY name");
+$cities = $cities_stmt->fetchAll();
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
-    $location = trim($_POST['location']);
+    $city_id = isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null;
     $address = trim($_POST['address']);
     $description = trim($_POST['description']);
     $contact_phone = trim($_POST['contact_phone']);
@@ -35,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status'];
 
     // Validation
-    if (empty($name) || empty($location) || empty($contact_phone)) {
+    if (empty($name) || empty($city_id) || empty($contact_phone)) {
         $error_message = 'Please fill in all required fields.';
     } else {
         try {
@@ -58,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($error_message)) {
                 $sql = "UPDATE venues SET 
                         name = ?,
-                        location = ?,
+                        city_id = ?,
                         address = ?,
                         description = ?,
                         image = ?,
@@ -70,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare($sql);
                 $result = $stmt->execute([
                     $name,
-                    $location,
+                    $city_id,
                     $address,
                     $description,
                     $image_filename,
@@ -143,10 +147,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="location" name="location" 
-                                       value="<?php echo htmlspecialchars($venue['location']); ?>" 
-                                       placeholder="e.g., Kathmandu, Nepal" required>
+                                <label for="city_id" class="form-label">City <span class="text-danger">*</span></label>
+                                <select class="form-select" id="city_id" name="city_id" required>
+                                    <option value="">Select a city...</option>
+                                    <?php foreach ($cities as $city): ?>
+                                        <option value="<?php echo $city['id']; ?>"
+                                            <?php echo $venue['city_id'] == $city['id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($city['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </div>
                     </div>

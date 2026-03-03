@@ -5,6 +5,9 @@ require_once __DIR__ . '/includes/header.php';
 // Get banner images
 $banner_images = getImagesBySection('banner', 1);
 $banner_image = !empty($banner_images) ? $banner_images[0] : null;
+
+// Get all active cities for the city filter dropdown
+$cities = getAllCities();
 ?>
 
 <!-- Hero Section -->
@@ -80,6 +83,21 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
                                     <option value="Other Events">Other Events</option>
                                 </select>
                                 <div class="invalid-feedback">Please select an event type.</div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="city_id" class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i> Select City <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="city_id" name="city_id" required>
+                                    <option value="">Choose a city...</option>
+                                    <?php foreach ($cities as $city): ?>
+                                        <option value="<?php echo $city['id']; ?>">
+                                            <?php echo htmlspecialchars($city['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback">Please select a city.</div>
                             </div>
 
                             <button type="submit" class="btn btn-success btn-lg w-100">
@@ -232,7 +250,7 @@ if (!empty($venues)):
                                             <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
                                             <p class="card-text">
                                                 <i class="fas fa-map-marker-alt text-success"></i> 
-                                                <?php echo sanitize($venue['location']); ?>
+                                                <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
                                             </p>
                                             <p class="card-text text-muted">
                                                 <?php echo $truncated_description; ?>
