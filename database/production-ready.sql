@@ -387,8 +387,8 @@ CREATE TABLE site_images (
 -- ⚠️ CRITICAL SECURITY WARNING: Change this password IMMEDIATELY after installation!
 -- Login at /admin/ with username: admin, password: Admin@123
 -- Then update your password in Admin Panel → Profile/Settings
-INSERT INTO users (username, password, full_name, email, role, status) 
-VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@example.com', 'admin', 'active');
+INSERT IGNORE INTO users (username, password, full_name, email, role, status) 
+VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
 
 -- Insert default cities (Nepal)
 INSERT INTO cities (name, status) VALUES

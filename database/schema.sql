@@ -281,7 +281,7 @@ CREATE TABLE activity_logs (
 -- ⚠️ SECURITY WARNING: Change this password immediately after installation!
 -- Login at /admin/ with username: admin, password: Admin@123
 -- Then update your password in the admin panel settings
-INSERT INTO users (username, password, full_name, email, role, status) 
+INSERT IGNORE INTO users (username, password, full_name, email, role, status) 
 VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
 
 -- Table: site_images (for dynamic image management)
