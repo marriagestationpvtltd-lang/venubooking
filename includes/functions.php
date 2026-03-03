@@ -2478,22 +2478,41 @@ function deleteVendorAssignment($assignment_id) {
 }
 
 /**
- * Get human-readable label for a vendor type
+ * Get all active vendor types from the database.
+ * Results are cached in a static variable for the request lifetime.
+ *
+ * @return array Array of ['slug' => ..., 'label' => ..., ...]
+ */
+function getVendorTypes() {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    try {
+        $db = getDB();
+        $stmt = $db->query("SELECT * FROM vendor_types WHERE status = 'active' ORDER BY display_order ASC, label ASC");
+        $cache = $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting vendor types: " . $e->getMessage());
+        $cache = [];
+    }
+    return $cache;
+}
+
+/**
+ * Get human-readable label for a vendor type slug.
+ * Looks up the vendor_types table; falls back to ucfirst($type).
  *
  * @param string $type
  * @return string
  */
 function getVendorTypeLabel($type) {
-    $labels = [
-        'pandit'        => 'Pandit',
-        'photographer'  => 'Photographer',
-        'videographer'  => 'Videographer',
-        'baje'          => 'Baje (Music/Band)',
-        'decoration'    => 'Decoration',
-        'catering'      => 'Catering',
-        'other'         => 'Other',
-    ];
-    return $labels[$type] ?? ucfirst($type);
+    foreach (getVendorTypes() as $vt) {
+        if ($vt['slug'] === $type) {
+            return $vt['label'];
+        }
+    }
+    return ucfirst($type);
 }
 
 /**

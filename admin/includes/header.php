@@ -179,6 +179,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/vendors/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendors') ? 'active' : ''; ?>">
                 <i class="fas fa-user-tie"></i> Vendors
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/vendor-types/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendor-types') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-tags"></i> Vendor Types
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'images') ? 'active' : ''; ?>">
                 <i class="fas fa-images"></i> Images
             </a>

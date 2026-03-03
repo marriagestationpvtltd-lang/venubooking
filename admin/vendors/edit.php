@@ -19,7 +19,7 @@ if (!$vendor) {
     exit;
 }
 
-$vendor_types = ['pandit', 'photographer', 'videographer', 'baje', 'decoration', 'catering', 'other'];
+$vendor_types = getVendorTypes();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF token
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($name)) {
         $error_message = 'Vendor name is required.';
-    } elseif (!in_array($type, $vendor_types, true)) {
+    } elseif (!in_array($type, array_column($vendor_types, 'slug'), true)) {
         $error_message = 'Invalid vendor type selected.';
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = 'Please enter a valid email address.';
@@ -110,9 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="type" class="form-label">Vendor Type <span class="text-danger">*</span></label>
                             <select class="form-select" id="type" name="type" required>
                                 <?php foreach ($vendor_types as $vtype): ?>
-                                    <option value="<?php echo $vtype; ?>"
-                                        <?php echo ($vendor['type'] === $vtype) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars(getVendorTypeLabel($vtype)); ?>
+                                    <option value="<?php echo htmlspecialchars($vtype['slug']); ?>"
+                                        <?php echo ($vendor['type'] === $vtype['slug']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($vtype['label']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
