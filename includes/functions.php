@@ -2007,6 +2007,12 @@ function calculatePaymentSummary($booking_id) {
     $payment_result = $stmt->fetch();
     $total_paid = floatval($payment_result['total_paid']);
     
+    // Calculate vendor assignments total
+    $stmt = $db->prepare("SELECT COALESCE(SUM(assigned_amount), 0) as vendors_total FROM booking_vendor_assignments WHERE booking_id = ?");
+    $stmt->execute([$booking_id]);
+    $vendor_result = $stmt->fetch();
+    $vendors_total = floatval($vendor_result['vendors_total']);
+
     // Calculate due amount
     $grand_total = floatval($booking['grand_total']);
     $due_amount = $grand_total - $total_paid;
@@ -2027,6 +2033,7 @@ function calculatePaymentSummary($booking_id) {
         'subtotal' => floatval($booking['subtotal']),
         'tax_amount' => floatval($booking['tax_amount']),
         'grand_total' => $grand_total,
+        'vendors_total' => $vendors_total,
         'total_paid' => $total_paid,
         'due_amount' => $due_amount,
         'advance_amount' => $advance['amount'],
@@ -2293,12 +2300,18 @@ function recalculateBookingTotals($booking_id) {
         $result = $stmt->fetch();
         $services_total = floatval($result['total'] ?? 0);
         
+        // Calculate total from vendor assignments
+        $stmt = $db->prepare("SELECT COALESCE(SUM(assigned_amount), 0) as total FROM booking_vendor_assignments WHERE booking_id = ?");
+        $stmt->execute([$booking_id]);
+        $result = $stmt->fetch();
+        $vendors_total = floatval($result['total'] ?? 0);
+        
         // Calculate new totals
         $subtotal = $hall_price + $menu_total + $services_total;
         
         $tax_rate = floatval(getSetting('tax_rate', '13'));
         $tax_amount = $subtotal * ($tax_rate / 100);
-        $grand_total = $subtotal + $tax_amount;
+        $grand_total = $subtotal + $tax_amount + $vendors_total;
         
         // Update booking totals
         $stmt = $db->prepare("
@@ -2493,7 +2506,9 @@ function addVendorAssignment($booking_id, $vendor_id, $task_description, $assign
             VALUES (?, ?, ?, ?, ?, 'assigned')
         ");
         $stmt->execute([$booking_id, $vendor_id, $task_description, $assigned_amount, $notes]);
-        return (int)$db->lastInsertId();
+        $new_id = (int)$db->lastInsertId();
+        recalculateBookingTotals($booking_id);
+        return $new_id;
     } catch (Exception $e) {
         error_log("Error adding vendor assignment: " . $e->getMessage());
         return false;
@@ -2532,8 +2547,19 @@ function updateVendorAssignmentStatus($assignment_id, $status) {
 function deleteVendorAssignment($assignment_id) {
     $db = getDB();
     try {
+        $assignment_id = intval($assignment_id);
+        // Get booking_id before deleting so we can recalculate totals
+        $stmt = $db->prepare("SELECT booking_id FROM booking_vendor_assignments WHERE id = ?");
+        $stmt->execute([$assignment_id]);
+        $row = $stmt->fetch();
+        $booking_id = $row ? intval($row['booking_id']) : 0;
+
         $stmt = $db->prepare("DELETE FROM booking_vendor_assignments WHERE id = ?");
-        $stmt->execute([intval($assignment_id)]);
+        $stmt->execute([$assignment_id]);
+
+        if ($booking_id > 0) {
+            recalculateBookingTotals($booking_id);
+        }
         return true;
     } catch (Exception $e) {
         error_log("Error deleting vendor assignment: " . $e->getMessage());
