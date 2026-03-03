@@ -2,6 +2,9 @@
  * Booking Flow JavaScript
  */
 
+// Fields saved to localStorage draft for the step-1 booking form
+var BOOKING_DRAFT_FIELDS = ['city_id', 'shift', 'event_date', 'guests', 'event_type'];
+
 // Handle browser back button navigation
 function handleBrowserBackButton() {
     // Save current page state to history
@@ -47,12 +50,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize back button handling
     handleBrowserBackButton();
     
+    // Restore any previously saved draft before calendar initialization
+    // so that the Nepali date picker can pick up the restored date value
+    restoreBookingFormDraft();
+    
     // Initialize Nepali calendar functionality
     initNepaliCalendar();
     
     const bookingForm = document.getElementById('bookingForm');
     
     if (bookingForm) {
+        // Save draft whenever any booking field changes
+        BOOKING_DRAFT_FIELDS.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', saveBookingFormDraft);
+                el.addEventListener('input', saveBookingFormDraft);
+            }
+        });
+
         // Set minimum date for event_date using Nepal timezone
         const eventDateInput = document.getElementById('event_date');
         if (eventDateInput) {
@@ -151,6 +167,42 @@ function clearBookingData() {
     sessionStorage.removeItem('selectedHall');
     sessionStorage.removeItem('selectedMenus');
     sessionStorage.removeItem('selectedServices');
+}
+
+// localStorage draft helpers - persist booking form data across browser sessions
+function saveBookingFormDraft() {
+    var draft = {};
+    BOOKING_DRAFT_FIELDS.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) draft[id] = el.value;
+    });
+    try {
+        localStorage.setItem('bookingDraft', JSON.stringify(draft));
+    } catch (e) {
+        // localStorage not available
+    }
+}
+
+function restoreBookingFormDraft() {
+    try {
+        var raw = localStorage.getItem('bookingDraft');
+        if (!raw) return;
+        var draft = JSON.parse(raw);
+        BOOKING_DRAFT_FIELDS.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && draft[id]) el.value = draft[id];
+        });
+    } catch (e) {
+        // localStorage not available or parse error
+    }
+}
+
+function clearBookingDraft() {
+    try {
+        localStorage.removeItem('bookingDraft');
+    } catch (e) {
+        // localStorage not available
+    }
 }
 
 // Update total cost display
