@@ -130,7 +130,7 @@ echo ""
 
 # Verify tables were created
 TABLE_COUNT=$(mysql --defaults-extra-file="$MYSQL_CNF" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DB_NAME';")
-echo -e "Tables created: ${GREEN}$TABLE_COUNT${NC} (expected: 18)"
+echo -e "Tables created: ${GREEN}$TABLE_COUNT${NC} (expected: 21)"
 
 # Verify bookings
 BOOKING_COUNT=$(mysql --defaults-extra-file="$MYSQL_CNF" -D"$DB_NAME" -N -e "SELECT COUNT(*) FROM bookings;")
