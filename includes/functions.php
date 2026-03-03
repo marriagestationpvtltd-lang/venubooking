@@ -1274,6 +1274,25 @@ function sendEmail($to, $subject, $message, $recipient_name = '') {
 }
 
 /**
+ * Read a complete (possibly multi-line) SMTP response from a socket.
+ * SMTP multi-line responses use "NNN-text" for continuation and "NNN text" for the final line.
+ *
+ * @param resource $socket
+ * @return string The last line of the response (contains the status code)
+ */
+function smtpReadResponse($socket) {
+    $response = '';
+    while ($line = fgets($socket)) {
+        $response = $line;
+        // When the 4th character is a space (or line is shorter than 4 chars), it's the last line
+        if (strlen($line) < 4 || $line[3] !== '-') {
+            break;
+        }
+    }
+    return $response;
+}
+
+/**
  * Send email using SMTP
  * 
  * @param string $to Recipient email address
@@ -1295,6 +1314,10 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         error_log("SMTP email failed - SMTP settings incomplete (host: " . ($smtp_host ?: '(empty)') . ", username: " . ($smtp_username ?: '(empty)') . ")");
         return false;
     }
+
+    // Use the authenticated SMTP username as the envelope sender so that SPF
+    // and DKIM alignment checks pass (required by Gmail and other providers).
+    $envelope_from = $smtp_username;
     
     try {
         // Set timeout for socket operations
@@ -1331,8 +1354,8 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         // Set socket timeout
         stream_set_timeout($socket, 30);
         
-        // Read server response
-        $response = fgets($socket);
+        // Read server greeting (may be multi-line)
+        $response = smtpReadResponse($socket);
         if (substr($response, 0, 3) != '220') {
             fclose($socket);
             error_log("SMTP server not ready: $response");
@@ -1347,14 +1370,14 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
             $ehlo_domain = 'localhost';
         }
         
-        // Send EHLO
+        // Send EHLO and consume the full multi-line response
         fwrite($socket, "EHLO $ehlo_domain\r\n");
-        $response = fgets($socket);
+        $response = smtpReadResponse($socket);
         
         // Start TLS if needed
         if ($smtp_encryption === 'tls') {
             fwrite($socket, "STARTTLS\r\n");
-            $response = fgets($socket);
+            $response = smtpReadResponse($socket);
             if (substr($response, 0, 3) != '220') {
                 fclose($socket);
                 error_log("STARTTLS failed: $response");
@@ -1363,14 +1386,14 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
             
             stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
             
-            // Send EHLO again after TLS
+            // Send EHLO again after TLS and consume full response
             fwrite($socket, "EHLO $ehlo_domain\r\n");
-            $response = fgets($socket);
+            $response = smtpReadResponse($socket);
         }
         
         // Authenticate
         fwrite($socket, "AUTH LOGIN\r\n");
-        $response = fgets($socket);
+        $response = smtpReadResponse($socket);
         if (substr($response, 0, 3) != '334') {
             fclose($socket);
             error_log("SMTP AUTH LOGIN failed: $response");
@@ -1378,7 +1401,7 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         }
         
         fwrite($socket, base64_encode($smtp_username) . "\r\n");
-        $response = fgets($socket);
+        $response = smtpReadResponse($socket);
         if (substr($response, 0, 3) != '334') {
             fclose($socket);
             error_log("SMTP username failed: $response");
@@ -1386,7 +1409,7 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         }
         
         fwrite($socket, base64_encode($smtp_password) . "\r\n");
-        $response = fgets($socket);
+        $response = smtpReadResponse($socket);
         
         if (substr($response, 0, 3) != '235') {
             fclose($socket);
@@ -1394,9 +1417,9 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
             return false;
         }
         
-        // Send email
-        fwrite($socket, "MAIL FROM: <$from_email>\r\n");
-        $response = fgets($socket);
+        // Use the authenticated account as envelope sender for SPF/DKIM alignment
+        fwrite($socket, "MAIL FROM: <$envelope_from>\r\n");
+        $response = smtpReadResponse($socket);
         if (substr($response, 0, 3) != '250') {
             fclose($socket);
             error_log("SMTP MAIL FROM failed: $response");
@@ -1404,7 +1427,7 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         }
         
         fwrite($socket, "RCPT TO: <$to>\r\n");
-        $response = fgets($socket);
+        $response = smtpReadResponse($socket);
         if (substr($response, 0, 3) != '250') {
             fclose($socket);
             error_log("SMTP RCPT TO failed: $response");
@@ -1412,7 +1435,7 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         }
         
         fwrite($socket, "DATA\r\n");
-        $response = fgets($socket);
+        $response = smtpReadResponse($socket);
         if (substr($response, 0, 3) != '354') {
             fclose($socket);
             error_log("SMTP DATA failed: $response");
@@ -1421,9 +1444,14 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         
         // Build email content
         $full_to = !empty($recipient_name) ? $recipient_name : $to;
-        $email_content = "From: $from_name <$from_email>\r\n";
+        // Use envelope_from (smtp_username) as the From address so that the
+        // From header domain matches the authenticated sender, satisfying DKIM
+        // and SPF alignment required by Gmail and other providers.
+        $email_content = "From: $from_name <$envelope_from>\r\n";
         $email_content .= "To: $full_to <$to>\r\n";
         $email_content .= "Subject: $subject\r\n";
+        $email_content .= "Date: " . date('r') . "\r\n";
+        $email_content .= "Message-ID: <" . uniqid(getmypid() . '.', true) . "@" . (substr(strrchr($envelope_from, '@'), 1) ?: $ehlo_domain) . ">\r\n";
         $email_content .= "MIME-Version: 1.0\r\n";
         $email_content .= "Content-Type: text/html; charset=UTF-8\r\n";
         $email_content .= "\r\n";
@@ -1431,7 +1459,7 @@ function sendEmailSMTP($to, $subject, $message, $recipient_name = '') {
         $email_content .= "\r\n.\r\n";
         
         fwrite($socket, $email_content);
-        $response = fgets($socket);
+        $response = smtpReadResponse($socket);
         
         // Quit
         fwrite($socket, "QUIT\r\n");

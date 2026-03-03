@@ -495,20 +495,24 @@ Date changes are subject to availability and must be requested at least 15 days 
                     
                     <hr class="my-4">
                     
-                    <h6 class="mb-3 text-success"><i class="fas fa-server"></i> SMTP Configuration (Optional)</h6>
+                    <h6 class="mb-3 text-success"><i class="fas fa-server"></i> SMTP Configuration</h6>
                     
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong> If SMTP is disabled, the system will use PHP's mail() function. For better deliverability, configure SMTP settings.
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Using PHP's built-in <code>mail()</code> function (SMTP disabled) sends unauthenticated mail directly from your server. Gmail and other providers will <strong>block these emails</strong> with SPF/DKIM authentication errors. <strong>You must enable SMTP</strong> and configure an authenticated mail service (e.g. Gmail, SendGrid, Mailgun) to ensure reliable delivery.
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>For Gmail SMTP:</strong> Use <code>smtp.gmail.com</code>, port <code>587</code> (TLS) or <code>465</code> (SSL). You must create an <strong>App Password</strong> at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a> — your regular Gmail password will not work. The SMTP Username must be your full Gmail address and will be used as the sender address for SPF/DKIM alignment.
                     </div>
                     
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label">Enable SMTP</label>
                             <select class="form-select" name="setting_smtp_enabled" id="smtp_enabled">
-                                <option value="0" <?php echo ($settings['smtp_enabled'] ?? '0') == '0' ? 'selected' : ''; ?>>Disabled (Use PHP mail())</option>
-                                <option value="1" <?php echo ($settings['smtp_enabled'] ?? '0') == '1' ? 'selected' : ''; ?>>Enabled</option>
+                                <option value="0" <?php echo ($settings['smtp_enabled'] ?? '0') == '0' ? 'selected' : ''; ?>>Disabled (Use PHP mail() &mdash; not recommended, emails may be blocked)</option>
+                                <option value="1" <?php echo ($settings['smtp_enabled'] ?? '0') == '1' ? 'selected' : ''; ?>>Enabled (Recommended)</option>
                             </select>
-                            <div class="form-text">Enable SMTP for more reliable email delivery</div>
+                            <div class="form-text">Enable SMTP for authenticated, reliable email delivery</div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
@@ -541,15 +545,15 @@ Date changes are subject to availability and must be requested at least 15 days 
                             <input type="text" class="form-control" name="setting_smtp_username" 
                                    value="<?php echo htmlspecialchars($settings['smtp_username'] ?? ''); ?>"
                                    autocomplete="off">
-                            <div class="form-text">SMTP account username or email</div>
+                            <div class="form-text">Your full email address (e.g. yourname@gmail.com). This is used as the sender address so that SPF and DKIM checks pass.</div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
                             <label class="form-label">SMTP Password</label>
                             <input type="password" class="form-control" name="setting_smtp_password" 
-                                   <?php echo !empty($settings['smtp_password']) ? 'placeholder="••••••••"' : 'placeholder="Enter SMTP password"'; ?>
+                                   <?php echo !empty($settings['smtp_password']) ? 'placeholder="••••••••"' : 'placeholder="Enter SMTP password or App Password"'; ?>
                                    autocomplete="new-password">
-                            <div class="form-text">SMTP account password (leave empty to keep current password)</div>
+                            <div class="form-text">SMTP account password or App Password (leave empty to keep current password)</div>
                         </div>
                     </div>
 
