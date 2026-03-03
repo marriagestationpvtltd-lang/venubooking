@@ -703,6 +703,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const backToInfoBtn = document.getElementById('back_to_info_btn');
     const backToPaymentBtn = document.getElementById('back_to_payment_btn');
     
+    // Clear validation errors in real-time as the user fills in the fields
+    const fullNameInput = document.getElementById('full_name');
+    const phoneInput = document.getElementById('phone');
+    if (fullNameInput) {
+        fullNameInput.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+
     // Step 1 -> Step 2: Show Bill Summary
     continueToBillBtn.addEventListener('click', function() {
         // Validate customer info fields
