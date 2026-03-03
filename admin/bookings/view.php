@@ -112,7 +112,7 @@ if (isset($_POST['action'])) {
                 $success_message = 'Payment request sent successfully via email to ' . htmlspecialchars($booking['email']);
                 logActivity($current_user['id'], 'Sent payment request via email', 'bookings', $booking_id, "Payment request email sent for booking: {$booking['booking_number']}");
             } else {
-                $error_message = 'Failed to send payment request email. Please check email settings.';
+                $error_message = 'Failed to send payment request email. Please <a href="' . BASE_URL . '/admin/settings/index.php#email" class="alert-link">check email settings</a>.';
             }
         } else {
             $error_message = 'Customer email not found. Cannot send email.';
@@ -141,7 +141,7 @@ if (isset($_POST['action'])) {
                 $success_message = 'Booking confirmation sent successfully via email to ' . htmlspecialchars($booking['email']);
                 logActivity($current_user['id'], 'Sent booking confirmation via email', 'bookings', $booking_id, "Booking confirmation email sent for booking: {$booking['booking_number']}");
             } else {
-                $error_message = 'Failed to send booking confirmation email. Please check email settings.';
+                $error_message = 'Failed to send booking confirmation email. Please <a href="' . BASE_URL . '/admin/settings/index.php#email" class="alert-link">check email settings</a>.';
             }
         } else {
             $error_message = 'Customer email not found. Cannot send email.';

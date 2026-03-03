@@ -5,9 +5,29 @@ $db = getDB();
 
 $success = '';
 $error = '';
+$test_email_result = null;
+
+// Handle test email action (separate from settings form)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'send_test_email') {
+    $test_to = trim($_POST['test_email_address'] ?? '');
+    if (empty($test_to) || !filter_var($test_to, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Please enter a valid email address to send the test email.';
+    } else {
+        $site_name = getSetting('site_name', 'Venue Booking System');
+        $subject   = 'Test Email from ' . $site_name;
+        $message   = '<p>This is a test email sent from <strong>' . htmlspecialchars($site_name) . '</strong> to verify your email configuration is working correctly.</p>'
+                   . '<p>If you received this email, your email settings are configured properly.</p>';
+        $sent = sendEmail($test_to, $subject, $message);
+        if ($sent) {
+            $success = 'Test email sent successfully to ' . htmlspecialchars($test_to) . '. Please check your inbox.';
+        } else {
+            $error = 'Failed to send test email. Please review your email/SMTP settings and check the server error log for details.';
+        }
+    }
+}
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'send_test_email') {
     try {
         $db->beginTransaction();
         
@@ -427,6 +447,7 @@ Date changes are subject to availability and must be requested at least 15 days 
                     
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> Configure email settings for booking notifications. Emails will be sent to customers and admin when bookings are created or updated.
+                        You can also set these values in your <code>.env</code> file using <code>MAIL_*</code> variables (e.g. <code>MAIL_SMTP_ENABLED</code>, <code>MAIL_HOST</code>, <code>MAIL_USERNAME</code>). Settings saved here take priority over the <code>.env</code> file.
                     </div>
                     
                     <div class="row">
@@ -520,6 +541,28 @@ Date changes are subject to availability and must be requested at least 15 days 
                             <div class="form-text">SMTP account password (leave empty to keep current password)</div>
                         </div>
                     </div>
+
+                    <hr class="my-4">
+
+                    <h6 class="mb-3 text-success"><i class="fas fa-vial"></i> Test Email Configuration</h6>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> After saving your email settings, use this tool to verify that emails are being delivered correctly.
+                    </div>
+                    <form method="POST" class="row g-2 align-items-end" id="testEmailForm">
+                        <input type="hidden" name="action" value="send_test_email">
+                        <div class="col-md-6">
+                            <label class="form-label">Send Test Email To</label>
+                            <input type="email" class="form-control" name="test_email_address"
+                                   placeholder="you@example.com"
+                                   value="<?php echo htmlspecialchars($settings['admin_email'] ?? ''); ?>">
+                            <div class="form-text">A test message will be sent to this address</div>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-paper-plane me-1"></i> Send Test Email
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Booking Settings Tab -->
@@ -788,6 +831,17 @@ document.addEventListener('click', function(e) {
 // Update data before form submission
 document.getElementById('settingsForm').addEventListener('submit', function(e) {
     updateQuickLinksData();
+});
+
+// Auto-activate email tab when navigated to via hash (e.g., from an error link)
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash;
+    if (hash && /^#[a-zA-Z0-9_-]+$/.test(hash)) {
+        const tab = document.querySelector('a[href="' + hash + '"]');
+        if (tab) {
+            tab.click();
+        }
+    }
 });
 
 // Auto-save warning before leaving page with unsaved changes
