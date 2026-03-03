@@ -6,10 +6,12 @@
 CREATE TABLE IF NOT EXISTS vendors (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
-    type ENUM('pandit', 'photographer', 'videographer', 'baje', 'decoration', 'catering', 'other') NOT NULL DEFAULT 'other',
+    type VARCHAR(100) NOT NULL DEFAULT 'other',
     phone VARCHAR(20),
     email VARCHAR(100),
     address TEXT,
+    location VARCHAR(255) DEFAULT NULL,
+    photo VARCHAR(255) DEFAULT NULL,
     notes TEXT,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -328,14 +328,38 @@ INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
 ('tax_rate', '13', 'number'),
 ('advance_payment_percentage', '30', 'number');
 
+-- Table: vendor_types (admin-managed vendor type definitions)
+CREATE TABLE IF NOT EXISTS vendor_types (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    slug VARCHAR(100) NOT NULL UNIQUE COMMENT 'Stored in vendors.type column',
+    label VARCHAR(255) NOT NULL COMMENT 'Human-readable display name',
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO vendor_types (slug, label, display_order) VALUES
+    ('pandit',        'Pandit',            1),
+    ('photographer',  'Photographer',      2),
+    ('videographer',  'Videographer',      3),
+    ('baje',          'Baje (Music/Band)', 4),
+    ('decoration',    'Decoration',        5),
+    ('catering',      'Catering',          6),
+    ('other',         'Other',             7);
+
 -- Table: vendors (service providers assigned to bookings)
 CREATE TABLE IF NOT EXISTS vendors (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
-    type ENUM('pandit', 'photographer', 'videographer', 'baje', 'decoration', 'catering', 'other') NOT NULL DEFAULT 'other',
+    type VARCHAR(100) NOT NULL DEFAULT 'other',
     phone VARCHAR(20),
     email VARCHAR(100),
     address TEXT,
+    location VARCHAR(255) DEFAULT NULL,
+    photo VARCHAR(255) DEFAULT NULL,
     notes TEXT,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
