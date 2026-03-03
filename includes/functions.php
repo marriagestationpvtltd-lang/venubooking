@@ -2328,3 +2328,186 @@ function getUserServices($booking_id) {
         return [];
     }
 }
+
+// ============================================================
+// VENDOR MANAGEMENT FUNCTIONS
+// ============================================================
+
+/**
+ * Get all active vendors, optionally filtered by type
+ *
+ * @param string|null $type Vendor type filter
+ * @return array
+ */
+function getVendors($type = null) {
+    $db = getDB();
+    try {
+        if ($type) {
+            $stmt = $db->prepare("SELECT * FROM vendors WHERE status = 'active' AND type = ? ORDER BY name");
+            $stmt->execute([$type]);
+        } else {
+            $stmt = $db->prepare("SELECT * FROM vendors WHERE status = 'active' ORDER BY type, name");
+            $stmt->execute();
+        }
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting vendors: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get a single vendor by ID
+ *
+ * @param int $vendor_id
+ * @return array|false
+ */
+function getVendor($vendor_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("SELECT * FROM vendors WHERE id = ?");
+        $stmt->execute([intval($vendor_id)]);
+        return $stmt->fetch();
+    } catch (Exception $e) {
+        error_log("Error getting vendor: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get vendor assignments for a booking
+ *
+ * @param int $booking_id
+ * @return array
+ */
+function getBookingVendorAssignments($booking_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("
+            SELECT bva.*, v.name as vendor_name, v.type as vendor_type, v.phone as vendor_phone, v.email as vendor_email
+            FROM booking_vendor_assignments bva
+            INNER JOIN vendors v ON bva.vendor_id = v.id
+            WHERE bva.booking_id = ?
+            ORDER BY v.type, v.name
+        ");
+        $stmt->execute([intval($booking_id)]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting booking vendor assignments: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Add a vendor assignment to a booking
+ *
+ * @param int $booking_id
+ * @param int $vendor_id
+ * @param string $task_description
+ * @param float $assigned_amount
+ * @param string $notes
+ * @return int|false New assignment ID or false on failure
+ */
+function addVendorAssignment($booking_id, $vendor_id, $task_description, $assigned_amount, $notes) {
+    $db = getDB();
+    try {
+        $booking_id = intval($booking_id);
+        $vendor_id = intval($vendor_id);
+        $task_description = trim($task_description);
+        $assigned_amount = max(0, floatval($assigned_amount));
+        $notes = trim($notes);
+
+        if (empty($task_description)) {
+            throw new Exception("Task description is required");
+        }
+        if ($vendor_id <= 0) {
+            throw new Exception("A valid vendor must be selected");
+        }
+
+        $stmt = $db->prepare("
+            INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status)
+            VALUES (?, ?, ?, ?, ?, 'assigned')
+        ");
+        $stmt->execute([$booking_id, $vendor_id, $task_description, $assigned_amount, $notes]);
+        return (int)$db->lastInsertId();
+    } catch (Exception $e) {
+        error_log("Error adding vendor assignment: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Update the status of a vendor assignment
+ *
+ * @param int $assignment_id
+ * @param string $status
+ * @return bool
+ */
+function updateVendorAssignmentStatus($assignment_id, $status) {
+    $allowed = ['assigned', 'confirmed', 'completed', 'cancelled'];
+    if (!in_array($status, $allowed, true)) {
+        return false;
+    }
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("UPDATE booking_vendor_assignments SET status = ? WHERE id = ?");
+        $stmt->execute([$status, intval($assignment_id)]);
+        return true;
+    } catch (Exception $e) {
+        error_log("Error updating vendor assignment status: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Delete a vendor assignment
+ *
+ * @param int $assignment_id
+ * @return bool
+ */
+function deleteVendorAssignment($assignment_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("DELETE FROM booking_vendor_assignments WHERE id = ?");
+        $stmt->execute([intval($assignment_id)]);
+        return true;
+    } catch (Exception $e) {
+        error_log("Error deleting vendor assignment: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get human-readable label for a vendor type
+ *
+ * @param string $type
+ * @return string
+ */
+function getVendorTypeLabel($type) {
+    $labels = [
+        'pandit'        => 'Pandit',
+        'photographer'  => 'Photographer',
+        'videographer'  => 'Videographer',
+        'baje'          => 'Baje (Music/Band)',
+        'decoration'    => 'Decoration',
+        'catering'      => 'Catering',
+        'other'         => 'Other',
+    ];
+    return $labels[$type] ?? ucfirst($type);
+}
+
+/**
+ * Get Bootstrap badge colour for a vendor assignment status
+ *
+ * @param string $status
+ * @return string Bootstrap colour class suffix
+ */
+function getVendorAssignmentStatusColor($status) {
+    $colors = [
+        'assigned'  => 'secondary',
+        'confirmed' => 'primary',
+        'completed' => 'success',
+        'cancelled' => 'danger',
+    ];
+    return $colors[$status] ?? 'secondary';
+}

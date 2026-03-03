@@ -174,6 +174,44 @@ if (isset($_POST['action'])) {
         } catch (Exception $e) {
             $error_message = 'Failed to update advance payment status. Please try again.';
         }
+    } elseif ($action === 'add_vendor_assignment') {
+        $vendor_id_input    = intval($_POST['vendor_id'] ?? 0);
+        $task_description   = trim($_POST['task_description'] ?? '');
+        $assigned_amount    = max(0, floatval($_POST['assigned_amount'] ?? 0));
+        $assignment_notes   = trim($_POST['assignment_notes'] ?? '');
+
+        if ($vendor_id_input <= 0) {
+            $error_message = 'Please select a vendor.';
+        } elseif (empty($task_description)) {
+            $error_message = 'Task description is required.';
+        } else {
+            $assignment_id = addVendorAssignment($booking_id, $vendor_id_input, $task_description, $assigned_amount, $assignment_notes);
+            if ($assignment_id) {
+                logActivity($current_user['id'], 'Added vendor assignment', 'booking_vendor_assignments', $booking_id, "Assigned vendor ID {$vendor_id_input}: {$task_description}");
+                $success_message = 'Vendor assigned successfully!';
+            } else {
+                $error_message = 'Failed to add vendor assignment. Please try again.';
+            }
+        }
+    } elseif ($action === 'update_vendor_assignment_status') {
+        $assignment_id     = intval($_POST['assignment_id'] ?? 0);
+        $assignment_status = trim($_POST['assignment_status'] ?? '');
+
+        if ($assignment_id > 0 && updateVendorAssignmentStatus($assignment_id, $assignment_status)) {
+            logActivity($current_user['id'], 'Updated vendor assignment status', 'booking_vendor_assignments', $booking_id, "Assignment {$assignment_id} status set to {$assignment_status}");
+            $success_message = 'Vendor assignment status updated.';
+        } else {
+            $error_message = 'Failed to update vendor assignment status.';
+        }
+    } elseif ($action === 'delete_vendor_assignment') {
+        $assignment_id = intval($_POST['assignment_id'] ?? 0);
+
+        if ($assignment_id > 0 && deleteVendorAssignment($assignment_id)) {
+            logActivity($current_user['id'], 'Deleted vendor assignment', 'booking_vendor_assignments', $booking_id, "Deleted assignment ID {$assignment_id}");
+            $success_message = 'Vendor assignment removed.';
+        } else {
+            $error_message = 'Failed to remove vendor assignment.';
+        }
     }
 }
 
@@ -1155,6 +1193,149 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
             </div>
         </div>
         
+        <!-- Vendor Assignments -->
+        <?php
+        $vendor_assignments = getBookingVendorAssignments($booking_id);
+        $all_vendors = getVendors();
+        ?>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-user-tie me-2"></i> Vendor Assignments</h5>
+                <small class="text-muted">Assign Pandit, Photographer, Videographer, Baje and other vendors to this booking</small>
+            </div>
+            <div class="card-body p-4">
+                <?php if (!empty($vendor_assignments)): ?>
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Vendor</th>
+                                <th>Type</th>
+                                <th>Task</th>
+                                <th>Amount (<?php echo htmlspecialchars(getSetting('currency', 'NPR')); ?>)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($vendor_assignments as $assignment): ?>
+                            <tr>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($assignment['vendor_name']); ?></strong>
+                                    <?php if (!empty($assignment['vendor_phone'])): ?>
+                                        <br><small class="text-muted"><i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($assignment['vendor_phone']); ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo htmlspecialchars(getVendorTypeLabel($assignment['vendor_type'])); ?></td>
+                                <td>
+                                    <?php echo htmlspecialchars($assignment['task_description']); ?>
+                                    <?php if (!empty($assignment['notes'])): ?>
+                                        <br><small class="text-muted"><?php echo htmlspecialchars($assignment['notes']); ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo formatCurrency($assignment['assigned_amount']); ?></td>
+                                <td>
+                                    <span class="badge bg-<?php echo getVendorAssignmentStatusColor($assignment['status']); ?>">
+                                        <?php echo ucfirst($assignment['status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <!-- Status update -->
+                                    <form method="POST" style="display:inline-block;" class="me-1">
+                                        <input type="hidden" name="action" value="update_vendor_assignment_status">
+                                        <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
+                                        <select name="assignment_status" class="form-select form-select-sm d-inline-block w-auto"
+                                                onchange="this.form.submit()">
+                                            <?php foreach (['assigned', 'confirmed', 'completed', 'cancelled'] as $s): ?>
+                                                <option value="<?php echo $s; ?>" <?php echo ($assignment['status'] === $s) ? 'selected' : ''; ?>>
+                                                    <?php echo ucfirst($s); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </form>
+                                    <!-- Delete -->
+                                    <form method="POST" style="display:inline-block;"
+                                          onsubmit="return confirm('Remove this vendor assignment?');">
+                                        <input type="hidden" name="action" value="delete_vendor_assignment">
+                                        <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Remove">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php else: ?>
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No vendors assigned yet. Use the form below to assign vendors to this booking.
+                </div>
+                <?php endif; ?>
+
+                <!-- Add Vendor Assignment Form -->
+                <?php if (!empty($all_vendors)): ?>
+                <div class="border-top pt-3">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-plus-circle me-2"></i>Assign a Vendor</h6>
+                    <form method="POST" action="">
+                        <input type="hidden" name="action" value="add_vendor_assignment">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Vendor <span class="text-danger">*</span></label>
+                                <select name="vendor_id" class="form-select" required>
+                                    <option value="">— Select Vendor —</option>
+                                    <?php
+                                    $grouped = [];
+                                    foreach ($all_vendors as $v) {
+                                        $grouped[$v['type']][] = $v;
+                                    }
+                                    foreach ($grouped as $vtype => $vlist):
+                                    ?>
+                                    <optgroup label="<?php echo htmlspecialchars(getVendorTypeLabel($vtype)); ?>">
+                                        <?php foreach ($vlist as $v): ?>
+                                        <option value="<?php echo $v['id']; ?>">
+                                            <?php echo htmlspecialchars($v['name']); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </optgroup>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Task Description <span class="text-danger">*</span></label>
+                                <input type="text" name="task_description" class="form-control"
+                                       placeholder="e.g., Wedding Photography" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-semibold">Amount</label>
+                                <input type="number" name="assigned_amount" class="form-control"
+                                       min="0" step="0.01" placeholder="0.00" value="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Notes <small class="text-muted">(Optional)</small></label>
+                                <input type="text" name="assignment_notes" class="form-control"
+                                       placeholder="Any special instructions">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-user-plus me-2"></i> Assign Vendor
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <?php else: ?>
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No active vendors found.
+                    <a href="<?php echo BASE_URL; ?>/admin/vendors/add.php" class="alert-link">Add a vendor</a> first.
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Payment Methods -->
         <?php 
         $booking_payment_methods = getBookingPaymentMethods($booking_id);
