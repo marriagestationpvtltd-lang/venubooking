@@ -99,10 +99,13 @@ CREATE TABLE customers (
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(100),
     address TEXT,
+    city VARCHAR(100) NULL,
+    loyalty_points INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_phone (phone),
-    INDEX idx_email (email)
+    INDEX idx_email (email),
+    INDEX idx_city (city)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: bookings

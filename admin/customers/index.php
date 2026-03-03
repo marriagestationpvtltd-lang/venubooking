@@ -40,6 +40,8 @@ unset($_SESSION['error_message']);
                         <th>Name</th>
                         <th>Phone</th>
                         <th>Email</th>
+                        <th>City</th>
+                        <th>Loyalty Points</th>
                         <th>Bookings</th>
                         <th>Actions</th>
                     </tr>
@@ -51,6 +53,8 @@ unset($_SESSION['error_message']);
                             <td><?php echo htmlspecialchars($customer['full_name']); ?></td>
                             <td><?php echo htmlspecialchars($customer['phone']); ?></td>
                             <td><?php echo htmlspecialchars($customer['email']); ?></td>
+                            <td><?php echo $customer['city'] ? htmlspecialchars($customer['city']) : '<em class="text-muted">N/A</em>'; ?></td>
+                            <td><?php echo (int)$customer['loyalty_points']; ?></td>
                             <td><?php echo $customer['booking_count']; ?></td>
                             <td>
                                 <a href="view.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>
