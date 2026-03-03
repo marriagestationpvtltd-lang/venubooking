@@ -419,5 +419,9 @@ require_once __DIR__ . '/includes/header.php';
 </style>
 
 <?php
+$extra_js = '<script>
+// Clear saved booking form draft after a booking is successfully confirmed
+try { localStorage.removeItem("bookingDraft"); } catch(e) {}
+</script>';
 require_once __DIR__ . '/includes/footer.php';
 ?>
