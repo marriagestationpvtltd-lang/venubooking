@@ -11,6 +11,7 @@ $db = getDB();
 $success_message = '';
 $error_message = '';
 $new_vendor_wa_url = '';
+$new_vendor_email_sent = false;
 
 // Display flash message from previous redirect (e.g., after creating a booking)
 if (!empty($_SESSION['flash_success'])) {
@@ -202,6 +203,9 @@ if (isset($_POST['action'])) {
                 if ($new_vendor && !empty($new_vendor['phone'])) {
                     $new_vendor_wa_url = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking);
                 }
+                if ($new_vendor && !empty($new_vendor['email'])) {
+                    $new_vendor_email_sent = sendVendorAssignmentEmail($new_vendor['name'], $new_vendor['email'], $booking);
+                }
             } else {
                 $error_message = 'Failed to add vendor assignment. Please try again.';
             }
@@ -240,6 +244,9 @@ require_once __DIR__ . '/../includes/header.php';
                class="btn btn-sm btn-success ms-3">
                 <i class="fab fa-whatsapp me-1"></i> Notify Vendor via WhatsApp
             </a>
+        <?php endif; ?>
+        <?php if ($new_vendor_email_sent): ?>
+            <span class="badge bg-info ms-2"><i class="fas fa-envelope me-1"></i> Assignment email sent to vendor</span>
         <?php endif; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -630,7 +637,12 @@ $whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
 $whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
     "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . date('F d, Y', strtotime($booking['event_date'])) . " is almost confirmed.\n\n" .
     "💰 Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
-    "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n";
+    "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n" .
+    "📍 Venue Location: " . strip_tags($booking['location']) . "\n";
+if (!empty($booking['map_link'])) {
+    $whatsapp_text .= "🗺️ Google Map: " . strip_tags($booking['map_link']) . "\n";
+}
+$whatsapp_text .= "\n";
 
 if (!empty($whatsapp_payment_methods)) {
     $whatsapp_text .= "📱 Payment Methods:\n\n";
