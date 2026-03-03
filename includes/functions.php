@@ -641,7 +641,7 @@ function getBookingDetails($booking_id) {
         
         $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
                        h.name as hall_name, h.capacity,
-                       v.name as venue_name, v.location
+                       v.name as venue_name, v.location, v.map_link
                 FROM bookings b
                 INNER JOIN customers c ON b.customer_id = c.id
                 INNER JOIN halls h ON b.hall_id = h.id
@@ -2529,4 +2529,39 @@ function getVendorAssignmentStatusColor($status) {
         'cancelled' => 'danger',
     ];
     return $colors[$status] ?? 'secondary';
+}
+
+/**
+ * Build a WhatsApp notification URL for a vendor assignment.
+ *
+ * @param string $vendor_name
+ * @param string $vendor_phone
+ * @param array  $booking  Booking row from getBookingDetails()
+ * @return string WhatsApp URL, or empty string if no phone available
+ */
+function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking) {
+    $clean_phone = preg_replace('/[^0-9]/', '', $vendor_phone);
+    if (empty($clean_phone)) {
+        return '';
+    }
+
+    $text  = "Dear " . strip_tags($vendor_name) . ",\n\n";
+    $text .= "We would like to inform you that you have been officially assigned to the following event. Please find the details below:\n\n";
+    $text .= "Event Date: " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
+    $text .= "Event Type / Service: " . strip_tags($booking['event_type']) . "\n";
+    $text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
+    $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+    if (!empty($booking['map_link'])) {
+        $text .= "Venue Location (Map): " . strip_tags($booking['map_link']) . "\n";
+    }
+    $text .= "\nKindly confirm your availability and ensure your presence at the venue as per the schedule. For any clarification, please contact us.\n\n";
+    $text .= "Thank you for your cooperation.\n\n";
+    $text .= "Regards,\n";
+    $text .= strip_tags(getSetting('company_name', 'Booking Team')) . "\n";
+    $contact_phone = getSetting('contact_phone', '');
+    if (!empty($contact_phone)) {
+        $text .= $contact_phone;
+    }
+
+    return 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($text);
 }

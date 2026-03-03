@@ -10,6 +10,7 @@ $current_user = getCurrentUser();
 $db = getDB();
 $success_message = '';
 $error_message = '';
+$new_vendor_wa_url = '';
 
 // Display flash message from previous redirect (e.g., after creating a booking)
 if (!empty($_SESSION['flash_success'])) {
@@ -189,6 +190,10 @@ if (isset($_POST['action'])) {
             if ($assignment_id) {
                 logActivity($current_user['id'], 'Added vendor assignment', 'booking_vendor_assignments', $booking_id, "Assigned vendor ID {$vendor_id_input}: {$task_description}");
                 $success_message = 'Vendor assigned successfully!';
+                $new_vendor = getVendor($vendor_id_input);
+                if ($new_vendor && !empty($new_vendor['phone'])) {
+                    $new_vendor_wa_url = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking);
+                }
             } else {
                 $error_message = 'Failed to add vendor assignment. Please try again.';
             }
@@ -222,6 +227,12 @@ require_once __DIR__ . '/../includes/header.php';
 <?php if ($success_message): ?>
     <div class="alert alert-success alert-dismissible fade show">
         <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <?php if (!empty($new_vendor_wa_url)): ?>
+            <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+               class="btn btn-sm btn-success ms-3">
+                <i class="fab fa-whatsapp me-1"></i> Notify Vendor via WhatsApp
+            </a>
+        <?php endif; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
@@ -1220,6 +1231,16 @@ $whatsapp_text .= "Thank you!";
                                     </span>
                                 </td>
                                 <td>
+                                    <!-- WhatsApp notify -->
+                                    <?php if (!empty($assignment['vendor_phone'])): ?>
+                                    <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($assignment['vendor_name'], $assignment['vendor_phone'], $booking); ?>
+                                    <?php if (!empty($va_wa_url)): ?>
+                                    <a href="<?php echo htmlspecialchars($va_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+                                       class="btn btn-sm btn-success me-1" title="Notify via WhatsApp">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                    <?php endif; ?>
+                                    <?php endif; ?>
                                     <!-- Status update -->
                                     <form method="POST" style="display:inline-block;" class="me-1">
                                         <input type="hidden" name="action" value="update_vendor_assignment_status">
