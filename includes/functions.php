@@ -2394,6 +2394,36 @@ function getVendors($type = null) {
 }
 
 /**
+ * Get active vendors not yet assigned to any booking on the given event date
+ *
+ * @param string $event_date  Date string (YYYY-MM-DD)
+ * @return array
+ */
+function getAvailableVendors($event_date) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("
+            SELECT v.*, c.name AS city_name
+            FROM vendors v
+            LEFT JOIN cities c ON v.city_id = c.id
+            WHERE v.status = 'active'
+              AND v.id NOT IN (
+                  SELECT DISTINCT bva.vendor_id
+                  FROM booking_vendor_assignments bva
+                  INNER JOIN bookings b ON bva.booking_id = b.id
+                  WHERE b.event_date = ?
+              )
+            ORDER BY v.type, v.name
+        ");
+        $stmt->execute([$event_date]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting available vendors: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * Get a single vendor by ID
  *
  * @param int $vendor_id
