@@ -1489,14 +1489,16 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     $admin_message = generateBookingEmailHTML($booking, 'admin', $type, $old_status);
     $user_message = generateBookingEmailHTML($booking, 'user', $type, $old_status);
     
-    // Send to admin
-    if (!empty($admin_email)) {
-        $results['admin'] = sendEmail($admin_email, $admin_subject, $admin_message);
-        if ($results['admin']) {
-            error_log("Booking notification email sent to admin: $admin_email for booking " . $booking['booking_number']);
+    // Send to admin (skip for payment_request - that email goes to user only)
+    if ($type !== 'payment_request') {
+        if (!empty($admin_email)) {
+            $results['admin'] = sendEmail($admin_email, $admin_subject, $admin_message);
+            if ($results['admin']) {
+                error_log("Booking notification email sent to admin: $admin_email for booking " . $booking['booking_number']);
+            }
+        } else {
+            error_log("Admin email notification skipped for booking " . $booking['booking_number'] . " - admin email not configured in settings");
         }
-    } else {
-        error_log("Admin email notification skipped for booking " . $booking['booking_number'] . " - admin email not configured in settings");
     }
     
     // Send to user
@@ -1525,6 +1527,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
     $site_name = getSetting('site_name', 'Venue Booking System');
     $contact_email = getSetting('contact_email', '');
     $contact_phone = getSetting('contact_phone', '');
+    $whatsapp_number = getSetting('whatsapp_number', '');
     
     ob_start();
     ?>
@@ -1796,9 +1799,14 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     
                     <?php if ($type === 'payment_request'): ?>
                         <p style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 4px;">
-                            <strong>Note:</strong> After making the payment, please contact us with your booking number 
+                            <strong>Note:</strong> After making the payment, please inform us via WhatsApp or by phone with your booking number 
                             <strong><?php echo htmlspecialchars($booking['booking_number']); ?></strong> 
                             to confirm the payment.
+                            <?php if (!empty($whatsapp_number)): ?>
+                                <br>📱 WhatsApp / Phone: <strong><?php echo htmlspecialchars($whatsapp_number); ?></strong>
+                            <?php elseif (!empty($contact_phone)): ?>
+                                <br>📞 Phone: <strong><?php echo htmlspecialchars($contact_phone); ?></strong>
+                            <?php endif; ?>
                         </p>
                     <?php endif; ?>
                 </div>
