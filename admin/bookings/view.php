@@ -1381,43 +1381,52 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 
                 <!-- Add Vendor Assignment Form -->
                 <?php if (!empty($all_vendors)): ?>
+                <?php
+                // Build grouped vendor data for JS two-step selection (only types with available vendors)
+                $vendors_by_type = [];
+                foreach ($all_vendors as $v) {
+                    $vendors_by_type[$v['type']][] = ['id' => $v['id'], 'name' => $v['name']];
+                }
+                // Filter vendor types list to only those that have available vendors
+                $vendor_types_available = array_filter(getVendorTypes(), function($vt) use ($vendors_by_type) {
+                    return isset($vendors_by_type[$vt['slug']]);
+                });
+                ?>
                 <div class="border-top pt-3">
                     <h6 class="fw-bold mb-3"><i class="fas fa-plus-circle me-2"></i>Assign a Vendor</h6>
-                    <form method="POST" action="">
+                    <form id="addVendorAssignmentForm" method="POST" action="">
                         <input type="hidden" name="action" value="add_vendor_assignment">
                         <div class="row g-3">
+                            <!-- Step 1: Vendor Type -->
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">Vendor <span class="text-danger">*</span></label>
-                                <select name="vendor_id" class="form-select" required>
-                                    <option value="">— Select Vendor —</option>
-                                    <?php
-                                    $grouped = [];
-                                    foreach ($all_vendors as $v) {
-                                        $grouped[$v['type']][] = $v;
-                                    }
-                                    foreach ($grouped as $vtype => $vlist):
-                                    ?>
-                                    <optgroup label="<?php echo htmlspecialchars(getVendorTypeLabel($vtype)); ?>">
-                                        <?php foreach ($vlist as $v): ?>
-                                        <option value="<?php echo $v['id']; ?>">
-                                            <?php echo htmlspecialchars($v['name']); ?>
+                                <label class="form-label fw-semibold">Vendor Type <span class="text-danger">*</span></label>
+                                <select id="vendorTypeSelect" class="form-select">
+                                    <option value="">— Select Type —</option>
+                                    <?php foreach ($vendor_types_available as $vt): ?>
+                                        <option value="<?php echo htmlspecialchars($vt['slug']); ?>">
+                                            <?php echo htmlspecialchars($vt['label']); ?>
                                         </option>
-                                        <?php endforeach; ?>
-                                    </optgroup>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <!-- Step 2: Vendor (filtered by type, hidden until type is chosen) -->
+                            <div class="col-md-3 d-none" id="vendorSelectWrapper">
+                                <label class="form-label fw-semibold">Vendor <span class="text-danger">*</span></label>
+                                <select name="vendor_id" id="vendorSelect" class="form-select">
+                                    <option value="">— Select Vendor —</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label fw-semibold">Task Description <small class="text-muted">(Optional)</small></label>
                                 <input type="text" name="task_description" class="form-control"
                                        placeholder="e.g., Wedding Photography">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <label class="form-label fw-semibold">Amount</label>
                                 <input type="number" name="assigned_amount" class="form-control"
                                        min="0" step="0.01" placeholder="0.00" value="0">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label fw-semibold">Notes <small class="text-muted">(Optional)</small></label>
                                 <input type="text" name="assignment_notes" class="form-control"
                                        placeholder="Any special instructions">
@@ -1430,6 +1439,47 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                         </div>
                     </form>
                 </div>
+                <script>
+                (function() {
+                    var vendorsByType = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+                    var typeSelect    = document.getElementById('vendorTypeSelect');
+                    var vendorWrapper = document.getElementById('vendorSelectWrapper');
+                    var vendorSelect  = document.getElementById('vendorSelect');
+                    var assignForm    = document.getElementById('addVendorAssignmentForm');
+
+                    typeSelect.addEventListener('change', function() {
+                        var type = this.value;
+                        // Reset vendor dropdown
+                        vendorSelect.innerHTML = '<option value="">— Select Vendor —</option>';
+                        vendorWrapper.classList.add('d-none');
+
+                        if (type && vendorsByType[type]) {
+                            vendorsByType[type].forEach(function(v) {
+                                var opt = document.createElement('option');
+                                opt.value = v.id;
+                                opt.textContent = v.name;
+                                vendorSelect.appendChild(opt);
+                            });
+                            vendorWrapper.classList.remove('d-none');
+                        }
+                    });
+
+                    // Prevent submission if no vendor type or vendor is selected
+                    assignForm.addEventListener('submit', function(e) {
+                        if (!typeSelect.value) {
+                            e.preventDefault();
+                            typeSelect.focus();
+                            alert('Please select a vendor type first.');
+                            return;
+                        }
+                        if (!vendorSelect.value) {
+                            e.preventDefault();
+                            vendorSelect.focus();
+                            alert('Please select a vendor.');
+                        }
+                    });
+                })();
+                </script>
                 <?php else: ?>
                 <div class="alert alert-warning mb-0">
                     <i class="fas fa-exclamation-triangle me-2"></i>
