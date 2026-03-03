@@ -284,6 +284,10 @@ function getAvailableVenues($date, $shift, $city_id = null) {
             // Ensure we use the sanitized filename
             $venue['image'] = $cache['filename'];
         }
+
+        // Attach gallery images for carousel display: prefer venue-specific, fall back to hall images
+        $venue_gallery = getVenueImages($venue['id']);
+        $venue['gallery_images'] = !empty($venue_gallery) ? $venue_gallery : getVenueGalleryImages($venue['id']);
     }
     
     return $venues;
@@ -322,11 +326,46 @@ function getAllActiveVenues() {
             $venue['image'] = $safe_filename;
         }
         
-        // Get all hall images for this venue
-        $venue['gallery_images'] = getVenueGalleryImages($venue['id']);
+        // Get gallery images: prefer venue-specific images, fall back to hall images
+        $venue_imgs = getVenueImages($venue['id']);
+        $venue['gallery_images'] = !empty($venue_imgs) ? $venue_imgs : getVenueGalleryImages($venue['id']);
     }
     
     return $venues;
+}
+
+/**
+ * Get images uploaded directly for a venue (from venue_images table)
+ */
+function getVenueImages($venue_id) {
+    $db = getDB();
+
+    // Check if venue_images table exists to remain backward-compatible
+    try {
+        $sql = "SELECT image_path, is_primary, display_order
+                FROM venue_images
+                WHERE venue_id = ?
+                ORDER BY is_primary DESC, display_order ASC, id ASC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$venue_id]);
+        $images = $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+
+    $validated_images = [];
+    foreach ($images as $image) {
+        $safe_filename = !empty($image['image_path']) ? basename($image['image_path']) : '';
+        if (!empty($safe_filename) && preg_match(SAFE_FILENAME_PATTERN, $safe_filename)
+            && file_exists(UPLOAD_PATH . $safe_filename)) {
+            $validated_images[] = [
+                'image_path' => $safe_filename,
+                'is_primary' => $image['is_primary'],
+                'hall_name'  => null,
+            ];
+        }
+    }
+    return $validated_images;
 }
 
 /**

@@ -119,26 +119,60 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
             </div>
         <?php else: ?>
             <div class="row g-4" id="venuesContainer">
-                <?php foreach ($venues as $venue): 
-                    // Get image URL (already validated and sanitized in getAvailableVenues)
-                    // The image filename is already safe, but we URL-encode it for proper URL construction
-                    if (!empty($venue['image'])) {
-                        $safe_url = UPLOAD_URL . rawurlencode($venue['image']);
-                        $venue_image_url = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                    } else {
-                        // Use placeholder for venues without images
-                        $venue_image_url = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                <?php foreach ($venues as $venue):
+                    // Build images array for carousel (prefer gallery_images, fall back to single image)
+                    $images_to_display = [];
+                    if (!empty($venue['gallery_images'])) {
+                        foreach ($venue['gallery_images'] as $gi) {
+                            $images_to_display[] = htmlspecialchars(UPLOAD_URL . rawurlencode($gi['image_path']), ENT_QUOTES, 'UTF-8');
+                        }
                     }
+                    if (empty($images_to_display) && !empty($venue['image'])) {
+                        $images_to_display[] = htmlspecialchars(UPLOAD_URL . rawurlencode($venue['image']), ENT_QUOTES, 'UTF-8');
+                    }
+                    if (empty($images_to_display)) {
+                        $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                    }
+                    $step2_carousel_id = 'venueStep2Carousel' . $venue['id'];
                 ?>
                     <div class="col-md-6 col-lg-4">
                         <div class="venue-card card h-100 shadow-sm">
-                            <div class="card-img-top venue-image" style="background-image: url('<?php echo $venue_image_url; ?>');">
-                            </div>
+                            <?php if (count($images_to_display) > 1): ?>
+                                <div id="<?php echo $step2_carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+                                        <?php foreach ($images_to_display as $si_idx => $si_url): ?>
+                                            <div class="carousel-item <?php echo $si_idx === 0 ? 'active' : ''; ?>">
+                                                <div class="venue-image" style="background-image: url('<?php echo $si_url; ?>');"></div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $step2_carousel_id; ?>" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $step2_carousel_id; ?>" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                    <div class="carousel-indicators-counter">
+                                        <span class="badge bg-dark bg-opacity-75">
+                                            <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="card-img-top venue-image" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
+                            <?php endif; ?>
                             <div class="card-body">
                                 <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
                                 <p class="card-text">
                                     <i class="fas fa-map-marker-alt text-success"></i> 
                                     <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
+                                    <?php if (!empty($venue['map_link'])): ?>
+                                        <a href="<?php echo htmlspecialchars($venue['map_link'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="ms-2 text-success" title="View on Google Maps">
+                                            <i class="fas fa-map"></i>
+                                        </a>
+                                    <?php endif; ?>
                                 </p>
                                 <p class="card-text text-muted"><?php echo sanitize(substr($venue['description'], 0, 100)); ?>...</p>
                                 <button type="button" class="btn btn-success w-100" 

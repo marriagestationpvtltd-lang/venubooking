@@ -37,6 +37,15 @@ $stats_stmt = $db->prepare("SELECT
                             WHERE h.venue_id = ?");
 $stats_stmt->execute([$venue_id]);
 $stats = $stats_stmt->fetch();
+
+// Fetch venue images
+try {
+    $vim_stmt = $db->prepare("SELECT * FROM venue_images WHERE venue_id = ? ORDER BY is_primary DESC, display_order ASC");
+    $vim_stmt->execute([$venue_id]);
+    $venue_imgs = $vim_stmt->fetchAll();
+} catch (Exception $e) {
+    $venue_imgs = [];
+}
 ?>
 
 <div class="row">
@@ -98,6 +107,15 @@ $stats = $stats_stmt->fetch();
                     </div>
                 </div>
 
+                <?php if (!empty($venue['map_link'])): ?>
+                <div class="mb-3">
+                    <strong><i class="fas fa-map-marker-alt"></i> Google Map:</strong><br>
+                    <a href="<?php echo htmlspecialchars($venue['map_link']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success mt-1">
+                        <i class="fas fa-map"></i> View on Google Maps
+                    </a>
+                </div>
+                <?php endif; ?>
+
                 <div class="mb-3">
                     <strong>Description:</strong><br>
                     <?php echo $venue['description'] ? nl2br(htmlspecialchars($venue['description'])) : '<em class="text-muted">No description available</em>'; ?>
@@ -115,6 +133,39 @@ $stats = $stats_stmt->fetch();
                         <?php echo date('M d, Y', strtotime($venue['created_at'])); ?>
                     </div>
                 </div>
+
+                <?php if (!empty($venue_imgs)): ?>
+                <div class="mb-3">
+                    <strong><i class="fas fa-images"></i> Photos:</strong>
+                    <?php
+                    $vc_id = 'venueViewCarousel' . $venue_id;
+                    ?>
+                    <div id="<?php echo $vc_id; ?>" class="carousel slide mt-2" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            <?php foreach ($venue_imgs as $vi_idx => $vi): ?>
+                                <?php
+                                $vi_url  = UPLOAD_URL . rawurlencode($vi['image_path']);
+                                $vi_file = UPLOAD_PATH . $vi['image_path'];
+                                if (!file_exists($vi_file)) continue;
+                                ?>
+                                <div class="carousel-item <?php echo $vi_idx === 0 ? 'active' : ''; ?>">
+                                    <img src="<?php echo htmlspecialchars($vi_url, ENT_QUOTES, 'UTF-8'); ?>" class="d-block w-100 rounded" alt="Venue photo" style="height:260px;object-fit:cover;">
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php if (count($venue_imgs) > 1): ?>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $vc_id; ?>" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $vc_id; ?>" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 
