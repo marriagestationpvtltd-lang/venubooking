@@ -1290,7 +1290,7 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
         <!-- Vendor Assignments -->
         <?php
         $vendor_assignments = getBookingVendorAssignments($booking_id);
-        $all_vendors = getVendors();
+        $all_vendors = getAvailableVendors($booking['event_date']);
         ?>
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white">
