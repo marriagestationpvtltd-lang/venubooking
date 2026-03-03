@@ -331,7 +331,7 @@ if (!empty($vendors)):
         <h2 class="text-center mb-2">Our Vendors</h2>
         <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
 
-        <div id="vendorsCarousel" class="carousel slide" data-bs-ride="false">
+        <div id="vendorsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000" data-bs-pause="hover" data-bs-touch="false">
             <div class="carousel-indicators">
                 <?php
                 $vendor_chunks = array_chunk($vendors, 3);
@@ -378,9 +378,9 @@ if (!empty($vendors)):
                                     <div class="vendor-card card h-100 shadow-sm">
                                         <!-- Vendor Photo -->
                                         <?php if (!empty($vendor['photo'])): ?>
-                                            <div class="vendor-photo"
-                                                 style="background-image: url('<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($vendor['photo']), ENT_QUOTES, 'UTF-8'); ?>');">
-                                            </div>
+                                            <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($vendor['photo']), ENT_QUOTES, 'UTF-8'); ?>"
+                                                 alt="<?php echo $vendor_name; ?>"
+                                                 class="vendor-photo">
                                         <?php else: ?>
                                             <div class="vendor-photo vendor-photo-placeholder">
                                                 <i class="fas fa-user-tie fa-3x text-muted"></i>
