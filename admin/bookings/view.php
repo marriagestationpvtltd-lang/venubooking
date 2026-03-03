@@ -22,6 +22,14 @@ if (!empty($_SESSION['flash_error'])) {
     $error_message = $_SESSION['flash_error'];
     unset($_SESSION['flash_error']);
 }
+if (!empty($_SESSION['flash_vendor_wa_url'])) {
+    $new_vendor_wa_url = $_SESSION['flash_vendor_wa_url'];
+    unset($_SESSION['flash_vendor_wa_url']);
+}
+if (!empty($_SESSION['flash_vendor_email_sent'])) {
+    $new_vendor_email_sent = $_SESSION['flash_vendor_email_sent'];
+    unset($_SESSION['flash_vendor_email_sent']);
+}
 
 // Get booking ID from URL
 $booking_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -204,42 +212,48 @@ if (isset($_POST['action'])) {
         $assignment_notes   = trim($_POST['assignment_notes'] ?? '');
 
         if ($vendor_id_input <= 0) {
-            $error_message = 'Please select a vendor.';
+            $_SESSION['flash_error'] = 'Please select a vendor.';
         } else {
             $assignment_id = addVendorAssignment($booking_id, $vendor_id_input, $task_description, $assigned_amount, $assignment_notes);
             if ($assignment_id) {
                 logActivity($current_user['id'], 'Added vendor assignment', 'booking_vendor_assignments', $booking_id, "Assigned vendor ID {$vendor_id_input}: {$task_description}");
-                $success_message = 'Vendor assigned successfully!';
+                $_SESSION['flash_success'] = 'Vendor assigned successfully!';
                 $new_vendor = getVendor($vendor_id_input);
                 if ($new_vendor && !empty($new_vendor['phone'])) {
-                    $new_vendor_wa_url = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking);
+                    $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking);
                 }
                 if ($new_vendor && !empty($new_vendor['email'])) {
-                    $new_vendor_email_sent = sendVendorAssignmentEmail($new_vendor['name'], $new_vendor['email'], $booking);
+                    $_SESSION['flash_vendor_email_sent'] = sendVendorAssignmentEmail($new_vendor['name'], $new_vendor['email'], $booking);
                 }
             } else {
-                $error_message = 'Failed to add vendor assignment. Please try again.';
+                $_SESSION['flash_error'] = 'Failed to add vendor assignment. Please try again.';
             }
         }
+        header('Location: view.php?id=' . urlencode($booking_id));
+        exit;
     } elseif ($action === 'update_vendor_assignment_status') {
         $assignment_id     = intval($_POST['assignment_id'] ?? 0);
         $assignment_status = trim($_POST['assignment_status'] ?? '');
 
         if ($assignment_id > 0 && updateVendorAssignmentStatus($assignment_id, $assignment_status)) {
             logActivity($current_user['id'], 'Updated vendor assignment status', 'booking_vendor_assignments', $booking_id, "Assignment {$assignment_id} status set to {$assignment_status}");
-            $success_message = 'Vendor assignment status updated.';
+            $_SESSION['flash_success'] = 'Vendor assignment status updated.';
         } else {
-            $error_message = 'Failed to update vendor assignment status.';
+            $_SESSION['flash_error'] = 'Failed to update vendor assignment status.';
         }
+        header('Location: view.php?id=' . urlencode($booking_id));
+        exit;
     } elseif ($action === 'delete_vendor_assignment') {
         $assignment_id = intval($_POST['assignment_id'] ?? 0);
 
         if ($assignment_id > 0 && deleteVendorAssignment($assignment_id)) {
             logActivity($current_user['id'], 'Deleted vendor assignment', 'booking_vendor_assignments', $booking_id, "Deleted assignment ID {$assignment_id}");
-            $success_message = 'Vendor assignment removed.';
+            $_SESSION['flash_success'] = 'Vendor assignment removed.';
         } else {
-            $error_message = 'Failed to remove vendor assignment.';
+            $_SESSION['flash_error'] = 'Failed to remove vendor assignment.';
         }
+        header('Location: view.php?id=' . urlencode($booking_id));
+        exit;
     }
 }
 
