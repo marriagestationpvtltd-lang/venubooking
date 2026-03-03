@@ -3,7 +3,7 @@ $page_title = 'Manage Vendors';
 require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 
-$stmt = $db->query("SELECT * FROM vendors ORDER BY type, name");
+$stmt = $db->query("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id ORDER BY v.type, v.name");
 $vendors = $stmt->fetchAll();
 
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
@@ -42,7 +42,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <th>Type</th>
                         <th>Phone</th>
                         <th>Email</th>
-                        <th>Location</th>
+                        <th>City</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -64,7 +64,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <td><?php echo htmlspecialchars(getVendorTypeLabel($vendor['type'])); ?></td>
                             <td><?php echo htmlspecialchars($vendor['phone'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
-                            <td><?php echo htmlspecialchars($vendor['location'] ?? '—'); ?></td>
+                            <td><?php echo htmlspecialchars($vendor['city_name'] ?? '—'); ?></td>
                             <td>
                                 <span class="badge bg-<?php echo $vendor['status'] == 'active' ? 'success' : 'secondary'; ?>">
                                     <?php echo ucfirst($vendor['status']); ?>

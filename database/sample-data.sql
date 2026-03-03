@@ -181,3 +181,15 @@ INSERT INTO booking_services (booking_id, service_id, service_name, price) VALUE
 (23, 2, 'Stage Decoration', 25000.00),
 (23, 3, 'Photography Package', 30000.00),
 (23, 8, 'Valet Parking', 10000.00);
+
+-- Insert Sample Vendors
+-- City IDs (from schema.sql default insert): 1=Kathmandu, 2=Pokhara, 3=Lalitpur (Patan), 4=Bhaktapur
+INSERT INTO vendors (name, type, phone, email, address, city_id, notes, status) VALUES
+('Pandit Ram Prasad Sharma', 'pandit', '+977 9841001001', 'ramprasad@example.com', 'Pashupatinath Road, Kathmandu', 1, 'Experienced pandit for Hindu wedding ceremonies', 'active'),
+('Shree Photography Studio', 'photographer', '+977 9851002002', 'shree.photo@example.com', 'New Road, Kathmandu', 1, 'Professional wedding and event photography', 'active'),
+('Pokhara Lens Creations', 'photographer', '+977 9861003003', 'pokharalens@example.com', 'Lakeside, Pokhara', 2, 'Scenic and artistic photography for all events', 'active'),
+('Memory Films Pvt. Ltd.', 'videographer', '+977 9871004004', 'memoryfilms@example.com', 'Jawalakhel, Lalitpur', 3, 'HD and 4K videography with drone coverage', 'active'),
+('Swarnakar Baje Party', 'baje', '+977 9881005005', NULL, 'Bhaktapur Durbar Square Area, Bhaktapur', 4, 'Traditional Newar music ensemble for weddings', 'active'),
+('Royal Decoration House', 'decoration', '+977 9801006006', 'royaldecor@example.com', 'Thamel, Kathmandu', 1, 'Premium floral and stage decoration services', 'active'),
+('Taste of Nepal Catering', 'catering', '+977 9841007007', 'taste.nepal@example.com', 'Boudha Road, Kathmandu', 1, 'Authentic Nepali and multi-cuisine catering', 'active'),
+('Himalayan Event Decor', 'decoration', '+977 9851008008', 'himalayanevents@example.com', 'Lakeside Road, Pokhara', 2, 'Elegant decoration with mountain-inspired themes', 'active');
