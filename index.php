@@ -31,6 +31,21 @@ $cities = getAllCities();
                         <form id="bookingForm" method="POST" action="booking-step2.php" novalidate>
                             <input type="hidden" id="preferred_venue_id" name="preferred_venue_id" value="">
                             <div class="mb-3">
+                                <label for="city_id" class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i> Select City <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="city_id" name="city_id" required>
+                                    <option value="">Choose a city...</option>
+                                    <?php foreach ($cities as $city): ?>
+                                        <option value="<?php echo $city['id']; ?>">
+                                            <?php echo htmlspecialchars($city['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback">Please select a city.</div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label for="shift" class="form-label">
                                     <i class="fas fa-clock"></i> Select Shift <span class="text-danger">*</span>
                                 </label>
@@ -83,21 +98,6 @@ $cities = getAllCities();
                                     <option value="Other Events">Other Events</option>
                                 </select>
                                 <div class="invalid-feedback">Please select an event type.</div>
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="city_id" class="form-label">
-                                    <i class="fas fa-map-marker-alt"></i> Select City <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select" id="city_id" name="city_id" required>
-                                    <option value="">Choose a city...</option>
-                                    <?php foreach ($cities as $city): ?>
-                                        <option value="<?php echo $city['id']; ?>">
-                                            <?php echo htmlspecialchars($city['name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="invalid-feedback">Please select a city.</div>
                             </div>
 
                             <button type="submit" class="btn btn-success btn-lg w-100">
