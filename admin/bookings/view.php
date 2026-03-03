@@ -12,14 +12,17 @@ $success_message = '';
 $error_message = '';
 $new_vendor_wa_url = '';
 $new_vendor_email_sent = false;
+$is_vendor_flash = false;
 
 // Display flash message from previous redirect (e.g., after creating a booking)
 if (!empty($_SESSION['flash_success'])) {
     $success_message = $_SESSION['flash_success'];
+    $is_vendor_flash = true;
     unset($_SESSION['flash_success']);
 }
 if (!empty($_SESSION['flash_error'])) {
     $error_message = $_SESSION['flash_error'];
+    $is_vendor_flash = true;
     unset($_SESSION['flash_error']);
 }
 if (!empty($_SESSION['flash_vendor_wa_url'])) {
@@ -229,7 +232,7 @@ if (isset($_POST['action'])) {
                 $_SESSION['flash_error'] = 'Failed to add vendor assignment. Please try again.';
             }
         }
-        header('Location: view.php?id=' . urlencode($booking_id));
+        header('Location: view.php?id=' . urlencode($booking_id) . '#vendor-assignments');
         exit;
     } elseif ($action === 'update_vendor_assignment_status') {
         $assignment_id     = intval($_POST['assignment_id'] ?? 0);
@@ -241,7 +244,7 @@ if (isset($_POST['action'])) {
         } else {
             $_SESSION['flash_error'] = 'Failed to update vendor assignment status.';
         }
-        header('Location: view.php?id=' . urlencode($booking_id));
+        header('Location: view.php?id=' . urlencode($booking_id) . '#vendor-assignments');
         exit;
     } elseif ($action === 'delete_vendor_assignment') {
         $assignment_id = intval($_POST['assignment_id'] ?? 0);
@@ -252,7 +255,7 @@ if (isset($_POST['action'])) {
         } else {
             $_SESSION['flash_error'] = 'Failed to remove vendor assignment.';
         }
-        header('Location: view.php?id=' . urlencode($booking_id));
+        header('Location: view.php?id=' . urlencode($booking_id) . '#vendor-assignments');
         exit;
     }
 }
@@ -261,24 +264,15 @@ if (isset($_POST['action'])) {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<?php if ($success_message): ?>
-    <div class="alert alert-success alert-dismissible fade show">
+<?php if ($success_message && !$is_vendor_flash): ?>
+    <div class="alert alert-success alert-dismissible fade show" id="flash-success-alert" role="alert">
         <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
-        <?php if (!empty($new_vendor_wa_url)): ?>
-            <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
-               class="btn btn-sm btn-success ms-3">
-                <i class="fab fa-whatsapp me-1"></i> Notify Vendor via WhatsApp
-            </a>
-        <?php endif; ?>
-        <?php if ($new_vendor_email_sent): ?>
-            <span class="badge bg-info ms-2"><i class="fas fa-envelope me-1"></i> Assignment email sent to vendor</span>
-        <?php endif; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
-<?php if ($error_message): ?>
-    <div class="alert alert-danger alert-dismissible fade show">
+<?php if ($error_message && !$is_vendor_flash): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -1323,12 +1317,33 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
         $vendor_assignments = getBookingVendorAssignments($booking_id);
         $all_vendors = getAvailableVendors($booking['event_date']);
         ?>
-        <div class="card shadow-sm border-0 mb-4">
+        <div class="card shadow-sm border-0 mb-4" id="vendor-assignments">
             <div class="card-header bg-white">
                 <h5 class="mb-0"><i class="fas fa-user-tie me-2"></i> Vendor Assignments</h5>
                 <small class="text-muted">Assign Pandit, Photographer, Videographer, Baje and other vendors to this booking</small>
             </div>
             <div class="card-body p-4">
+                <?php if ($is_vendor_flash && $success_message): ?>
+                <div class="alert alert-success alert-dismissible fade show" id="vendor-flash-success-alert" role="alert">
+                    <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                    <?php if (!empty($new_vendor_wa_url)): ?>
+                        <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+                           class="btn btn-sm btn-success ms-3">
+                            <i class="fab fa-whatsapp me-1"></i> Notify Vendor via WhatsApp
+                        </a>
+                    <?php endif; ?>
+                    <?php if ($new_vendor_email_sent): ?>
+                        <span class="badge bg-info ms-2"><i class="fas fa-envelope me-1"></i> Assignment email sent to vendor</span>
+                    <?php endif; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <?php endif; ?>
+                <?php if ($is_vendor_flash && $error_message): ?>
+                <div class="alert alert-danger alert-dismissible fade show" id="vendor-flash-error-alert" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <?php endif; ?>
                 <?php if (!empty($vendor_assignments)): ?>
                 <div class="table-responsive mb-3">
                     <table class="table table-bordered align-middle">
@@ -2759,6 +2774,24 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                 confirmationWhatsappForm.submit();
             }, WHATSAPP_REDIRECT_DELAY);
         });
+    }
+})();
+
+// Auto-dismiss vendor assignment flash alerts after 5 seconds
+(function() {
+    var flashAlert = document.getElementById('vendor-flash-success-alert');
+    if (flashAlert) {
+        setTimeout(function() {
+            var bsAlert = bootstrap.Alert.getOrCreateInstance(flashAlert);
+            bsAlert.close();
+        }, 5000);
+    }
+    var flashErrorAlert = document.getElementById('vendor-flash-error-alert');
+    if (flashErrorAlert) {
+        setTimeout(function() {
+            var bsAlert = bootstrap.Alert.getOrCreateInstance(flashErrorAlert);
+            bsAlert.close();
+        }, 5000);
     }
 })();
 
