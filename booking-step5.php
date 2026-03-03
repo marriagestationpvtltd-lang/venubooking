@@ -19,40 +19,62 @@ $selected_hall = $_SESSION['selected_hall'];
 $selected_menus = $_SESSION['selected_menus'] ?? [];
 $selected_services = $_SESSION['selected_services'] ?? [];
 
-// Calculate final totals
-$totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services);
+// Calculate final totals — if this fails the page cannot render correctly,
+// so redirect back to the beginning rather than showing misleading zero values.
+try {
+    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services);
+} catch (\Throwable $e) {
+    error_log('Failed to calculate booking totals: ' . $e->getMessage());
+    header('Location: index.php');
+    exit;
+}
 
 // Get menu details
 $menu_details = [];
 if (!empty($selected_menus)) {
-    $db = getDB();
-    $placeholders = str_repeat('?,', count($selected_menus) - 1) . '?';
-    $stmt = $db->prepare("SELECT * FROM menus WHERE id IN ($placeholders)");
-    $stmt->execute($selected_menus);
-    $menu_details = $stmt->fetchAll();
-    
-    // Get menu items for each menu (prepare statement once for efficiency)
-    if (!empty($menu_details)) {
-        $itemsStmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
-        foreach ($menu_details as &$menu) {
-            $itemsStmt->execute([$menu['id']]);
-            $menu['items'] = $itemsStmt->fetchAll();
+    try {
+        $db = getDB();
+        $placeholders = str_repeat('?,', count($selected_menus) - 1) . '?';
+        $stmt = $db->prepare("SELECT * FROM menus WHERE id IN ($placeholders)");
+        $stmt->execute($selected_menus);
+        $menu_details = $stmt->fetchAll();
+        
+        // Get menu items for each menu (prepare statement once for efficiency)
+        if (!empty($menu_details)) {
+            $itemsStmt = $db->prepare("SELECT item_name, category, display_order FROM menu_items WHERE menu_id = ? ORDER BY display_order, category");
+            foreach ($menu_details as &$menu) {
+                $itemsStmt->execute([$menu['id']]);
+                $menu['items'] = $itemsStmt->fetchAll();
+            }
         }
+    } catch (\Throwable $e) {
+        error_log('Failed to load menu details: ' . $e->getMessage());
+        $menu_details = [];
     }
 }
 
 // Get service details
 $service_details = [];
 if (!empty($selected_services)) {
-    $db = getDB();
-    $placeholders = str_repeat('?,', count($selected_services) - 1) . '?';
-    $stmt = $db->prepare("SELECT * FROM additional_services WHERE id IN ($placeholders)");
-    $stmt->execute($selected_services);
-    $service_details = $stmt->fetchAll();
+    try {
+        $db = getDB();
+        $placeholders = str_repeat('?,', count($selected_services) - 1) . '?';
+        $stmt = $db->prepare("SELECT * FROM additional_services WHERE id IN ($placeholders)");
+        $stmt->execute($selected_services);
+        $service_details = $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('Failed to load service details: ' . $e->getMessage());
+        $service_details = [];
+    }
 }
 
 // Get active payment methods
-$active_payment_methods = getActivePaymentMethods();
+try {
+    $active_payment_methods = getActivePaymentMethods();
+} catch (\Throwable $e) {
+    error_log('Failed to load payment methods: ' . $e->getMessage());
+    $active_payment_methods = [];
+}
 
 // Calculate advance payment
 $advance = calculateAdvancePayment($totals['grand_total']);
@@ -127,21 +149,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
     }
     
     if (empty($error)) {
-        // Create booking
-        $booking_result = createBooking([
-            'hall_id' => $selected_hall['id'],
-            'event_date' => $booking_data['event_date'],
-            'shift' => $booking_data['shift'],
-            'event_type' => $booking_data['event_type'],
-            'guests' => $booking_data['guests'],
-            'menus' => $selected_menus,
-            'services' => $selected_services,
-            'full_name' => $full_name,
-            'phone' => $phone,
-            'email' => $email,
-            'address' => $address,
-            'special_requests' => $special_requests
-        ]);
+        // Create booking — wrap in try-catch so any unexpected exception
+        // (e.g. DB connection drop) sets $error instead of producing a blank page.
+        try {
+            $booking_result = createBooking([
+                'hall_id' => $selected_hall['id'],
+                'event_date' => $booking_data['event_date'],
+                'shift' => $booking_data['shift'],
+                'event_type' => $booking_data['event_type'],
+                'guests' => $booking_data['guests'],
+                'menus' => $selected_menus,
+                'services' => $selected_services,
+                'full_name' => $full_name,
+                'phone' => $phone,
+                'email' => $email,
+                'address' => $address,
+                'special_requests' => $special_requests
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Unexpected booking error: ' . $e->getMessage());
+            $booking_result = ['success' => false, 'error' => 'Unable to complete your booking. Please try again or contact support.'];
+        }
 
         if ($booking_result['success']) {
             $booking_id = $booking_result['booking_id'];
@@ -871,24 +899,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     <?php endif; ?>
     
-    // If there was a form error, determine which step to show based on error
+    // If there was a form error, show all steps so the user can review and resubmit
     <?php if ($error): ?>
-    // Show the relevant sections based on the error - keep step context
-    var paymentWithSelected = <?php echo (isset($payment_option) && $payment_option === 'with') ? 'true' : 'false'; ?>;
-    if (paymentWithSelected) {
-        // Payment-related error - show all steps up to payment
-        customerInfoSection.style.display = 'block';
-        billSummarySection.style.display = 'block';
-        paymentOptionsSection.style.display = 'block';
-        finalButtonsSection.style.display = 'flex';
-        initialBackButton.style.display = 'none';
-        // Scroll to the payment section where the error likely occurred
-        paymentOptionsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-        // Other validation error - show customer info section
-        customerInfoSection.style.display = 'block';
-        initialBackButton.style.display = 'block';
-        customerInfoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Always restore the full multi-step UI so the submit button is visible and
+    // the error alert (which sits above the form) can be scrolled into view.
+    customerInfoSection.style.display = 'block';
+    billSummarySection.style.display = 'block';
+    paymentOptionsSection.style.display = 'block';
+    finalButtonsSection.style.display = 'flex';
+    initialBackButton.style.display = 'none';
+    // Scroll to the top of the booking section so the error alert is visible
+    var errorAlertEl = document.getElementById('errorAlert');
+    if (errorAlertEl) {
+        errorAlertEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     <?php endif; ?>
 });

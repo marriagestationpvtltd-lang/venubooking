@@ -519,12 +519,13 @@ function createBooking($data) {
     $booking_id = null;
     $booking_number = null;
 
-    // Check hall availability before attempting to create the booking
-    if (!checkHallAvailability($data['hall_id'], $data['event_date'], $data['shift'])) {
-        return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and shift. Please select a different date or hall.'];
-    }
-    
     try {
+        // Check hall availability inside the try-catch so any DB exception is
+        // caught and handled gracefully rather than producing a fatal error.
+        if (!checkHallAvailability($data['hall_id'], $data['event_date'], $data['shift'])) {
+            return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and shift. Please select a different date or hall.'];
+        }
+
         $db->beginTransaction();
         
         // Generate booking number
@@ -607,9 +608,14 @@ function createBooking($data) {
         
         $db->commit();
         
-    } catch (Exception $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
+    } catch (\Throwable $e) {
+        // Catch both Exception and PHP 7+ Error objects so no DB error can escape
+        try {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+        } catch (\Throwable $rollbackError) {
+            error_log('Booking rollback failed: ' . $rollbackError->getMessage());
         }
         error_log('Booking creation error: ' . $e->getMessage());
         return ['success' => false, 'error' => 'Unable to complete your booking. Please try again or contact support.'];
@@ -619,7 +625,7 @@ function createBooking($data) {
     // failures do not roll back or mask the successfully stored booking)
     try {
         sendBookingNotification($booking_id, 'new');
-    } catch (Exception $e) {
+    } catch (\Throwable $e) {
         error_log("Booking notification email failed for booking ID {$booking_id}: " . $e->getMessage());
     }
     
