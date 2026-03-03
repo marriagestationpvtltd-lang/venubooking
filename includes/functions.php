@@ -889,6 +889,20 @@ function getSetting($key, $default = '') {
         return $cache[$key];
     }
     
+    // Mapping of setting keys to .env variable names (fallback when DB value is empty)
+    $env_map = [
+        'email_enabled'     => 'MAIL_NOTIFICATIONS_ENABLED',
+        'email_from_name'   => 'MAIL_FROM_NAME',
+        'email_from_address'=> 'MAIL_FROM_ADDRESS',
+        'admin_email'       => 'MAIL_ADMIN_EMAIL',
+        'smtp_enabled'      => 'MAIL_SMTP_ENABLED',
+        'smtp_host'         => 'MAIL_HOST',
+        'smtp_port'         => 'MAIL_PORT',
+        'smtp_username'     => 'MAIL_USERNAME',
+        'smtp_password'     => 'MAIL_PASSWORD',
+        'smtp_encryption'   => 'MAIL_ENCRYPTION',
+    ];
+    
     try {
         // Query database
         $db = getDB();
@@ -899,11 +913,29 @@ function getSetting($key, $default = '') {
         $stmt->execute([$key]);
         $result = $stmt->fetch();
         
-        // Store in cache and return
-        $cache[$key] = $result ? $result['setting_value'] : $default;
+        $value = $result ? $result['setting_value'] : null;
+        
+        // Fall back to .env variable if DB value is empty/null and a mapping exists
+        if (($value === null || $value === '') && isset($env_map[$key])) {
+            $env_value = $_ENV[$env_map[$key]] ?? getenv($env_map[$key]);
+            if ($env_value !== false && $env_value !== null) {
+                $value = $env_value;
+            }
+        }
+        
+        // Store in cache and return (use $default if still empty)
+        $cache[$key] = ($value !== null) ? $value : $default;
         return $cache[$key];
     } catch (Exception $e) {
         error_log("Error in getSetting for key '$key': " . $e->getMessage());
+        // Fall back to .env variable on DB error
+        if (isset($env_map[$key])) {
+            $env_value = $_ENV[$env_map[$key]] ?? getenv($env_map[$key]);
+            if ($env_value !== false && $env_value !== null) {
+                $cache[$key] = $env_value;
+                return $cache[$key];
+            }
+        }
         // Return default value on error
         $cache[$key] = $default;
         return $default;
