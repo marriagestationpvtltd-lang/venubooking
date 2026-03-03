@@ -15,11 +15,12 @@ fi
 source .env
 
 # Apply migration
-mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < database/migrations/add_vendors.sql
+mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < database/migrations/add_vendors.sql && \
+mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < database/migrations/add_vendor_types_table.sql
 
 if [ $? -eq 0 ]; then
     echo "✓ Migration applied successfully!"
-    echo "The 'vendors' and 'booking_vendor_assignments' tables have been created."
+    echo "The 'vendor_types', 'vendors' and 'booking_vendor_assignments' tables have been created."
     echo ""
     echo "Next steps:"
     echo "  1. Go to Admin Panel > Vendors to add your service providers."
