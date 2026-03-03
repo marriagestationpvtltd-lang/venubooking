@@ -13,13 +13,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
         $error_message = 'Invalid request. Please try again.';
     } else {
-    $name   = trim($_POST['name']   ?? '');
-    $type   = trim($_POST['type']   ?? 'other');
-    $phone  = trim($_POST['phone']  ?? '');
-    $email  = trim($_POST['email']  ?? '');
-    $address = trim($_POST['address'] ?? '');
-    $notes  = trim($_POST['notes']  ?? '');
-    $status = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
+    $name     = trim($_POST['name']     ?? '');
+    $type     = trim($_POST['type']     ?? 'other');
+    $phone    = trim($_POST['phone']    ?? '');
+    $email    = trim($_POST['email']    ?? '');
+    $address  = trim($_POST['address']  ?? '');
+    $location = trim($_POST['location'] ?? '');
+    $notes    = trim($_POST['notes']    ?? '');
+    $status   = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
 
     if (empty($name)) {
         $error_message = 'Vendor name is required.';
@@ -29,14 +30,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please enter a valid email address.';
     } else {
         try {
-            $stmt = $db->prepare("INSERT INTO vendors (name, type, phone, email, address, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $notes ?: null, $status]);
-            $vendor_id = $db->lastInsertId();
+            $photo = null;
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['photo'], 'vendor');
+                if ($upload_result['success']) {
+                    $photo = $upload_result['filename'];
+                } else {
+                    $error_message = $upload_result['message'];
+                }
+            }
 
-            logActivity($current_user['id'], 'Added vendor', 'vendors', $vendor_id, "Added vendor: $name ($type)");
+            if (empty($error_message)) {
+                $stmt = $db->prepare("INSERT INTO vendors (name, type, phone, email, address, location, photo, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $location ?: null, $photo, $notes ?: null, $status]);
+                $vendor_id = $db->lastInsertId();
 
-            $success_message = 'Vendor added successfully!';
-            $_POST = [];
+                logActivity($current_user['id'], 'Added vendor', 'vendors', $vendor_id, "Added vendor: $name ($type)");
+
+                $success_message = 'Vendor added successfully!';
+                $_POST = [];
+            }
         } catch (Exception $e) {
             $error_message = 'Failed to add vendor. Please try again.';
         }
@@ -69,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -113,6 +126,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="col-md-4">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                   value="<?php echo htmlspecialchars($_POST['location'] ?? ''); ?>"
+                                   placeholder="e.g., Thamel, Kathmandu">
+                        </div>
+
+                        <div class="col-md-4">
                             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="status" name="status">
                                 <option value="active"   <?php echo (($_POST['status'] ?? 'active') === 'active')   ? 'selected' : ''; ?>>Active</option>
@@ -124,6 +144,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="notes" class="form-label">Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="3"
                                       placeholder="Any special notes about this vendor..."><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="photo" class="form-label">Vendor Photo</label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                            <small class="text-muted">Upload a photo for this vendor. JPG, PNG, GIF, or WebP. Max 5MB.</small>
                         </div>
                     </div>
 

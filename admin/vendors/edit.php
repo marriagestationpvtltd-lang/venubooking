@@ -26,12 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
         $error_message = 'Invalid request. Please try again.';
     } else {
-    $name    = trim($_POST['name']    ?? '');
-    $type    = trim($_POST['type']    ?? 'other');
-    $phone   = trim($_POST['phone']   ?? '');
-    $email   = trim($_POST['email']   ?? '');
-    $address = trim($_POST['address'] ?? '');
-    $notes   = trim($_POST['notes']   ?? '');
+    $name    = trim($_POST['name']     ?? '');
+    $type    = trim($_POST['type']     ?? 'other');
+    $phone   = trim($_POST['phone']    ?? '');
+    $email   = trim($_POST['email']    ?? '');
+    $address = trim($_POST['address']  ?? '');
+    $location = trim($_POST['location'] ?? '');
+    $notes   = trim($_POST['notes']    ?? '');
     $status  = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
 
     if (empty($name)) {
@@ -42,13 +43,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please enter a valid email address.';
     } else {
         try {
-            $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, phone = ?, email = ?, address = ?, notes = ?, status = ? WHERE id = ?");
-            $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $notes ?: null, $status, $vendor_id]);
+            $photo = $vendor['photo'];
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['photo'], 'vendor');
+                if ($upload_result['success']) {
+                    // Delete old photo if it exists
+                    if (!empty($vendor['photo'])) {
+                        deleteUploadedFile($vendor['photo']);
+                    }
+                    $photo = $upload_result['filename'];
+                } else {
+                    $error_message = $upload_result['message'];
+                }
+            }
 
-            logActivity($current_user['id'], 'Updated vendor', 'vendors', $vendor_id, "Updated vendor: $name ($type)");
+            if (empty($error_message)) {
+                $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, phone = ?, email = ?, address = ?, location = ?, photo = ?, notes = ?, status = ? WHERE id = ?");
+                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $location ?: null, $photo, $notes ?: null, $status, $vendor_id]);
 
-            $success_message = 'Vendor updated successfully!';
-            $vendor = getVendor($vendor_id);
+                logActivity($current_user['id'], 'Updated vendor', 'vendors', $vendor_id, "Updated vendor: $name ($type)");
+
+                $success_message = 'Vendor updated successfully!';
+                $vendor = getVendor($vendor_id);
+            }
         } catch (Exception $e) {
             $error_message = 'Failed to update vendor. Please try again.';
         }
@@ -80,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -120,6 +137,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="col-md-4">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                   value="<?php echo htmlspecialchars($vendor['location'] ?? ''); ?>"
+                                   placeholder="e.g., Thamel, Kathmandu">
+                        </div>
+
+                        <div class="col-md-4">
                             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="status" name="status">
                                 <option value="active"   <?php echo $vendor['status'] === 'active'   ? 'selected' : ''; ?>>Active</option>
@@ -130,6 +154,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-12">
                             <label for="notes" class="form-label">Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="3"><?php echo htmlspecialchars($vendor['notes'] ?? ''); ?></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="photo" class="form-label">Vendor Photo</label>
+                            <?php if (!empty($vendor['photo'])): ?>
+                                <div class="mb-2">
+                                    <img src="<?php echo htmlspecialchars(UPLOAD_URL . $vendor['photo']); ?>"
+                                         alt="Current vendor photo" class="img-thumbnail" style="max-height:120px;">
+                                    <small class="d-block text-muted mt-1">Current photo. Upload a new one to replace it.</small>
+                                </div>
+                            <?php endif; ?>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                            <small class="text-muted">JPG, PNG, GIF, or WebP. Max 5MB.</small>
                         </div>
                     </div>
 

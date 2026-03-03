@@ -37,10 +37,12 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Photo</th>
                         <th>Name</th>
                         <th>Type</th>
                         <th>Phone</th>
                         <th>Email</th>
+                        <th>Location</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -49,10 +51,20 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <?php foreach ($vendors as $vendor): ?>
                         <tr>
                             <td><?php echo $vendor['id']; ?></td>
+                            <td>
+                                <?php if (!empty($vendor['photo'])): ?>
+                                    <img src="<?php echo htmlspecialchars(UPLOAD_URL . $vendor['photo']); ?>"
+                                         alt="<?php echo htmlspecialchars($vendor['name']); ?>"
+                                         class="img-thumbnail" style="max-height:40px;max-width:40px;">
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo htmlspecialchars($vendor['name']); ?></td>
                             <td><?php echo htmlspecialchars(getVendorTypeLabel($vendor['type'])); ?></td>
                             <td><?php echo htmlspecialchars($vendor['phone'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
+                            <td><?php echo htmlspecialchars($vendor['location'] ?? '—'); ?></td>
                             <td>
                                 <span class="badge bg-<?php echo $vendor['status'] == 'active' ? 'success' : 'secondary'; ?>">
                                     <?php echo ucfirst($vendor['status']); ?>
@@ -75,7 +87,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <?php endforeach; ?>
                     <?php if (empty($vendors)): ?>
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 No vendors found. <a href="add.php">Add your first vendor</a>.
                             </td>
                         </tr>

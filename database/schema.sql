@@ -336,6 +336,8 @@ CREATE TABLE IF NOT EXISTS vendors (
     phone VARCHAR(20),
     email VARCHAR(100),
     address TEXT,
+    location VARCHAR(255) DEFAULT NULL,
+    photo VARCHAR(255) DEFAULT NULL,
     notes TEXT,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
