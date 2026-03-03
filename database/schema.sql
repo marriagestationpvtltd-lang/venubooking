@@ -3,11 +3,22 @@
 -- For command line: mysql -u username -p database_name < database/schema.sql
 -- For phpMyAdmin: Select your database first, then import this file
 
+-- Table: cities
+CREATE TABLE cities (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Table: venues
 CREATE TABLE venues (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
+    city_id INT NULL,
     address TEXT,
     description TEXT,
     image VARCHAR(255),
@@ -15,7 +26,8 @@ CREATE TABLE venues (
     contact_email VARCHAR(100),
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: halls
@@ -226,6 +238,24 @@ CREATE TABLE site_images (
     INDEX idx_status (status),
     INDEX idx_display_order (display_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insert default cities (Nepal)
+INSERT INTO cities (name, status) VALUES
+('Kathmandu', 'active'),
+('Pokhara', 'active'),
+('Lalitpur (Patan)', 'active'),
+('Bhaktapur', 'active'),
+('Biratnagar', 'active'),
+('Birgunj', 'active'),
+('Butwal', 'active'),
+('Dharan', 'active'),
+('Hetauda', 'active'),
+('Itahari', 'active'),
+('Janakpur', 'active'),
+('Nepalgunj', 'active'),
+('Bharatpur', 'active'),
+('Dhangadhi', 'active'),
+('Tulsipur', 'active');
 
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
