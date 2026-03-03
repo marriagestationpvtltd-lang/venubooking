@@ -113,6 +113,14 @@ if (isset($_POST['action'])) {
         } else {
             $error_message = 'Customer phone number not found. Cannot send WhatsApp message.';
         }
+    } elseif ($action === 'send_booking_confirmation_whatsapp') {
+        // Send booking confirmation via WhatsApp (after advance payment received)
+        if (!empty($booking['phone'])) {
+            $success_message = 'Opening WhatsApp to send booking confirmation...';
+            logActivity($current_user['id'], 'Initiated WhatsApp booking confirmation', 'bookings', $booking_id, "WhatsApp booking confirmation initiated for booking: {$booking['booking_number']}");
+        } else {
+            $error_message = 'Customer phone number not found. Cannot send WhatsApp message.';
+        }
     } elseif ($action === 'update_status') {
         // Handle quick status update
         $new_booking_status = trim($_POST['booking_status'] ?? '');
@@ -639,6 +647,35 @@ if (!empty($whatsapp_payment_methods)) {
 }
 
 $whatsapp_text .= "Thank you!";
+
+// Build booking confirmation WhatsApp message (shown after advance payment is received)
+$booking_confirmation_vendors = getBookingVendorAssignments($booking_id);
+$site_name_wa = !empty($company_name) ? $company_name : getSetting('site_name', 'Venue Booking System');
+
+$confirmation_text = "✅ *Booking Confirmation*\n\n";
+$confirmation_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
+$confirmation_text .= "We are pleased to confirm your booking with " . strip_tags($site_name_wa) . ". Please find your booking details below:\n\n";
+$confirmation_text .= "Booking Status: *Confirmed* ✅\n";
+$confirmation_text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
+$confirmation_text .= "Booking Date: " . date('F d, Y', strtotime($booking['created_at'])) . "\n";
+$confirmation_text .= "Program Date: " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
+$confirmation_text .= "Event Type: " . strip_tags($booking['event_type']) . "\n\n";
+$confirmation_text .= "🏛️ *Venue Details*\n";
+$confirmation_text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
+$confirmation_text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+if (!empty($booking['map_link'])) {
+    $confirmation_text .= "Google Map: " . strip_tags($booking['map_link']) . "\n";
+}
+if (!empty($booking_confirmation_vendors)) {
+    $confirmation_text .= "\n👥 *Assigned Vendors*\n";
+    foreach ($booking_confirmation_vendors as $va) {
+        $confirmation_text .= getVendorTypeLabel($va['vendor_type']) . " Name: " . strip_tags($va['vendor_name']) . "\n";
+        if (!empty($va['vendor_phone'])) {
+            $confirmation_text .= getVendorTypeLabel($va['vendor_type']) . " Phone: " . strip_tags($va['vendor_phone']) . "\n";
+        }
+    }
+}
+$confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 ?>
 <div class="row mb-4">
     <div class="col-12">
@@ -711,9 +748,30 @@ $whatsapp_text .= "Thank you!";
                         </div>
                     </div>
 
-                    <!-- Send Payment Request -->
+                    <!-- Send Payment Request / Booking Confirmation -->
                     <div class="col-lg-4 col-md-12">
                         <div class="quick-check-item h-100">
+                            <?php if ($booking['advance_payment_received'] === 1): ?>
+                            <!-- Booking Confirmation (shown after advance payment received) -->
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span class="fw-bold small text-uppercase text-muted">Booking Confirmation</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <form method="POST" action="" id="confirmationWhatsappForm" class="flex-fill">
+                                    <input type="hidden" name="action" value="send_booking_confirmation_whatsapp">
+                                    <button type="submit" class="btn btn-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
+                                        <i class="fab fa-whatsapp me-1"></i> ✅ Booking Confirmation
+                                    </button>
+                                </form>
+                            </div>
+                            <?php if (empty($booking['phone'])): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> Phone not available
+                                </small>
+                            <?php endif; ?>
+                            <?php else: ?>
+                            <!-- Send Payment Request (shown before advance payment received) -->
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-paper-plane text-info me-2"></i>
                                 <span class="fw-bold small text-uppercase text-muted">Send Payment Request</span>
@@ -744,6 +802,7 @@ $whatsapp_text .= "Thank you!";
                                 <small class="text-muted d-block mt-2">
                                     <i class="fas fa-info-circle me-1"></i> Phone not available
                                 </small>
+                            <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -2539,6 +2598,23 @@ $whatsapp_text .= "Thank you!";
             // Submit the form to log the activity
             setTimeout(function() {
                 whatsappForm.submit();
+            }, WHATSAPP_REDIRECT_DELAY);
+        });
+    }
+
+    // Handle Booking Confirmation WhatsApp form submission
+    const confirmationWhatsappForm = document.getElementById('confirmationWhatsappForm');
+    if (confirmationWhatsappForm) {
+        confirmationWhatsappForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const phone = <?php echo json_encode($clean_phone); ?>;
+            const message = <?php echo json_encode($confirmation_text); ?>;
+            const whatsappUrl = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+            window.open(whatsappUrl, '_blank');
+
+            setTimeout(function() {
+                confirmationWhatsappForm.submit();
             }, WHATSAPP_REDIRECT_DELAY);
         });
     }
