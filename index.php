@@ -358,10 +358,15 @@ if (!empty($work_photos)):
         </div>
 
         <div class="text-center mt-3 text-muted small">
-            <i class="fas fa-pause-circle"></i> Hover or touch to pause slideshow
+            <i class="fas fa-pause-circle"></i> Hover or touch to pause &bull; Press and hold any photo to view it larger
         </div>
     </div>
 </section>
+
+<!-- Lightbox overlay for Our Work gallery (press-and-hold to preview) -->
+<div id="workLightbox" class="work-lightbox" role="dialog" aria-modal="true" aria-label="Full size preview">
+    <img id="workLightboxImg" src="" alt="" class="work-lightbox-img" draggable="false">
+</div>
 <?php endif; ?>
 
 <?php
@@ -798,6 +803,91 @@ document.addEventListener("DOMContentLoaded", function() {
     track.addEventListener("touchmove", function(e) {
         track.scrollLeft = touchScrollLeft - (e.touches[0].pageX - touchStartX);
     }, { passive: true });
+
+    // ── Lightbox: press-and-hold to preview ──
+    var lightbox = document.getElementById("workLightbox");
+    var lightboxImg = document.getElementById("workLightboxImg");
+    var lbActive = false;
+    var lbStartX = 0, lbStartY = 0;
+    var LB_DRAG_THRESHOLD = 10; // pixels – more means drag, skip lightbox
+
+    function showLightbox(src, alt) {
+        lightboxImg.src = src;
+        lightboxImg.alt = alt || "";
+        lightbox.classList.add("active");
+        lbActive = true;
+    }
+
+    function hideLightbox() {
+        if (!lbActive) return;
+        lightbox.classList.remove("active");
+        lightboxImg.src = "";
+        lbActive = false;
+    }
+
+    // Use event delegation so cloned cards are covered too
+    track.addEventListener("mousedown", function(e) {
+        if (e.button !== 0) return;
+        var card = e.target.closest(".work-gallery-card");
+        if (!card) return;
+        var img = card.querySelector(".work-gallery-img");
+        if (!img) return;
+        lbStartX = e.pageX;
+        lbStartY = e.pageY;
+        showLightbox(img.src, img.alt);
+    });
+
+    document.addEventListener("mousemove", function(e) {
+        if (!lbActive) return;
+        if (Math.abs(e.pageX - lbStartX) > LB_DRAG_THRESHOLD ||
+            Math.abs(e.pageY - lbStartY) > LB_DRAG_THRESHOLD) {
+            hideLightbox();
+        }
+    });
+
+    document.addEventListener("mouseup", function() {
+        hideLightbox();
+    });
+
+    // Touch press-and-hold (delayed to avoid conflicting with scroll)
+    var lbTouchTimer = null;
+    var lbTouchStartX = 0, lbTouchStartY = 0;
+    track.addEventListener("touchstart", function(e) {
+        var card = e.target.closest(".work-gallery-card");
+        if (!card) return;
+        var img = card.querySelector(".work-gallery-img");
+        if (!img) return;
+        lbTouchStartX = e.touches[0].pageX;
+        lbTouchStartY = e.touches[0].pageY;
+        var src = img.src, alt = img.alt;
+        lbTouchTimer = setTimeout(function() { showLightbox(src, alt); }, 300);
+    }, { passive: true });
+
+    document.addEventListener("touchmove", function(e) {
+        if (lbTouchTimer &&
+            (Math.abs(e.touches[0].pageX - lbTouchStartX) > LB_DRAG_THRESHOLD ||
+             Math.abs(e.touches[0].pageY - lbTouchStartY) > LB_DRAG_THRESHOLD)) {
+            clearTimeout(lbTouchTimer);
+            lbTouchTimer = null;
+        }
+        if (!lbActive) return;
+        if (Math.abs(e.touches[0].pageX - lbTouchStartX) > LB_DRAG_THRESHOLD ||
+            Math.abs(e.touches[0].pageY - lbTouchStartY) > LB_DRAG_THRESHOLD) {
+            hideLightbox();
+        }
+    }, { passive: true });
+
+    function cancelTouchLightbox() {
+        if (lbTouchTimer) { clearTimeout(lbTouchTimer); lbTouchTimer = null; }
+        hideLightbox();
+    }
+    document.addEventListener("touchend", cancelTouchLightbox, { passive: true });
+    document.addEventListener("touchcancel", cancelTouchLightbox, { passive: true });
+
+    // Close on Escape key
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") hideLightbox();
+    });
 })();
 </script>
 ';
