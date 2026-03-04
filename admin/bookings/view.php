@@ -539,21 +539,7 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                         </tr>
                     <?php endif; ?>
                     
-                    <!-- Subtotal (hall + menus + services, before vendors) -->
-                    <tr class="subtotal-row">
-                        <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
-                        <td class="text-right"><strong><?php echo number_format($booking['subtotal'], 2); ?></strong></td>
-                    </tr>
-                    
-                    <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
-                    <!-- Tax -->
-                    <tr>
-                        <td colspan="3" class="text-right">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</td>
-                        <td class="text-right"><?php echo number_format($booking['tax_amount'], 2); ?></td>
-                    </tr>
-                    <?php endif; ?>
-                    
-                    <!-- Vendor Assignments (added after subtotal/tax since vendors are not part of subtotal) -->
+                    <!-- Vendor Assignments (included in subtotal) -->
                     <?php
                     $invoice_vendors_total = 0;
                     $active_vendor_assignments = [];
@@ -581,6 +567,20 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                             <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
                         </tr>
                         <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <!-- Subtotal (hall + menus + services + vendors) -->
+                    <tr class="subtotal-row">
+                        <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
+                        <td class="text-right"><strong><?php echo number_format($booking['subtotal'], 2); ?></strong></td>
+                    </tr>
+                    
+                    <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
+                    <!-- Tax -->
+                    <tr>
+                        <td colspan="3" class="text-right">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</td>
+                        <td class="text-right"><?php echo number_format($booking['tax_amount'], 2); ?></td>
+                    </tr>
                     <?php endif; ?>
                     
                     <!-- Grand Total -->
