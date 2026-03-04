@@ -45,6 +45,7 @@ DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS settings;
 DROP TABLE IF EXISTS site_images;
 DROP TABLE IF EXISTS booking_vendor_assignments;
+DROP TABLE IF EXISTS vendor_photos;
 DROP TABLE IF EXISTS vendors;
 DROP TABLE IF EXISTS vendor_types;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -404,14 +405,29 @@ CREATE TABLE vendors (
     phone VARCHAR(20),
     email VARCHAR(100),
     address TEXT,
-    location VARCHAR(255) DEFAULT NULL,
+    city_id INT NULL,
     photo VARCHAR(255) DEFAULT NULL,
     notes TEXT,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL,
     INDEX idx_type (type),
     INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: vendor_photos (multiple photos per vendor)
+-- ============================================================================
+CREATE TABLE vendor_photos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    vendor_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    is_primary BOOLEAN DEFAULT 0,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+    INDEX idx_vendor_id (vendor_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
