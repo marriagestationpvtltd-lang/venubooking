@@ -2523,6 +2523,36 @@ function getVendor($vendor_id) {
 }
 
 /**
+ * Get all photos for a vendor from the vendor_photos table
+ *
+ * @param int $vendor_id
+ * @return array
+ */
+function getVendorPhotos($vendor_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("SELECT id, image_path, is_primary, display_order FROM vendor_photos WHERE vendor_id = ? ORDER BY is_primary DESC, display_order ASC, id ASC");
+        $stmt->execute([intval($vendor_id)]);
+        $rows = $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+    $photos = [];
+    foreach ($rows as $row) {
+        $safe_filename = !empty($row['image_path']) ? basename($row['image_path']) : '';
+        if (!empty($safe_filename) && preg_match(SAFE_FILENAME_PATTERN, $safe_filename)
+            && file_exists(UPLOAD_PATH . $safe_filename)) {
+            $photos[] = [
+                'id'         => $row['id'],
+                'image_path' => $safe_filename,
+                'is_primary' => $row['is_primary'],
+            ];
+        }
+    }
+    return $photos;
+}
+
+/**
  * Get vendor assignments for a booking
  *
  * @param int $booking_id

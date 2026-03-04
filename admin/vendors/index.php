@@ -37,7 +37,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Photo</th>
+                        <th>Photos</th>
                         <th>Name</th>
                         <th>Type</th>
                         <th>Phone</th>
@@ -49,13 +49,34 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 </thead>
                 <tbody>
                     <?php foreach ($vendors as $vendor): ?>
+                        <?php $vendor_photos = getVendorPhotos($vendor['id']); ?>
                         <tr>
                             <td><?php echo $vendor['id']; ?></td>
-                            <td>
-                                <?php if (!empty($vendor['photo'])): ?>
-                                    <img src="<?php echo htmlspecialchars(UPLOAD_URL . $vendor['photo']); ?>"
-                                         alt="<?php echo htmlspecialchars($vendor['name']); ?>"
-                                         class="img-thumbnail" style="max-height:40px;max-width:40px;">
+                            <td style="min-width:80px;">
+                                <?php if (!empty($vendor_photos)): ?>
+                                    <?php $carousel_id = 'vc_' . $vendor['id']; ?>
+                                    <div id="<?php echo $carousel_id; ?>" class="carousel slide vendor-carousel" data-bs-ride="carousel" style="width:72px;">
+                                        <div class="carousel-inner">
+                                            <?php foreach ($vendor_photos as $pi => $vp): ?>
+                                                <div class="carousel-item<?php echo $pi === 0 ? ' active' : ''; ?>">
+                                                    <img src="<?php echo htmlspecialchars(UPLOAD_URL . $vp['image_path']); ?>"
+                                                         alt="<?php echo htmlspecialchars($vendor['name']); ?>"
+                                                         style="width:72px;height:72px;object-fit:cover;border-radius:6px;">
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <?php if (count($vendor_photos) > 1): ?>
+                                            <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="prev" style="width:20px;">
+                                                <span class="carousel-control-prev-icon" style="width:12px;height:12px;"></span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="next" style="width:20px;">
+                                                <span class="carousel-control-next-icon" style="width:12px;height:12px;"></span>
+                                            </button>
+                                            <div class="text-center mt-1">
+                                                <small class="text-muted"><?php echo count($vendor_photos); ?> photos</small>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 <?php else: ?>
                                     <span class="text-muted">—</span>
                                 <?php endif; ?>
@@ -98,4 +119,17 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     </div>
 </div>
 
+<style>
+.vendor-carousel .carousel-control-prev,
+.vendor-carousel .carousel-control-next {
+    background: rgba(0,0,0,0.4);
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 20px;
+    width: 20px;
+}
+</style>
+
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
+

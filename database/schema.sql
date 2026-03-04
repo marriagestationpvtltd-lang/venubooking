@@ -369,6 +369,18 @@ CREATE TABLE IF NOT EXISTS vendors (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Table: vendor_photos (multi-photo support for vendors)
+CREATE TABLE IF NOT EXISTS vendor_photos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    vendor_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    is_primary BOOLEAN DEFAULT 0,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+    INDEX idx_vendor_id (vendor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Table: booking_vendor_assignments (assigns vendors to specific tasks within a booking)
 CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
     id INT PRIMARY KEY AUTO_INCREMENT,
