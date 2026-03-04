@@ -161,6 +161,7 @@ CREATE TABLE hall_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     menu_id INT NOT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
