@@ -821,28 +821,17 @@ footer a:hover {
     flex-wrap: nowrap;
     gap: 1rem;
     overflow-x: auto;
-    scroll-behavior: smooth;
     cursor: grab;
     padding-bottom: 0.5rem;
-    /* hide scrollbar on most browsers */
-    scrollbar-width: thin;
-    scrollbar-color: #28a745 #dee2e6;
+    /* hide scrollbar – navigation is handled by auto-scroll */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
     user-select: none;
 }
 
 .work-gallery-track::-webkit-scrollbar {
-    height: 6px;
-}
-
-.work-gallery-track::-webkit-scrollbar-track {
-    background: #dee2e6;
-    border-radius: 3px;
-}
-
-.work-gallery-track::-webkit-scrollbar-thumb {
-    background: #28a745;
-    border-radius: 3px;
+    display: none;
 }
 
 .work-gallery-track.work-gallery-grabbing {
