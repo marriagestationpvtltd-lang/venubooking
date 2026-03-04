@@ -28,16 +28,16 @@ $service_categories = getServicePackagesByCategory();
                 </div>
                 <div class="col-lg-6 order-lg-2 order-1">
                     <div class="booking-card">
-                        <h4 class="text-center mb-4 text-success">
+                        <h4 class="text-center mb-3 text-success">
                             <i class="fas fa-calendar-check"></i> Start Your Booking
                         </h4>
                         <form id="bookingForm" method="POST" action="booking-step2.php" novalidate>
                             <input type="hidden" id="preferred_venue_id" name="preferred_venue_id" value="">
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="city_id" class="form-label">
                                     <i class="fas fa-map-marker-alt"></i> Select City <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-select" id="city_id" name="city_id" required>
+                                <select class="form-select form-select-sm" id="city_id" name="city_id" required>
                                     <option value="">Choose a city...</option>
                                     <?php foreach ($cities as $city): ?>
                                         <option value="<?php echo $city['id']; ?>">
@@ -48,11 +48,11 @@ $service_categories = getServicePackagesByCategory();
                                 <div class="invalid-feedback">Please select a city.</div>
                             </div>
 
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="shift" class="form-label">
                                     <i class="fas fa-clock"></i> Select Shift <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-select" id="shift" name="shift" required>
+                                <select class="form-select form-select-sm" id="shift" name="shift" required>
                                     <option value="">Choose a shift...</option>
                                     <option value="morning">Morning (6:00 AM - 12:00 PM)</option>
                                     <option value="afternoon">Afternoon (12:00 PM - 6:00 PM)</option>
@@ -62,11 +62,11 @@ $service_categories = getServicePackagesByCategory();
                                 <div class="invalid-feedback">Please select a shift.</div>
                             </div>
 
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="event_date" class="form-label">
                                     <i class="fas fa-calendar"></i> Event Date <span class="text-danger">*</span>
                                 </label>
-                                <div class="input-group">
+                                <div class="input-group input-group-sm">
                                     <input type="text" class="form-control" id="event_date" name="event_date" 
                                            readonly placeholder="Select event date (Click to open calendar)" required>
                                     <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Toggle between BS/AD calendar">
@@ -79,20 +79,20 @@ $service_categories = getServicePackagesByCategory();
                                 <div class="invalid-feedback">Please select an event date.</div>
                             </div>
 
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="guests" class="form-label">
                                     <i class="fas fa-users"></i> Number of Guests <span class="text-danger">*</span>
                                 </label>
-                                <input type="number" class="form-control" id="guests" name="guests" 
+                                <input type="number" class="form-control form-control-sm" id="guests" name="guests" 
                                        min="10" max="10000" placeholder="Enter number of guests (minimum 10)" required>
                                 <div class="invalid-feedback">Please enter number of guests (minimum 10).</div>
                             </div>
 
-                            <div class="mb-4">
+                            <div class="mb-3">
                                 <label for="event_type" class="form-label">
                                     <i class="fas fa-tag"></i> Event Type <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-select" id="event_type" name="event_type" required>
+                                <select class="form-select form-select-sm" id="event_type" name="event_type" required>
                                     <option value="">Choose event type...</option>
                                     <option value="Wedding">Wedding</option>
                                     <option value="Birthday Party">Birthday Party</option>
@@ -103,7 +103,7 @@ $service_categories = getServicePackagesByCategory();
                                 <div class="invalid-feedback">Please select an event type.</div>
                             </div>
 
-                            <button type="submit" class="btn btn-success btn-lg w-100">
+                            <button type="submit" class="btn btn-success w-100">
                                 <i class="fas fa-arrow-right"></i> ONLINE BOOKING
                             </button>
                         </form>
