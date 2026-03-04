@@ -2807,23 +2807,7 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
     }
 })();
 
-// Auto-dismiss vendor assignment flash alerts after 5 seconds
-(function() {
-    var flashAlert = document.getElementById('vendor-flash-success-alert');
-    if (flashAlert) {
-        setTimeout(function() {
-            var bsAlert = bootstrap.Alert.getOrCreateInstance(flashAlert);
-            bsAlert.close();
-        }, 5000);
-    }
-    var flashErrorAlert = document.getElementById('vendor-flash-error-alert');
-    if (flashErrorAlert) {
-        setTimeout(function() {
-            var bsAlert = bootstrap.Alert.getOrCreateInstance(flashErrorAlert);
-            bsAlert.close();
-        }, 5000);
-    }
-})();
+
 
 </script>
 

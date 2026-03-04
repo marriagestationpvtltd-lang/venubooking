@@ -36,6 +36,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notes   = trim($_POST['notes']    ?? '');
     $status  = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
 
+    // Handle photo deletions
+    $delete_photo_ids = isset($_POST['delete_photos']) ? array_map('intval', (array)$_POST['delete_photos']) : [];
+    if (!empty($delete_photo_ids)) {
+        foreach ($delete_photo_ids as $photo_id) {
+            $del_stmt = $db->prepare("SELECT image_path FROM vendor_photos WHERE id = ? AND vendor_id = ?");
+            $del_stmt->execute([$photo_id, $vendor_id]);
+            $del_photo = $del_stmt->fetch();
+            if ($del_photo) {
+                deleteUploadedFile($del_photo['image_path']);
+                $db->prepare("DELETE FROM vendor_photos WHERE id = ? AND vendor_id = ?")->execute([$photo_id, $vendor_id]);
+            }
+        }
+    }
+
     if (empty($name)) {
         $error_message = 'Vendor name is required.';
     } elseif (!in_array($type, array_column($vendor_types, 'slug'), true)) {
@@ -44,23 +58,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please enter a valid email address.';
     } else {
         try {
-            $photo = $vendor['photo'];
-            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-                $upload_result = handleImageUpload($_FILES['photo'], 'vendor');
-                if ($upload_result['success']) {
-                    // Delete old photo if it exists
-                    if (!empty($vendor['photo'])) {
-                        deleteUploadedFile($vendor['photo']);
+            // Handle new photo uploads
+            if (isset($_FILES['photos']) && is_array($_FILES['photos']['error'])) {
+                $existing_count = count(getVendorPhotos($vendor_id));
+                $file_count = count($_FILES['photos']['error']);
+                for ($i = 0; $i < $file_count; $i++) {
+                    if ($_FILES['photos']['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
+                    $single_file = [
+                        'name'     => $_FILES['photos']['name'][$i],
+                        'type'     => $_FILES['photos']['type'][$i],
+                        'tmp_name' => $_FILES['photos']['tmp_name'][$i],
+                        'error'    => $_FILES['photos']['error'][$i],
+                        'size'     => $_FILES['photos']['size'][$i],
+                    ];
+                    $upload_result = handleImageUpload($single_file, 'vendor');
+                    if ($upload_result['success']) {
+                        $is_primary = ($existing_count === 0 && $i === 0) ? 1 : 0;
+                        $photo_stmt = $db->prepare("INSERT INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VALUES (?, ?, ?, ?)");
+                        $photo_stmt->execute([$vendor_id, $upload_result['filename'], $is_primary, $existing_count + $i]);
+                    } else {
+                        $error_message = $upload_result['message'];
+                        break;
                     }
-                    $photo = $upload_result['filename'];
-                } else {
-                    $error_message = $upload_result['message'];
                 }
             }
 
             if (empty($error_message)) {
-                $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, phone = ?, email = ?, address = ?, city_id = ?, photo = ?, notes = ?, status = ? WHERE id = ?");
-                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $photo, $notes ?: null, $status, $vendor_id]);
+                $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, phone = ?, email = ?, address = ?, city_id = ?, photo = NULL, notes = ?, status = ? WHERE id = ?");
+                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $notes ?: null, $status, $vendor_id]);
 
                 logActivity($current_user['id'], 'Updated vendor', 'vendors', $vendor_id, "Updated vendor: $name ($type)");
 
@@ -164,16 +189,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="col-12">
-                            <label for="photo" class="form-label">Vendor Photo</label>
-                            <?php if (!empty($vendor['photo'])): ?>
+                            <label class="form-label">Vendor Photos</label>
+                            <?php $existing_photos = getVendorPhotos($vendor_id); ?>
+                            <?php if (!empty($existing_photos)): ?>
                                 <div class="mb-2">
-                                    <img src="<?php echo htmlspecialchars(UPLOAD_URL . $vendor['photo']); ?>"
-                                         alt="Current vendor photo" class="img-thumbnail" style="max-height:120px;">
-                                    <small class="d-block text-muted mt-1">Current photo. Upload a new one to replace it.</small>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <?php foreach ($existing_photos as $photo): ?>
+                                            <div class="position-relative">
+                                                <img src="<?php echo htmlspecialchars(UPLOAD_URL . $photo['image_path']); ?>"
+                                                     alt="Vendor photo"
+                                                     style="width:100px;height:100px;object-fit:cover;border-radius:6px;border:2px solid <?php echo $photo['is_primary'] ? '#4CAF50' : '#dee2e6'; ?>">
+                                                <?php if ($photo['is_primary']): ?>
+                                                    <span class="badge bg-success position-absolute top-0 start-0" style="font-size:0.65rem;">Primary</span>
+                                                <?php endif; ?>
+                                                <div class="form-check position-absolute bottom-0 end-0 p-1" style="background:rgba(255,255,255,0.8);border-radius:4px;">
+                                                    <input class="form-check-input" type="checkbox"
+                                                           name="delete_photos[]"
+                                                           value="<?php echo $photo['id']; ?>"
+                                                           id="del_photo_<?php echo $photo['id']; ?>">
+                                                    <label class="form-check-label text-danger" for="del_photo_<?php echo $photo['id']; ?>" style="font-size:0.7rem;">Del</label>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <small class="d-block text-muted mt-1">Check "Del" on any photo to delete it. Upload new photos below.</small>
                                 </div>
                             <?php endif; ?>
-                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
-                            <small class="text-muted">JPG, PNG, GIF, or WebP. Max 5MB.</small>
+                            <input type="file" class="form-control" id="photos" name="photos[]" accept="image/*" multiple>
+                            <small class="text-muted">JPG, PNG, GIF, or WebP. Max 5MB each. You can select multiple files.</small>
                         </div>
                     </div>
 

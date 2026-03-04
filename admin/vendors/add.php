@@ -31,20 +31,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please enter a valid email address.';
     } else {
         try {
-            $photo = null;
-            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-                $upload_result = handleImageUpload($_FILES['photo'], 'vendor');
-                if ($upload_result['success']) {
-                    $photo = $upload_result['filename'];
-                } else {
-                    $error_message = $upload_result['message'];
+            $photos_saved = [];
+            if (isset($_FILES['photos']) && is_array($_FILES['photos']['error'])) {
+                $file_count = count($_FILES['photos']['error']);
+                for ($i = 0; $i < $file_count; $i++) {
+                    if ($_FILES['photos']['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
+                    $single_file = [
+                        'name'     => $_FILES['photos']['name'][$i],
+                        'type'     => $_FILES['photos']['type'][$i],
+                        'tmp_name' => $_FILES['photos']['tmp_name'][$i],
+                        'error'    => $_FILES['photos']['error'][$i],
+                        'size'     => $_FILES['photos']['size'][$i],
+                    ];
+                    $upload_result = handleImageUpload($single_file, 'vendor');
+                    if ($upload_result['success']) {
+                        $photos_saved[] = $upload_result['filename'];
+                    } else {
+                        $error_message = $upload_result['message'];
+                        break;
+                    }
                 }
             }
 
             if (empty($error_message)) {
-                $stmt = $db->prepare("INSERT INTO vendors (name, type, phone, email, address, city_id, photo, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $photo, $notes ?: null, $status]);
+                $stmt = $db->prepare("INSERT INTO vendors (name, type, phone, email, address, city_id, photo, notes, status) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)");
+                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $notes ?: null, $status]);
                 $vendor_id = $db->lastInsertId();
+
+                // Save uploaded photos to vendor_photos table
+                foreach ($photos_saved as $idx => $photo_filename) {
+                    $is_primary = ($idx === 0) ? 1 : 0;
+                    $photo_stmt = $db->prepare("INSERT INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VALUES (?, ?, ?, ?)");
+                    $photo_stmt->execute([$vendor_id, $photo_filename, $is_primary, $idx]);
+                }
 
                 logActivity($current_user['id'], 'Added vendor', 'vendors', $vendor_id, "Added vendor: $name ($type)");
 
@@ -154,9 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="col-12">
-                            <label for="photo" class="form-label">Vendor Photo</label>
-                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
-                            <small class="text-muted">Upload a photo for this vendor. JPG, PNG, GIF, or WebP. Max 5MB.</small>
+                            <label for="photos" class="form-label">Vendor Photos</label>
+                            <input type="file" class="form-control" id="photos" name="photos[]" accept="image/*" multiple>
+                            <small class="text-muted">Upload one or more photos. JPG, PNG, GIF, or WebP. Max 5MB each.</small>
                         </div>
                     </div>
 
