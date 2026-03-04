@@ -32,6 +32,7 @@ DROP TABLE IF EXISTS activity_logs;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS booking_payment_methods;
 DROP TABLE IF EXISTS payment_methods;
+DROP TABLE IF EXISTS booking_vendor_assignments;
 DROP TABLE IF EXISTS booking_services;
 DROP TABLE IF EXISTS booking_menus;
 DROP TABLE IF EXISTS bookings;
@@ -40,6 +41,9 @@ DROP TABLE IF EXISTS hall_menus;
 DROP TABLE IF EXISTS menu_items;
 DROP TABLE IF EXISTS menus;
 DROP TABLE IF EXISTS additional_services;
+DROP TABLE IF EXISTS vendor_photos;
+DROP TABLE IF EXISTS vendors;
+DROP TABLE IF EXISTS vendor_types;
 DROP TABLE IF EXISTS hall_images;
 DROP TABLE IF EXISTS venue_images;
 DROP TABLE IF EXISTS halls;
@@ -380,6 +384,77 @@ CREATE TABLE site_images (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: vendor_types (admin-managed vendor type definitions)
+-- ============================================================================
+CREATE TABLE vendor_types (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    slug VARCHAR(100) NOT NULL UNIQUE COMMENT 'Stored in vendors.type column',
+    label VARCHAR(255) NOT NULL COMMENT 'Human-readable display name',
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: vendors (service providers assigned to bookings)
+-- ============================================================================
+CREATE TABLE vendors (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(100) NOT NULL DEFAULT 'other',
+    short_description VARCHAR(500) DEFAULT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    address TEXT,
+    city_id INT NULL,
+    photo VARCHAR(255) DEFAULT NULL,
+    notes TEXT,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL,
+    INDEX idx_type (type),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: vendor_photos (multiple photos per vendor)
+-- ============================================================================
+CREATE TABLE vendor_photos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    vendor_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    is_primary BOOLEAN DEFAULT 0,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+    INDEX idx_vendor_id (vendor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: booking_vendor_assignments (assigns vendors to specific tasks within a booking)
+-- ============================================================================
+CREATE TABLE booking_vendor_assignments (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    vendor_id INT NOT NULL,
+    task_description VARCHAR(255) NOT NULL COMMENT 'What the vendor will do for this booking',
+    assigned_amount DECIMAL(10, 2) DEFAULT 0.00 COMMENT 'Amount to be paid to vendor',
+    notes TEXT,
+    status ENUM('assigned', 'confirmed', 'completed', 'cancelled') DEFAULT 'assigned',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE RESTRICT,
+    INDEX idx_booking_id (booking_id),
+    INDEX idx_vendor_id (vendor_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- INSERT DEFAULT ADMIN USER AND ESSENTIAL SETTINGS
 -- ============================================================================
 
@@ -463,6 +538,19 @@ Business Hours: [Your Business Hours]
 Contact: [Your Phone Number]
 
 Please bring your booking reference number when making payment.', 'inactive', 4);
+
+-- Insert default vendor types
+INSERT INTO vendor_types (slug, label, display_order) VALUES
+('photographer', 'Photographer', 1),
+('videographer', 'Videographer', 2),
+('decorator', 'Decorator / Florist', 3),
+('catering', 'Catering Service', 4),
+('music', 'Music / DJ / Band', 5),
+('lighting', 'Lighting & Sound', 6),
+('makeup', 'Makeup Artist', 7),
+('transport', 'Transportation', 8),
+('security', 'Security Service', 9),
+('other', 'Other', 10);
 
 -- ============================================================================
 -- INSTALLATION COMPLETE
