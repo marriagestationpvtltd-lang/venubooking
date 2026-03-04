@@ -806,6 +806,46 @@ footer a:hover {
     }
 }
 
+/* ===== Service Package Category Auto-Slider ===== */
+.pkg-slider-wrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.pkg-slider-track {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1.25rem;
+    overflow-x: auto;
+    cursor: grab;
+    padding-bottom: 0.75rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    user-select: none;
+}
+
+.pkg-slider-track::-webkit-scrollbar {
+    display: none;
+}
+
+.pkg-slider-track.pkg-slider-grabbing {
+    cursor: grabbing;
+    scroll-behavior: auto;
+}
+
+.pkg-slider-card {
+    flex: 0 0 300px;
+    width: 300px;
+}
+
+@media (max-width: 576px) {
+    .pkg-slider-card {
+        flex: 0 0 260px;
+        width: 260px;
+    }
+}
+
 /* ===== Our Work (Horizontal Photo Gallery) Section ===== */
 .work-photos-section {
     background-color: #f8f9fa;
