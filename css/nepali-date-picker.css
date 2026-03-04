@@ -110,14 +110,29 @@
 }
 
 .nepali-day.today {
+    background-color: #e8f5e9;
     border: 2px solid #4CAF50;
-    font-weight: 600;
+    color: #2d7a2e;
+    font-weight: 700;
+}
+
+.nepali-day.today:hover {
+    background-color: #c8e6c9;
+    color: #1b5e20;
+}
+
+.nepali-day.today.selected {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #2d7a2e;
 }
 
 .nepali-day.disabled {
-    color: #ccc;
+    color: #bbb;
+    background-color: transparent;
     cursor: not-allowed;
     pointer-events: none;
+    opacity: 0.45;
 }
 
 /* Calendar type toggle button styles */

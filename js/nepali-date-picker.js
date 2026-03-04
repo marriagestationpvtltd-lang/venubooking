@@ -473,7 +473,10 @@
         }
         
         renderCalendarWithDate(year, month, daysInMonth, firstDayOfWeek) {
-            
+            // Get today's BS date to highlight today and disable past dates
+            const todayInNepal = getTodayInNepal();
+            const todayBS = adToBS(todayInNepal.year, todayInNepal.month, todayInNepal.day);
+
             let html = '<table class="nepali-calendar-table"><thead><tr>';
             
             // Day headers
@@ -494,9 +497,25 @@
                     this.selectedBSDate.year === year &&
                     this.selectedBSDate.month === month &&
                     this.selectedBSDate.day === day;
-                
-                const className = isSelected ? 'nepali-day selected' : 'nepali-day';
-                html += `<td><button type="button" class="${className}" data-day="${day}">${day}</button></td>`;
+
+                const isToday = todayBS &&
+                    todayBS.year === year &&
+                    todayBS.month === month &&
+                    todayBS.day === day;
+
+                const isPast = todayBS && (
+                    year < todayBS.year ||
+                    (year === todayBS.year && month < todayBS.month) ||
+                    (year === todayBS.year && month === todayBS.month && day < todayBS.day)
+                );
+
+                let className = 'nepali-day';
+                if (isSelected) className += ' selected';
+                if (isToday) className += ' today';
+                if (isPast) className += ' disabled';
+
+                const disabledAttr = isPast ? ' disabled' : '';
+                html += `<td><button type="button" class="${className}" data-day="${day}"${disabledAttr}>${day}</button></td>`;
                 
                 currentWeekDay++;
                 if (currentWeekDay > 6) {
