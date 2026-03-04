@@ -29,6 +29,18 @@ $feat_stmt = $db->prepare(
 );
 $feat_stmt->execute([$package_id]);
 $features = $feat_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Load photos
+$photos = [];
+try {
+    $photo_stmt = $db->prepare(
+        "SELECT id, image_path FROM service_package_photos WHERE package_id = ? ORDER BY display_order, id"
+    );
+    $photo_stmt->execute([$package_id]);
+    $photos = $photo_stmt->fetchAll();
+} catch (Exception $e) {
+    // table may not exist yet
+}
 ?>
 
 <div class="row mb-3">
@@ -112,6 +124,25 @@ $features = $feat_stmt->fetchAll(PDO::FETCH_COLUMN);
                 <?php endif; ?>
             </div>
         </div>
+
+        <?php if (!empty($photos)): ?>
+        <div class="card mt-3">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-images"></i> Package Photos (<?php echo count($photos); ?>)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <?php foreach ($photos as $photo): ?>
+                        <div class="col-auto">
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo['image_path']); ?>"
+                                 alt="Package photo"
+                                 style="width:120px;height:90px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;">
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <div class="col-md-4">

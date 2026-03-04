@@ -27,34 +27,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name) || $category_id <= 0 || $price < 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
-        try {
-            $db->beginTransaction();
-
-            $stmt = $db->prepare(
-                "INSERT INTO service_packages (category_id, name, description, price, display_order, status)
-                 VALUES (?, ?, ?, ?, ?, ?)"
-            );
-            $stmt->execute([$category_id, $name, $description, $price, $display_order, $status]);
-            $package_id = $db->lastInsertId();
-
-            // Insert features
-            $feat_stmt = $db->prepare(
-                "INSERT INTO service_package_features (package_id, feature_text, display_order) VALUES (?, ?, ?)"
-            );
-            foreach ($features as $i => $feat) {
-                $feat_stmt->execute([$package_id, $feat, $i + 1]);
+        // Handle photo uploads before transaction
+        $uploaded_photos = [];
+        $photo_upload_error = '';
+        if (!empty($_FILES['photos']['name'][0])) {
+            foreach ($_FILES['photos']['name'] as $i => $fname) {
+                if ($_FILES['photos']['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
+                $file = [
+                    'name'     => $_FILES['photos']['name'][$i],
+                    'type'     => $_FILES['photos']['type'][$i],
+                    'tmp_name' => $_FILES['photos']['tmp_name'][$i],
+                    'error'    => $_FILES['photos']['error'][$i],
+                    'size'     => $_FILES['photos']['size'][$i],
+                ];
+                $upload = handleImageUpload($file, 'pkg');
+                if ($upload['success']) {
+                    $uploaded_photos[] = $upload['filename'];
+                } else {
+                    $photo_upload_error = $upload['message'];
+                    break;
+                }
             }
+        }
 
-            $db->commit();
+        if ($photo_upload_error) {
+            // Clean up any already-uploaded photos
+            foreach ($uploaded_photos as $f) { deleteUploadedFile($f); }
+            $error_message = $photo_upload_error;
+        } else {
+            try {
+                $db->beginTransaction();
 
-            logActivity($current_user['id'], 'Added service package', 'service_packages', $package_id, "Added package: $name");
+                $stmt = $db->prepare(
+                    "INSERT INTO service_packages (category_id, name, description, price, display_order, status)
+                     VALUES (?, ?, ?, ?, ?, ?)"
+                );
+                $stmt->execute([$category_id, $name, $description, $price, $display_order, $status]);
+                $package_id = $db->lastInsertId();
 
-            $success_message = 'Package added successfully!';
-            $_POST = [];
-            $preselect_cat = $category_id;
-        } catch (Exception $e) {
-            $db->rollBack();
-            $error_message = 'Error: ' . $e->getMessage();
+                // Insert features
+                $feat_stmt = $db->prepare(
+                    "INSERT INTO service_package_features (package_id, feature_text, display_order) VALUES (?, ?, ?)"
+                );
+                foreach ($features as $i => $feat) {
+                    $feat_stmt->execute([$package_id, $feat, $i + 1]);
+                }
+
+                // Insert photos
+                $photo_stmt = $db->prepare(
+                    "INSERT INTO service_package_photos (package_id, image_path, display_order) VALUES (?, ?, ?)"
+                );
+                foreach ($uploaded_photos as $i => $photo_path) {
+                    $photo_stmt->execute([$package_id, $photo_path, $i + 1]);
+                }
+
+                $db->commit();
+
+                logActivity($current_user['id'], 'Added service package', 'service_packages', $package_id, "Added package: $name");
+
+                $success_message = 'Package added successfully!';
+                $_POST = [];
+                $preselect_cat = $category_id;
+            } catch (Exception $e) {
+                $db->rollBack();
+                foreach ($uploaded_photos as $f) { deleteUploadedFile($f); }
+                $error_message = 'Error: ' . $e->getMessage();
+            }
         }
     }
 }
@@ -91,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a href="categories.php" class="alert-link">Add a category first.</a>
                     </div>
                 <?php else: ?>
-                <form method="POST" action="" id="packageForm">
+                <form method="POST" action="" id="packageForm" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -172,6 +210,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <button type="button" class="btn btn-outline-success btn-sm mt-1" id="addFeature">
                             <i class="fas fa-plus"></i> Add Feature
                         </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Package Photos</label>
+                        <input type="file" class="form-control" name="photos[]" accept="image/*" multiple>
+                        <small class="text-muted">You can select multiple photos (JPG, PNG, GIF, WebP; max 5MB each).</small>
                     </div>
 
                     <div class="d-flex justify-content-between">
