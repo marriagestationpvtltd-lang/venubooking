@@ -539,26 +539,7 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                         </tr>
                     <?php endif; ?>
                     
-                    <!-- Vendor Assignments -->
-                    <?php if (!empty($vendor_assignments)): ?>
-                        <?php foreach ($vendor_assignments as $va): ?>
-                        <?php if (floatval($va['assigned_amount']) > 0): ?>
-                        <tr>
-                            <td>
-                                <strong><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></strong> - <?php echo htmlspecialchars($va['vendor_name']); ?>
-                                <?php if (!empty($va['task_description'])): ?>
-                                    <br><span class="service-description-print"><?php echo htmlspecialchars($va['task_description']); ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-center">1</td>
-                            <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
-                            <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
-                        </tr>
-                        <?php endif; ?>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                    
-                    <!-- Subtotal -->
+                    <!-- Subtotal (hall + menus + services, before vendors) -->
                     <tr class="subtotal-row">
                         <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
                         <td class="text-right"><strong><?php echo number_format($booking['subtotal'], 2); ?></strong></td>
@@ -570,6 +551,40 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                         <td colspan="3" class="text-right">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</td>
                         <td class="text-right"><?php echo number_format($booking['tax_amount'], 2); ?></td>
                     </tr>
+                    <?php endif; ?>
+                    
+                    <!-- Vendor Assignments (added after subtotal/tax since vendors are not part of subtotal) -->
+                    <?php
+                    $invoice_vendors_total = 0;
+                    $active_vendor_assignments = [];
+                    if (!empty($vendor_assignments)) {
+                        foreach ($vendor_assignments as $va) {
+                            if (floatval($va['assigned_amount']) > 0 && $va['status'] !== 'cancelled') {
+                                $active_vendor_assignments[] = $va;
+                                $invoice_vendors_total += floatval($va['assigned_amount']);
+                            }
+                        }
+                    }
+                    $has_invoice_vendors = !empty($active_vendor_assignments);
+                    ?>
+                    <?php if ($has_invoice_vendors): ?>
+                        <?php foreach ($active_vendor_assignments as $va): ?>
+                        <tr>
+                            <td>
+                                <strong><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></strong> - <?php echo htmlspecialchars($va['vendor_name']); ?>
+                                <?php if (!empty($va['task_description'])): ?>
+                                    <br><span class="service-description-print"><?php echo htmlspecialchars($va['task_description']); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">1</td>
+                            <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
+                            <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <tr class="subtotal-row">
+                            <td colspan="3" class="text-right"><strong>Vendors Total:</strong></td>
+                            <td class="text-right"><strong><?php echo number_format($invoice_vendors_total, 2); ?></strong></td>
+                        </tr>
                     <?php endif; ?>
                     
                     <!-- Grand Total -->
@@ -584,6 +599,12 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
         <!-- Payment Calculation Section -->
         <div class="payment-calculation-section">
             <table class="payment-table">
+                <?php if ($has_invoice_vendors): ?>
+                <tr>
+                    <td class="payment-label">Vendors Total:</td>
+                    <td class="payment-value"><?php echo formatCurrency($invoice_vendors_total); ?></td>
+                </tr>
+                <?php endif; ?>
                 <tr>
                     <td class="payment-label">Advance Payment Required (<?php echo $advance['percentage']; ?>%):</td>
                     <td class="payment-value"><?php echo formatCurrency($advance['amount']); ?></td>
