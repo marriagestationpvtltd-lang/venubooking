@@ -14,7 +14,7 @@
 
 @media (min-width: 992px) {
     .min-vh-lg-100 {
-        min-height: 100vh;
+        min-height: auto;
     }
 }
 

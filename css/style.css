@@ -29,7 +29,6 @@ body {
 .hero-section {
     background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
     position: relative;
-    min-height: 100vh;
 }
 
 .hero-section.with-banner-image {
@@ -40,13 +39,13 @@ body {
 
 .hero-overlay {
     background: rgba(0, 0, 0, 0.3);
-    min-height: 100vh;
+    padding: 3rem 0;
 }
 
 /* Booking Card */
 .booking-card {
     background: white;
-    padding: 2.5rem;
+    padding: 1.5rem;
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
@@ -54,13 +53,13 @@ body {
 .booking-card .form-label {
     font-weight: 600;
     color: var(--text-dark);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .booking-card .form-control,
 .booking-card .form-select {
     border: 2px solid #e0e0e0;
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 8px;
     transition: all 0.3s;
 }
