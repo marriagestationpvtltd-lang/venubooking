@@ -488,6 +488,67 @@ function getActiveServices() {
 }
 
 /**
+ * Get all active service categories with their active packages and features
+ * Returns an array of categories, each with a 'packages' key containing packages,
+ * each package having a 'features' key containing its feature list.
+ */
+function getServicePackagesByCategory() {
+    $db = getDB();
+    try {
+        $cat_stmt = $db->query(
+            "SELECT * FROM service_categories WHERE status = 'active' ORDER BY display_order, name"
+        );
+        $categories = $cat_stmt->fetchAll();
+
+        foreach ($categories as $ci => $category) {
+            $pkg_stmt = $db->prepare(
+                "SELECT * FROM service_packages
+                 WHERE category_id = ? AND status = 'active'
+                 ORDER BY display_order, name"
+            );
+            $pkg_stmt->execute([$category['id']]);
+            $packages = $pkg_stmt->fetchAll();
+
+            foreach ($packages as $pi => $package) {
+                $feat_stmt = $db->prepare(
+                    "SELECT feature_text FROM service_package_features
+                     WHERE package_id = ?
+                     ORDER BY display_order, id"
+                );
+                $feat_stmt->execute([$package['id']]);
+                $packages[$pi]['features'] = $feat_stmt->fetchAll(PDO::FETCH_COLUMN);
+            }
+
+            $categories[$ci]['packages'] = $packages;
+        }
+
+        return $categories;
+    } catch (Exception $e) {
+        error_log('getServicePackagesByCategory() failed: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get features for a specific package
+ */
+function getPackageFeatures($package_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare(
+            "SELECT * FROM service_package_features
+             WHERE package_id = ?
+             ORDER BY display_order, id"
+        );
+        $stmt->execute([$package_id]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log('getPackageFeatures() failed: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * Get or create customer
  */
 function getOrCreateCustomer($full_name, $phone, $email = '', $address = '', $city = '') {

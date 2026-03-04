@@ -8,6 +8,9 @@ $banner_image = !empty($banner_images) ? $banner_images[0] : null;
 
 // Get all active cities for the city filter dropdown
 $cities = getAllCities();
+
+// Get service packages grouped by category
+$service_categories = getServicePackagesByCategory();
 ?>
 
 <!-- Hero Section -->
@@ -468,6 +471,67 @@ if (!empty($vendors)):
                 </button>
             <?php endif; ?>
         </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if (!empty($service_categories)): ?>
+<!-- Service Packages Section -->
+<section class="service-packages-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-2">हाम्रा सेवा प्याकेजहरू</h2>
+        <p class="text-center text-muted mb-5">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+
+        <?php foreach ($service_categories as $cat): ?>
+            <?php if (empty($cat['packages'])) continue; ?>
+            <div class="service-category-block mb-5">
+                <h3 class="service-category-title mb-4">
+                    <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
+                </h3>
+                <div class="row g-4">
+                    <?php foreach ($cat['packages'] as $pkg): ?>
+                        <div class="col-md-4">
+                            <div class="package-card card h-100 shadow-sm">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="package-name text-center mb-3">
+                                        <?php echo htmlspecialchars($pkg['name']); ?>
+                                    </h5>
+                                    <div class="package-price text-center mb-3">
+                                        <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
+                                    </div>
+                                    <?php if (!empty($pkg['features'])): ?>
+                                        <ul class="package-features list-unstyled mb-3">
+                                            <?php foreach ($pkg['features'] as $feat): ?>
+                                                <li class="feature-item">
+                                                    <span class="text-success me-2">&#10004;</span>
+                                                    <?php echo htmlspecialchars($feat); ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                    <?php if (!empty($pkg['description'])): ?>
+                                        <div class="mt-auto">
+                                            <a class="btn btn-outline-success btn-sm w-100 read-more-btn"
+                                               data-bs-toggle="collapse"
+                                               href="#pkgDesc<?php echo (int)$pkg['id']; ?>"
+                                               role="button"
+                                               aria-expanded="false">
+                                                <i class="fas fa-chevron-down me-1"></i> Read More
+                                            </a>
+                                            <div class="collapse mt-2" id="pkgDesc<?php echo (int)$pkg['id']; ?>">
+                                                <div class="card card-body bg-light border-0 small">
+                                                    <?php echo nl2br(htmlspecialchars($pkg['description'])); ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
     </div>
 </section>
 <?php endif; ?>
