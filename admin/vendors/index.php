@@ -39,6 +39,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <th>ID</th>
                         <th>Photos</th>
                         <th>Name</th>
+                        <th>Short Description</th>
                         <th>Type</th>
                         <th>Phone</th>
                         <th>Email</th>
@@ -82,6 +83,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <?php endif; ?>
                             </td>
                             <td><?php echo htmlspecialchars($vendor['name']); ?></td>
+                            <td><?php echo htmlspecialchars($vendor['short_description'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars(getVendorTypeLabel($vendor['type'])); ?></td>
                             <td><?php echo htmlspecialchars($vendor['phone'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
@@ -108,7 +110,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <?php endforeach; ?>
                     <?php if (empty($vendors)): ?>
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
+                            <td colspan="10" class="text-center text-muted py-4">
                                 No vendors found. <a href="add.php">Add your first vendor</a>.
                             </td>
                         </tr>
