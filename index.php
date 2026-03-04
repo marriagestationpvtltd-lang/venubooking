@@ -17,8 +17,8 @@ $service_categories = getServicePackagesByCategory();
 <section class="hero-section<?php if ($banner_image): ?> with-banner-image<?php endif; ?>" id="bookingForm" <?php if ($banner_image): ?>style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('<?php echo htmlspecialchars($banner_image['image_url']); ?>');"<?php endif; ?>>
     <div class="hero-overlay">
         <div class="container">
-            <div class="row align-items-center min-vh-100">
-                <div class="col-lg-6">
+            <div class="row align-items-center py-5 py-lg-0 min-vh-lg-100">
+                <div class="col-lg-6 order-lg-1 order-2 mt-4 mt-lg-0">
                     <h1 class="display-4 text-white fw-bold mb-4">
                         Book Your Perfect Venue
                     </h1>
@@ -26,7 +26,7 @@ $service_categories = getServicePackagesByCategory();
                         Find and book the ideal venue for your wedding, birthday party, corporate event, or any special occasion.
                     </p>
                 </div>
-                <div class="col-lg-6">
+                <div class="col-lg-6 order-lg-2 order-1">
                     <div class="booking-card">
                         <h3 class="text-center mb-4 text-success">
                             <i class="fas fa-calendar-check"></i> Start Your Booking
@@ -119,7 +119,7 @@ $service_categories = getServicePackagesByCategory();
     <div class="container">
         <h2 class="text-center mb-5">Why Choose Us</h2>
         <div class="row g-4">
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
                 <div class="feature-card text-center p-4">
                     <div class="feature-icon mb-3">
                         <i class="fas fa-building fa-3x text-success"></i>
@@ -128,7 +128,7 @@ $service_categories = getServicePackagesByCategory();
                     <p>Choose from our premium venues across the city</p>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
                 <div class="feature-card text-center p-4">
                     <div class="feature-icon mb-3">
                         <i class="fas fa-utensils fa-3x text-success"></i>
@@ -137,7 +137,7 @@ $service_categories = getServicePackagesByCategory();
                     <p>Wide variety of menu options to suit every taste</p>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
                 <div class="feature-card text-center p-4">
                     <div class="feature-icon mb-3">
                         <i class="fas fa-dollar-sign fa-3x text-success"></i>
@@ -146,7 +146,7 @@ $service_categories = getServicePackagesByCategory();
                     <p>No hidden charges, clear pricing structure</p>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
                 <div class="feature-card text-center p-4">
                     <div class="feature-icon mb-3">
                         <i class="fas fa-headset fa-3x text-success"></i>
@@ -217,7 +217,7 @@ if (!empty($venues)):
                                     $truncated_description .= '...';
                                 }
                             ?>
-                                <div class="col-md-4">
+                                <div class="col-12 col-sm-6 col-md-4">
                                     <div class="venue-card-home card h-100 shadow-sm">
                                         <?php if (count($images_to_display) > 1): ?>
                                             <!-- Carousel for multiple images -->
@@ -304,6 +304,7 @@ if (!empty($gallery_images)):
                         <img src="<?php echo htmlspecialchars($image['image_url']); ?>" 
                              alt="<?php echo htmlspecialchars($image['title']); ?>" 
                              class="img-fluid rounded shadow-sm"
+                             loading="lazy"
                              style="width: 100%; height: 250px; object-fit: cover;">
                         <?php if ($image['title']): ?>
                             <div class="gallery-caption mt-2">
@@ -340,6 +341,7 @@ if (!empty($work_photos)):
                             <img src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
                                  alt="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                  class="work-gallery-img"
+                                 loading="lazy"
                                  draggable="false">
                         </div>
                         <?php if (!empty($wp['title']) || !empty($wp['description'])): ?>
@@ -430,13 +432,14 @@ if (!empty($vendors)):
 
                                 $detail_carousel_id = 'vendorDetail' . (int)$vendor['id'];
                             ?>
-                                <div class="col-md-4">
+                                <div class="col-12 col-sm-6 col-md-4">
                                     <div class="vendor-card card h-100 shadow-sm">
                                         <!-- Vendor Photo -->
                                         <?php if (!empty($primary_photo_path)): ?>
                                             <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($primary_photo_path), ENT_QUOTES, 'UTF-8'); ?>"
                                                  alt="<?php echo $vendor_name; ?>"
-                                                 class="vendor-photo">
+                                                 class="vendor-photo"
+                                                 loading="lazy">
                                         <?php else: ?>
                                             <div class="vendor-photo vendor-photo-placeholder">
                                                 <i class="fas fa-user-tie fa-3x text-muted"></i>
@@ -549,7 +552,7 @@ if (!empty($vendors)):
                     <?php foreach ($cat['packages'] as $pkg):
                         $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
                     ?>
-                        <div class="col-md-4">
+                        <div class="col-12 col-sm-6 col-md-4">
                             <div class="package-card card h-100 shadow-sm">
                                 <?php if (!empty($pkg['photos'])): ?>
                                     <?php if (count($pkg['photos']) > 1): ?>
@@ -559,6 +562,7 @@ if (!empty($vendors)):
                                                     <div class="carousel-item <?php echo $pi === 0 ? 'active' : ''; ?>">
                                                         <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path, ENT_QUOTES, 'UTF-8'); ?>"
                                                              class="d-block w-100 package-carousel-img"
+                                                             loading="lazy"
                                                              alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
                                                     </div>
                                                 <?php endforeach; ?>
@@ -575,6 +579,7 @@ if (!empty($vendors)):
                                     <?php else: ?>
                                         <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0], ENT_QUOTES, 'UTF-8'); ?>"
                                              class="card-img-top package-carousel-img"
+                                             loading="lazy"
                                              alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
                                     <?php endif; ?>
                                 <?php endif; ?>

@@ -109,7 +109,7 @@ $current_total = $hall_price + $menu_total;
                             <div class="menu-card card h-100 <?php echo $is_selected ? 'selected' : ''; ?>">
                                 <?php if ($menu['image']): ?>
                                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($menu['image'], ENT_QUOTES, 'UTF-8'); ?>" 
-                                         class="card-img-top" alt="<?php echo sanitize($menu['name']); ?>">
+                                         class="card-img-top" loading="lazy" alt="<?php echo sanitize($menu['name']); ?>">
                                 <?php endif; ?>
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">

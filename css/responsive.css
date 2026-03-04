@@ -7,6 +7,17 @@
     }
 }
 
+/* Utility: full viewport height only on large screens */
+.min-vh-lg-100 {
+    min-height: auto;
+}
+
+@media (min-width: 992px) {
+    .min-vh-lg-100 {
+        min-height: 100vh;
+    }
+}
+
 /* Large Devices (desktops, 992px and up) */
 @media (max-width: 1199px) {
     .hero-section h1 {
@@ -27,6 +38,7 @@
     
     .hero-overlay {
         min-height: auto;
+        padding: 2rem 0;
     }
     
     .progress-steps {
@@ -59,10 +71,12 @@
 @media (max-width: 767px) {
     .hero-section h1 {
         font-size: 2rem;
+        margin-bottom: 1rem !important;
     }
     
     .hero-section .lead {
         font-size: 1rem;
+        margin-bottom: 1.5rem !important;
     }
     
     .booking-card {
