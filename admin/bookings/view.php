@@ -557,7 +557,7 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                         <?php foreach ($active_vendor_assignments as $va): ?>
                         <tr>
                             <td>
-                                <strong>Vendors</strong> - <?php echo htmlspecialchars($va['vendor_name']); ?>
+                                <strong>Vendors</strong> - <?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'] ?? '')); ?>
                                 <?php if (!empty($va['task_description'])): ?>
                                     <br><span class="service-description-print"><?php echo htmlspecialchars($va['task_description']); ?></span>
                                 <?php endif; ?>
