@@ -36,6 +36,10 @@ DROP TABLE IF EXISTS hall_menus;
 DROP TABLE IF EXISTS menu_items;
 DROP TABLE IF EXISTS menus;
 DROP TABLE IF EXISTS additional_services;
+DROP TABLE IF EXISTS service_package_photos;
+DROP TABLE IF EXISTS service_package_features;
+DROP TABLE IF EXISTS service_packages;
+DROP TABLE IF EXISTS service_categories;
 DROP TABLE IF EXISTS hall_images;
 DROP TABLE IF EXISTS venue_images;
 DROP TABLE IF EXISTS halls;
@@ -180,6 +184,68 @@ CREATE TABLE additional_services (
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_categories (event types for service packages, e.g. Wedding, Birthday)
+-- ============================================================================
+CREATE TABLE service_categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_packages (packages offered under each service category)
+-- ============================================================================
+CREATE TABLE service_packages (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    category_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES service_categories(id) ON DELETE CASCADE,
+    INDEX idx_category_id (category_id),
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_package_features (feature bullet points per package)
+-- ============================================================================
+CREATE TABLE service_package_features (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    package_id INT NOT NULL,
+    feature_text VARCHAR(500) NOT NULL,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (package_id) REFERENCES service_packages(id) ON DELETE CASCADE,
+    INDEX idx_package_id (package_id),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_package_photos (multiple photos per service package)
+-- ============================================================================
+CREATE TABLE service_package_photos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    package_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (package_id) REFERENCES service_packages(id) ON DELETE CASCADE,
+    INDEX idx_package_id (package_id),
+    INDEX idx_display_order (display_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
@@ -643,6 +709,50 @@ INSERT INTO additional_services (name, description, price, category) VALUES
 ('Live Band', 'Live music performance by professional band', 50000.00, 'Entertainment'),
 ('Transportation', 'Guest transportation service with comfortable vehicles', 35000.00, 'Logistics'),
 ('Valet Parking', 'Professional valet parking service for guests', 10000.00, 'Logistics');
+
+-- Insert Sample Service Categories
+INSERT INTO service_categories (name, description, display_order, status) VALUES
+('विवाह', 'विवाह समारोहको लागि विशेष प्याकेजहरू', 1, 'active'),
+('पास्नी', 'पास्नी (अन्नप्राशन) समारोहको लागि प्याकेजहरू', 2, 'active'),
+('व्रतबन्द', 'व्रतबन्द समारोहको लागि प्याकेजहरू', 3, 'active');
+
+-- Insert Sample Service Packages
+INSERT INTO service_packages (category_id, name, description, price, display_order, status) VALUES
+(1, 'Silver Wedding Package', 'Essential wedding package with all key services', 250000.00, 1, 'active'),
+(1, 'Gold Wedding Package', 'Premium wedding package with enhanced services', 450000.00, 2, 'active'),
+(1, 'Platinum Wedding Package', 'All-inclusive luxury wedding package', 750000.00, 3, 'active'),
+(2, 'Basic Pasni Package', 'Simple and elegant Pasni ceremony package', 80000.00, 1, 'active'),
+(2, 'Premium Pasni Package', 'Full-service Pasni ceremony with decoration', 150000.00, 2, 'active'),
+(3, 'Bratabandha Package', 'Complete Bratabandha ceremony package', 120000.00, 1, 'active');
+
+-- Insert Sample Service Package Features
+INSERT INTO service_package_features (package_id, feature_text, display_order) VALUES
+(1, 'Hall decoration with flowers', 1),
+(1, 'Photography (4 hours)', 2),
+(1, 'DJ music system', 3),
+(1, 'Welcome drinks', 4),
+(2, 'Premium hall decoration', 1),
+(2, 'Photography & Videography (full day)', 2),
+(2, 'Live band / DJ', 3),
+(2, 'Welcome drinks & appetizers', 4),
+(2, 'Dedicated event coordinator', 5),
+(3, 'Luxury hall & stage decoration', 1),
+(3, 'Professional photography & videography', 2),
+(3, 'Live band & DJ', 3),
+(3, 'Full catering coordination', 4),
+(3, 'Dedicated event management team', 5),
+(3, 'Honeymoon suite arrangement', 6),
+(4, 'Basic stage decoration', 1),
+(4, 'Photography (2 hours)', 2),
+(4, 'Sound system', 3),
+(5, 'Full venue decoration', 1),
+(5, 'Photography & Videography', 2),
+(5, 'DJ music system', 3),
+(5, 'Catering coordination', 4),
+(6, 'Traditional ceremony decoration', 1),
+(6, 'Photography (3 hours)', 2),
+(6, 'Sound system', 3),
+(6, 'Catering arrangement', 4);
 
 -- Insert Payment Methods
 INSERT INTO payment_methods (name, bank_details, status, display_order) VALUES

@@ -9,15 +9,15 @@ This directory contains all database-related files for the Venue Booking System.
 **`production-shared-hosting.sql`** - ⭐ **RECOMMENDED FOR SHARED HOSTING**
 - Complete production database for shared hosting environments
 - Pre-configured for database: digitallami_partybooking
-- Creates all 18 required tables
+- Creates all 28 required tables (including service packages)
 - Includes default admin user (admin/Admin@123)
-- Includes comprehensive test data (venues, halls, menus, services, bookings)
+- Includes comprehensive test data (venues, halls, menus, services, bookings, service packages)
 - **Perfect for immediate deployment with demo data!**
 - See [SHARED_HOSTING_SETUP.md](../SHARED_HOSTING_SETUP.md) for detailed instructions
 
 **`production-ready.sql`** - ⭐ **RECOMMENDED FOR VPS/DEDICATED**
 - Production-ready database in ONE file
-- Creates all 18 required tables
+- Creates all 28 required tables (including service packages)
 - Includes default admin user (admin/Admin@123)
 - Includes essential system settings only
 - Includes placeholder payment methods (inactive by default)
@@ -28,10 +28,10 @@ This directory contains all database-related files for the Venue Booking System.
 
 **`complete-database-setup.sql`** - ⭐ **RECOMMENDED FOR DEVELOPMENT**
 - Complete A-Z database implementation in ONE file
-- Creates all 18 required tables
+- Creates all 28 required tables (including service packages)
 - Includes default admin user (admin/Admin@123)
 - Loads all essential settings
-- Includes sample data (venues, halls, menus, services)
+- Includes sample data (venues, halls, menus, services, service packages)
 - Contains test bookings #23 and #37
 - **Use this for local development and testing!**
 
@@ -121,14 +121,20 @@ mysql -u root -p venubooking_dev < database/complete-database-setup.sql
 
 ## ✅ What Gets Installed
 
-### Tables (18)
+### Tables (28)
 - `venues` - Venue information
+- `venue_images` - Venue photos
 - `halls` - Halls/rooms in venues
 - `hall_images` - Hall photos
+- `cities` - Predefined city list for filtering
 - `menus` - Food menu packages
 - `menu_items` - Items in each menu
 - `hall_menus` - Which menus are available for which halls
-- `additional_services` - Extra services (decoration, DJ, etc.)
+- `additional_services` - Extra add-on services (decoration, DJ, etc.)
+- `service_categories` - Event type categories for service packages
+- `service_packages` - Service packages per category (Wedding, Birthday, etc.)
+- `service_package_features` - Feature bullet points per package
+- `service_package_photos` - Photos per service package
 - `customers` - Customer information
 - `bookings` - Booking records
 - `booking_menus` - Menus selected for bookings
@@ -136,6 +142,10 @@ mysql -u root -p venubooking_dev < database/complete-database-setup.sql
 - `payment_methods` - Available payment methods
 - `booking_payment_methods` - Payment methods for each booking
 - `payments` - Payment transaction records
+- `vendor_types` - Vendor type categories
+- `vendors` - Vendors (photographers, decorators, etc.)
+- `vendor_photos` - Vendor photos
+- `booking_vendor_assignments` - Vendors assigned to bookings
 - `users` - Admin users
 - `settings` - System settings (key-value pairs)
 - `activity_logs` - User activity tracking
@@ -147,6 +157,8 @@ mysql -u root -p venubooking_dev < database/complete-database-setup.sql
 - **8 Halls:** Various halls with different capacities
 - **5 Menus:** From Bronze (NPR 1,499) to Platinum (NPR 2,999) per person
 - **8 Services:** Decoration, Photography, DJ, etc.
+- **3 Service Categories:** विवाह (Wedding), पास्नी, व्रतबन्द
+- **6 Service Packages:** Silver/Gold/Platinum Wedding, Pasni, Bratabandha packages
 - **4 Payment Methods:** Bank Transfer, eSewa, Khalti, Cash
 - **7 Sample Customers**
 - **4 Test Bookings:** Including booking #23 and #37
@@ -226,16 +238,29 @@ The script handles this automatically with `FOREIGN_KEY_CHECKS = 0`. If you see 
 ## 📚 Database Schema Diagram
 
 ```
-venues
-  └── halls
-      ├── hall_images
-      └── hall_menus → menus
-                        └── menu_items
+cities
+  └── venues
+        └── venue_images (multi-photo)
+
+halls (linked to venues)
+  ├── hall_images (multi-photo)
+  └── hall_menus → menus
+                    └── menu_items
+
+service_categories
+  └── service_packages
+        ├── service_package_features
+        └── service_package_photos
+
+vendor_types
+  └── vendors
+        └── vendor_photos
 
 customers → bookings
               ├── halls
               ├── booking_menus → menus
               ├── booking_services → additional_services
+              ├── booking_vendor_assignments → vendors
               ├── booking_payment_methods → payment_methods
               └── payments → payment_methods
 

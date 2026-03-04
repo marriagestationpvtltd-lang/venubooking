@@ -41,6 +41,10 @@ DROP TABLE IF EXISTS hall_menus;
 DROP TABLE IF EXISTS menu_items;
 DROP TABLE IF EXISTS menus;
 DROP TABLE IF EXISTS additional_services;
+DROP TABLE IF EXISTS service_package_photos;
+DROP TABLE IF EXISTS service_package_features;
+DROP TABLE IF EXISTS service_packages;
+DROP TABLE IF EXISTS service_categories;
 DROP TABLE IF EXISTS vendor_photos;
 DROP TABLE IF EXISTS vendors;
 DROP TABLE IF EXISTS vendor_types;
@@ -183,6 +187,68 @@ CREATE TABLE additional_services (
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_categories (event types for service packages, e.g. Wedding, Birthday)
+-- ============================================================================
+CREATE TABLE service_categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_packages (packages offered under each service category)
+-- ============================================================================
+CREATE TABLE service_packages (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    category_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES service_categories(id) ON DELETE CASCADE,
+    INDEX idx_category_id (category_id),
+    INDEX idx_status (status),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_package_features (feature bullet points per package)
+-- ============================================================================
+CREATE TABLE service_package_features (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    package_id INT NOT NULL,
+    feature_text VARCHAR(500) NOT NULL,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (package_id) REFERENCES service_packages(id) ON DELETE CASCADE,
+    INDEX idx_package_id (package_id),
+    INDEX idx_display_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_package_photos (multiple photos per service package)
+-- ============================================================================
+CREATE TABLE service_package_photos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    package_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (package_id) REFERENCES service_packages(id) ON DELETE CASCADE,
+    INDEX idx_package_id (package_id),
+    INDEX idx_display_order (display_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
