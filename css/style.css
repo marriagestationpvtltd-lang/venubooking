@@ -788,3 +788,20 @@ footer a:hover {
 .read-more-btn {
     font-size: 0.85rem;
 }
+
+.package-photo-carousel {
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+}
+
+.package-carousel-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+@media (max-width: 576px) {
+    .package-carousel-img {
+        height: 180px;
+    }
+}

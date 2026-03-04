@@ -489,9 +489,38 @@ if (!empty($vendors)):
                     <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
                 </h3>
                 <div class="row g-4">
-                    <?php foreach ($cat['packages'] as $pkg): ?>
+                    <?php foreach ($cat['packages'] as $pkg):
+                        $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
+                    ?>
                         <div class="col-md-4">
                             <div class="package-card card h-100 shadow-sm">
+                                <?php if (!empty($pkg['photos'])): ?>
+                                    <?php if (count($pkg['photos']) > 1): ?>
+                                        <div id="<?php echo $pkg_carousel_id; ?>" class="carousel slide package-photo-carousel" data-bs-ride="carousel">
+                                            <div class="carousel-inner">
+                                                <?php foreach ($pkg['photos'] as $pi => $photo_path): ?>
+                                                    <div class="carousel-item <?php echo $pi === 0 ? 'active' : ''; ?>">
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path, ENT_QUOTES, 'UTF-8'); ?>"
+                                                             class="d-block w-100 package-carousel-img"
+                                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="prev" aria-label="Previous photo">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="next" aria-label="Next photo">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0], ENT_QUOTES, 'UTF-8'); ?>"
+                                             class="card-img-top package-carousel-img"
+                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
+                                    <?php endif; ?>
+                                <?php endif; ?>
                                 <div class="card-body d-flex flex-column">
                                     <h5 class="package-name text-center mb-3">
                                         <?php echo htmlspecialchars($pkg['name']); ?>
@@ -530,31 +559,6 @@ if (!empty($vendors)):
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <?php
-                // Collect all photos across packages in this category
-                $cat_photos = [];
-                foreach ($cat['packages'] as $pkg) {
-                    if (!empty($pkg['photos'])) {
-                        foreach ($pkg['photos'] as $photo_path) {
-                            $cat_photos[] = $photo_path;
-                        }
-                    }
-                }
-                ?>
-                <?php if (!empty($cat_photos)): ?>
-                <div class="package-photos-row mt-4">
-                    <div class="row g-3 justify-content-center">
-                        <?php foreach ($cat_photos as $photo_path): ?>
-                            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path); ?>"
-                                     alt="Package photo"
-                                     class="img-fluid rounded shadow-sm"
-                                     style="width:100%;height:120px;object-fit:cover;">
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
             </div>
         <?php endforeach; ?>
     </div>
