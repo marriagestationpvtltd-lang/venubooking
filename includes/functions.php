@@ -2454,12 +2454,12 @@ function recalculateBookingTotals($booking_id) {
         $result = $stmt->fetch();
         $vendors_total = floatval($result['total'] ?? 0);
         
-        // Calculate new totals
-        $subtotal = $hall_price + $menu_total + $services_total;
+        // Calculate new totals (vendor charge is included in subtotal)
+        $subtotal = $hall_price + $menu_total + $services_total + $vendors_total;
         
         $tax_rate = floatval(getSetting('tax_rate', '13'));
         $tax_amount = $subtotal * ($tax_rate / 100);
-        $grand_total = $subtotal + $tax_amount + $vendors_total;
+        $grand_total = $subtotal + $tax_amount;
         
         // Update booking totals
         $stmt = $db->prepare("
