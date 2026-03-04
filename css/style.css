@@ -616,6 +616,23 @@ footer a:hover {
 /* ===================== Vendors Section ===================== */
 .vendors-section {
     background-color: var(--bg-light);
+    overflow: hidden;
+}
+
+/* Slide-in animation for the vendor carousel */
+@keyframes vendorSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.vendors-carousel-animated {
+    animation: vendorSlideIn 0.7s ease-out forwards;
 }
 
 .vendor-card {
