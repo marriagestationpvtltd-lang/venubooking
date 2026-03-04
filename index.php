@@ -114,6 +114,129 @@ $service_categories = getServicePackagesByCategory();
     </div>
 </section>
 
+<?php if (!empty($service_categories)): ?>
+<!-- Service Packages Section -->
+<section class="service-packages-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-2">हाम्रा सेवा प्याकेजहरू</h2>
+        <p class="text-center text-muted mb-5">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+
+        <?php foreach ($service_categories as $cat): ?>
+            <?php if (empty($cat['packages'])) continue; ?>
+            <div class="service-category-block mb-5">
+                <h3 class="service-category-title mb-4">
+                    <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
+                </h3>
+                <div class="pkg-slider-wrapper">
+                <div class="pkg-slider-track" data-pkg-slider>
+                    <?php foreach ($cat['packages'] as $pkg):
+                        $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
+                    ?>
+                        <div class="pkg-slider-card">
+                            <div class="package-card card h-100 shadow-sm">
+                                <?php if (!empty($pkg['photos'])): ?>
+                                    <?php if (count($pkg['photos']) > 1): ?>
+                                        <div id="<?php echo $pkg_carousel_id; ?>" class="carousel slide package-photo-carousel" data-bs-ride="carousel">
+                                            <div class="carousel-inner">
+                                                <?php foreach ($pkg['photos'] as $pi => $photo_path): ?>
+                                                    <div class="carousel-item <?php echo $pi === 0 ? 'active' : ''; ?>">
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path, ENT_QUOTES, 'UTF-8'); ?>"
+                                                             class="d-block w-100 package-carousel-img"
+                                                             loading="lazy"
+                                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="prev" aria-label="Previous photo">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="next" aria-label="Next photo">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0], ENT_QUOTES, 'UTF-8'); ?>"
+                                             class="card-img-top package-carousel-img"
+                                             loading="lazy"
+                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="package-name text-center mb-3">
+                                        <?php echo htmlspecialchars($pkg['name']); ?>
+                                    </h5>
+                                    <div class="package-price text-center mb-3">
+                                        <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
+                                    </div>
+                                    <?php if (!empty($pkg['features'])): ?>
+                                        <ul class="package-features list-unstyled mb-3">
+                                            <?php foreach ($pkg['features'] as $feat): ?>
+                                                <li class="feature-item">
+                                                    <span class="text-success me-2">&#10004;</span>
+                                                    <?php echo htmlspecialchars($feat); ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                    <?php if (!empty($pkg['description'])): ?>
+                                        <?php
+                                        // Build WhatsApp message with package details
+                                        $wa_pkg_name  = strip_tags($pkg['name']);
+                                        $wa_pkg_price = strip_tags(formatCurrency($pkg['price']));
+                                        $wa_pkg_msg   = "Hello, I would like to know more about this package:\n\nPackage: {$wa_pkg_name}\nPrice: {$wa_pkg_price}";
+                                        if (!empty($pkg['features'])) {
+                                            $wa_pkg_msg .= "\n\nFeatures:";
+                                            foreach ($pkg['features'] as $feat) {
+                                                $wa_pkg_msg .= "\n- " . strip_tags($feat);
+                                            }
+                                        }
+                                        $wa_pkg_msg .= "\n\nDescription:\n" . strip_tags($pkg['description']);
+                                        $wa_pkg_msg .= "\n\nPlease provide me with more details.";
+                                        $pkg_wa_url = '';
+                                        if (!empty($clean_office_whatsapp)) {
+                                            $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
+                                        }
+                                        ?>
+                                        <div class="mt-auto">
+                                            <a class="btn btn-outline-success btn-sm w-100 read-more-btn"
+                                               data-bs-toggle="collapse"
+                                               href="#pkgDesc<?php echo (int)$pkg['id']; ?>"
+                                               role="button"
+                                               aria-expanded="false">
+                                                <i class="fas fa-chevron-down me-1"></i> Read More
+                                            </a>
+                                            <div class="collapse mt-2" id="pkgDesc<?php echo (int)$pkg['id']; ?>">
+                                                <div class="card card-body bg-light border-0 small">
+                                                    <?php echo nl2br(htmlspecialchars($pkg['description'])); ?>
+                                                </div>
+                                                <?php if (!empty($pkg_wa_url)): ?>
+                                                    <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                                       target="_blank" rel="noopener noreferrer"
+                                                       class="btn btn-success btn-sm w-100 mt-2">
+                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                                    </a>
+                                                <?php else: ?>
+                                                    <button class="btn btn-success btn-sm w-100 mt-2" disabled>
+                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+
 <!-- Features Section -->
 <section class="features-section py-5">
     <div class="container">
@@ -531,129 +654,6 @@ if (!empty($vendors)):
                 </button>
             <?php endif; ?>
         </div>
-    </div>
-</section>
-<?php endif; ?>
-
-<?php if (!empty($service_categories)): ?>
-<!-- Service Packages Section -->
-<section class="service-packages-section py-5 bg-light">
-    <div class="container">
-        <h2 class="text-center mb-2">हाम्रा सेवा प्याकेजहरू</h2>
-        <p class="text-center text-muted mb-5">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
-
-        <?php foreach ($service_categories as $cat): ?>
-            <?php if (empty($cat['packages'])) continue; ?>
-            <div class="service-category-block mb-5">
-                <h3 class="service-category-title mb-4">
-                    <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
-                </h3>
-                <div class="pkg-slider-wrapper">
-                <div class="pkg-slider-track" data-pkg-slider>
-                    <?php foreach ($cat['packages'] as $pkg):
-                        $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
-                    ?>
-                        <div class="pkg-slider-card">
-                            <div class="package-card card h-100 shadow-sm">
-                                <?php if (!empty($pkg['photos'])): ?>
-                                    <?php if (count($pkg['photos']) > 1): ?>
-                                        <div id="<?php echo $pkg_carousel_id; ?>" class="carousel slide package-photo-carousel" data-bs-ride="carousel">
-                                            <div class="carousel-inner">
-                                                <?php foreach ($pkg['photos'] as $pi => $photo_path): ?>
-                                                    <div class="carousel-item <?php echo $pi === 0 ? 'active' : ''; ?>">
-                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path, ENT_QUOTES, 'UTF-8'); ?>"
-                                                             class="d-block w-100 package-carousel-img"
-                                                             loading="lazy"
-                                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            </div>
-                                            <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="prev" aria-label="Previous photo">
-                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                <span class="visually-hidden">Previous</span>
-                                            </button>
-                                            <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="next" aria-label="Next photo">
-                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                <span class="visually-hidden">Next</span>
-                                            </button>
-                                        </div>
-                                    <?php else: ?>
-                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0], ENT_QUOTES, 'UTF-8'); ?>"
-                                             class="card-img-top package-carousel-img"
-                                             loading="lazy"
-                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                                <div class="card-body d-flex flex-column">
-                                    <h5 class="package-name text-center mb-3">
-                                        <?php echo htmlspecialchars($pkg['name']); ?>
-                                    </h5>
-                                    <div class="package-price text-center mb-3">
-                                        <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
-                                    </div>
-                                    <?php if (!empty($pkg['features'])): ?>
-                                        <ul class="package-features list-unstyled mb-3">
-                                            <?php foreach ($pkg['features'] as $feat): ?>
-                                                <li class="feature-item">
-                                                    <span class="text-success me-2">&#10004;</span>
-                                                    <?php echo htmlspecialchars($feat); ?>
-                                                </li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    <?php endif; ?>
-                                    <?php if (!empty($pkg['description'])): ?>
-                                        <?php
-                                        // Build WhatsApp message with package details
-                                        $wa_pkg_name  = strip_tags($pkg['name']);
-                                        $wa_pkg_price = strip_tags(formatCurrency($pkg['price']));
-                                        $wa_pkg_msg   = "Hello, I would like to know more about this package:\n\nPackage: {$wa_pkg_name}\nPrice: {$wa_pkg_price}";
-                                        if (!empty($pkg['features'])) {
-                                            $wa_pkg_msg .= "\n\nFeatures:";
-                                            foreach ($pkg['features'] as $feat) {
-                                                $wa_pkg_msg .= "\n- " . strip_tags($feat);
-                                            }
-                                        }
-                                        $wa_pkg_msg .= "\n\nDescription:\n" . strip_tags($pkg['description']);
-                                        $wa_pkg_msg .= "\n\nPlease provide me with more details.";
-                                        $pkg_wa_url = '';
-                                        if (!empty($clean_office_whatsapp)) {
-                                            $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
-                                        }
-                                        ?>
-                                        <div class="mt-auto">
-                                            <a class="btn btn-outline-success btn-sm w-100 read-more-btn"
-                                               data-bs-toggle="collapse"
-                                               href="#pkgDesc<?php echo (int)$pkg['id']; ?>"
-                                               role="button"
-                                               aria-expanded="false">
-                                                <i class="fas fa-chevron-down me-1"></i> Read More
-                                            </a>
-                                            <div class="collapse mt-2" id="pkgDesc<?php echo (int)$pkg['id']; ?>">
-                                                <div class="card card-body bg-light border-0 small">
-                                                    <?php echo nl2br(htmlspecialchars($pkg['description'])); ?>
-                                                </div>
-                                                <?php if (!empty($pkg_wa_url)): ?>
-                                                    <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                                       target="_blank" rel="noopener noreferrer"
-                                                       class="btn btn-success btn-sm w-100 mt-2">
-                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                                    </a>
-                                                <?php else: ?>
-                                                    <button class="btn btn-success btn-sm w-100 mt-2" disabled>
-                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                                    </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                </div>
-            </div>
-        <?php endforeach; ?>
     </div>
 </section>
 <?php endif; ?>
