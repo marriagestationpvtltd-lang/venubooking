@@ -322,59 +322,43 @@ if (!empty($gallery_images)):
 <?php endif; ?>
 
 <?php
-// Get work portfolio photos for the slideshow
+// Get work portfolio photos for the horizontal gallery
 $work_photos = getImagesBySection('work_photos');
 if (!empty($work_photos)):
 ?>
-<!-- Our Work Slideshow Section -->
+<!-- Our Work Gallery Section -->
 <section class="work-photos-section py-5">
-    <div class="container">
+    <div class="container-fluid px-4">
         <h2 class="text-center mb-2">Our Work</h2>
-        <p class="text-center text-muted mb-5">A glimpse of the events and moments we have been part of</p>
+        <p class="text-center text-muted mb-4">A glimpse of the events and moments we have been part of</p>
 
-        <div id="workPhotosCarousel" class="carousel slide work-photos-carousel" data-bs-ride="carousel" data-bs-interval="4000" data-bs-touch="true">
-            <div class="carousel-indicators">
-                <?php foreach ($work_photos as $wi => $wp): ?>
-                    <button type="button" data-bs-target="#workPhotosCarousel" data-bs-slide-to="<?php echo $wi; ?>"
-                            <?php echo $wi === 0 ? 'class="active" aria-current="true"' : ''; ?>
-                            aria-label="Slide <?php echo $wi + 1; ?>"></button>
-                <?php endforeach; ?>
-            </div>
-
-            <div class="carousel-inner">
-                <?php foreach ($work_photos as $wi => $wp): ?>
-                    <div class="carousel-item <?php echo $wi === 0 ? 'active' : ''; ?>">
-                        <div class="work-photo-slide">
+        <div class="work-gallery-wrapper">
+            <div class="work-gallery-track" id="workGalleryTrack">
+                <?php foreach ($work_photos as $wp): ?>
+                    <div class="work-gallery-card">
+                        <div class="work-gallery-img-wrap">
                             <img src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
                                  alt="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                 class="work-photo-img">
-                            <?php if (!empty($wp['title']) || !empty($wp['description'])): ?>
-                                <div class="carousel-caption work-photo-caption">
-                                    <?php if (!empty($wp['title'])): ?>
-                                        <h5 class="work-photo-title"><?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?></h5>
-                                    <?php endif; ?>
-                                    <?php if (!empty($wp['description'])): ?>
-                                        <p class="work-photo-desc"><?php echo htmlspecialchars($wp['description'], ENT_QUOTES, 'UTF-8'); ?></p>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
+                                 class="work-gallery-img"
+                                 draggable="false">
                         </div>
+                        <?php if (!empty($wp['title']) || !empty($wp['description'])): ?>
+                            <div class="work-gallery-info">
+                                <?php if (!empty($wp['title'])): ?>
+                                    <h6 class="work-gallery-title"><?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?></h6>
+                                <?php endif; ?>
+                                <?php if (!empty($wp['description'])): ?>
+                                    <p class="work-gallery-desc"><?php echo htmlspecialchars($wp['description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
-
-            <button class="carousel-control-prev" type="button" data-bs-target="#workPhotosCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Previous</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#workPhotosCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Next</span>
-            </button>
         </div>
 
         <div class="text-center mt-3 text-muted small">
-            <i class="fas fa-hand-pointer"></i> Swipe or use arrows to browse
+            <i class="fas fa-arrows-alt-h"></i> Drag or swipe to browse
         </div>
     </div>
 </section>
@@ -741,6 +725,49 @@ document.addEventListener("DOMContentLoaded", function() {
     50% { transform: scale(1.02); }
 }
 </style>
+<script>
+// Drag-to-scroll for Our Work gallery
+(function() {
+    var track = document.getElementById("workGalleryTrack");
+    if (!track) return;
+    var isDown = false, startX = 0, scrollLeft = 0;
+
+    function onMouseMove(e) {
+        var x = e.pageX - track.offsetLeft;
+        var walk = (x - startX) * 1.5;
+        track.scrollLeft = scrollLeft - walk;
+    }
+
+    function stopDrag() {
+        if (!isDown) return;
+        isDown = false;
+        track.classList.remove("work-gallery-grabbing");
+        document.removeEventListener("mousemove", onMouseMove);
+    }
+
+    track.addEventListener("mousedown", function(e) {
+        isDown = true;
+        track.classList.add("work-gallery-grabbing");
+        startX = e.pageX - track.offsetLeft;
+        scrollLeft = track.scrollLeft;
+        document.addEventListener("mousemove", onMouseMove);
+        e.preventDefault();
+    });
+    document.addEventListener("mouseup", stopDrag);
+    track.addEventListener("mouseleave", stopDrag);
+
+    // Touch support
+    var touchStartX = 0, touchScrollLeft = 0;
+    track.addEventListener("touchstart", function(e) {
+        touchStartX = e.touches[0].pageX;
+        touchScrollLeft = track.scrollLeft;
+    }, { passive: true });
+    track.addEventListener("touchmove", function(e) {
+        var dx = touchStartX - e.touches[0].pageX;
+        track.scrollLeft = touchScrollLeft + dx;
+    }, { passive: true });
+})();
+</script>
 ';
 require_once __DIR__ . '/includes/footer.php';
 ?>
