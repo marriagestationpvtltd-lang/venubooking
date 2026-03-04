@@ -410,11 +410,16 @@ if (!empty($vendors)):
                     <div class="carousel-item <?php echo $vi === 0 ? 'active' : ''; ?>">
                         <div class="row g-4 justify-content-center">
                             <?php foreach ($vchunk as $vendor):
-                                $vendor_type_label = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
-                                $vendor_name       = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
-                                $vendor_location   = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $vendor_address    = htmlspecialchars($vendor['address'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $vendor_notes      = htmlspecialchars($vendor['notes'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
+                                $vendor_name        = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
+                                $vendor_location    = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $vendor_address     = htmlspecialchars($vendor['address'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $vendor_notes       = htmlspecialchars($vendor['notes'] ?? '', ENT_QUOTES, 'UTF-8');
+                                $vendor_description = htmlspecialchars($vendor['short_description'] ?? '', ENT_QUOTES, 'UTF-8');
+
+                                // Resolve primary photo from vendor_photos table (falls back to legacy photo column)
+                                $vendor_photos_list  = getVendorPhotos($vendor['id']);
+                                $primary_photo_path  = !empty($vendor_photos_list) ? $vendor_photos_list[0]['image_path'] : ($vendor['photo'] ?? '');
 
                                 // Build WhatsApp URL for Contact Us (use plain text values, not HTML-escaped)
                                 $wa_vendor_name = strip_tags($vendor['name']);
@@ -439,8 +444,8 @@ if (!empty($vendors)):
                                 <div class="col-md-4">
                                     <div class="vendor-card card h-100 shadow-sm">
                                         <!-- Vendor Photo -->
-                                        <?php if (!empty($vendor['photo'])): ?>
-                                            <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($vendor['photo']), ENT_QUOTES, 'UTF-8'); ?>"
+                                        <?php if (!empty($primary_photo_path)): ?>
+                                            <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($primary_photo_path), ENT_QUOTES, 'UTF-8'); ?>"
                                                  alt="<?php echo $vendor_name; ?>"
                                                  class="vendor-photo">
                                         <?php else: ?>
@@ -456,6 +461,10 @@ if (!empty($vendors)):
                                             </span>
                                             <!-- Vendor Name -->
                                             <h5 class="card-title mb-1"><?php echo $vendor_name; ?></h5>
+                                            <!-- Vendor Short Description -->
+                                            <?php if (!empty($vendor_description)): ?>
+                                                <p class="card-text text-muted small mb-2"><?php echo $vendor_description; ?></p>
+                                            <?php endif; ?>
                                             <!-- Vendor Location -->
                                             <?php if (!empty($vendor_location)): ?>
                                                 <p class="card-text text-muted mb-2">
