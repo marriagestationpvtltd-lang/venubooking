@@ -333,13 +333,18 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php
 // Display linked menus
-$menus_stmt = $db->prepare("SELECT m.* FROM menus m 
-                            INNER JOIN hall_menus hm ON m.id = hm.menu_id 
-                            WHERE hm.hall_id = ? 
-                            AND hm.status = 'active'
-                            ORDER BY m.name");
-$menus_stmt->execute([$hall_id]);
-$linked_menus = $menus_stmt->fetchAll();
+try {
+    $menus_stmt = $db->prepare("SELECT m.* FROM menus m 
+                                INNER JOIN hall_menus hm ON m.id = hm.menu_id 
+                                WHERE hm.hall_id = ? 
+                                AND hm.status = 'active'
+                                ORDER BY m.name");
+    $menus_stmt->execute([$hall_id]);
+    $linked_menus = $menus_stmt->fetchAll();
+} catch (PDOException $e) {
+    error_log("Failed to fetch linked menus for hall $hall_id: " . $e->getMessage());
+    $linked_menus = [];
+}
 
 if (count($linked_menus) > 0):
 ?>

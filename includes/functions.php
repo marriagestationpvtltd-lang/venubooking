@@ -436,16 +436,21 @@ function getHallsForVenue($venue_id, $min_capacity = 0) {
 function getMenusForHall($hall_id) {
     $db = getDB();
     
-    $sql = "SELECT m.* FROM menus m
-            INNER JOIN hall_menus hm ON m.id = hm.menu_id
-            WHERE hm.hall_id = ? 
-            AND m.status = 'active'
-            AND hm.status = 'active'
-            ORDER BY m.price_per_person DESC";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute([$hall_id]);
-    $menus = $stmt->fetchAll();
+    try {
+        $sql = "SELECT m.* FROM menus m
+                INNER JOIN hall_menus hm ON m.id = hm.menu_id
+                WHERE hm.hall_id = ? 
+                AND m.status = 'active'
+                AND hm.status = 'active'
+                ORDER BY m.price_per_person DESC";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$hall_id]);
+        $menus = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        error_log("getMenusForHall query failed (hall_id=$hall_id): " . $e->getMessage());
+        $menus = [];
+    }
     
     // If no menus are assigned to this hall, fall back to all active menus
     if (empty($menus)) {
@@ -2236,10 +2241,15 @@ function getAllActiveMenus() {
  */
 function getAssignedMenuIds($hall_id) {
     $db = getDB();
-    $sql = "SELECT menu_id FROM hall_menus WHERE hall_id = ? AND status = 'active'";
-    $stmt = $db->prepare($sql);
-    $stmt->execute([$hall_id]);
-    return array_column($stmt->fetchAll(), 'menu_id');
+    try {
+        $sql = "SELECT menu_id FROM hall_menus WHERE hall_id = ? AND status = 'active'";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$hall_id]);
+        return array_column($stmt->fetchAll(), 'menu_id');
+    } catch (PDOException $e) {
+        error_log("getAssignedMenuIds failed (hall_id=$hall_id): " . $e->getMessage());
+        return [];
+    }
 }
 
 /**
