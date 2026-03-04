@@ -21,6 +21,7 @@ $sections = [
     'hall' => 'Hall Gallery',
     'package' => 'Package/Menu Images',
     'gallery' => 'General Gallery',
+    'work_photos' => 'Our Work (Portfolio Slideshow)',
     'testimonial' => 'Testimonials',
     'feature' => 'Features Section',
     'about' => 'About Us Section',

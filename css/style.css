@@ -805,3 +805,78 @@ footer a:hover {
         height: 180px;
     }
 }
+
+/* ===== Our Work (Portfolio Slideshow) Section ===== */
+.work-photos-section {
+    background-color: #f8f9fa;
+}
+
+.work-photos-carousel {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.work-photo-slide {
+    position: relative;
+    background: #000;
+}
+
+.work-photo-img {
+    width: 100%;
+    height: 480px;
+    object-fit: cover;
+    display: block;
+    opacity: 0.92;
+}
+
+.work-photo-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+    padding: 2rem 2rem 1.5rem;
+    text-align: left;
+}
+
+.work-photo-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.work-photo-desc {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.88);
+    margin-bottom: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+@media (max-width: 768px) {
+    .work-photo-img {
+        height: 300px;
+    }
+
+    .work-photo-title {
+        font-size: 1rem;
+    }
+
+    .work-photo-desc {
+        font-size: 0.8rem;
+    }
+
+    .work-photo-caption {
+        padding: 1.5rem 1rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .work-photo-img {
+        height: 220px;
+    }
+}
