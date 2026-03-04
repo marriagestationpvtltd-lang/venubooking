@@ -530,6 +530,31 @@ if (!empty($vendors)):
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?php
+                // Collect all photos across packages in this category
+                $cat_photos = [];
+                foreach ($cat['packages'] as $pkg) {
+                    if (!empty($pkg['photos'])) {
+                        foreach ($pkg['photos'] as $photo_path) {
+                            $cat_photos[] = $photo_path;
+                        }
+                    }
+                }
+                ?>
+                <?php if (!empty($cat_photos)): ?>
+                <div class="package-photos-row mt-4">
+                    <div class="row g-3 justify-content-center">
+                        <?php foreach ($cat_photos as $photo_path): ?>
+                            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path); ?>"
+                                     alt="Package photo"
+                                     class="img-fluid rounded shadow-sm"
+                                     style="width:100%;height:120px;object-fit:cover;">
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
     </div>

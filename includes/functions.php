@@ -517,6 +517,19 @@ function getServicePackagesByCategory() {
                 );
                 $feat_stmt->execute([$package['id']]);
                 $packages[$pi]['features'] = $feat_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                // Load photos if the table exists
+                try {
+                    $photo_stmt = $db->prepare(
+                        "SELECT image_path FROM service_package_photos
+                         WHERE package_id = ?
+                         ORDER BY display_order, id"
+                    );
+                    $photo_stmt->execute([$package['id']]);
+                    $packages[$pi]['photos'] = $photo_stmt->fetchAll(PDO::FETCH_COLUMN);
+                } catch (Exception $e) {
+                    $packages[$pi]['photos'] = [];
+                }
             }
 
             $categories[$ci]['packages'] = $packages;
