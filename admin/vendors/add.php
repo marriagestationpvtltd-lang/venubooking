@@ -14,14 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
         $error_message = 'Invalid request. Please try again.';
     } else {
-    $name     = trim($_POST['name']     ?? '');
-    $type     = trim($_POST['type']     ?? 'other');
-    $phone    = trim($_POST['phone']    ?? '');
-    $email    = trim($_POST['email']    ?? '');
-    $address  = trim($_POST['address']  ?? '');
-    $city_id  = intval($_POST['city_id'] ?? 0);
-    $notes    = trim($_POST['notes']    ?? '');
-    $status   = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
+    $name              = trim($_POST['name']              ?? '');
+    $type              = trim($_POST['type']              ?? 'other');
+    $short_description = trim($_POST['short_description'] ?? '');
+    $phone             = trim($_POST['phone']             ?? '');
+    $email             = trim($_POST['email']             ?? '');
+    $address           = trim($_POST['address']           ?? '');
+    $city_id           = intval($_POST['city_id']         ?? 0);
+    $notes             = trim($_POST['notes']             ?? '');
+    $status            = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
 
     if (empty($name)) {
         $error_message = 'Vendor name is required.';
@@ -54,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($error_message)) {
-                $stmt = $db->prepare("INSERT INTO vendors (name, type, phone, email, address, city_id, photo, notes, status) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)");
-                $stmt->execute([$name, $type, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $notes ?: null, $status]);
+                $stmt = $db->prepare("INSERT INTO vendors (name, type, short_description, phone, email, address, city_id, photo, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)");
+                $stmt->execute([$name, $type, $short_description ?: null, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $notes ?: null, $status]);
                 $vendor_id = $db->lastInsertId();
 
                 // Save uploaded photos to vendor_photos table
@@ -122,6 +123,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="short_description" class="form-label">Short Description</label>
+                            <input type="text" class="form-control" id="short_description" name="short_description"
+                                   value="<?php echo htmlspecialchars($_POST['short_description'] ?? ''); ?>"
+                                   maxlength="500"
+                                   placeholder="e.g., Professional wedding photographer with 10+ years experience">
+                            <small class="text-muted">A brief description of what this vendor does (max 500 characters).</small>
                         </div>
 
                         <div class="col-md-6">

@@ -400,6 +400,7 @@ CREATE TABLE vendors (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL DEFAULT 'other',
+    short_description VARCHAR(500) DEFAULT NULL,
     phone VARCHAR(20),
     email VARCHAR(100),
     address TEXT,
