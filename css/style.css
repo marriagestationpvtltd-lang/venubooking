@@ -895,3 +895,33 @@ footer a:hover {
         height: 160px;
     }
 }
+
+/* Work Gallery Lightbox (press-and-hold to preview) */
+.work-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.88);
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+}
+
+.work-lightbox.active {
+    display: flex;
+}
+
+.work-lightbox-img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    user-select: none;
+}
+
+.work-gallery-img-wrap {
+    cursor: zoom-in;
+}
