@@ -571,7 +571,7 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                         <?php foreach ($active_vendor_assignments as $va): ?>
                         <tr>
                             <td>
-                                <strong><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></strong> - <?php echo htmlspecialchars($va['vendor_name']); ?>
+                                <strong>Vendors</strong> - <?php echo htmlspecialchars($va['vendor_name']); ?>
                                 <?php if (!empty($va['task_description'])): ?>
                                     <br><span class="service-description-print"><?php echo htmlspecialchars($va['task_description']); ?></span>
                                 <?php endif; ?>
@@ -581,10 +581,6 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                             <td class="text-right"><?php echo number_format(floatval($va['assigned_amount']), 2); ?></td>
                         </tr>
                         <?php endforeach; ?>
-                        <tr class="subtotal-row">
-                            <td colspan="3" class="text-right"><strong>Vendors Total:</strong></td>
-                            <td class="text-right"><strong><?php echo number_format($invoice_vendors_total, 2); ?></strong></td>
-                        </tr>
                     <?php endif; ?>
                     
                     <!-- Grand Total -->
