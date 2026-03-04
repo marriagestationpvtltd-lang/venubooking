@@ -274,6 +274,12 @@ require_once __DIR__ . '/includes/header.php';
                                                     <div>
                                                         <strong><?php echo sanitize($vendor['vendor_name']); ?></strong>
                                                         <span class="text-muted ms-1">(<?php echo sanitize(getVendorTypeLabel($vendor['vendor_type'])); ?>)</span>
+                                                        <?php if (!empty($vendor['vendor_description'])): ?>
+                                                            <br><small class="text-muted"><?php echo sanitize($vendor['vendor_description']); ?></small>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($vendor['vendor_city'])): ?>
+                                                            <br><small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i><?php echo sanitize($vendor['vendor_city']); ?></small>
+                                                        <?php endif; ?>
                                                         <?php if (!empty($vendor['vendor_phone'])): ?>
                                                             <br><small class="text-muted"><i class="fas fa-phone me-1"></i><?php echo sanitize($vendor['vendor_phone']); ?></small>
                                                         <?php endif; ?>

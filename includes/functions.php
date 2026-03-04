@@ -1917,6 +1917,12 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <div class="detail-row">
                         <span class="detail-label"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?>:</span>
                         <span class="detail-value"><?php echo htmlspecialchars($va['vendor_name']); ?>
+                            <?php if (!empty($va['vendor_description'])): ?>
+                                <br><small><?php echo htmlspecialchars($va['vendor_description']); ?></small>
+                            <?php endif; ?>
+                            <?php if (!empty($va['vendor_city'])): ?>
+                                <br><small><?php echo htmlspecialchars($va['vendor_city']); ?></small>
+                            <?php endif; ?>
                             <?php if (!empty($va['vendor_phone'])): ?>
                                 &nbsp;|&nbsp; <?php echo htmlspecialchars($va['vendor_phone']); ?>
                             <?php endif; ?>
@@ -2623,9 +2629,12 @@ function getBookingVendorAssignments($booking_id) {
     $db = getDB();
     try {
         $stmt = $db->prepare("
-            SELECT bva.*, v.name as vendor_name, v.type as vendor_type, v.phone as vendor_phone, v.email as vendor_email
+            SELECT bva.*, v.name as vendor_name, v.type as vendor_type, v.phone as vendor_phone,
+                   v.email as vendor_email, v.short_description as vendor_description,
+                   c.name as vendor_city
             FROM booking_vendor_assignments bva
             INNER JOIN vendors v ON bva.vendor_id = v.id
+            LEFT JOIN cities c ON v.city_id = c.id
             WHERE bva.booking_id = ?
             ORDER BY v.type, v.name
         ");
