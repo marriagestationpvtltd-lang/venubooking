@@ -22,81 +22,87 @@ $sections = [
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title']);
+    $title_base = trim($_POST['title']);
     $description = trim($_POST['description']);
     $section = $_POST['section'];
     $display_order = intval($_POST['display_order']);
     $status = $_POST['status'];
 
     // Validation
-    if (empty($title) || empty($section)) {
-        $error_message = 'Please fill in all required fields.';
-    } elseif (!isset($_FILES['image']) || $_FILES['image']['error'] == UPLOAD_ERR_NO_FILE) {
-        $error_message = 'Please select an image to upload.';
+    if (empty($section)) {
+        $error_message = 'Please select a section.';
+    } elseif (!isset($_FILES['images']) || (count(array_filter($_FILES['images']['error'], function($e) { return $e !== UPLOAD_ERR_NO_FILE; })) === 0)) {
+        $error_message = 'Please select at least one image to upload.';
     } else {
-        // Handle file upload
-        $file = $_FILES['image'];
+        $files = $_FILES['images'];
         $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $max_size = 5 * 1024 * 1024; // 5MB
+        $file_count = count($files['name']);
+        $success_count = 0;
+        $file_errors = [];
 
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $error_message = 'Error uploading file. Please try again.';
-        } elseif (!in_array($file['type'], $allowed_types)) {
-            $error_message = 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.';
-        } elseif ($file['size'] > $max_size) {
-            $error_message = 'File is too large. Maximum size is 5MB.';
-        } else {
-            // Generate unique filename
-            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $filename = $section . '_' . time() . '_' . uniqid() . '.' . $extension;
+        // Create uploads directory if it doesn't exist
+        if (!is_dir(UPLOAD_PATH)) {
+            mkdir(UPLOAD_PATH, 0755, true);
+        }
+
+        $sql = "INSERT INTO site_images (title, description, image_path, section, display_order, status) 
+                VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $db->prepare($sql);
+
+        for ($i = 0; $i < $file_count; $i++) {
+            if ($files['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
+
+            // Determine title for this file
+            $file_title = $title_base ?: pathinfo($files['name'][$i], PATHINFO_FILENAME);
+            if ($file_count > 1 && $title_base) {
+                $file_title = $title_base . ' (' . ($i + 1) . ')';
+            }
+
+            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                $file_errors[] = 'Error uploading "' . htmlspecialchars($files['name'][$i]) . '".';
+                continue;
+            }
+            if (!in_array($files['type'][$i], $allowed_types)) {
+                $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.';
+                continue;
+            }
+            if ($files['size'][$i] > $max_size) {
+                $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": File exceeds 5MB limit.';
+                continue;
+            }
+
+            // Generate unique filename (include index to avoid collisions in same-second batch)
+            $extension = pathinfo($files['name'][$i], PATHINFO_EXTENSION);
+            $filename = $section . '_' . time() . '_' . $i . '_' . uniqid() . '.' . $extension;
             $upload_path = UPLOAD_PATH . $filename;
 
-            // Create uploads directory if it doesn't exist
-            if (!is_dir(UPLOAD_PATH)) {
-                mkdir(UPLOAD_PATH, 0755, true);
-            }
-
-            // Move uploaded file
-            if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+            if (move_uploaded_file($files['tmp_name'][$i], $upload_path)) {
                 try {
-                    $sql = "INSERT INTO site_images (title, description, image_path, section, display_order, status) 
-                            VALUES (?, ?, ?, ?, ?, ?)";
-                    
-                    $stmt = $db->prepare($sql);
-                    $result = $stmt->execute([
-                        $title,
-                        $description,
-                        $filename,
-                        $section,
-                        $display_order,
-                        $status
-                    ]);
-
+                    $result = $stmt->execute([$file_title, $description, $filename, $section, $display_order, $status]);
                     if ($result) {
                         $image_id = $db->lastInsertId();
-                        
-                        // Log activity
-                        logActivity($current_user['id'], 'Uploaded new image', 'site_images', $image_id, "Uploaded image: $title");
-                        
-                        $success_message = 'Image uploaded successfully!';
-                        
-                        // Clear form
-                        $_POST = [];
+                        logActivity($current_user['id'], 'Uploaded new image', 'site_images', $image_id, "Uploaded image: $file_title");
+                        $success_count++;
                     } else {
-                        // Delete uploaded file if database insert fails
                         unlink($upload_path);
-                        $error_message = 'Failed to save image to database. Please try again.';
+                        $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": Failed to save to database.';
                     }
                 } catch (Exception $e) {
-                    // Delete uploaded file on exception
-                    if (file_exists($upload_path)) {
-                        unlink($upload_path);
-                    }
-                    $error_message = 'Error: ' . $e->getMessage();
+                    if (file_exists($upload_path)) unlink($upload_path);
+                    $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": ' . $e->getMessage();
                 }
             } else {
-                $error_message = 'Failed to upload file. Please check directory permissions.';
+                $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": Failed to save file. Check directory permissions.';
             }
+        }
+
+        if ($success_count > 0) {
+            $success_message = $success_count . ' image' . ($success_count > 1 ? 's' : '') . ' uploaded successfully!';
+            $_POST = [];
+        }
+        if (!empty($file_errors)) {
+            $error_message = implode('<br>', $file_errors);
         }
     }
 }
@@ -132,11 +138,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
-                                <label for="title" class="form-label">Image Title <span class="text-danger">*</span></label>
+                                <label for="title" class="form-label">Image Title</label>
                                 <input type="text" class="form-control" id="title" name="title" 
                                        value="<?php echo isset($_POST['title']) ? htmlspecialchars($_POST['title']) : ''; ?>" 
-                                       placeholder="e.g., Grand Ballroom Banner" required>
-                                <small class="text-muted">A descriptive title for this image</small>
+                                       placeholder="e.g., Grand Ballroom Banner">
+                                <small class="text-muted">Optional when uploading multiple images — filename is used as title if left blank</small>
                             </div>
                         </div>
 
@@ -166,9 +172,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
-                                <label for="image" class="form-label">Image File <span class="text-danger">*</span></label>
-                                <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
-                                <small class="text-muted">Supported formats: JPG, PNG, GIF, WebP. Maximum size: 5MB</small>
+                                <label for="images" class="form-label">Image Files <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="images" name="images[]" accept="image/*" multiple required>
+                                <small class="text-muted">Supported formats: JPG, PNG, GIF, WebP. Maximum size: 5MB each. Select multiple files at once to bulk upload.</small>
                             </div>
                         </div>
 
@@ -201,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <li><strong>Hall Gallery:</strong> Images shown in hall detail pages</li>
                             <li><strong>Package/Menu:</strong> Images for menu packages</li>
                             <li><strong>Gallery:</strong> General photo gallery section</li>
-                            <li><strong>Our Work (Portfolio Slideshow):</strong> Showcase photos of your work with a short description — displayed as a swipeable slideshow on the homepage</li>
+                            <li><strong>Our Work (Portfolio Slideshow):</strong> Showcase photos of your work — displayed as an auto-scrolling infinite slideshow on the homepage. Pauses when visitors hover or touch.</li>
                             <li><strong>Other sections:</strong> Images for various other parts of the website</li>
                         </ul>
                     </div>
@@ -211,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fas fa-times"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-success">
-                            <i class="fas fa-upload"></i> Upload Image
+                            <i class="fas fa-upload"></i> Upload Image(s)
                         </button>
                     </div>
                 </form>

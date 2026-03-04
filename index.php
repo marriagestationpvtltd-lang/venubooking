@@ -358,7 +358,7 @@ if (!empty($work_photos)):
         </div>
 
         <div class="text-center mt-3 text-muted small">
-            <i class="fas fa-arrows-alt-h"></i> Drag or swipe to browse
+            <i class="fas fa-pause-circle"></i> Hover or touch to pause slideshow
         </div>
     </div>
 </section>
@@ -726,45 +726,77 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 </style>
 <script>
-// Drag-to-scroll for Our Work gallery
+// Auto-scroll slideshow for Our Work gallery (pauses on hover/touch, drag to browse)
 (function() {
     var track = document.getElementById("workGalleryTrack");
     if (!track) return;
+
+    // Duplicate cards to create a seamless infinite scroll loop
+    var origCards = Array.from(track.children);
+    origCards.forEach(function(card) {
+        track.appendChild(card.cloneNode(true));
+    });
+
+    var speed = 0.6; // pixels per frame (~60fps)
+    var hovered = false, touching = false, dragging = false;
+
+    function isPaused() { return hovered || touching || dragging; }
+
+    function step() {
+        if (!isPaused()) {
+            track.scrollLeft += speed;
+            // Reset to start of first copy when second copy begins
+            var half = track.scrollWidth / 2;
+            if (track.scrollLeft >= half - 1) {
+                track.scrollLeft -= half;
+            }
+        }
+        requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+
+    // Pause on mouse hover
+    track.addEventListener("mouseenter", function() { hovered = true; });
+    track.addEventListener("mouseleave", function() { hovered = false; });
+
+    // Pause on touch
+    track.addEventListener("touchstart", function() { touching = true; }, { passive: true });
+    track.addEventListener("touchend", function() { touching = false; }, { passive: true });
+    track.addEventListener("touchcancel", function() { touching = false; }, { passive: true });
+
+    // Mouse drag-to-scroll
     var isDown = false, startX = 0, scrollLeft = 0;
-
-    function onMouseMove(e) {
-        var x = e.pageX - track.offsetLeft;
-        var walk = (x - startX) * 1.5;
-        track.scrollLeft = scrollLeft - walk;
-    }
-
-    function stopDrag() {
-        if (!isDown) return;
-        isDown = false;
-        track.classList.remove("work-gallery-grabbing");
-        document.removeEventListener("mousemove", onMouseMove);
-    }
-
     track.addEventListener("mousedown", function(e) {
         isDown = true;
+        dragging = true;
         track.classList.add("work-gallery-grabbing");
         startX = e.pageX - track.offsetLeft;
         scrollLeft = track.scrollLeft;
         document.addEventListener("mousemove", onMouseMove);
         e.preventDefault();
     });
+    function onMouseMove(e) {
+        if (!isDown) return;
+        var x = e.pageX - track.offsetLeft;
+        track.scrollLeft = scrollLeft - (x - startX) * 1.5;
+    }
+    function stopDrag() {
+        if (!isDown) return;
+        isDown = false;
+        dragging = false;
+        track.classList.remove("work-gallery-grabbing");
+        document.removeEventListener("mousemove", onMouseMove);
+    }
     document.addEventListener("mouseup", stopDrag);
-    track.addEventListener("mouseleave", stopDrag);
 
-    // Touch support
+    // Touch drag-to-scroll
     var touchStartX = 0, touchScrollLeft = 0;
     track.addEventListener("touchstart", function(e) {
         touchStartX = e.touches[0].pageX;
         touchScrollLeft = track.scrollLeft;
     }, { passive: true });
     track.addEventListener("touchmove", function(e) {
-        var dx = touchStartX - e.touches[0].pageX;
-        track.scrollLeft = touchScrollLeft + dx;
+        track.scrollLeft = touchScrollLeft - (e.touches[0].pageX - touchStartX);
     }, { passive: true });
 })();
 </script>
