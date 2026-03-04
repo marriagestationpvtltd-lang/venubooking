@@ -1386,6 +1386,9 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                             <tr>
                                 <td>
                                     <strong><?php echo htmlspecialchars($assignment['vendor_name']); ?></strong>
+                                    <?php if (!empty($assignment['vendor_city'])): ?>
+                                        <br><small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($assignment['vendor_city']); ?></small>
+                                    <?php endif; ?>
                                     <?php if (!empty($assignment['vendor_phone'])): ?>
                                         <br><small class="text-muted"><i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($assignment['vendor_phone']); ?></small>
                                     <?php endif; ?>
@@ -1393,6 +1396,9 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                 <td><?php echo htmlspecialchars(getVendorTypeLabel($assignment['vendor_type'])); ?></td>
                                 <td>
                                     <?php echo htmlspecialchars($assignment['task_description']); ?>
+                                    <?php if (!empty($assignment['vendor_description']) && $assignment['vendor_description'] !== $assignment['task_description']): ?>
+                                        <br><small class="text-muted"><?php echo htmlspecialchars($assignment['vendor_description']); ?></small>
+                                    <?php endif; ?>
                                     <?php if (!empty($assignment['notes'])): ?>
                                         <br><small class="text-muted"><?php echo htmlspecialchars($assignment['notes']); ?></small>
                                     <?php endif; ?>
@@ -1455,7 +1461,12 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                 // Build grouped vendor data for JS two-step selection (only types with available vendors)
                 $vendors_by_type = [];
                 foreach ($all_vendors as $v) {
-                    $vendors_by_type[$v['type']][] = ['id' => $v['id'], 'name' => $v['name']];
+                    $vendors_by_type[$v['type']][] = [
+                        'id'          => $v['id'],
+                        'name'        => $v['name'],
+                        'description' => $v['short_description'] ?? '',
+                        'city'        => $v['city_name'] ?? '',
+                    ];
                 }
                 // Filter vendor types list to only those that have available vendors
                 $vendor_types_available = array_filter(getVendorTypes(), function($vt) use ($vendors_by_type) {
@@ -1485,10 +1496,13 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                 <select name="vendor_id" id="vendorSelect" class="form-select">
                                     <option value="">— Select Vendor —</option>
                                 </select>
+                                <div id="vendorInfoDisplay" class="mt-1 d-none">
+                                    <small id="vendorLocationInfo" class="text-muted d-block"></small>
+                                </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Task Description <small class="text-muted">(Optional)</small></label>
-                                <input type="text" name="task_description" class="form-control"
+                                <input type="text" name="task_description" id="taskDescriptionInput" class="form-control"
                                        placeholder="e.g., Wedding Photography">
                             </div>
                             <div class="col-md-2">
@@ -1516,21 +1530,55 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                     var vendorWrapper = document.getElementById('vendorSelectWrapper');
                     var vendorSelect  = document.getElementById('vendorSelect');
                     var assignForm    = document.getElementById('addVendorAssignmentForm');
+                    var taskDescInput = document.getElementById('taskDescriptionInput');
+                    var vendorInfoDiv = document.getElementById('vendorInfoDisplay');
+                    var vendorLocInfo = document.getElementById('vendorLocationInfo');
 
                     typeSelect.addEventListener('change', function() {
                         var type = this.value;
                         // Reset vendor dropdown
                         vendorSelect.innerHTML = '<option value="">— Select Vendor —</option>';
                         vendorWrapper.classList.add('d-none');
+                        vendorInfoDiv.classList.add('d-none');
+                        vendorLocInfo.textContent = '';
+                        taskDescInput.value = '';
 
                         if (type && vendorsByType[type]) {
                             vendorsByType[type].forEach(function(v) {
                                 var opt = document.createElement('option');
                                 opt.value = v.id;
                                 opt.textContent = v.name;
+                                opt.dataset.description = v.description || '';
+                                opt.dataset.city = v.city || '';
                                 vendorSelect.appendChild(opt);
                             });
                             vendorWrapper.classList.remove('d-none');
+                        }
+                    });
+
+                    vendorSelect.addEventListener('change', function() {
+                        var selectedOpt = this.options[this.selectedIndex];
+                        var description = selectedOpt.dataset.description || '';
+                        var city        = selectedOpt.dataset.city || '';
+
+                        // Auto-populate task description with vendor's short description
+                        if (description) {
+                            taskDescInput.value = description;
+                        } else {
+                            taskDescInput.value = '';
+                        }
+
+                        // Show vendor location
+                        if (city) {
+                            var icon = document.createElement('i');
+                            icon.className = 'fas fa-map-marker-alt me-1';
+                            vendorLocInfo.textContent = '';
+                            vendorLocInfo.appendChild(icon);
+                            vendorLocInfo.appendChild(document.createTextNode(city));
+                            vendorInfoDiv.classList.remove('d-none');
+                        } else {
+                            vendorInfoDiv.classList.add('d-none');
+                            vendorLocInfo.textContent = '';
                         }
                     });
 
