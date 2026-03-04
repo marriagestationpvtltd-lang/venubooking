@@ -28,9 +28,9 @@ $service_categories = getServicePackagesByCategory();
                 </div>
                 <div class="col-lg-6 order-lg-2 order-1">
                     <div class="booking-card">
-                        <h3 class="text-center mb-4 text-success">
+                        <h4 class="text-center mb-4 text-success">
                             <i class="fas fa-calendar-check"></i> Start Your Booking
-                        </h3>
+                        </h4>
                         <form id="bookingForm" method="POST" action="booking-step2.php" novalidate>
                             <input type="hidden" id="preferred_venue_id" name="preferred_venue_id" value="">
                             <div class="mb-3">
