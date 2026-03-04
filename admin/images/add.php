@@ -13,6 +13,7 @@ $sections = [
     'hall' => 'Hall Gallery',
     'package' => 'Package/Menu Images',
     'gallery' => 'General Gallery',
+    'work_photos' => 'Our Work (Portfolio Slideshow)',
     'testimonial' => 'Testimonials',
     'feature' => 'Features Section',
     'about' => 'About Us Section',
@@ -200,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <li><strong>Hall Gallery:</strong> Images shown in hall detail pages</li>
                             <li><strong>Package/Menu:</strong> Images for menu packages</li>
                             <li><strong>Gallery:</strong> General photo gallery section</li>
+                            <li><strong>Our Work (Portfolio Slideshow):</strong> Showcase photos of your work with a short description — displayed as a swipeable slideshow on the homepage</li>
                             <li><strong>Other sections:</strong> Images for various other parts of the website</li>
                         </ul>
                     </div>

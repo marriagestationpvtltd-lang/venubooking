@@ -322,6 +322,65 @@ if (!empty($gallery_images)):
 <?php endif; ?>
 
 <?php
+// Get work portfolio photos for the slideshow
+$work_photos = getImagesBySection('work_photos');
+if (!empty($work_photos)):
+?>
+<!-- Our Work Slideshow Section -->
+<section class="work-photos-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-2">Our Work</h2>
+        <p class="text-center text-muted mb-5">A glimpse of the events and moments we have been part of</p>
+
+        <div id="workPhotosCarousel" class="carousel slide work-photos-carousel" data-bs-ride="carousel" data-bs-interval="4000" data-bs-touch="true">
+            <div class="carousel-indicators">
+                <?php foreach ($work_photos as $wi => $wp): ?>
+                    <button type="button" data-bs-target="#workPhotosCarousel" data-bs-slide-to="<?php echo $wi; ?>"
+                            <?php echo $wi === 0 ? 'class="active" aria-current="true"' : ''; ?>
+                            aria-label="Slide <?php echo $wi + 1; ?>"></button>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="carousel-inner">
+                <?php foreach ($work_photos as $wi => $wp): ?>
+                    <div class="carousel-item <?php echo $wi === 0 ? 'active' : ''; ?>">
+                        <div class="work-photo-slide">
+                            <img src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                                 alt="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                 class="work-photo-img">
+                            <?php if (!empty($wp['title']) || !empty($wp['description'])): ?>
+                                <div class="carousel-caption work-photo-caption">
+                                    <?php if (!empty($wp['title'])): ?>
+                                        <h5 class="work-photo-title"><?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?></h5>
+                                    <?php endif; ?>
+                                    <?php if (!empty($wp['description'])): ?>
+                                        <p class="work-photo-desc"><?php echo htmlspecialchars($wp['description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <button class="carousel-control-prev" type="button" data-bs-target="#workPhotosCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#workPhotosCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+
+        <div class="text-center mt-3 text-muted small">
+            <i class="fas fa-hand-pointer"></i> Swipe or use arrows to browse
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php
 // Get all active vendors and office WhatsApp number for the vendor listing section
 $vendors = getVendors();
 $office_whatsapp = getSetting('whatsapp_number', '');
