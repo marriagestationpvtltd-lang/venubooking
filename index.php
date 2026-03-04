@@ -548,11 +548,12 @@ if (!empty($vendors)):
                 <h3 class="service-category-title mb-4">
                     <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
                 </h3>
-                <div class="row g-4">
+                <div class="pkg-slider-wrapper">
+                <div class="pkg-slider-track" data-pkg-slider>
                     <?php foreach ($cat['packages'] as $pkg):
                         $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
                     ?>
-                        <div class="col-12 col-sm-6 col-md-4">
+                        <div class="pkg-slider-card">
                             <div class="package-card card h-100 shadow-sm">
                                 <?php if (!empty($pkg['photos'])): ?>
                                     <?php if (count($pkg['photos']) > 1): ?>
@@ -649,6 +650,7 @@ if (!empty($vendors)):
                             </div>
                         </div>
                     <?php endforeach; ?>
+                </div>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -892,6 +894,82 @@ document.addEventListener("DOMContentLoaded", function() {
     // Close on Escape key
     document.addEventListener("keydown", function(e) {
         if (e.key === "Escape") hideLightbox();
+    });
+})();
+
+// ── Auto-scroll for package category sliders ──
+(function() {
+    var speed = 0.5; // pixels per frame
+    var dragSensitivity = 1.5;
+
+    document.querySelectorAll("[data-pkg-slider]").forEach(function(track) {
+        // Only enable auto-scroll when content overflows the wrapper
+        if (track.scrollWidth <= track.clientWidth) return;
+
+        // Duplicate cards for seamless infinite loop
+        var origCards = Array.from(track.children);
+        origCards.forEach(function(card) {
+            track.appendChild(card.cloneNode(true));
+        });
+
+        var hovered = false, dragging = false;
+
+        function isPaused() { return hovered || dragging; }
+
+        function step() {
+            if (!isPaused()) {
+                track.scrollLeft += speed;
+                var half = track.scrollWidth / 2;
+                // Subtract 1px tolerance to avoid floating-point overshoot
+                if (track.scrollLeft >= half - 1) {
+                    track.scrollLeft -= half;
+                }
+            }
+            requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+
+        // Pause on mouse hover
+        track.addEventListener("mouseenter", function() { hovered = true; });
+        track.addEventListener("mouseleave", function() { hovered = false; });
+
+        // Mouse drag-to-scroll
+        var isDown = false, startX = 0, scrollStart = 0;
+        track.addEventListener("mousedown", function(e) {
+            isDown = true;
+            dragging = true;
+            track.classList.add("pkg-slider-grabbing");
+            startX = e.pageX - track.offsetLeft;
+            scrollStart = track.scrollLeft;
+            document.addEventListener("mousemove", onMove);
+            e.preventDefault();
+        });
+        function onMove(e) {
+            if (!isDown) return;
+            track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
+        }
+        function stopDrag() {
+            if (!isDown) return;
+            isDown = false;
+            dragging = false;
+            track.classList.remove("pkg-slider-grabbing");
+            document.removeEventListener("mousemove", onMove);
+        }
+        document.addEventListener("mouseup", stopDrag);
+
+        // Touch: pause auto-scroll and drag-to-scroll
+        var tStartX = 0, tScrollStart = 0;
+        track.addEventListener("touchstart", function(e) {
+            hovered = true;
+            dragging = true;
+            tStartX = e.touches[0].pageX;
+            tScrollStart = track.scrollLeft;
+        }, { passive: true });
+        track.addEventListener("touchmove", function(e) {
+            track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
+        }, { passive: true });
+        track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
+        track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
     });
 })();
 </script>
