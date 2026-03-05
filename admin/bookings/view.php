@@ -133,6 +133,14 @@ if (isset($_POST['action'])) {
         } else {
             $error_message = 'Customer phone number not found. Cannot send WhatsApp message.';
         }
+    } elseif ($action === 'send_venue_provider_whatsapp') {
+        // Notify venue provider about confirmed booking via WhatsApp
+        if (!empty($booking['venue_contact_phone'])) {
+            $success_message = 'Opening WhatsApp to notify venue provider...';
+            logActivity($current_user['id'], 'Initiated WhatsApp venue provider notification', 'bookings', $booking_id, "WhatsApp venue provider notification initiated for booking: {$booking['booking_number']}");
+        } else {
+            $error_message = 'Venue contact phone number not found. Please add a contact phone to the venue.';
+        }
     } elseif ($action === 'send_booking_confirmation_email') {
         // Send booking confirmation via email (after advance payment received)
         if (!empty($booking['email'])) {
@@ -766,6 +774,10 @@ if (!empty($booking_confirmation_vendors)) {
     }
 }
 $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
+
+// Build venue provider WhatsApp URL
+$venue_provider_wa_url = buildVenueProviderWhatsAppUrl($booking);
+$clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'] ?? '');
 ?>
 <div class="row mb-4">
     <div class="col-12">
@@ -907,6 +919,34 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
                                     <i class="fas fa-info-circle me-1"></i> Phone not available
                                 </small>
                             <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Venue Provider Notification -->
+                    <div class="col-lg-4 col-md-6">
+                        <div class="quick-check-item h-100">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-building text-warning me-2"></i>
+                                <span class="fw-bold small text-uppercase text-muted">Notify Venue Provider</span>
+                            </div>
+                            <form method="POST" action="" id="venueProviderWhatsappForm" class="d-grid">
+                                <input type="hidden" name="action" value="send_venue_provider_whatsapp">
+                                <button type="submit" class="btn btn-warning btn-sm w-100"
+                                    <?php echo empty($booking['venue_contact_phone']) ? 'disabled' : ''; ?>>
+                                    <i class="fab fa-whatsapp me-1"></i> Notify Venue via WhatsApp
+                                </button>
+                            </form>
+                            <?php if (empty($booking['venue_contact_phone'])): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    No venue contact phone. <a href="<?php echo BASE_URL; ?>/admin/venues/" class="alert-link">Update venue</a>.
+                                </small>
+                            <?php else: ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-phone me-1"></i>
+                                    <?php echo htmlspecialchars($booking['venue_contact_phone']); ?>
+                                </small>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -2867,6 +2907,23 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 
             setTimeout(function() {
                 confirmationWhatsappForm.submit();
+            }, WHATSAPP_REDIRECT_DELAY);
+        });
+    }
+
+    // Handle Venue Provider WhatsApp form submission
+    const venueProviderWhatsappForm = document.getElementById('venueProviderWhatsappForm');
+    if (venueProviderWhatsappForm) {
+        venueProviderWhatsappForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const waUrl = <?php echo json_encode($venue_provider_wa_url); ?>;
+            if (waUrl) {
+                window.open(waUrl, '_blank');
+            }
+
+            setTimeout(function() {
+                venueProviderWhatsappForm.submit();
             }, WHATSAPP_REDIRECT_DELAY);
         });
     }

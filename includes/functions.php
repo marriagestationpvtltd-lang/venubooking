@@ -892,7 +892,8 @@ function getBookingDetails($booking_id) {
         
         $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
                        h.name as hall_name, h.capacity,
-                       v.name as venue_name, v.location, v.map_link
+                       v.name as venue_name, v.location, v.map_link,
+                       v.contact_phone as venue_contact_phone
                 FROM bookings b
                 INNER JOIN customers c ON b.customer_id = c.id
                 INNER JOIN halls h ON b.hall_id = h.id
@@ -3015,6 +3016,89 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
     if (!empty($contact_phone)) {
         $text .= $contact_phone;
     }
+
+    return 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($text);
+}
+
+/**
+ * Build a WhatsApp notification URL to inform the venue provider about a confirmed booking.
+ *
+ * @param array $booking  Booking row from getBookingDetails() (must include venue_contact_phone)
+ * @return string WhatsApp URL, or empty string if no venue phone available
+ */
+function buildVenueProviderWhatsAppUrl($booking) {
+    $clean_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'] ?? '');
+    if (empty($clean_phone)) {
+        return '';
+    }
+
+    $nepali_date   = convertToNepaliDate($booking['event_date']);
+    $company_name  = getSetting('company_name', getSetting('site_name', 'Booking Team'));
+    $contact_phone = getSetting('contact_phone', '');
+
+    $text  = "🏛️ *Booking Confirmation – Venue Provider Notice*\n\n";
+    $text .= "Dear " . strip_tags($booking['venue_name']) . " Team,\n\n";
+    $text .= "We would like to inform you that a booking has been *confirmed* at your venue. Please find the full details below:\n\n";
+
+    $text .= "📋 *Booking Details*\n";
+    $text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
+    $text .= "Event Date (BS): " . $nepali_date . "\n";
+    $text .= "Event Date (AD): " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
+    $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift'])) . "\n";
+    $text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
+    $text .= "Hall: " . strip_tags($booking['hall_name']) . "\n";
+    $text .= "Number of Guests: " . intval($booking['guests']) . "\n\n";
+
+    if (!empty($booking['menus'])) {
+        $text .= "🍽️ *Selected Menus*\n";
+        foreach ($booking['menus'] as $menu) {
+            $text .= "• " . strip_tags($menu['menu_name']) . " (Rs. " . number_format($menu['price_per_person'], 2) . "/person)\n";
+            if (!empty($menu['items'])) {
+                $categories = [];
+                foreach ($menu['items'] as $item) {
+                    $categories[$item['category']][] = strip_tags($item['item_name']);
+                }
+                foreach ($categories as $cat => $items) {
+                    $text .= "  " . strip_tags($cat) . ": " . implode(', ', $items) . "\n";
+                }
+            }
+        }
+        $text .= "\n";
+    }
+
+    if (!empty($booking['services'])) {
+        $user_services = array_filter($booking['services'], function($s) {
+            return ($s['added_by'] ?? '') !== 'admin';
+        });
+        if (!empty($user_services)) {
+            $text .= "🎉 *Additional Services*\n";
+            foreach ($user_services as $service) {
+                $qty = intval($service['quantity'] ?? 1);
+                $line = "• " . strip_tags($service['service_name']);
+                if ($qty > 1) {
+                    $line .= " (x{$qty})";
+                }
+                $text .= $line . "\n";
+            }
+            $text .= "\n";
+        }
+    }
+
+    $text .= "💰 *Total Amount: Rs. " . number_format($booking['grand_total'], 2) . "*\n\n";
+
+    if (!empty($booking['special_requests'])) {
+        $text .= "📝 *Special Requests*\n" . strip_tags($booking['special_requests']) . "\n\n";
+    }
+
+    $text .= "Please ensure the venue and all necessary arrangements are prepared accordingly.\n\n";
+    $text .= "For any queries, please contact us:\n";
+    if (!empty($contact_phone)) {
+        $text .= "📞 " . $contact_phone . "\n\n";
+    } else {
+        $text .= strip_tags($company_name) . "\n\n";
+    }
+    $text .= "Thank you!\n";
+    $text .= "Regards,\n*" . strip_tags($company_name) . "*";
 
     return 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($text);
 }
