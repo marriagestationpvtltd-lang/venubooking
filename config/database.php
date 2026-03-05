@@ -3,6 +3,9 @@
  * Database Configuration
  */
 
+// Load production settings first (suppresses errors, sets secure handlers)
+require_once __DIR__ . '/production.php';
+
 // Load environment variables from .env file if it exists
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {

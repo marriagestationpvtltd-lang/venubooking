@@ -23,17 +23,14 @@ ini_set('error_log', $error_log_path);
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_samesite', 'Strict');
-// Note: Enable cookie_secure only if HTTPS is enabled
-// Uncomment the line below after enabling SSL/HTTPS:
-// ini_set('session.cookie_secure', '1');
+// Automatically enable secure cookie flag when the request is over HTTPS
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+    ini_set('session.cookie_secure', '1');
+}
 
 // Disable unnecessary PHP functions for security
-// Note: Actual function disabling should be done in php.ini using disable_functions directive
-// This array is kept for documentation purposes
-$security_note = 'For maximum security, add these functions to disable_functions in php.ini: ' .
-                'exec, shell_exec, system, passthru, proc_open, popen';
-// Log security recommendation
-error_log($security_note);
+// NOTE: Add these functions to disable_functions in php.ini for maximum security:
+//   exec, shell_exec, system, passthru, proc_open, popen
 
 // Output buffering for better performance
 ini_set('output_buffering', '4096');

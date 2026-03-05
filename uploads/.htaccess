@@ -1,0 +1,17 @@
+# Deny execution of PHP scripts and other server-side scripts in the uploads directory.
+# This prevents attackers from executing malicious files they may have uploaded.
+
+# Deny direct PHP execution
+<FilesMatch "\.(php|php3|php4|php5|php7|php8|phtml|phar|pl|py|cgi|sh|bash|exe|htaccess)$">
+    Require all denied
+</FilesMatch>
+
+# Force all files served from this directory to be treated as plain data,
+# not as executable content (extra defence-in-depth layer).
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Content-Disposition "attachment"
+</IfModule>
+
+# Deny directory listing
+Options -Indexes

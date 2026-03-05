@@ -11,17 +11,24 @@ if (isLoggedIn()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    
-    if (empty($username) || empty($password)) {
-        $error = 'Please enter both username and password';
+    // Check lockout before processing credentials
+    if (isLoginLockedOut()) {
+        $error = 'Too many failed login attempts. Please try again in 15 minutes.';
+    } elseif (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error = 'Invalid request. Please refresh the page and try again.';
     } else {
-        if (login($username, $password)) {
-            header('Location: dashboard.php');
-            exit;
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        
+        if (empty($username) || empty($password)) {
+            $error = 'Please enter both username and password';
         } else {
-            $error = 'Invalid username or password';
+            if (login($username, $password)) {
+                header('Location: dashboard.php');
+                exit;
+            } else {
+                $error = 'Invalid username or password';
+            }
         }
     }
 }
@@ -85,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
             
             <form method="POST" action="">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="mb-3">
                     <label for="username" class="form-label">
                         <i class="fas fa-user"></i> Username

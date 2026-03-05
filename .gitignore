@@ -11,6 +11,7 @@ access_log
 # Uploaded files (keep directory structure but ignore content)
 uploads/**/*
 !uploads/.gitkeep
+!uploads/.htaccess
 !uploads/venues/.gitkeep
 !uploads/halls/.gitkeep
 !uploads/menus/.gitkeep
