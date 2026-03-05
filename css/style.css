@@ -893,14 +893,35 @@ footer a:hover {
     background-color: #f8f9fa;
 }
 
-/* ── Folder cards grid ─────────────────────────────────── */
-.work-folder-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+/* ── Folder cards marquee ──────────────────────────────── */
+@keyframes workFolderScroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+
+.work-folder-marquee {
+    overflow: hidden;
+    position: relative;
+    /* subtle fade edges */
+    mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+}
+
+.work-folder-track {
+    display: flex;
     gap: 1.5rem;
+    padding: 0.75rem 0;          /* give room for box-shadow */
+    width: max-content;
+    animation: workFolderScroll var(--wf-duration, 30s) linear infinite;
+}
+
+/* Pause on hover over the whole track (including any card inside it) */
+.work-folder-track:hover {
+    animation-play-state: paused;
 }
 
 .work-folder-card {
+    flex-shrink: 0;
+    width: 260px;
     background: #fff;
     border-radius: 12px;
     overflow: hidden;
@@ -977,8 +998,8 @@ footer a:hover {
 }
 
 @media (max-width: 576px) {
-    .work-folder-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    .work-folder-card {
+        width: 200px;
     }
     .work-folder-img-wrap {
         height: 160px;

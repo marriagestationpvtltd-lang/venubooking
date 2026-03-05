@@ -648,37 +648,54 @@ if (!empty($work_categories)):
         <h2 class="text-center section-title mb-2">Our Work</h2>
         <p class="text-center text-muted mb-5">Browse our events by category</p>
 
-        <div class="work-folder-grid">
-            <?php foreach ($work_categories as $cat_name => $cat_photos):
-                $preview    = $cat_photos[0];
-                $cat_count  = count($cat_photos);
-                $cat_index  = array_search($cat_name, array_keys($work_categories));
-            ?>
-            <div class="work-folder-card" role="button" tabindex="0"
-                 data-cat-index="<?php echo $cat_index; ?>"
-                 aria-label="<?php echo htmlspecialchars($cat_name, ENT_QUOTES, 'UTF-8'); ?> (<?php echo $cat_count; ?> photo<?php echo $cat_count !== 1 ? 's' : ''; ?>)">
+        <!-- Marquee wrapper: cards scroll continuously; hovering pauses the animation -->
+        <div class="work-folder-marquee">
+            <div class="work-folder-track" id="workFolderTrack">
+                <?php
+                // Render cards twice: first set is interactive, second set is an
+                // aria-hidden visual duplicate needed for the seamless loop.
+                $cat_keys = array_keys($work_categories);
+                for ($wf_pass = 0; $wf_pass < 2; $wf_pass++):
+                    foreach ($work_categories as $cat_name => $cat_photos):
+                        $preview   = $cat_photos[0];
+                        $cat_count = count($cat_photos);
+                        $cat_index = array_search($cat_name, $cat_keys);
+                        $is_dup    = ($wf_pass === 1);
+                ?>
+                <div class="work-folder-card"
+                     data-cat-index="<?php echo $cat_index; ?>"
+                     <?php if ($is_dup): ?>
+                     aria-hidden="true" tabindex="-1"
+                     <?php else: ?>
+                     role="button" tabindex="0"
+                     aria-label="<?php echo htmlspecialchars($cat_name, ENT_QUOTES, 'UTF-8'); ?> (<?php echo $cat_count; ?> photo<?php echo $cat_count !== 1 ? 's' : ''; ?>)"
+                     <?php endif; ?>>
 
-                <div class="work-folder-img-wrap">
-                    <img src="<?php echo htmlspecialchars($preview['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                    <div class="work-folder-img-wrap">
+                        <img src="<?php echo htmlspecialchars($preview['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
                          alt="<?php echo htmlspecialchars($preview['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                         class="work-folder-img"
-                         loading="lazy"
-                         draggable="false">
-                    <div class="work-folder-overlay">
-                        <i class="fas fa-folder-open work-folder-icon"></i>
+                             class="work-folder-img"
+                             loading="lazy"
+                             draggable="false">
+                        <div class="work-folder-overlay">
+                            <i class="fas fa-folder-open work-folder-icon"></i>
+                        </div>
                     </div>
-                </div>
 
-                <div class="work-folder-info">
-                    <div class="work-folder-title">
-                        <i class="fas fa-folder me-2 text-warning"></i><?php echo htmlspecialchars($cat_name, ENT_QUOTES, 'UTF-8'); ?>
-                    </div>
-                    <div class="work-folder-count">
-                        <i class="fas fa-images me-1"></i><?php echo $cat_count; ?> Photo<?php echo $cat_count !== 1 ? 's' : ''; ?>
+                    <div class="work-folder-info">
+                        <div class="work-folder-title">
+                            <i class="fas fa-folder me-2 text-warning"></i><?php echo htmlspecialchars($cat_name, ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <div class="work-folder-count">
+                            <i class="fas fa-images me-1"></i><?php echo $cat_count; ?> Photo<?php echo $cat_count !== 1 ? 's' : ''; ?>
+                        </div>
                     </div>
                 </div>
+                <?php
+                    endforeach;
+                endfor;
+                ?>
             </div>
-            <?php endforeach; ?>
         </div>
     </div>
 </section>
@@ -800,14 +817,29 @@ if (!empty($work_categories)):
     }
     function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
 
-    // Attach click / keyboard to each folder card
-    document.querySelectorAll(".work-folder-card").forEach(function(card) {
+    // ── Marquee speed: ~5 s per card (min 10 s total) ──────────
+    var wfTrack = document.getElementById("workFolderTrack");
+    if (wfTrack) {
+        var numCats  = allCategories.length;
+        var duration = Math.max(10, numCats * 5);
+        wfTrack.style.setProperty("--wf-duration", duration + "s");
+    }
+
+    // Attach click / keyboard to interactive (non-duplicate) folder cards only
+    document.querySelectorAll(".work-folder-card:not([aria-hidden])").forEach(function(card) {
         function open() {
             openFolder(parseInt(card.dataset.catIndex, 10), 0);
         }
         card.addEventListener("click", open);
         card.addEventListener("keydown", function(e) {
             if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+        });
+    });
+
+    // Duplicate cards (aria-hidden) still need click support for mouse users
+    document.querySelectorAll(".work-folder-card[aria-hidden]").forEach(function(card) {
+        card.addEventListener("click", function() {
+            openFolder(parseInt(card.dataset.catIndex, 10), 0);
         });
     });
 
