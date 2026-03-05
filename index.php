@@ -1037,7 +1037,7 @@ if (!empty($vendors)):
         <h2 class="text-center section-title mb-2">Our Vendors</h2>
         <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
 
-        <div id="vendorsCarousel" class="carousel slide vendors-carousel-animated" data-bs-ride="false" data-bs-touch="false">
+        <div id="vendorsCarousel" class="carousel slide" data-bs-ride="false">
             <div class="carousel-indicators">
                 <?php
                 $vendor_chunks = array_chunk($vendors, 3);

@@ -642,9 +642,10 @@ footer a:hover {
 /* ===================== Vendors Section ===================== */
 .vendors-section {
     background-color: var(--bg-light);
+    animation: vendorFadeIn 0.7s ease-out;
 }
 
-/* Fade-in animation for the vendor carousel */
+/* Fade-in animation for the vendors section */
 @keyframes vendorFadeIn {
     from {
         opacity: 0;
@@ -654,8 +655,10 @@ footer a:hover {
     }
 }
 
-.vendors-carousel-animated {
-    animation: vendorFadeIn 0.7s ease-out;
+/* Ensure the vendors carousel inner has a minimum height so slides never
+   collapse to zero-height during Bootstrap's slide transition */
+.vendors-section .carousel-inner {
+    min-height: 200px;
 }
 
 .vendor-card {
