@@ -1412,6 +1412,13 @@ document.addEventListener("DOMContentLoaded", function() {
             // It will be cleared after step2 loads
         });
     }
+
+    // Explicitly initialise the vendors carousel so that every slide
+    // (not just the first one) transitions and renders correctly.
+    var vendorsCarouselEl = document.getElementById("vendorsCarousel");
+    if (vendorsCarouselEl && typeof bootstrap !== "undefined") {
+        new bootstrap.Carousel(vendorsCarouselEl, { interval: false, touch: true, wrap: true });
+    }
 });
 </script>
 <style>
