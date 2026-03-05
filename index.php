@@ -317,7 +317,7 @@ if (!empty($venues)):
         <h2 class="text-center section-title mb-4">Our Venues</h2>
         <p class="text-center text-muted mb-5">Explore our premium venues and start booking</p>
         
-        <div id="venuesCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div id="venuesCarousel" class="carousel slide" data-bs-ride="false">
             <div class="carousel-indicators">
                 <?php 
                 $venue_chunks = array_chunk($venues, 3); // 3 venues per slide
