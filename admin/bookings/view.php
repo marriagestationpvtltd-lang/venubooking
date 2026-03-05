@@ -713,7 +713,7 @@ $advance = calculateAdvancePayment($booking['grand_total']);
 $whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
 
 $whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
-    "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . date('F d, Y', strtotime($booking['event_date'])) . " is almost confirmed.\n\n" .
+    "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . convertToNepaliDate($booking['event_date']) . " is almost confirmed.\n\n" .
     "💰 Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
     "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n" .
     "📍 Venue Location: " . strip_tags($booking['location']) . "\n";
@@ -747,8 +747,8 @@ $confirmation_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
 $confirmation_text .= "We are pleased to confirm your booking with " . strip_tags($site_name_wa) . ". Please find your booking details below:\n\n";
 $confirmation_text .= "Booking Status: *Confirmed* ✅\n";
 $confirmation_text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
-$confirmation_text .= "Booking Date: " . date('F d, Y', strtotime($booking['created_at'])) . "\n";
-$confirmation_text .= "Program Date: " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
+$confirmation_text .= "Booking Date: " . convertToNepaliDate($booking['created_at']) . "\n";
+$confirmation_text .= "Program Date: " . convertToNepaliDate($booking['event_date']) . "\n";
 $confirmation_text .= "Event Type: " . strip_tags($booking['event_type']) . "\n\n";
 $confirmation_text .= "🏛️ *Venue Details*\n";
 $confirmation_text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";

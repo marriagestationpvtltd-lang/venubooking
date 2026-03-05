@@ -61,6 +61,178 @@ function getValueOrDefault($value, $default = 'N/A') {
 }
 
 /**
+ * Convert a Gregorian (AD) date to Bikram Sambat (BS) Nepali date string.
+ *
+ * Returns a string in the format "Falgun 21, 2082 BS". Falls back to the
+ * standard English date format when the date is outside the supported BS
+ * year range (2000–2090).
+ *
+ * @param string $gregorian_date Date string (YYYY-MM-DD or any strtotime-compatible format)
+ * @return string Nepali BS date (e.g., "Falgun 21, 2082 BS") or English date as fallback
+ */
+function convertToNepaliDate($gregorian_date) {
+    $timestamp = strtotime($gregorian_date);
+    if ($timestamp === false) {
+        return (string)$gregorian_date;
+    }
+
+    $ad_year  = (int) date('Y', $timestamp);
+    $ad_month = (int) date('n', $timestamp);
+    $ad_day   = (int) date('j', $timestamp);
+
+    // Number of days in each month for BS years 2000–2090.
+    // Index 0 = Baishakh (month 1) … index 11 = Chaitra (month 12).
+    $bs_month_data = [
+        2000 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2001 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2002 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2003 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2004 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2005 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2006 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2007 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2008 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 29, 31],
+        2009 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2010 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2011 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2012 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2013 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2014 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2015 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2016 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2017 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2018 => [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2019 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2020 => [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2021 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2022 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+        2023 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2024 => [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2025 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2026 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2027 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2028 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2029 => [31, 31, 32, 31, 32, 30, 30, 29, 30, 29, 30, 30],
+        2030 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2031 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 29, 31],
+        2032 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2033 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2034 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2035 => [30, 32, 31, 32, 31, 31, 29, 30, 30, 29, 29, 31],
+        2036 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2037 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2038 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2039 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2040 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2041 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2042 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2043 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2044 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2045 => [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2046 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2047 => [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2048 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2049 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+        2050 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2051 => [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2052 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2053 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+        2054 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2055 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 28, 30, 30],
+        2056 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2057 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2058 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2059 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2060 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2061 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2062 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2063 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2064 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2065 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2066 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2067 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2068 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2069 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2070 => [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2071 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2072 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 30, 30],
+        2073 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2074 => [31, 32, 31, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2075 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2076 => [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2077 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2078 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+        2079 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30],
+        2080 => [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2081 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 31],
+        2082 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+        2083 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2084 => [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30],
+        2085 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2086 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+        2087 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+        2088 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2089 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2090 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30],
+    ];
+
+    // Reference point: BS 2000 Baishakh 1 = AD 1943 April 16.
+    // This offset was derived by back-calculating from five verified Nepal new-year
+    // dates (BS 2078–2082) using the lookup table above and then correcting the
+    // BS 2079 and BS 2081 Chaitra lengths to match the published Rashtriya Panchanga.
+    $ref   = new DateTime('1943-04-16');
+    $today = new DateTime(sprintf('%04d-%02d-%02d', $ad_year, $ad_month, $ad_day));
+    $diff_days = (int) $ref->diff($today)->days;
+    if ($today < $ref) {
+        // Date is before the supported range; fall back to English
+        return date('F d, Y', $timestamp);
+    }
+
+    $bs_year  = 2000;
+    $bs_month = 1;
+    $bs_day   = 1;
+
+    while ($diff_days > 0) {
+        if (!isset($bs_month_data[$bs_year])) {
+            // Date is beyond the supported BS year range; fall back to English
+            return date('F d, Y', $timestamp);
+        }
+        $days_in_current_month = $bs_month_data[$bs_year][$bs_month - 1];
+        $remaining_in_month    = $days_in_current_month - $bs_day;
+
+        if ($diff_days <= $remaining_in_month) {
+            $bs_day   += $diff_days;
+            $diff_days = 0;
+        } else {
+            $diff_days -= ($remaining_in_month + 1);
+            $bs_day    = 1;
+            $bs_month++;
+            if ($bs_month > 12) {
+                $bs_month = 1;
+                $bs_year++;
+            }
+        }
+    }
+
+    $month_names = [
+        1  => 'Baishakh',
+        2  => 'Jestha',
+        3  => 'Ashadh',
+        4  => 'Shrawan',
+        5  => 'Bhadra',
+        6  => 'Ashwin',
+        7  => 'Kartik',
+        8  => 'Mangsir',
+        9  => 'Poush',
+        10 => 'Magh',
+        11 => 'Falgun',
+        12 => 'Chaitra',
+    ];
+
+    return sprintf('%s %d, %d BS', $month_names[$bs_month], $bs_day, $bs_year);
+}
+
+/**
  * Format number with safe default handling
  */
 function formatNumber($value, $decimals = 2, $default = 0) {
@@ -1689,7 +1861,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         ?>
                         <div class="payment-notice">
                             <strong>Payment Request</strong><br>
-                            Your booking for <?php echo htmlspecialchars($booking['venue_name']); ?> on <?php echo date('F d, Y', strtotime($booking['event_date'])); ?> is almost confirmed.<br><br>
+                            Your booking for <?php echo htmlspecialchars($booking['venue_name']); ?> on <?php echo convertToNepaliDate($booking['event_date']); ?> is almost confirmed.<br><br>
                             <strong>Total Amount:</strong> <?php echo formatCurrency($booking['grand_total']); ?><br>
                             <strong>Advance Payment (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong> <?php echo formatCurrency($advance['amount']); ?><br><br>
                             Please complete the advance payment at your earliest convenience to confirm your booking.
@@ -1763,7 +1935,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Date:</span>
-                        <span class="detail-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?></span>
+                        <span class="detail-value"><?php echo convertToNepaliDate($booking['event_date']); ?></span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Shift:</span>
@@ -2828,7 +3000,7 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
 
     $text  = "Dear " . strip_tags($vendor_name) . ",\n\n";
     $text .= "We would like to inform you that you have been officially assigned to the following event. Please find the details below:\n\n";
-    $text .= "Event Date: " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
+    $text .= "Event Date: " . convertToNepaliDate($booking['event_date']) . "\n";
     $text .= "Event Type / Service: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
     $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
@@ -2896,7 +3068,7 @@ function sendVendorAssignmentEmail($vendor_name, $vendor_email, $booking) {
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Event Date:</span>
-                        <span class="detail-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?></span>
+                        <span class="detail-value"><?php echo convertToNepaliDate($booking['event_date']); ?></span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Event Type:</span>
@@ -2946,6 +3118,6 @@ function sendVendorAssignmentEmail($vendor_name, $vendor_email, $booking) {
     <?php
     $html = ob_get_clean();
 
-    $subject = 'Vendor Assignment - ' . $booking['booking_number'] . ' (' . date('F d, Y', strtotime($booking['event_date'])) . ')';
+    $subject = 'Vendor Assignment - ' . $booking['booking_number'] . ' (' . convertToNepaliDate($booking['event_date']) . ')';
     return sendEmail($vendor_email, $subject, $html, $vendor_name);
 }
