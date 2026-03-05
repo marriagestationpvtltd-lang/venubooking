@@ -1439,20 +1439,20 @@ document.addEventListener("DOMContentLoaded", function() {
             // element sharing the same ID, so clicking "Read More" on one card
             // would expand descriptions on all other matching cards too.
             var idMap = {};
-            clone.querySelectorAll('[id]').forEach(function(el) {
+            clone.querySelectorAll(\'[id]\').forEach(function(el) {
                 var oldId = el.id;
-                var newId = oldId + '_c' + idx;
+                var newId = oldId + \'_c\' + idx;
                 idMap[oldId] = newId;
                 el.id = newId;
             });
             // Update all href and data-bs-target references in a single pass
-            clone.querySelectorAll('[href], [data-bs-target]').forEach(function(el) {
-                ['href', 'data-bs-target'].forEach(function(attr) {
+            clone.querySelectorAll(\'[href], [data-bs-target]\').forEach(function(el) {
+                [\'href\', \'data-bs-target\'].forEach(function(attr) {
                     var val = el.getAttribute(attr);
-                    if (val && val.charAt(0) === '#') {
+                    if (val && val.charAt(0) === \'#\') {
                         var refId = val.slice(1);
                         if (idMap.hasOwnProperty(refId)) {
-                            el.setAttribute(attr, '#' + idMap[refId]);
+                            el.setAttribute(attr, \'#\' + idMap[refId]);
                         }
                     }
                 });
