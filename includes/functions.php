@@ -1976,7 +1976,11 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <?php foreach ($booking['menus'] as $menu): ?>
                         <div class="detail-row">
                             <span class="detail-label"><?php echo htmlspecialchars($menu['menu_name']); ?>:</span>
-                            <span class="detail-value"><?php echo formatCurrency($menu['price_per_person']); ?>/person × <?php echo $menu['number_of_guests']; ?> = <?php echo formatCurrency($menu['total_price']); ?></span>
+                            <?php if ($recipient === 'admin'): ?>
+                                <span class="detail-value"><?php echo $menu['number_of_guests']; ?> persons</span>
+                            <?php else: ?>
+                                <span class="detail-value"><?php echo formatCurrency($menu['price_per_person']); ?>/person × <?php echo $menu['number_of_guests']; ?> = <?php echo formatCurrency($menu['total_price']); ?></span>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -1988,7 +1992,9 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <?php foreach ($booking['services'] as $service): ?>
                         <div class="detail-row">
                             <span class="detail-label"><?php echo htmlspecialchars($service['service_name']); ?>:</span>
-                            <span class="detail-value"><?php echo formatCurrency($service['price']); ?></span>
+                            <?php if ($recipient !== 'admin'): ?>
+                                <span class="detail-value"><?php echo formatCurrency($service['price']); ?></span>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -2001,6 +2007,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                 </div>
                 <?php endif; ?>
                 
+                <?php if ($recipient !== 'admin'): ?>
                 <div class="booking-details">
                     <div class="section-title">Cost Breakdown</div>
                     <div class="cost-row">
@@ -2094,6 +2101,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     endif;
                 endif; 
                 ?>
+                <?php endif; // end: non-admin only sections ?>
                 
                 <?php if ($recipient === 'user'): ?>
                     <p style="margin-top: 20px;">If you have any questions about your booking, please don't hesitate to contact us.</p>
