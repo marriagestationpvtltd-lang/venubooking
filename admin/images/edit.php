@@ -354,7 +354,7 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
     catSelect.addEventListener('change', syncHidden);
     customInput.addEventListener('input', syncHidden);
 
-    // Initialise hidden input from the already-selected value on page load
+    // Initialize hidden input from the already-selected value on page load
     if (catSelect.value && catSelect.value !== '__custom__') {
         hiddenInput.value = catSelect.value;
     }
