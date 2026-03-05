@@ -1277,6 +1277,41 @@ function getFirstImage($section) {
 }
 
 /**
+ * Get work_photos images grouped by event_category (folder-style gallery).
+ *
+ * Returns an associative array keyed by category name. Each value is an array
+ * of image records (with image_url added). Images without an event_category are
+ * grouped under an 'Uncategorized' bucket so they are never lost.
+ *
+ * @return array  [ 'Category Name' => [ imageRow, … ], … ]
+ */
+function getWorkPhotosByCategory() {
+    $db = getDB();
+
+    $sql = "SELECT id, title, description, image_path, section, event_category, display_order
+            FROM site_images
+            WHERE section = 'work_photos' AND status = 'active'
+            ORDER BY
+                COALESCE(event_category, '') ASC,
+                display_order ASC,
+                created_at ASC";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute();
+    $images = $stmt->fetchAll();
+
+    $categories = [];
+    foreach ($images as &$image) {
+        $image['image_url'] = UPLOAD_URL . $image['image_path'];
+        $cat = !empty($image['event_category']) ? $image['event_category'] : 'Uncategorized';
+        $categories[$cat][] = $image;
+    }
+    unset($image);
+
+    return $categories;
+}
+
+/**
  * Handle file upload for images
  * 
  * @param array $file The $_FILES array element

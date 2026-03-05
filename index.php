@@ -623,47 +623,67 @@ if (!empty($gallery_cards)):
 <?php endif; ?>
 
 <?php
-// Get work portfolio photos for the portfolio card + slideshow
-$work_photos = getImagesBySection('work_photos');
-if (!empty($work_photos)):
-    $cover_photo = $work_photos[0];
-    $photo_count = count($work_photos);
+// Get work photos organised by event category (folder-style gallery)
+$work_categories = getWorkPhotosByCategory();
+if (!empty($work_categories)):
+    // Build a JS-safe data structure: array of {name, photos:[{src,title,desc}]}
+    $work_categories_js = [];
+    foreach ($work_categories as $cat_name => $cat_photos) {
+        $work_categories_js[] = [
+            'name'   => $cat_name,
+            'photos' => array_map(function($img) {
+                return [
+                    'src'   => $img['image_url'],
+                    'title' => $img['title'],
+                    'desc'  => $img['description'] ?? '',
+                ];
+            }, $cat_photos),
+        ];
+    }
+    $work_categories_json = json_encode($work_categories_js, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
-<!-- Our Work Portfolio Section -->
+<!-- Our Work – Folder Gallery Section -->
 <section class="work-photos-section py-5">
     <div class="container">
         <h2 class="text-center section-title mb-2">Our Work</h2>
-        <p class="text-center text-muted mb-4">A glimpse of the events and moments we have been part of</p>
+        <p class="text-center text-muted mb-5">Browse our events by category</p>
 
-        <div class="d-flex justify-content-center">
-            <!-- Single portfolio card – click to open slideshow -->
-            <div class="portfolio-card" id="portfolioCard" role="button" tabindex="0"
-                 aria-label="View our work slideshow (<?php echo $photo_count; ?> photos)">
-                <div class="portfolio-card-img-wrap">
-                    <img src="<?php echo htmlspecialchars($cover_photo['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                         alt="<?php echo htmlspecialchars($cover_photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                         class="portfolio-card-img"
+        <div class="work-folder-grid">
+            <?php foreach ($work_categories as $cat_name => $cat_photos):
+                $preview    = $cat_photos[0];
+                $cat_count  = count($cat_photos);
+                $cat_index  = array_search($cat_name, array_keys($work_categories));
+            ?>
+            <div class="work-folder-card" role="button" tabindex="0"
+                 data-cat-index="<?php echo $cat_index; ?>"
+                 aria-label="<?php echo htmlspecialchars($cat_name, ENT_QUOTES, 'UTF-8'); ?> (<?php echo $cat_count; ?> photo<?php echo $cat_count !== 1 ? 's' : ''; ?>)">
+
+                <div class="work-folder-img-wrap">
+                    <img src="<?php echo htmlspecialchars($preview['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($preview['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                         class="work-folder-img"
                          loading="lazy"
                          draggable="false">
-                    <div class="portfolio-card-overlay">
-                        <span class="portfolio-card-count">
-                            <i class="fas fa-images me-1"></i><?php echo $photo_count; ?> Photos
-                        </span>
-                        <span class="portfolio-card-cta">
-                            <i class="fas fa-play-circle me-1"></i>View Slideshow
-                        </span>
+                    <div class="work-folder-overlay">
+                        <i class="fas fa-folder-open work-folder-icon"></i>
                     </div>
                 </div>
-                <div class="portfolio-card-info">
-                    <h6 class="portfolio-card-title">Our Work</h6>
-                    <p class="portfolio-card-desc">Click to browse our full photo gallery</p>
+
+                <div class="work-folder-info">
+                    <div class="work-folder-title">
+                        <i class="fas fa-folder me-2 text-warning"></i><?php echo htmlspecialchars($cat_name, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                    <div class="work-folder-count">
+                        <i class="fas fa-images me-1"></i><?php echo $cat_count; ?> Photo<?php echo $cat_count !== 1 ? 's' : ''; ?>
+                    </div>
                 </div>
             </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>
 
-<!-- Portfolio Slideshow Modal -->
+<!-- Portfolio Slideshow Modal (reused for each folder) -->
 <div id="portfolioModal" class="portfolio-modal" role="dialog" aria-modal="true" aria-label="Portfolio slideshow">
     <div class="portfolio-modal-backdrop"></div>
     <div class="portfolio-modal-content">
@@ -690,21 +710,131 @@ if (!empty($work_photos)):
         </div>
 
         <!-- Thumbnail strip -->
-        <div class="portfolio-modal-thumbs" id="portfolioModalThumbs">
-            <?php foreach ($work_photos as $idx => $wp): ?>
-                <img src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                     alt="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                     class="portfolio-modal-thumb"
-                     data-index="<?php echo $idx; ?>"
-                     data-src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                     data-title="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                     data-desc="<?php echo htmlspecialchars($wp['description'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
-                     loading="lazy"
-                     draggable="false">
-            <?php endforeach; ?>
-        </div>
+        <div class="portfolio-modal-thumbs" id="portfolioModalThumbs"></div>
     </div>
 </div>
+
+<script>
+// Folder-style Our Work gallery
+(function() {
+    var allCategories = <?php echo $work_categories_json; ?>;
+
+    var modal        = document.getElementById("portfolioModal");
+    var modalImg     = document.getElementById("portfolioModalImg");
+    var modalTitle   = document.getElementById("portfolioModalTitle");
+    var modalDesc    = document.getElementById("portfolioModalDesc");
+    var modalCounter = document.getElementById("portfolioModalCounter");
+    var thumbsEl     = document.getElementById("portfolioModalThumbs");
+
+    var currentPhotos = [];
+    var current       = 0;
+    var autoTimer     = null;
+    var AUTO_INTERVAL = 4000;
+
+    function buildThumbs(photos) {
+        thumbsEl.innerHTML = "";
+        photos.forEach(function(photo, idx) {
+            var img = document.createElement("img");
+            img.src            = photo.src;
+            img.alt            = photo.title || "";
+            img.className      = "portfolio-modal-thumb";
+            img.dataset.index  = idx;
+            img.loading        = "lazy";
+            img.draggable      = false;
+            img.addEventListener("click", function() {
+                stopAuto();
+                showSlide(idx);
+                startAuto();
+            });
+            thumbsEl.appendChild(img);
+        });
+    }
+
+    function showSlide(idx) {
+        if (!currentPhotos.length) return;
+        current = ((idx % currentPhotos.length) + currentPhotos.length) % currentPhotos.length;
+        var photo = currentPhotos[current];
+        modalImg.src                  = photo.src;
+        modalImg.alt                  = photo.title || "";
+        modalTitle.textContent        = photo.title || "";
+        modalDesc.textContent         = photo.desc  || "";
+        modalCounter.textContent      = (current + 1) + " / " + currentPhotos.length;
+
+        var thumbs = Array.from(thumbsEl.querySelectorAll(".portfolio-modal-thumb"));
+        thumbs.forEach(function(t) { t.classList.remove("active"); });
+        if (thumbs[current]) {
+            thumbs[current].classList.add("active");
+            thumbs[current].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        }
+    }
+
+    function openFolder(catIndex, startIndex) {
+        var cat = allCategories[catIndex];
+        if (!cat) return;
+        currentPhotos = cat.photos;
+        buildThumbs(currentPhotos);
+        current = startIndex || 0;
+        modal.classList.add("active");
+        document.body.classList.add("modal-open");
+        showSlide(current);
+        startAuto();
+    }
+
+    function closeModal() {
+        modal.classList.remove("active");
+        document.body.classList.remove("modal-open");
+        stopAuto();
+        modalImg.src       = "";
+        currentPhotos      = [];
+        thumbsEl.innerHTML = "";
+    }
+
+    function prevSlide() { stopAuto(); showSlide(current - 1); startAuto(); }
+    function nextSlide() { stopAuto(); showSlide(current + 1); startAuto(); }
+
+    function startAuto() {
+        stopAuto();
+        if (currentPhotos.length > 1) {
+            autoTimer = setInterval(function() { showSlide(current + 1); }, AUTO_INTERVAL);
+        }
+    }
+    function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+
+    // Attach click / keyboard to each folder card
+    document.querySelectorAll(".work-folder-card").forEach(function(card) {
+        function open() {
+            openFolder(parseInt(card.dataset.catIndex, 10), 0);
+        }
+        card.addEventListener("click", open);
+        card.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+        });
+    });
+
+    document.getElementById("portfolioModalClose").addEventListener("click", closeModal);
+    document.getElementById("portfolioModalPrev").addEventListener("click", prevSlide);
+    document.getElementById("portfolioModalNext").addEventListener("click", nextSlide);
+
+    modal.querySelector(".portfolio-modal-backdrop").addEventListener("click", closeModal);
+
+    document.addEventListener("keydown", function(e) {
+        if (!modal.classList.contains("active")) return;
+        if (e.key === "Escape")     closeModal();
+        if (e.key === "ArrowLeft")  prevSlide();
+        if (e.key === "ArrowRight") nextSlide();
+    });
+
+    var swipeStartX = 0;
+    modal.addEventListener("touchstart", function(e) { swipeStartX = e.touches[0].pageX; }, { passive: true });
+    modal.addEventListener("touchend",   function(e) {
+        var dx = e.changedTouches[0].pageX - swipeStartX;
+        if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
+    }, { passive: true });
+
+    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseenter", stopAuto);
+    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseleave", startAuto);
+})();
+</script>
 <?php endif; ?>
 
 <?php
@@ -1104,111 +1234,6 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 </style>
 <script>
-// Portfolio single-card + slideshow modal
-(function() {
-    var card    = document.getElementById("portfolioCard");
-    var modal   = document.getElementById("portfolioModal");
-    if (!card || !modal) return;
-
-    var modalImg     = document.getElementById("portfolioModalImg");
-    var modalTitle   = document.getElementById("portfolioModalTitle");
-    var modalDesc    = document.getElementById("portfolioModalDesc");
-    var modalCounter = document.getElementById("portfolioModalCounter");
-    var thumbsEl     = document.getElementById("portfolioModalThumbs");
-    var thumbs       = thumbsEl ? Array.from(thumbsEl.querySelectorAll(".portfolio-modal-thumb")) : [];
-    var total        = thumbs.length;
-    var current      = 0;
-    var autoTimer    = null;
-    var AUTO_INTERVAL = 4000; // ms between auto-advance slides
-
-    // ── Open / close ──────────────────────────────────────────
-    function openModal(startIndex) {
-        current = startIndex || 0;
-        modal.classList.add("active");
-        document.body.classList.add("modal-open");
-        showSlide(current);
-        startAuto();
-    }
-
-    function closeModal() {
-        modal.classList.remove("active");
-        document.body.classList.remove("modal-open");
-        stopAuto();
-        modalImg.src = "";
-    }
-
-    // ── Slide navigation ──────────────────────────────────────
-    function showSlide(idx) {
-        if (!thumbs.length) return;
-        current = ((idx % total) + total) % total; // handles both positive and negative idx (wrap-around)
-        var thumb = thumbs[current];
-        modalImg.src   = thumb.dataset.src;
-        modalImg.alt   = thumb.dataset.title || "";
-        modalTitle.textContent = thumb.dataset.title || "";
-        modalDesc.textContent  = thumb.dataset.desc  || "";
-        modalCounter.textContent = (current + 1) + " / " + total;
-
-        // Highlight active thumb and scroll it into view
-        thumbs.forEach(function(t) { t.classList.remove("active"); });
-        thumb.classList.add("active");
-        thumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    }
-
-    function prevSlide() { stopAuto(); showSlide(current - 1); startAuto(); }
-    function nextSlide() { stopAuto(); showSlide(current + 1); startAuto(); }
-
-    // ── Auto-advance ──────────────────────────────────────────
-    function startAuto() {
-        stopAuto();
-        if (total > 1) autoTimer = setInterval(function() { showSlide(current + 1); }, AUTO_INTERVAL);
-    }
-    function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
-
-    // ── Event listeners ───────────────────────────────────────
-    card.addEventListener("click", function() { openModal(0); });
-    card.addEventListener("keydown", function(e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModal(0); }
-    });
-
-    document.getElementById("portfolioModalClose").addEventListener("click", closeModal);
-    document.getElementById("portfolioModalPrev").addEventListener("click", prevSlide);
-    document.getElementById("portfolioModalNext").addEventListener("click", nextSlide);
-
-    // Click on backdrop closes modal
-    modal.querySelector(".portfolio-modal-backdrop").addEventListener("click", closeModal);
-
-    // Thumbnail clicks
-    thumbs.forEach(function(thumb) {
-        thumb.addEventListener("click", function() {
-            stopAuto();
-            showSlide(parseInt(thumb.dataset.index, 10));
-            startAuto();
-        });
-    });
-
-    // Keyboard navigation
-    document.addEventListener("keydown", function(e) {
-        if (!modal.classList.contains("active")) return;
-        if (e.key === "Escape")     closeModal();
-        if (e.key === "ArrowLeft")  prevSlide();
-        if (e.key === "ArrowRight") nextSlide();
-    });
-
-    // Touch swipe inside modal
-    var swipeStartX = 0;
-    modal.addEventListener("touchstart", function(e) {
-        swipeStartX = e.touches[0].pageX;
-    }, { passive: true });
-    modal.addEventListener("touchend", function(e) {
-        var dx = e.changedTouches[0].pageX - swipeStartX;
-        if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
-    }, { passive: true });
-
-    // Pause auto-advance while hovering main image area
-    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseenter", stopAuto);
-    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseleave", startAuto);
-})();
-
 // ── Auto-scroll for package category sliders ──
 (function() {
     var speed = 0.5; // pixels per frame

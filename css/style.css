@@ -888,37 +888,42 @@ footer a:hover {
     }
 }
 
-/* ===== Our Work – Single Portfolio Card + Slideshow Modal ===== */
+/* ===== Our Work – Folder Gallery + Slideshow Modal ===== */
 .work-photos-section {
     background-color: #f8f9fa;
 }
 
-/* ── Single portfolio card ─────────────────────────────── */
-.portfolio-card {
-    width: 320px;
+/* ── Folder cards grid ─────────────────────────────────── */
+.work-folder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+}
+
+.work-folder-card {
     background: #fff;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
     cursor: pointer;
     transition: box-shadow 0.25s, transform 0.25s;
     outline: none;
 }
 
-.portfolio-card:hover,
-.portfolio-card:focus {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+.work-folder-card:hover,
+.work-folder-card:focus {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.20);
     transform: translateY(-4px);
 }
 
-.portfolio-card-img-wrap {
+.work-folder-img-wrap {
     position: relative;
     width: 100%;
-    height: 220px;
+    height: 200px;
     overflow: hidden;
 }
 
-.portfolio-card-img {
+.work-folder-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -927,68 +932,61 @@ footer a:hover {
     pointer-events: none;
 }
 
-.portfolio-card:hover .portfolio-card-img,
-.portfolio-card:focus .portfolio-card-img {
+.work-folder-card:hover .work-folder-img,
+.work-folder-card:focus .work-folder-img {
     transform: scale(1.06);
 }
 
-.portfolio-card-overlay {
+.work-folder-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, transparent 40%, rgba(0, 0, 0, 0.65) 100%);
+    background: rgba(0, 0, 0, 0.38);
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
-    padding: 1rem;
-    gap: 0.35rem;
+    justify-content: center;
     opacity: 0;
     transition: opacity 0.25s;
 }
 
-.portfolio-card:hover .portfolio-card-overlay,
-.portfolio-card:focus .portfolio-card-overlay {
+.work-folder-card:hover .work-folder-overlay,
+.work-folder-card:focus .work-folder-overlay {
     opacity: 1;
 }
 
-.portfolio-card-count,
-.portfolio-card-cta {
+.work-folder-icon {
     color: #fff;
-    font-size: 0.88rem;
-    font-weight: 600;
-    background: rgba(0, 0, 0, 0.45);
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    letter-spacing: 0.02em;
+    font-size: 2.5rem;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
 }
 
-.portfolio-card-info {
+.work-folder-info {
     padding: 0.85rem 1rem;
 }
 
-.portfolio-card-title {
-    font-size: 1rem;
+.work-folder-title {
+    font-size: 0.95rem;
     font-weight: 700;
     color: #212529;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.3rem;
+    line-height: 1.3;
 }
 
-.portfolio-card-desc {
-    font-size: 0.82rem;
+.work-folder-count {
+    font-size: 0.8rem;
     color: #6c757d;
-    margin-bottom: 0;
 }
 
 @media (max-width: 576px) {
-    .portfolio-card {
-        width: 280px;
+    .work-folder-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
-    .portfolio-card-img-wrap {
-        height: 180px;
+    .work-folder-img-wrap {
+        height: 160px;
     }
     /* Always show overlay on touch devices */
-    .portfolio-card-overlay {
+    .work-folder-overlay {
         opacity: 1;
+        background: rgba(0, 0, 0, 0.25);
     }
 }
 

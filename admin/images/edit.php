@@ -21,11 +21,22 @@ $sections = [
     'hall' => 'Hall Gallery',
     'package' => 'Package/Menu Images',
     'gallery' => 'General Gallery',
-    'work_photos' => 'Our Work (Portfolio Slideshow)',
+    'work_photos' => 'Our Work (Folder Gallery)',
     'testimonial' => 'Testimonials',
     'feature' => 'Features Section',
     'about' => 'About Us Section',
     'other' => 'Other'
+];
+
+// Predefined event categories for the work_photos folder gallery
+$event_categories = [
+    'विवाह फोटो (Wedding Photos)',
+    'व्रतबन्ध फोटो (Bratabandha Photos)',
+    'Engagement Photos',
+    'Reception Photos',
+    'Birthday Party Photos',
+    'Corporate Event Photos',
+    'Other Events',
 ];
 
 // Get image ID
@@ -54,10 +65,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $section = $_POST['section'];
     $display_order = intval($_POST['display_order']);
     $status = $_POST['status'];
+    // event_category only applies to work_photos
+    $event_category = ($section === 'work_photos') ? trim($_POST['event_category'] ?? '') : null;
+    if ($event_category === '') $event_category = null;
 
     // Validation
     if (empty($title) || empty($section)) {
         $error_message = 'Please fill in all required fields.';
+    } elseif ($section === 'work_photos' && empty($event_category)) {
+        $error_message = 'Please select or enter an event category for Our Work photos.';
     } else {
         $update_image = false;
         $new_filename = $image['image_path'];
@@ -97,13 +113,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Update database if no errors
         if (empty($error_message)) {
             try {
-                $sql = "UPDATE site_images SET title = ?, description = ?, section = ?, display_order = ?, status = ?, image_path = ? WHERE id = ?";
+                $sql = "UPDATE site_images SET title = ?, description = ?, section = ?, event_category = ?, display_order = ?, status = ?, image_path = ? WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
                 $result = $stmt->execute([
                     $title,
                     $description,
                     $section,
+                    $event_category,
                     $display_order,
                     $status,
                     $new_filename,
@@ -115,6 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $image['title'] = $title;
                     $image['description'] = $description;
                     $image['section'] = $section;
+                    $image['event_category'] = $event_category;
                     $image['display_order'] = $display_order;
                     $image['status'] = $status;
                     $image['image_path'] = $new_filename;
@@ -244,6 +262,44 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
                                 </div>
                             </div>
 
+                            <!-- Event Category – only shown when section = work_photos -->
+                            <?php
+                            $current_cat = $image['event_category'] ?? '';
+                            $is_predefined = in_array($current_cat, $event_categories, true);
+                            $show_custom = (!empty($current_cat) && !$is_predefined);
+                            ?>
+                            <div class="mb-3" id="eventCategoryField"
+                                 style="<?php echo $image['section'] === 'work_photos' ? '' : 'display:none;'; ?>">
+                                <label class="form-label">
+                                    Event Category (Folder) <span class="text-danger">*</span>
+                                </label>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <select class="form-select" id="event_category_select" name="_event_category_select">
+                                            <option value="">— Choose a category —</option>
+                                            <?php foreach ($event_categories as $cat): ?>
+                                                <option value="<?php echo htmlspecialchars($cat); ?>"
+                                                    <?php echo (!$show_custom && $current_cat === $cat) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($cat); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                            <option value="__custom__" <?php echo $show_custom ? 'selected' : ''; ?>>
+                                                — Custom / other category —
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6" id="customCategoryWrap"
+                                         style="<?php echo $show_custom ? '' : 'display:none;'; ?>">
+                                        <input type="text" class="form-control" id="event_category_custom"
+                                               value="<?php echo $show_custom ? htmlspecialchars($current_cat) : ''; ?>"
+                                               placeholder="Enter custom category name">
+                                    </div>
+                                </div>
+                                <input type="hidden" id="event_category" name="event_category"
+                                       value="<?php echo htmlspecialchars($current_cat); ?>">
+                                <small class="text-muted">Photos in the same category appear together in one folder card.</small>
+                            </div>
+
                             <div class="mb-3">
                                 <label for="image" class="form-label">Replace Image (Optional)</label>
                                 <input type="file" class="form-control" id="image" name="image" accept="image/*">
@@ -265,5 +321,44 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var sectionSel  = document.getElementById('section');
+    var catField    = document.getElementById('eventCategoryField');
+    var catSelect   = document.getElementById('event_category_select');
+    var customWrap  = document.getElementById('customCategoryWrap');
+    var customInput = document.getElementById('event_category_custom');
+    var hiddenInput = document.getElementById('event_category');
+
+    function toggleCategoryField() {
+        if (sectionSel.value === 'work_photos') {
+            catField.style.display = '';
+        } else {
+            catField.style.display = 'none';
+            hiddenInput.value = '';
+        }
+    }
+
+    function syncHidden() {
+        if (catSelect.value === '__custom__') {
+            customWrap.style.display = '';
+            hiddenInput.value = customInput.value.trim();
+        } else {
+            customWrap.style.display = 'none';
+            hiddenInput.value = catSelect.value;
+        }
+    }
+
+    sectionSel.addEventListener('change', toggleCategoryField);
+    catSelect.addEventListener('change', syncHidden);
+    customInput.addEventListener('input', syncHidden);
+
+    // Initialize hidden input from the already-selected value on page load
+    if (catSelect.value && catSelect.value !== '__custom__') {
+        hiddenInput.value = catSelect.value;
+    }
+})();
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
