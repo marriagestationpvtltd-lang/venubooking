@@ -1037,21 +1037,11 @@ if (!empty($vendors)):
         <h2 class="text-center section-title mb-2">Our Vendors</h2>
         <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
 
-        <div id="vendorsCarousel" class="carousel slide" data-bs-ride="false">
-            <div class="carousel-indicators">
-                <?php
-                $vendor_chunks = array_chunk($vendors, 3);
-                foreach ($vendor_chunks as $vi => $vchunk):
-                ?>
-                    <button type="button" data-bs-target="#vendorsCarousel" data-bs-slide-to="<?php echo $vi; ?>"
-                            <?php echo $vi === 0 ? 'class="active" aria-current="true"' : ''; ?>
-                            aria-label="Slide <?php echo $vi + 1; ?>"></button>
-                <?php endforeach; ?>
-            </div>
-
-            <div class="carousel-inner pb-4">
+        <?php $vendor_chunks = array_chunk($vendors, 3); ?>
+        <div id="vendorSlider" class="vendor-slider">
+            <div class="vendor-slider-track" id="vendorSliderTrack">
                 <?php foreach ($vendor_chunks as $vi => $vchunk): ?>
-                    <div class="carousel-item <?php echo $vi === 0 ? 'active' : ''; ?>">
+                    <div class="vendor-slider-page">
                         <div class="row g-4 justify-content-center">
                             <?php foreach ($vchunk as $vendor):
                                 $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
@@ -1172,13 +1162,19 @@ if (!empty($vendors)):
             </div>
 
             <?php if (count($vendor_chunks) > 1): ?>
-                <button class="carousel-control-prev vendors-carousel-prev" type="button"
-                        data-bs-target="#vendorsCarousel" data-bs-slide="prev">
+                <div class="vendor-slider-indicators">
+                    <?php foreach ($vendor_chunks as $vi => $vchunk): ?>
+                        <button type="button"
+                                class="vendor-slider-dot<?php echo $vi === 0 ? ' active' : ''; ?>"
+                                data-slide="<?php echo $vi; ?>"
+                                aria-label="Page <?php echo $vi + 1; ?>"></button>
+                    <?php endforeach; ?>
+                </div>
+                <button class="vendor-slider-btn vendor-slider-prev" id="vendorSliderPrev" aria-label="Previous vendors">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Previous</span>
                 </button>
-                <button class="carousel-control-next vendors-carousel-next" type="button"
-                        data-bs-target="#vendorsCarousel" data-bs-slide="next">
+                <button class="vendor-slider-btn vendor-slider-next" id="vendorSliderNext" aria-label="Next vendors">
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Next</span>
                 </button>
@@ -1413,12 +1409,53 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Explicitly initialise the vendors carousel so that every slide
-    // (not just the first one) transitions and renders correctly.
-    var vendorsCarouselEl = document.getElementById("vendorsCarousel");
-    if (vendorsCarouselEl && typeof bootstrap !== "undefined") {
-        new bootstrap.Carousel(vendorsCarouselEl, { interval: false, touch: true, wrap: true });
-    }
+    // Vendor slider — custom CSS-transform slider replaces Bootstrap carousel
+    // so that all pages are always rendered (just translated off-screen) and
+    // never hidden with display:none, which caused slides 2+ to appear blank.
+    (function () {
+        var slider = document.getElementById("vendorSlider");
+        if (!slider) return;
+
+        var track    = document.getElementById("vendorSliderTrack");
+        var pages    = track.querySelectorAll(".vendor-slider-page");
+        var dots     = slider.querySelectorAll(".vendor-slider-dot");
+        var prevBtn  = document.getElementById("vendorSliderPrev");
+        var nextBtn  = document.getElementById("vendorSliderNext");
+        var total    = pages.length;
+        var current  = 0;
+
+        function goTo(index) {
+            if (total <= 1) return;
+            if (index < 0)      index = total - 1;
+            if (index >= total) index = 0;
+            current = index;
+            track.style.transform = "translateX(-" + (current * 100) + "%)";
+            dots.forEach(function (dot, i) {
+                dot.classList.toggle("active", i === current);
+            });
+        }
+
+        if (prevBtn) { prevBtn.addEventListener("click", function () { goTo(current - 1); }); }
+        if (nextBtn) { nextBtn.addEventListener("click", function () { goTo(current + 1); }); }
+        dots.forEach(function (dot, i) {
+            dot.addEventListener("click", function () { goTo(i); });
+        });
+
+        // Touch / swipe support
+        var touchStartX = 0;
+        slider.addEventListener("touchstart", function (e) {
+            if (e.changedTouches.length > 0) {
+                touchStartX = e.changedTouches[0].clientX;
+            }
+        }, { passive: true });
+        slider.addEventListener("touchend", function (e) {
+            if (e.changedTouches.length === 0) return;
+            var delta = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(delta) > 50) {
+                delta < 0 ? goTo(current + 1) : goTo(current - 1);
+            }
+        }, { passive: true });
+    }());
 });
 </script>
 <style>
