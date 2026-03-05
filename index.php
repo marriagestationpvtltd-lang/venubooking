@@ -471,51 +471,87 @@ if (!empty($gallery_images)):
 <?php endif; ?>
 
 <?php
-// Get work portfolio photos for the horizontal gallery
+// Get work portfolio photos for the portfolio card + slideshow
 $work_photos = getImagesBySection('work_photos');
 if (!empty($work_photos)):
+    $cover_photo = $work_photos[0];
+    $photo_count = count($work_photos);
 ?>
-<!-- Our Work Gallery Section -->
+<!-- Our Work Portfolio Section -->
 <section class="work-photos-section py-5">
-    <div class="container-fluid px-4">
+    <div class="container">
         <h2 class="text-center section-title mb-2">Our Work</h2>
         <p class="text-center text-muted mb-4">A glimpse of the events and moments we have been part of</p>
 
-        <div class="work-gallery-wrapper">
-            <div class="work-gallery-track" id="workGalleryTrack">
-                <?php foreach ($work_photos as $wp): ?>
-                    <div class="work-gallery-card">
-                        <div class="work-gallery-img-wrap">
-                            <img src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                                 alt="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                 class="work-gallery-img"
-                                 loading="lazy"
-                                 draggable="false">
-                        </div>
-                        <?php if (!empty($wp['title']) || !empty($wp['description'])): ?>
-                            <div class="work-gallery-info">
-                                <?php if (!empty($wp['title'])): ?>
-                                    <h6 class="work-gallery-title"><?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?></h6>
-                                <?php endif; ?>
-                                <?php if (!empty($wp['description'])): ?>
-                                    <p class="work-gallery-desc"><?php echo htmlspecialchars($wp['description'], ENT_QUOTES, 'UTF-8'); ?></p>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
+        <div class="d-flex justify-content-center">
+            <!-- Single portfolio card – click to open slideshow -->
+            <div class="portfolio-card" id="portfolioCard" role="button" tabindex="0"
+                 aria-label="View our work slideshow (<?php echo $photo_count; ?> photos)">
+                <div class="portfolio-card-img-wrap">
+                    <img src="<?php echo htmlspecialchars($cover_photo['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($cover_photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                         class="portfolio-card-img"
+                         loading="lazy"
+                         draggable="false">
+                    <div class="portfolio-card-overlay">
+                        <span class="portfolio-card-count">
+                            <i class="fas fa-images me-1"></i><?php echo $photo_count; ?> Photos
+                        </span>
+                        <span class="portfolio-card-cta">
+                            <i class="fas fa-play-circle me-1"></i>View Slideshow
+                        </span>
                     </div>
-                <?php endforeach; ?>
+                </div>
+                <div class="portfolio-card-info">
+                    <h6 class="portfolio-card-title">Our Work</h6>
+                    <p class="portfolio-card-desc">Click to browse our full photo gallery</p>
+                </div>
             </div>
-        </div>
-
-        <div class="text-center mt-3 text-muted small">
-            <i class="fas fa-pause-circle"></i> Hover or touch to pause &bull; Press and hold any photo to view it larger
         </div>
     </div>
 </section>
 
-<!-- Lightbox overlay for Our Work gallery (press-and-hold to preview) -->
-<div id="workLightbox" class="work-lightbox" role="dialog" aria-modal="true" aria-label="Full size preview">
-    <img id="workLightboxImg" src="" alt="" class="work-lightbox-img" draggable="false">
+<!-- Portfolio Slideshow Modal -->
+<div id="portfolioModal" class="portfolio-modal" role="dialog" aria-modal="true" aria-label="Portfolio slideshow">
+    <div class="portfolio-modal-backdrop"></div>
+    <div class="portfolio-modal-content">
+        <button class="portfolio-modal-close" id="portfolioModalClose" aria-label="Close slideshow">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div class="portfolio-modal-img-wrap">
+            <button class="portfolio-modal-nav portfolio-modal-prev" id="portfolioModalPrev" aria-label="Previous photo">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <img id="portfolioModalImg" src="" alt="" class="portfolio-modal-img" draggable="false">
+            <button class="portfolio-modal-nav portfolio-modal-next" id="portfolioModalNext" aria-label="Next photo">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="portfolio-modal-footer">
+            <div class="portfolio-modal-caption">
+                <span id="portfolioModalTitle"></span>
+                <span id="portfolioModalDesc" class="portfolio-modal-desc-text"></span>
+            </div>
+            <div class="portfolio-modal-counter" id="portfolioModalCounter"></div>
+        </div>
+
+        <!-- Thumbnail strip -->
+        <div class="portfolio-modal-thumbs" id="portfolioModalThumbs">
+            <?php foreach ($work_photos as $idx => $wp): ?>
+                <img src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                     alt="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                     class="portfolio-modal-thumb"
+                     data-index="<?php echo $idx; ?>"
+                     data-src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                     data-title="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                     data-desc="<?php echo htmlspecialchars($wp['description'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                     loading="lazy"
+                     draggable="false">
+            <?php endforeach; ?>
+        </div>
+    </div>
 </div>
 <?php endif; ?>
 
@@ -916,163 +952,109 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 </style>
 <script>
-// Auto-scroll slideshow for Our Work gallery (pauses on hover/touch, drag to browse)
+// Portfolio single-card + slideshow modal
 (function() {
-    var track = document.getElementById("workGalleryTrack");
-    if (!track) return;
+    var card    = document.getElementById("portfolioCard");
+    var modal   = document.getElementById("portfolioModal");
+    if (!card || !modal) return;
 
-    // Duplicate cards to create a seamless infinite scroll loop
-    var origCards = Array.from(track.children);
-    origCards.forEach(function(card) {
-        track.appendChild(card.cloneNode(true));
+    var modalImg     = document.getElementById("portfolioModalImg");
+    var modalTitle   = document.getElementById("portfolioModalTitle");
+    var modalDesc    = document.getElementById("portfolioModalDesc");
+    var modalCounter = document.getElementById("portfolioModalCounter");
+    var thumbsEl     = document.getElementById("portfolioModalThumbs");
+    var thumbs       = thumbsEl ? Array.from(thumbsEl.querySelectorAll(".portfolio-modal-thumb")) : [];
+    var total        = thumbs.length;
+    var current      = 0;
+    var autoTimer    = null;
+    var AUTO_INTERVAL = 4000; // ms between auto-advance slides
+
+    // ── Open / close ──────────────────────────────────────────
+    function openModal(startIndex) {
+        current = startIndex || 0;
+        modal.classList.add("active");
+        document.body.classList.add("modal-open");
+        showSlide(current);
+        startAuto();
+    }
+
+    function closeModal() {
+        modal.classList.remove("active");
+        document.body.classList.remove("modal-open");
+        stopAuto();
+        modalImg.src = "";
+    }
+
+    // ── Slide navigation ──────────────────────────────────────
+    function showSlide(idx) {
+        if (!thumbs.length) return;
+        current = ((idx % total) + total) % total; // handles both positive and negative idx (wrap-around)
+        var thumb = thumbs[current];
+        modalImg.src   = thumb.dataset.src;
+        modalImg.alt   = thumb.dataset.title || "";
+        modalTitle.textContent = thumb.dataset.title || "";
+        modalDesc.textContent  = thumb.dataset.desc  || "";
+        modalCounter.textContent = (current + 1) + " / " + total;
+
+        // Highlight active thumb and scroll it into view
+        thumbs.forEach(function(t) { t.classList.remove("active"); });
+        thumb.classList.add("active");
+        thumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+
+    function prevSlide() { stopAuto(); showSlide(current - 1); startAuto(); }
+    function nextSlide() { stopAuto(); showSlide(current + 1); startAuto(); }
+
+    // ── Auto-advance ──────────────────────────────────────────
+    function startAuto() {
+        stopAuto();
+        if (total > 1) autoTimer = setInterval(function() { showSlide(current + 1); }, AUTO_INTERVAL);
+    }
+    function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+
+    // ── Event listeners ───────────────────────────────────────
+    card.addEventListener("click", function() { openModal(0); });
+    card.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModal(0); }
     });
 
-    var speed = 0.6; // pixels per frame (~60fps)
-    var hovered = false, touching = false, dragging = false;
+    document.getElementById("portfolioModalClose").addEventListener("click", closeModal);
+    document.getElementById("portfolioModalPrev").addEventListener("click", prevSlide);
+    document.getElementById("portfolioModalNext").addEventListener("click", nextSlide);
 
-    function isPaused() { return hovered || touching || dragging; }
+    // Click on backdrop closes modal
+    modal.querySelector(".portfolio-modal-backdrop").addEventListener("click", closeModal);
 
-    function step() {
-        if (!isPaused()) {
-            track.scrollLeft += speed;
-            // Reset to start of first copy when second copy begins
-            var half = track.scrollWidth / 2;
-            if (track.scrollLeft >= half - 1) {
-                track.scrollLeft -= half;
-            }
-        }
-        requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-
-    // Pause on mouse hover
-    track.addEventListener("mouseenter", function() { hovered = true; });
-    track.addEventListener("mouseleave", function() { hovered = false; });
-
-    // Pause on touch
-    track.addEventListener("touchstart", function() { touching = true; }, { passive: true });
-    track.addEventListener("touchend", function() { touching = false; }, { passive: true });
-    track.addEventListener("touchcancel", function() { touching = false; }, { passive: true });
-
-    // Mouse drag-to-scroll
-    var isDown = false, startX = 0, scrollLeft = 0;
-    track.addEventListener("mousedown", function(e) {
-        isDown = true;
-        dragging = true;
-        track.classList.add("work-gallery-grabbing");
-        startX = e.pageX - track.offsetLeft;
-        scrollLeft = track.scrollLeft;
-        document.addEventListener("mousemove", onMouseMove);
-        e.preventDefault();
-    });
-    function onMouseMove(e) {
-        if (!isDown) return;
-        var x = e.pageX - track.offsetLeft;
-        track.scrollLeft = scrollLeft - (x - startX) * 1.5;
-    }
-    function stopDrag() {
-        if (!isDown) return;
-        isDown = false;
-        dragging = false;
-        track.classList.remove("work-gallery-grabbing");
-        document.removeEventListener("mousemove", onMouseMove);
-    }
-    document.addEventListener("mouseup", stopDrag);
-
-    // Touch drag-to-scroll
-    var touchStartX = 0, touchScrollLeft = 0;
-    track.addEventListener("touchstart", function(e) {
-        touchStartX = e.touches[0].pageX;
-        touchScrollLeft = track.scrollLeft;
-    }, { passive: true });
-    track.addEventListener("touchmove", function(e) {
-        track.scrollLeft = touchScrollLeft - (e.touches[0].pageX - touchStartX);
-    }, { passive: true });
-
-    // ── Lightbox: press-and-hold to preview ──
-    var lightbox = document.getElementById("workLightbox");
-    var lightboxImg = document.getElementById("workLightboxImg");
-    var lbActive = false;
-    var lbStartX = 0, lbStartY = 0;
-    var LB_DRAG_THRESHOLD = 10; // pixels – more means drag, skip lightbox
-
-    function showLightbox(src, alt) {
-        lightboxImg.src = src;
-        lightboxImg.alt = alt || "";
-        lightbox.classList.add("active");
-        lbActive = true;
-    }
-
-    function hideLightbox() {
-        if (!lbActive) return;
-        lightbox.classList.remove("active");
-        lightboxImg.src = "";
-        lbActive = false;
-    }
-
-    // Use event delegation so cloned cards are covered too
-    track.addEventListener("mousedown", function(e) {
-        if (e.button !== 0) return;
-        var card = e.target.closest(".work-gallery-card");
-        if (!card) return;
-        var img = card.querySelector(".work-gallery-img");
-        if (!img) return;
-        lbStartX = e.pageX;
-        lbStartY = e.pageY;
-        showLightbox(img.src, img.alt);
+    // Thumbnail clicks
+    thumbs.forEach(function(thumb) {
+        thumb.addEventListener("click", function() {
+            stopAuto();
+            showSlide(parseInt(thumb.dataset.index, 10));
+            startAuto();
+        });
     });
 
-    document.addEventListener("mousemove", function(e) {
-        if (!lbActive) return;
-        if (Math.abs(e.pageX - lbStartX) > LB_DRAG_THRESHOLD ||
-            Math.abs(e.pageY - lbStartY) > LB_DRAG_THRESHOLD) {
-            hideLightbox();
-        }
-    });
-
-    document.addEventListener("mouseup", function() {
-        hideLightbox();
-    });
-
-    // Touch press-and-hold (delayed to avoid conflicting with scroll)
-    var lbTouchTimer = null;
-    var lbTouchStartX = 0, lbTouchStartY = 0;
-    track.addEventListener("touchstart", function(e) {
-        var card = e.target.closest(".work-gallery-card");
-        if (!card) return;
-        var img = card.querySelector(".work-gallery-img");
-        if (!img) return;
-        lbTouchStartX = e.touches[0].pageX;
-        lbTouchStartY = e.touches[0].pageY;
-        var src = img.src, alt = img.alt;
-        lbTouchTimer = setTimeout(function() { showLightbox(src, alt); }, 300);
-    }, { passive: true });
-
-    document.addEventListener("touchmove", function(e) {
-        if (lbTouchTimer &&
-            (Math.abs(e.touches[0].pageX - lbTouchStartX) > LB_DRAG_THRESHOLD ||
-             Math.abs(e.touches[0].pageY - lbTouchStartY) > LB_DRAG_THRESHOLD)) {
-            clearTimeout(lbTouchTimer);
-            lbTouchTimer = null;
-        }
-        if (!lbActive) return;
-        if (Math.abs(e.touches[0].pageX - lbTouchStartX) > LB_DRAG_THRESHOLD ||
-            Math.abs(e.touches[0].pageY - lbTouchStartY) > LB_DRAG_THRESHOLD) {
-            hideLightbox();
-        }
-    }, { passive: true });
-
-    function cancelTouchLightbox() {
-        if (lbTouchTimer) { clearTimeout(lbTouchTimer); lbTouchTimer = null; }
-        hideLightbox();
-    }
-    document.addEventListener("touchend", cancelTouchLightbox, { passive: true });
-    document.addEventListener("touchcancel", cancelTouchLightbox, { passive: true });
-
-    // Close on Escape key
+    // Keyboard navigation
     document.addEventListener("keydown", function(e) {
-        if (e.key === "Escape") hideLightbox();
+        if (!modal.classList.contains("active")) return;
+        if (e.key === "Escape")     closeModal();
+        if (e.key === "ArrowLeft")  prevSlide();
+        if (e.key === "ArrowRight") nextSlide();
     });
+
+    // Touch swipe inside modal
+    var swipeStartX = 0;
+    modal.addEventListener("touchstart", function(e) {
+        swipeStartX = e.touches[0].pageX;
+    }, { passive: true });
+    modal.addEventListener("touchend", function(e) {
+        var dx = e.changedTouches[0].pageX - swipeStartX;
+        if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
+    }, { passive: true });
+
+    // Pause auto-advance while hovering main image area
+    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseenter", stopAuto);
+    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseleave", startAuto);
 })();
 
 // ── Auto-scroll for package category sliders ──
