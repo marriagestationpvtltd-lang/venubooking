@@ -3061,6 +3061,11 @@ function buildVenueProviderWhatsAppUrl($booking) {
         $text .= "🍽️ *Selected Menus*\n";
         foreach ($booking['menus'] as $menu) {
             $text .= "• " . strip_tags($menu['menu_name']) . "\n";
+            if (!empty($menu['items'])) {
+                foreach ($menu['items'] as $item) {
+                    $text .= "  - " . strip_tags($item['item_name']) . "\n";
+                }
+            }
         }
         $text .= "\n";
     }
