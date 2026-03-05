@@ -2,8 +2,8 @@
 $page_title = 'Book Your Event';
 require_once __DIR__ . '/includes/header.php';
 
-// Get banner images
-$banner_images = getImagesBySection('banner', 1);
+// Get ALL banner images (not limited to 1)
+$banner_images = getImagesBySection('banner');
 $banner_image = !empty($banner_images) ? $banner_images[0] : null;
 
 // Get all active cities for the city filter dropdown
@@ -14,7 +14,23 @@ $service_categories = getServicePackagesByCategory();
 ?>
 
 <!-- Hero Section -->
-<section class="hero-section<?php if ($banner_image): ?> with-banner-image<?php endif; ?>" id="bookingForm" <?php if ($banner_image): ?>style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('<?php echo htmlspecialchars($banner_image['image_url']); ?>');"<?php endif; ?>>
+<section class="hero-section<?php if (!empty($banner_images)): ?> with-banner-image<?php endif; ?>" id="bookingForm">
+    <?php if (count($banner_images) > 1): ?>
+    <!-- Multi-image banner carousel (fills entire hero as background, auto-plays) -->
+    <div id="heroBannerCarousel" class="carousel slide hero-banner-carousel" data-bs-ride="carousel" data-bs-interval="5000">
+        <div class="carousel-inner">
+            <?php foreach ($banner_images as $bi => $bimg): ?>
+                <div class="carousel-item <?php echo $bi === 0 ? 'active' : ''; ?>">
+                    <div class="hero-banner-slide" style="background-image: url('<?php echo htmlspecialchars($bimg['image_url'], ENT_QUOTES, 'UTF-8'); ?>');"></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php elseif ($banner_image): ?>
+    <!-- Single banner image -->
+    <div class="hero-banner-single" style="background-image: url('<?php echo htmlspecialchars($banner_image['image_url'], ENT_QUOTES, 'UTF-8'); ?>');"></div>
+    <?php endif; ?>
+
     <div class="hero-overlay">
         <div class="container">
             <div class="row align-items-center py-5 py-lg-0 min-vh-lg-100">
@@ -118,7 +134,7 @@ $service_categories = getServicePackagesByCategory();
 <!-- Service Packages Section -->
 <section class="service-packages-section py-5 bg-light">
     <div class="container">
-        <h2 class="text-center mb-2">हाम्रा सेवा प्याकेजहरू</h2>
+        <h2 class="text-center section-title mb-2">हाम्रा सेवा प्याकेजहरू</h2>
         <p class="text-center text-muted mb-5">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
         <?php foreach ($service_categories as $cat): ?>
@@ -240,7 +256,7 @@ $service_categories = getServicePackagesByCategory();
 <!-- Features Section -->
 <section class="features-section py-5">
     <div class="container">
-        <h2 class="text-center mb-5">Why Choose Us</h2>
+        <h2 class="text-center section-title mb-5">Why Choose Us</h2>
         <div class="row g-4">
             <div class="col-6 col-md-3">
                 <div class="feature-card text-center p-4">
@@ -290,7 +306,7 @@ if (!empty($venues)):
 <!-- Venues Section -->
 <section class="venues-section py-5">
     <div class="container">
-        <h2 class="text-center mb-4">Our Venues</h2>
+        <h2 class="text-center section-title mb-4">Our Venues</h2>
         <p class="text-center text-muted mb-5">Explore our premium venues and start booking</p>
         
         <div id="venuesCarousel" class="carousel slide" data-bs-ride="carousel">
@@ -413,36 +429,45 @@ if (!empty($venues)):
 
 <?php
 // Get gallery images
-$gallery_images = getImagesBySection('gallery', 6);
+$gallery_images = getImagesBySection('gallery');
 if (!empty($gallery_images)):
 ?>
 <!-- Gallery Section -->
 <section class="gallery-section py-5 bg-light">
     <div class="container">
-        <h2 class="text-center mb-5">Our Gallery</h2>
-        <div class="row g-4">
-            <?php foreach ($gallery_images as $image): ?>
-                <div class="col-md-4 col-sm-6">
-                    <div class="gallery-item">
-                        <img src="<?php echo htmlspecialchars($image['image_url']); ?>" 
-                             alt="<?php echo htmlspecialchars($image['title']); ?>" 
-                             class="img-fluid rounded shadow-sm"
-                             loading="lazy"
-                             style="width: 100%; height: 250px; object-fit: cover;">
-                        <?php if ($image['title']): ?>
-                            <div class="gallery-caption mt-2">
-                                <h6 class="mb-0"><?php echo htmlspecialchars($image['title']); ?></h6>
-                                <?php if ($image['description']): ?>
-                                    <small class="text-muted"><?php echo htmlspecialchars($image['description']); ?></small>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
+        <h2 class="text-center section-title mb-2">Our Gallery</h2>
+        <p class="text-center text-muted mb-5">Moments we are proud to capture</p>
+        <div class="gallery-grid">
+            <?php foreach ($gallery_images as $gi => $image): ?>
+                <div class="gallery-grid-item" data-index="<?php echo $gi; ?>">
+                    <img src="<?php echo htmlspecialchars($image['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($image['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                         loading="lazy">
+                    <div class="gallery-grid-overlay">
+                        <div class="gallery-grid-overlay-inner">
+                            <i class="fas fa-search-plus gallery-zoom-icon"></i>
+                            <?php if (!empty($image['title'])): ?>
+                                <span class="gallery-grid-caption"><?php echo htmlspecialchars($image['title'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
 </section>
+
+<!-- Gallery Lightbox -->
+<div id="galleryLightbox" class="gallery-lightbox" role="dialog" aria-modal="true" aria-label="Gallery viewer">
+    <button class="gallery-lb-close" id="galleryLbClose" aria-label="Close"><i class="fas fa-times"></i></button>
+    <button class="gallery-lb-prev" id="galleryLbPrev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
+    <button class="gallery-lb-next" id="galleryLbNext" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
+    <div class="gallery-lb-inner">
+        <img id="galleryLbImg" src="" alt="" class="gallery-lb-img">
+        <div class="gallery-lb-caption" id="galleryLbCaption"></div>
+    </div>
+    <div class="gallery-lb-counter" id="galleryLbCounter"></div>
+</div>
 <?php endif; ?>
 
 <?php
@@ -453,7 +478,7 @@ if (!empty($work_photos)):
 <!-- Our Work Gallery Section -->
 <section class="work-photos-section py-5">
     <div class="container-fluid px-4">
-        <h2 class="text-center mb-2">Our Work</h2>
+        <h2 class="text-center section-title mb-2">Our Work</h2>
         <p class="text-center text-muted mb-4">A glimpse of the events and moments we have been part of</p>
 
         <div class="work-gallery-wrapper">
@@ -504,7 +529,7 @@ if (!empty($vendors)):
 <!-- Vendors Section -->
 <section class="vendors-section py-5">
     <div class="container">
-        <h2 class="text-center mb-2">Our Vendors</h2>
+        <h2 class="text-center section-title mb-2">Our Vendors</h2>
         <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
 
         <div id="vendorsCarousel" class="carousel slide vendors-carousel-animated" data-bs-ride="false" data-bs-touch="false">
@@ -653,6 +678,159 @@ if (!empty($vendors)):
                     <span class="visually-hidden">Next</span>
                 </button>
             <?php endif; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php
+// Get testimonials
+$testimonial_images = getImagesBySection('testimonial');
+if (!empty($testimonial_images)):
+?>
+<!-- Testimonials Section -->
+<section class="testimonials-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center section-title mb-2">What Our Clients Say</h2>
+        <p class="text-center text-muted mb-5">Memories made, moments cherished</p>
+
+        <div id="testimonialsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
+            <div class="carousel-inner">
+                <?php
+                $testimonial_chunks = array_chunk($testimonial_images, 3);
+                foreach ($testimonial_chunks as $tci => $tchunk):
+                ?>
+                    <div class="carousel-item <?php echo $tci === 0 ? 'active' : ''; ?>">
+                        <div class="row g-4 justify-content-center">
+                            <?php foreach ($tchunk as $testimonial): ?>
+                                <div class="col-12 col-sm-6 col-md-4">
+                                    <div class="testimonial-card">
+                                        <div class="testimonial-img-wrap">
+                                            <img src="<?php echo htmlspecialchars($testimonial['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                 alt="<?php echo htmlspecialchars($testimonial['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                 loading="lazy"
+                                                 class="testimonial-img">
+                                        </div>
+                                        <?php if (!empty($testimonial['title']) || !empty($testimonial['description'])): ?>
+                                            <div class="testimonial-body">
+                                                <?php if (!empty($testimonial['title'])): ?>
+                                                    <h6 class="testimonial-name"><?php echo htmlspecialchars($testimonial['title'], ENT_QUOTES, 'UTF-8'); ?></h6>
+                                                <?php endif; ?>
+                                                <?php if (!empty($testimonial['description'])): ?>
+                                                    <p class="testimonial-quote"><i class="fas fa-quote-left text-success me-1"></i><?php echo htmlspecialchars($testimonial['description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <?php if (count($testimonial_chunks) > 1): ?>
+                <button class="carousel-control-prev testimonials-prev" type="button" data-bs-target="#testimonialsCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next testimonials-next" type="button" data-bs-target="#testimonialsCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                <div class="carousel-indicators testimonials-indicators">
+                    <?php foreach ($testimonial_chunks as $tci => $tchunk): ?>
+                        <button type="button" data-bs-target="#testimonialsCarousel" data-bs-slide-to="<?php echo $tci; ?>"
+                                <?php echo $tci === 0 ? 'class="active" aria-current="true"' : ''; ?>
+                                aria-label="Slide <?php echo $tci + 1; ?>"></button>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php
+// Get about section images
+$about_images = getImagesBySection('about');
+if (!empty($about_images)):
+?>
+<!-- About Section -->
+<section class="about-section py-5">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-5">
+                <?php if (count($about_images) > 1): ?>
+                    <div id="aboutCarousel" class="carousel slide about-carousel" data-bs-ride="carousel" data-bs-interval="4000">
+                        <div class="carousel-inner">
+                            <?php foreach ($about_images as $ai => $aimg): ?>
+                                <div class="carousel-item <?php echo $ai === 0 ? 'active' : ''; ?>">
+                                    <img src="<?php echo htmlspecialchars($aimg['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                                         alt="<?php echo htmlspecialchars($aimg['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                         class="about-carousel-img"
+                                         loading="lazy">
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#aboutCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#aboutCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                        <div class="carousel-indicators">
+                            <?php foreach ($about_images as $ai => $aimg): ?>
+                                <button type="button" data-bs-target="#aboutCarousel" data-bs-slide-to="<?php echo $ai; ?>"
+                                        <?php echo $ai === 0 ? 'class="active" aria-current="true"' : ''; ?>></button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <img src="<?php echo htmlspecialchars($about_images[0]['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($about_images[0]['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                         class="about-single-img"
+                         loading="lazy">
+                <?php endif; ?>
+            </div>
+            <div class="col-lg-7">
+                <h2 class="section-title mb-3">About Us</h2>
+                <?php
+                $about_desc = '';
+                foreach ($about_images as $aimg) {
+                    if (!empty($aimg['description'])) { $about_desc = $aimg['description']; break; }
+                }
+                ?>
+                <?php if (!empty($about_desc)): ?>
+                    <p class="about-description"><?php echo nl2br(htmlspecialchars($about_desc, ENT_QUOTES, 'UTF-8')); ?></p>
+                <?php else: ?>
+                    <p class="about-description">We are dedicated to making your events unforgettable. From intimate gatherings to grand celebrations, our venues and professional team ensure every detail is perfect.</p>
+                <?php endif; ?>
+                <div class="about-stats row g-3 mt-3">
+                    <div class="col-4 text-center">
+                        <div class="about-stat-card">
+                            <i class="fas fa-building about-stat-icon"></i>
+                            <div class="about-stat-number">10+</div>
+                            <div class="about-stat-label">Venues</div>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="about-stat-card">
+                            <i class="fas fa-calendar-check about-stat-icon"></i>
+                            <div class="about-stat-number">500+</div>
+                            <div class="about-stat-label">Events</div>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="about-stat-card">
+                            <i class="fas fa-smile about-stat-icon"></i>
+                            <div class="about-stat-number">1000+</div>
+                            <div class="about-stat-label">Happy Clients</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -971,6 +1149,61 @@ document.addEventListener("DOMContentLoaded", function() {
         track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
         track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
     });
+})();
+</script>
+<script>
+// Gallery lightbox
+(function() {
+    var items = Array.from(document.querySelectorAll(".gallery-grid-item"));
+    if (!items.length) return;
+    var lb     = document.getElementById("galleryLightbox");
+    var lbImg  = document.getElementById("galleryLbImg");
+    var lbCap  = document.getElementById("galleryLbCaption");
+    var lbCnt  = document.getElementById("galleryLbCounter");
+    var btnClose = document.getElementById("galleryLbClose");
+    var btnPrev  = document.getElementById("galleryLbPrev");
+    var btnNext  = document.getElementById("galleryLbNext");
+    var current = 0;
+
+    function open(index) {
+        current = index;
+        var item = items[index];
+        lbImg.src = item.querySelector("img").src;
+        lbImg.alt = item.querySelector("img").alt;
+        var capEl = item.querySelector(".gallery-grid-caption");
+        lbCap.textContent = capEl ? capEl.textContent : "";
+        lbCnt.textContent = (index + 1) + " / " + items.length;
+        lb.classList.add("active");
+        document.body.style.overflow = "hidden";
+    }
+    function close() {
+        lb.classList.remove("active");
+        document.body.style.overflow = "";
+        lbImg.src = "";
+    }
+    function prev() { open((current - 1 + items.length) % items.length); }
+    function next() { open((current + 1) % items.length); }
+
+    items.forEach(function(item, i) {
+        item.addEventListener("click", function() { open(i); });
+    });
+    btnClose.addEventListener("click", close);
+    btnPrev.addEventListener("click", function(e) { e.stopPropagation(); prev(); });
+    btnNext.addEventListener("click", function(e) { e.stopPropagation(); next(); });
+    lb.addEventListener("click", function(e) { if (e.target === lb) close(); });
+    document.addEventListener("keydown", function(e) {
+        if (!lb.classList.contains("active")) return;
+        if (e.key === "ArrowLeft") prev();
+        else if (e.key === "ArrowRight") next();
+        else if (e.key === "Escape") close();
+    });
+    // Touch swipe
+    var touchX = 0;
+    lb.addEventListener("touchstart", function(e) { touchX = e.touches[0].pageX; }, { passive: true });
+    lb.addEventListener("touchend", function(e) {
+        var dx = e.changedTouches[0].pageX - touchX;
+        if (Math.abs(dx) > 50) { if (dx < 0) next(); else prev(); }
+    }, { passive: true });
 })();
 </script>
 ';
