@@ -169,6 +169,7 @@ CREATE TABLE hall_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     menu_id INT NOT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
@@ -441,12 +442,14 @@ CREATE TABLE site_images (
     image_path VARCHAR(255) NOT NULL,
     section VARCHAR(100) NOT NULL,
     card_id INT NOT NULL DEFAULT 1 COMMENT 'Groups photos into cards of max 10 per section',
+    event_category VARCHAR(150) DEFAULT NULL COMMENT 'Event category folder for work_photos section (e.g. Wedding Photos)',
     display_order INT DEFAULT 0,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_section (section),
     INDEX idx_card_id (card_id),
+    INDEX idx_event_category (event_category),
     INDEX idx_status (status),
     INDEX idx_display_order (display_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -574,7 +577,34 @@ Full payment must be completed 7 days before the event date.
 Cancellations made 30 days before the event will receive 50% refund of total amount (excluding advance).
 Cancellations made less than 30 days before the event are non-refundable.
 Date changes are subject to availability and must be requested at least 15 days in advance.', 'textarea'),
-('invoice_disclaimer', 'Note: This is a computer-generated receipt. For any queries, please contact us.', 'text');
+('invoice_disclaimer', 'Note: This is a computer-generated receipt. For any queries, please contact us.', 'text'),
+('site_favicon', '', 'file'),
+('company_logo', '', 'text'),
+('footer_about', 'Your perfect venue for every occasion', 'textarea'),
+('footer_copyright', '', 'text'),
+('meta_title', 'Venue Booking System - Book Your Perfect Event Venue', 'text'),
+('meta_description', 'Find and book the ideal venue for your wedding, birthday party, corporate event, or any special occasion.', 'textarea'),
+('meta_keywords', 'venue booking, event venue, wedding hall, party hall, corporate events', 'textarea'),
+('social_facebook', '', 'url'),
+('social_instagram', '', 'url'),
+('social_tiktok', '', 'url'),
+('social_twitter', '', 'url'),
+('social_youtube', '', 'url'),
+('social_linkedin', '', 'url'),
+('whatsapp_number', '', 'text'),
+('contact_map_url', '', 'url'),
+('business_hours', '', 'textarea'),
+('quick_links', '[{"label":"Home","url":"/index.php","order":1}]', 'json'),
+('email_enabled', '1', 'boolean'),
+('email_from_name', 'Venue Booking System', 'text'),
+('email_from_address', 'noreply@venubooking.com', 'text'),
+('admin_email', '', 'text'),
+('smtp_enabled', '0', 'boolean'),
+('smtp_host', '', 'text'),
+('smtp_port', '587', 'number'),
+('smtp_username', '', 'text'),
+('smtp_password', '', 'password'),
+('smtp_encryption', 'tls', 'text');
 
 -- Insert placeholder payment methods (INACTIVE by default)
 -- IMPORTANT: Update these details in Admin Panel → Payment Methods before activating!
