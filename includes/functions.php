@@ -1212,7 +1212,7 @@ function logActivity($user_id, $action, $table_name = '', $record_id = null, $de
 function getImagesBySection($section, $limit = null) {
     $db = getDB();
     
-    $sql = "SELECT id, title, description, image_path, section, display_order 
+    $sql = "SELECT id, title, description, image_path, section, card_id, display_order 
             FROM site_images 
             WHERE section = ? AND status = 'active' 
             ORDER BY display_order, created_at DESC";
@@ -1231,6 +1231,40 @@ function getImagesBySection($section, $limit = null) {
     }
     
     return $images;
+}
+
+/**
+ * Get images for a section grouped into photo cards (max 10 photos per card).
+ * Returns an array of cards; each card is an array of up to 10 image records.
+ * The first image in each card serves as the preview.
+ *
+ * @param  string $section  The section slug (e.g. 'gallery')
+ * @return array[]          Indexed array of card arrays
+ */
+function getImagesByCards($section) {
+    $db = getDB();
+
+    $sql = "SELECT id, title, description, image_path, section, card_id, display_order
+            FROM site_images
+            WHERE section = ? AND status = 'active'
+            ORDER BY card_id, display_order, created_at";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$section]);
+    $images = $stmt->fetchAll();
+
+    $cards = [];
+    foreach ($images as &$image) {
+        $image['image_url'] = UPLOAD_URL . $image['image_path'];
+        $cid = (int)$image['card_id'];
+        if (!isset($cards[$cid])) {
+            $cards[$cid] = [];
+        }
+        $cards[$cid][] = $image;
+    }
+
+    // Re-index to a plain 0-based array
+    return array_values($cards);
 }
 
 /**

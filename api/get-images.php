@@ -24,10 +24,10 @@ try {
     $db = getDB();
     
     // Fetch active images for the section
-    $sql = "SELECT id, title, description, image_path, section, display_order 
+    $sql = "SELECT id, title, description, image_path, section, card_id, display_order 
             FROM site_images 
             WHERE section = ? AND status = 'active' 
-            ORDER BY display_order, created_at DESC";
+            ORDER BY card_id, display_order, created_at DESC";
     
     $stmt = $db->prepare($sql);
     $stmt->execute([$section]);

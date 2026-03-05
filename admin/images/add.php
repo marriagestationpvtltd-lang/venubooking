@@ -46,8 +46,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mkdir(UPLOAD_PATH, 0755, true);
         }
 
-        $sql = "INSERT INTO site_images (title, description, image_path, section, display_order, status) 
-                VALUES (?, ?, ?, ?, ?, ?)";
+        // Determine the starting card_id for this batch.
+        // Find the highest existing card_id for this section, then count how many
+        // photos are already in that card to decide whether to continue it or start a new one.
+        $max_card_stmt = $db->prepare(
+            "SELECT COALESCE(MAX(card_id), 0) FROM site_images WHERE section = ?"
+        );
+        $max_card_stmt->execute([$section]);
+        $max_card_id = (int)$max_card_stmt->fetchColumn();
+
+        if ($max_card_id > 0) {
+            $count_stmt = $db->prepare(
+                "SELECT COUNT(*) FROM site_images WHERE section = ? AND card_id = ?"
+            );
+            $count_stmt->execute([$section, $max_card_id]);
+            $current_card_count = (int)$count_stmt->fetchColumn();
+            if ($current_card_count >= 10) {
+                $current_card_id    = $max_card_id + 1;
+                $current_card_count = 0;
+            } else {
+                $current_card_id = $max_card_id;
+            }
+        } else {
+            $current_card_id    = 1;
+            $current_card_count = 0;
+        }
+
+        $sql = "INSERT INTO site_images (title, description, image_path, section, card_id, display_order, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $db->prepare($sql);
 
         for ($i = 0; $i < $file_count; $i++) {
@@ -72,6 +98,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 continue;
             }
 
+            // Start a new card when the current one is full (max 10 photos)
+            if ($current_card_count >= 10) {
+                $current_card_id++;
+                $current_card_count = 0;
+            }
+
             // Generate unique filename (include index to avoid collisions in same-second batch)
             $extension = pathinfo($files['name'][$i], PATHINFO_EXTENSION);
             $filename = $section . '_' . time() . '_' . $i . '_' . uniqid() . '.' . $extension;
@@ -79,11 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (move_uploaded_file($files['tmp_name'][$i], $upload_path)) {
                 try {
-                    $result = $stmt->execute([$file_title, $description, $filename, $section, $display_order, $status]);
+                    $result = $stmt->execute([$file_title, $description, $filename, $section, $current_card_id, $display_order, $status]);
                     if ($result) {
                         $image_id = $db->lastInsertId();
                         logActivity($current_user['id'], 'Uploaded new image', 'site_images', $image_id, "Uploaded image: $file_title");
                         $success_count++;
+                        $current_card_count++;
                     } else {
                         unlink($upload_path);
                         $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": Failed to save to database.';

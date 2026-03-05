@@ -428,46 +428,198 @@ if (!empty($venues)):
 <?php endif; ?>
 
 <?php
-// Get gallery images
-$gallery_images = getImagesBySection('gallery');
-if (!empty($gallery_images)):
+// Get gallery images grouped into photo cards (max 10 per card)
+$gallery_cards = getImagesByCards('gallery');
+if (!empty($gallery_cards)):
+    // Build a flat JS-safe data array for the card modal
+    $gallery_cards_json = json_encode(array_map(function($card) {
+        return array_map(function($img) {
+            return [
+                'src'   => $img['image_url'],
+                'title' => $img['title'],
+                'desc'  => $img['description'] ?? '',
+            ];
+        }, $card);
+    }, $gallery_cards), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
-<!-- Gallery Section -->
+<!-- Gallery Section – Photo Cards -->
 <section class="gallery-section py-5 bg-light">
     <div class="container">
         <h2 class="text-center section-title mb-2">Our Gallery</h2>
         <p class="text-center text-muted mb-5">Moments we are proud to capture</p>
-        <div class="gallery-grid">
-            <?php foreach ($gallery_images as $gi => $image): ?>
-                <div class="gallery-grid-item" data-index="<?php echo $gi; ?>">
-                    <img src="<?php echo htmlspecialchars($image['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                         alt="<?php echo htmlspecialchars($image['title'], ENT_QUOTES, 'UTF-8'); ?>"
+
+        <div class="photo-cards-grid">
+            <?php foreach ($gallery_cards as $ci => $card):
+                $preview     = $card[0];
+                $total       = count($card);
+                $extra       = $total - 1;
+            ?>
+            <div class="photo-card" role="button" tabindex="0"
+                 data-card-index="<?php echo $ci; ?>"
+                 aria-label="View card <?php echo $ci + 1; ?> (<?php echo $total; ?> photo<?php echo $total !== 1 ? 's' : ''; ?>)">
+
+                <div class="photo-card-img-wrap">
+                    <!-- Preview image only; remaining images load in modal -->
+                    <img src="<?php echo htmlspecialchars($preview['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($preview['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                         class="photo-card-img"
                          loading="lazy">
-                    <div class="gallery-grid-overlay">
-                        <div class="gallery-grid-overlay-inner">
-                            <i class="fas fa-search-plus gallery-zoom-icon"></i>
-                            <?php if (!empty($image['title'])): ?>
-                                <span class="gallery-grid-caption"><?php echo htmlspecialchars($image['title'], ENT_QUOTES, 'UTF-8'); ?></span>
-                            <?php endif; ?>
-                        </div>
+
+                    <?php if ($extra > 0): ?>
+                    <span class="photo-card-badge">
+                        <i class="fas fa-images me-1"></i>+<?php echo $extra; ?> Photo<?php echo $extra !== 1 ? 's' : ''; ?>
+                    </span>
+                    <?php endif; ?>
+
+                    <div class="photo-card-overlay">
+                        <i class="fas fa-search-plus photo-card-zoom-icon"></i>
                     </div>
                 </div>
+
+                <?php if (!empty($preview['title'])): ?>
+                <div class="photo-card-caption">
+                    <?php echo htmlspecialchars($preview['title'], ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+                <?php endif; ?>
+            </div>
             <?php endforeach; ?>
         </div>
     </div>
 </section>
 
-<!-- Gallery Lightbox -->
-<div id="galleryLightbox" class="gallery-lightbox" role="dialog" aria-modal="true" aria-label="Gallery viewer">
-    <button class="gallery-lb-close" id="galleryLbClose" aria-label="Close"><i class="fas fa-times"></i></button>
-    <button class="gallery-lb-prev" id="galleryLbPrev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
-    <button class="gallery-lb-next" id="galleryLbNext" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
-    <div class="gallery-lb-inner">
-        <img id="galleryLbImg" src="" alt="" class="gallery-lb-img">
-        <div class="gallery-lb-caption" id="galleryLbCaption"></div>
+<!-- Photo Card Slider Modal -->
+<div id="photoCardModal" class="photo-card-modal" role="dialog" aria-modal="true" aria-label="Photo gallery">
+    <div class="photo-card-modal-backdrop"></div>
+    <div class="photo-card-modal-content">
+
+        <button class="photo-card-modal-close" id="photoCardModalClose" aria-label="Close">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <div class="photo-card-modal-img-wrap">
+            <button class="photo-card-modal-nav photo-card-modal-prev" id="photoCardModalPrev" aria-label="Previous photo">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <img id="photoCardModalImg" src="" alt="" class="photo-card-modal-img" draggable="false">
+            <button class="photo-card-modal-nav photo-card-modal-next" id="photoCardModalNext" aria-label="Next photo">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="photo-card-modal-footer">
+            <div class="photo-card-modal-caption">
+                <span id="photoCardModalTitle"></span>
+                <span id="photoCardModalDesc" class="photo-card-modal-desc-text"></span>
+            </div>
+            <div class="photo-card-modal-counter" id="photoCardModalCounter"></div>
+        </div>
+
+        <!-- Thumbnail strip -->
+        <div class="photo-card-modal-thumbs" id="photoCardModalThumbs"></div>
     </div>
-    <div class="gallery-lb-counter" id="galleryLbCounter"></div>
 </div>
+
+<script>
+// Photo-card slider modal
+(function() {
+    var allCards = <?php echo $gallery_cards_json; ?>;
+
+    var modal       = document.getElementById("photoCardModal");
+    var modalImg    = document.getElementById("photoCardModalImg");
+    var modalTitle  = document.getElementById("photoCardModalTitle");
+    var modalDesc   = document.getElementById("photoCardModalDesc");
+    var modalCnt    = document.getElementById("photoCardModalCounter");
+    var thumbsEl    = document.getElementById("photoCardModalThumbs");
+
+    var cardPhotos  = [];
+    var current     = 0;
+
+    function buildThumbs(photos) {
+        thumbsEl.innerHTML = "";
+        photos.forEach(function(photo, idx) {
+            var img = document.createElement("img");
+            img.src           = photo.src;
+            img.alt           = photo.title || "";
+            img.className     = "photo-card-modal-thumb";
+            img.dataset.index = idx;
+            img.loading       = "lazy";
+            img.draggable     = false;
+            img.addEventListener("click", function() { showSlide(idx); });
+            thumbsEl.appendChild(img);
+        });
+    }
+
+    function showSlide(idx) {
+        if (!cardPhotos.length) return;
+        current = ((idx % cardPhotos.length) + cardPhotos.length) % cardPhotos.length;
+        var photo = cardPhotos[current];
+        modalImg.src              = photo.src;
+        modalImg.alt              = photo.title || "";
+        modalTitle.textContent    = photo.title || "";
+        modalDesc.textContent     = photo.desc  || "";
+        modalCnt.textContent      = (current + 1) + " / " + cardPhotos.length;
+
+        var thumbs = Array.from(thumbsEl.querySelectorAll(".photo-card-modal-thumb"));
+        thumbs.forEach(function(t) { t.classList.remove("active"); });
+        if (thumbs[current]) {
+            thumbs[current].classList.add("active");
+            thumbs[current].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        }
+    }
+
+    function openModal(cardIndex, startIndex) {
+        cardPhotos = allCards[cardIndex] || [];
+        buildThumbs(cardPhotos);
+        modal.style.display = "flex";
+        document.body.classList.add("modal-open");
+        showSlide(startIndex || 0);
+    }
+
+    function closeModal() {
+        modal.style.display = "none";
+        document.body.classList.remove("modal-open");
+        modalImg.src = "";
+        cardPhotos   = [];
+        thumbsEl.innerHTML = "";
+    }
+
+    function prevSlide() { showSlide(current - 1); }
+    function nextSlide() { showSlide(current + 1); }
+
+    // Open cards on click / keyboard
+    document.querySelectorAll(".photo-card").forEach(function(card) {
+        function open() {
+            var ci = parseInt(card.dataset.cardIndex, 10);
+            openModal(ci, 0);
+        }
+        card.addEventListener("click", open);
+        card.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+        });
+    });
+
+    document.getElementById("photoCardModalClose").addEventListener("click", closeModal);
+    document.getElementById("photoCardModalPrev").addEventListener("click", function(e) { e.stopPropagation(); prevSlide(); });
+    document.getElementById("photoCardModalNext").addEventListener("click", function(e) { e.stopPropagation(); nextSlide(); });
+
+    modal.querySelector(".photo-card-modal-backdrop").addEventListener("click", closeModal);
+
+    document.addEventListener("keydown", function(e) {
+        if (modal.style.display !== "flex") return;
+        if (e.key === "Escape")     closeModal();
+        if (e.key === "ArrowLeft")  prevSlide();
+        if (e.key === "ArrowRight") nextSlide();
+    });
+
+    // Touch swipe
+    var swipeX = 0;
+    modal.addEventListener("touchstart", function(e) { swipeX = e.touches[0].pageX; }, { passive: true });
+    modal.addEventListener("touchend",   function(e) {
+        var dx = e.changedTouches[0].pageX - swipeX;
+        if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
+    }, { passive: true });
+})();
+</script>
 <?php endif; ?>
 
 <?php
@@ -1131,61 +1283,6 @@ document.addEventListener("DOMContentLoaded", function() {
         track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
         track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
     });
-})();
-</script>
-<script>
-// Gallery lightbox
-(function() {
-    var items = Array.from(document.querySelectorAll(".gallery-grid-item"));
-    if (!items.length) return;
-    var lb     = document.getElementById("galleryLightbox");
-    var lbImg  = document.getElementById("galleryLbImg");
-    var lbCap  = document.getElementById("galleryLbCaption");
-    var lbCnt  = document.getElementById("galleryLbCounter");
-    var btnClose = document.getElementById("galleryLbClose");
-    var btnPrev  = document.getElementById("galleryLbPrev");
-    var btnNext  = document.getElementById("galleryLbNext");
-    var current = 0;
-
-    function open(index) {
-        current = index;
-        var item = items[index];
-        lbImg.src = item.querySelector("img").src;
-        lbImg.alt = item.querySelector("img").alt;
-        var capEl = item.querySelector(".gallery-grid-caption");
-        lbCap.textContent = capEl ? capEl.textContent : "";
-        lbCnt.textContent = (index + 1) + " / " + items.length;
-        lb.classList.add("active");
-        document.body.style.overflow = "hidden";
-    }
-    function close() {
-        lb.classList.remove("active");
-        document.body.style.overflow = "";
-        lbImg.src = "";
-    }
-    function prev() { open((current - 1 + items.length) % items.length); }
-    function next() { open((current + 1) % items.length); }
-
-    items.forEach(function(item, i) {
-        item.addEventListener("click", function() { open(i); });
-    });
-    btnClose.addEventListener("click", close);
-    btnPrev.addEventListener("click", function(e) { e.stopPropagation(); prev(); });
-    btnNext.addEventListener("click", function(e) { e.stopPropagation(); next(); });
-    lb.addEventListener("click", function(e) { if (e.target === lb) close(); });
-    document.addEventListener("keydown", function(e) {
-        if (!lb.classList.contains("active")) return;
-        if (e.key === "ArrowLeft") prev();
-        else if (e.key === "ArrowRight") next();
-        else if (e.key === "Escape") close();
-    });
-    // Touch swipe
-    var touchX = 0;
-    lb.addEventListener("touchstart", function(e) { touchX = e.touches[0].pageX; }, { passive: true });
-    lb.addEventListener("touchend", function(e) {
-        var dx = e.changedTouches[0].pageX - touchX;
-        if (Math.abs(dx) > 50) { if (dx < 0) next(); else prev(); }
-    }, { passive: true });
 })();
 </script>
 ';
