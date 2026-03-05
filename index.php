@@ -825,6 +825,124 @@ if (!empty($work_categories)):
         wfTrack.style.setProperty("--wf-duration", duration + "s");
     }
 
+    // ── Custom mouse-circle cursor + drag-to-scroll ──────────────
+    (function() {
+        var wfMarquee = document.querySelector(".work-folder-marquee");
+        if (!wfMarquee || !wfTrack) return;
+
+        // Create the cursor circle element
+        var wfCursor = document.createElement("div");
+        wfCursor.className = "wf-cursor";
+        wfCursor.setAttribute("aria-hidden", "true");
+        wfMarquee.appendChild(wfCursor);
+
+        var isDragging  = false;
+        var didDrag     = false;   // true when pointer actually moved > 5 px
+        var dragStartX  = 0;
+        var dragTrackX  = 0;      // translateX value captured at drag-start
+
+        /** Read the current translateX of the track from the computed matrix. */
+        function getTrackX() {
+            var style = window.getComputedStyle(wfTrack).transform;
+            if (!style || style === "none") return 0;
+            // matrix(a,b,c,d,tx,ty) — tx is the 5th value
+            var m = style.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,([^,]+),/);
+            if (m) return parseFloat(m[1]) || 0;
+            // 3d matrix fallback: matrix3d(…,tx,…)
+            var m3 = style.match(/matrix3d\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,[^,]+,([^,]+),/);
+            return m3 ? (parseFloat(m3[1]) || 0) : 0;
+        }
+
+        /** Return the half-width of the track in pixels (= the -50% travel distance). */
+        function halfWidth() {
+            return wfTrack.offsetWidth / 2;
+        }
+
+        /**
+         * After a drag, re-sync the CSS animation so it resumes smoothly from
+         * the position where the user left the track.
+         */
+        function resumeMarquee() {
+            var x   = getTrackX();                            // current drag position (negative)
+            var hw  = halfWidth();
+            if (hw <= 0) return;
+
+            // Clamp to valid range [−hw, 0]
+            x = Math.max(-hw, Math.min(0, x));
+
+            var progress  = -x / hw;                         // 0 → 1
+            var durStr    = window.getComputedStyle(wfTrack).animationDuration;
+            var dur       = parseFloat(durStr) || 30;        // seconds
+
+            // Negative delay fast-forwards the animation to the correct frame
+            wfTrack.style.animationDelay     = -(progress * dur) + "s";
+            wfTrack.style.transform          = "";            // let CSS animation take over
+            wfTrack.style.animationPlayState = "";            // let CSS :hover rule decide
+        }
+
+        // ── Mouse-move: position the circle + apply drag delta ──────
+        wfMarquee.addEventListener("mousemove", function(e) {
+            var rect = wfMarquee.getBoundingClientRect();
+            wfCursor.style.left = (e.clientX - rect.left) + "px";
+            wfCursor.style.top  = (e.clientY - rect.top)  + "px";
+
+            if (!isDragging) return;
+
+            var dx   = e.clientX - dragStartX;
+            if (Math.abs(dx) > 5) didDrag = true;
+
+            var hw   = halfWidth();
+            var newX = Math.max(-hw, Math.min(0, dragTrackX + dx));
+            wfTrack.style.transform = "translateX(" + newX + "px)";
+        });
+
+        // ── Mouse-enter: show cursor circle ─────────────────────────
+        wfMarquee.addEventListener("mouseenter", function() {
+            wfCursor.classList.add("wf-cursor--visible");
+        });
+
+        // ── Mouse-leave: hide circle + end any active drag ──────────
+        wfMarquee.addEventListener("mouseleave", function() {
+            wfCursor.classList.remove("wf-cursor--visible");
+            if (isDragging) {
+                isDragging = false;
+                wfCursor.classList.remove("wf-cursor--grabbing");
+                resumeMarquee();
+            }
+            // Reset so a re-entry doesn't suppress the next genuine click
+            didDrag = false;
+        });
+
+        // ── Mouse-down: start drag ────────────────────────────────────
+        wfMarquee.addEventListener("mousedown", function(e) {
+            if (e.button !== 0) return;     // left button only
+            isDragging = true;
+            didDrag    = false;
+            dragStartX = e.clientX;
+            dragTrackX = getTrackX();
+            wfTrack.style.animationPlayState = "paused";
+            wfCursor.classList.add("wf-cursor--grabbing");
+            e.preventDefault();             // prevent text selection while dragging
+        });
+
+        // ── Mouse-up: end drag (document-level to catch releases outside) ──
+        document.addEventListener("mouseup", function() {
+            if (!isDragging) return;
+            isDragging = false;
+            wfCursor.classList.remove("wf-cursor--grabbing");
+            resumeMarquee();
+        });
+
+        // ── Suppress folder-open clicks that follow a real drag ──────
+        wfMarquee.addEventListener("click", function(e) {
+            if (didDrag) {
+                e.stopPropagation();
+                e.preventDefault();
+                didDrag = false;
+            }
+        }, true /* capture phase — runs before card click handlers */);
+    }());
+
     // Attach click / keyboard to interactive (non-duplicate) folder cards only
     document.querySelectorAll(".work-folder-card:not([aria-hidden])").forEach(function(card) {
         function open() {
