@@ -788,6 +788,8 @@ if (!empty($work_categories)):
     function openFolder(catIndex, startIndex) {
         var cat = allCategories[catIndex];
         if (!cat) return;
+        // Cancel any in-progress close animation before reopening
+        modal.classList.remove("closing");
         currentPhotos = cat.photos;
         buildThumbs(currentPhotos);
         current = startIndex || 0;
@@ -797,13 +799,20 @@ if (!empty($work_categories)):
         startAuto();
     }
 
+    var MODAL_CLOSE_DURATION = 260; // must stay in sync with CSS .portfolio-modal.closing animation (0.25s + buffer)
+    var closeTimer = null;
     function closeModal() {
-        modal.classList.remove("active");
-        document.body.classList.remove("modal-open");
+        clearTimeout(closeTimer);
         stopAuto();
-        modalImg.src       = "";
-        currentPhotos      = [];
-        thumbsEl.innerHTML = "";
+        document.body.classList.remove("modal-open");
+        modal.classList.add("closing");
+        closeTimer = setTimeout(function() {
+            modal.classList.remove("active");
+            modal.classList.remove("closing");
+            modalImg.src       = "";
+            currentPhotos      = [];
+            thumbsEl.innerHTML = "";
+        }, MODAL_CLOSE_DURATION);
     }
 
     function prevSlide() { stopAuto(); showSlide(current - 1); startAuto(); }
@@ -840,6 +849,8 @@ if (!empty($work_categories)):
         var didDrag     = false;   // true when pointer actually moved > 5 px
         var dragStartX  = 0;
         var dragTrackX  = 0;      // translateX value captured at drag-start
+        var idleTimer   = null;   // hides cursor circle after inactivity
+        var CURSOR_IDLE_TIMEOUT = 800; // ms of no movement before circle fades out
 
         /** Read the current translateX of the track from the computed matrix. */
         function getTrackX() {
@@ -886,6 +897,17 @@ if (!empty($work_categories)):
             wfCursor.style.left = (e.clientX - rect.left) + "px";
             wfCursor.style.top  = (e.clientY - rect.top)  + "px";
 
+            // Show the circle whenever the mouse moves; start idle timer
+            if (!isDragging) {
+                wfCursor.classList.add("wf-cursor--visible");
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(function() {
+                    if (!isDragging) {
+                        wfCursor.classList.remove("wf-cursor--visible");
+                    }
+                }, CURSOR_IDLE_TIMEOUT);
+            }
+
             if (!isDragging) return;
 
             var dx   = e.clientX - dragStartX;
@@ -896,13 +918,20 @@ if (!empty($work_categories)):
             wfTrack.style.transform = "translateX(" + newX + "px)";
         });
 
-        // ── Mouse-enter: show cursor circle ─────────────────────────
+        // ── Mouse-enter: show cursor circle + start idle timer ─────
         wfMarquee.addEventListener("mouseenter", function() {
+            clearTimeout(idleTimer);
             wfCursor.classList.add("wf-cursor--visible");
+            idleTimer = setTimeout(function() {
+                if (!isDragging) {
+                    wfCursor.classList.remove("wf-cursor--visible");
+                }
+            }, CURSOR_IDLE_TIMEOUT);
         });
 
-        // ── Mouse-leave: hide circle + end any active drag ──────────
+        // ── Mouse-leave: hide circle + clear idle timer + end drag ──
         wfMarquee.addEventListener("mouseleave", function() {
+            clearTimeout(idleTimer);
             wfCursor.classList.remove("wf-cursor--visible");
             if (isDragging) {
                 isDragging = false;
@@ -921,6 +950,8 @@ if (!empty($work_categories)):
             dragStartX = e.clientX;
             dragTrackX = getTrackX();
             wfTrack.style.animationPlayState = "paused";
+            clearTimeout(idleTimer);        // keep circle visible while dragging
+            wfCursor.classList.add("wf-cursor--visible");
             wfCursor.classList.add("wf-cursor--grabbing");
             e.preventDefault();             // prevent text selection while dragging
         });

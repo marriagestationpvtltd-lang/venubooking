@@ -1055,6 +1055,23 @@ footer a:hover {
 }
 
 /* ── Slideshow modal ───────────────────────────────────── */
+@keyframes portfolioBackdropIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes portfolioContentIn {
+    from { opacity: 0; transform: translateY(60px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes portfolioBackdropOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+@keyframes portfolioContentOut {
+    from { opacity: 1; transform: translateY(0)    scale(1);    }
+    to   { opacity: 0; transform: translateY(60px) scale(0.95); }
+}
+
 .portfolio-modal {
     display: none;
     position: fixed;
@@ -1066,6 +1083,25 @@ footer a:hover {
 
 .portfolio-modal.active {
     display: flex;
+}
+
+/* Slide-in animation when a folder is opened */
+.portfolio-modal.active .portfolio-modal-backdrop {
+    animation: portfolioBackdropIn 0.30s ease both;
+}
+.portfolio-modal.active .portfolio-modal-content {
+    animation: portfolioContentIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Slide-out animation when the modal is closing */
+.portfolio-modal.closing {
+    display: flex;   /* keep visible while closing animation plays */
+}
+.portfolio-modal.closing .portfolio-modal-backdrop {
+    animation: portfolioBackdropOut 0.25s ease both;
+}
+.portfolio-modal.closing .portfolio-modal-content {
+    animation: portfolioContentOut 0.25s ease both;
 }
 
 .portfolio-modal-backdrop {
