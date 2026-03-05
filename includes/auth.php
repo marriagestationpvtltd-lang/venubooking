@@ -7,10 +7,69 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
 /**
+ * Maximum number of failed login attempts before lockout
+ */
+define('LOGIN_MAX_ATTEMPTS', 5);
+
+/**
+ * Lockout duration in seconds (15 minutes)
+ */
+define('LOGIN_LOCKOUT_SECONDS', 900);
+
+/**
  * Check if user is logged in
  */
 function isLoggedIn() {
     return isset($_SESSION['admin_user_id']) && !empty($_SESSION['admin_user_id']);
+}
+
+/**
+ * Check whether the current IP is locked out due to too many failed logins.
+ * Returns true when locked out, false otherwise.
+ */
+function isLoginLockedOut() {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    // NOTE: If the app is behind a trusted reverse proxy, replace REMOTE_ADDR
+    // with the validated client IP from HTTP_X_FORWARDED_FOR or HTTP_X_REAL_IP.
+    $key_attempts = 'login_attempts_' . md5($ip);
+    $key_time     = 'login_lockout_until_' . md5($ip);
+
+    if (isset($_SESSION[$key_time]) && time() < $_SESSION[$key_time]) {
+        return true;
+    }
+
+    // Clear expired lockout
+    if (isset($_SESSION[$key_time]) && time() >= $_SESSION[$key_time]) {
+        unset($_SESSION[$key_time], $_SESSION[$key_attempts]);
+    }
+
+    return false;
+}
+
+/**
+ * Record a failed login attempt and lock out the IP if the threshold is reached.
+ */
+function recordFailedLogin() {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key_attempts = 'login_attempts_' . md5($ip);
+    $key_time     = 'login_lockout_until_' . md5($ip);
+
+    $_SESSION[$key_attempts] = ($_SESSION[$key_attempts] ?? 0) + 1;
+
+    if ($_SESSION[$key_attempts] >= LOGIN_MAX_ATTEMPTS) {
+        $_SESSION[$key_time] = time() + LOGIN_LOCKOUT_SECONDS;
+        error_log("Login lockout triggered for IP: $ip after " . $_SESSION[$key_attempts] . " failed attempts.");
+    }
+}
+
+/**
+ * Clear the failed login counter for the current IP (called on successful login).
+ */
+function clearLoginAttempts() {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key_attempts = 'login_attempts_' . md5($ip);
+    $key_time     = 'login_lockout_until_' . md5($ip);
+    unset($_SESSION[$key_attempts], $_SESSION[$key_time]);
 }
 
 /**
@@ -24,6 +83,12 @@ function login($username, $password) {
     $user = $stmt->fetch();
     
     if ($user && password_verify($password, $user['password'])) {
+        // Regenerate session ID to prevent session fixation
+        session_regenerate_id(true);
+
+        // Clear failed login counter
+        clearLoginAttempts();
+
         // Set session variables
         $_SESSION['admin_user_id'] = $user['id'];
         $_SESSION['admin_username'] = $user['username'];
@@ -39,6 +104,9 @@ function login($username, $password) {
         
         return true;
     }
+
+    // Record failed attempt
+    recordFailedLogin();
     
     return false;
 }

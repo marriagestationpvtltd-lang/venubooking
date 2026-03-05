@@ -16,148 +16,148 @@ Follow this checklist to ensure proper installation of the Venue Booking System.
 - [ ] Extract to web server directory (e.g., `/var/www/html/venubooking/`)
 
 ### 2. Database Setup
-- [ ] Create database: `CREATE DATABASE venubooking;`
-- [ ] Import schema: `mysql -u root -p venubooking < database/schema.sql`
-- [ ] Import sample data: `mysql -u root -p venubooking < database/sample-data.sql`
-- [ ] Verify tables created (should have 14 tables)
+
+**Option A – Fresh production install (recommended):**
+- [ ] Create an empty database in MySQL / cPanel
+- [ ] Import `database/production-ready.sql` — this creates all tables, the default admin user, and essential settings with no sample data
+
+**Option B – Shared hosting with sample data:**
+- [ ] Create the database in cPanel MySQL Databases
+- [ ] Import `database/production-shared-hosting.sql` via phpMyAdmin — this includes venues, halls, menus, sample bookings, and vendor records to explore the system before entering real data (remove sample data before going live)
+
+> Both scripts create all 21 required tables in a single import. Do **not** run the older `schema.sql`, `complete-setup.sql`, or individual migration files; those are kept for reference only.
 
 ### 3. Configuration
 - [ ] Copy `.env.example` to `.env`
-- [ ] Edit `.env` with your database credentials:
-  - [ ] DB_HOST (default: localhost)
-  - [ ] DB_NAME (default: venubooking)
-  - [ ] DB_USER (your MySQL username)
-  - [ ] DB_PASS (your MySQL password)
-  - [ ] CURRENCY (default: NPR)
-  - [ ] TAX_RATE (default: 13)
+- [ ] Edit `.env` with your actual database credentials:
+  - [ ] `DB_HOST` (default: localhost)
+  - [ ] `DB_NAME` (your database name)
+  - [ ] `DB_USER` (your MySQL username)
+  - [ ] `DB_PASS` (your MySQL password, use a strong password)
+- [ ] Configure SMTP email settings in `.env` (see SMTP section in `.env.example`)
+- [ ] Set file permissions on `.env`: `chmod 600 .env`
 
 ### 4. File Permissions
 - [ ] Make uploads directory writable: `chmod -R 755 uploads/`
-- [ ] Verify web server can write to uploads directory
+- [ ] Ensure the web server user can write to `uploads/`
+- [ ] Ensure the `logs/` directory exists and is writable (created automatically on first request)
 
 ### 5. Web Server Configuration
 
 #### Apache
-- [ ] Ensure mod_rewrite is enabled
-- [ ] `.htaccess` file is present in root directory
+- [ ] Ensure `mod_rewrite` and `mod_headers` are enabled
+- [ ] The root `.htaccess` (included in the repo) enables security headers, blocks access to `.env`/`config`/`includes`/`database` directories, and disables directory listing
+- [ ] The `uploads/.htaccess` (included in the repo) blocks PHP execution inside the upload directory
+- [ ] Ensure `AllowOverride All` (or at minimum `AllowOverride Options FileInfo`) is set for the document root in your Apache VirtualHost
 
 #### Nginx
-- [ ] Add rewrite rules to server configuration
-- [ ] Restart Nginx service
+- [ ] Add the following location blocks to your server configuration (adapt paths as needed):
+
+```nginx
+# Block access to sensitive files and directories
+location ~ /\.(env|git|htaccess) { deny all; }
+location ~* ^/(config|includes|database|logs)/ { deny all; }
+
+# Block PHP execution in uploads
+location ~* ^/uploads/.*\.(php|phtml|phar|pl|cgi)$ { deny all; }
+
+# Security headers
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+```
 
 ### 6. Test the Installation
 
 #### Frontend Tests
-- [ ] Visit: `http://localhost/venubooking/`
+- [ ] Visit: `http://yourdomain.com/`
 - [ ] Homepage loads correctly
-- [ ] Navigation menu works
-- [ ] Can access booking form
-- [ ] Date picker shows future dates only
-- [ ] Form validation works
+- [ ] Booking form works end-to-end
 
 #### Backend Tests
-- [ ] Visit: `http://localhost/venubooking/admin/`
+- [ ] Visit: `http://yourdomain.com/admin/`
 - [ ] Redirects to login page
 - [ ] Login with default credentials:
   - Username: `admin`
   - Password: `Admin@123`
+- [ ] **Immediately change the password** (see Security Checklist below)
 - [ ] Dashboard loads with statistics
-- [ ] Can access all menu items:
-  - [ ] Dashboard
-  - [ ] Venues
-  - [ ] Halls
-  - [ ] Menus
-  - [ ] Bookings
-  - [ ] Customers
-  - [ ] Services
-  - [ ] Reports
-  - [ ] Settings
+- [ ] All menu items are accessible
 
-### 7. Verify Sample Data
-- [ ] 4 venues visible
-- [ ] 8 halls visible
-- [ ] 5 menus visible with items
-- [ ] 8 additional services visible
-- [ ] Sample bookings (if any) display correctly
+### 7. Security Checklist ⚠️
 
-### 8. Security Checklist
-- [ ] Change default admin password
-- [ ] Review database user permissions
-- [ ] Ensure `.env` file is not web-accessible
-- [ ] Set appropriate file permissions
-- [ ] Enable HTTPS in production
-- [ ] Configure secure session settings
+Complete these steps **before going live**:
 
-### 9. Customization (Optional)
+- [ ] **Change default admin password** — log in at `/admin/`, go to profile/settings and set a strong unique password
+- [ ] Verify `.env` is not web-accessible (the `.htaccess` blocks it; test by requesting `https://yourdomain.com/.env` — should return 403)
+- [ ] Set `.env` file permissions to `600`: `chmod 600 .env`
+- [ ] Enable HTTPS / SSL and uncomment the HSTS header in `.htaccess`
+- [ ] Verify that HTTPS is enabled so session cookies are automatically secured (the `session.cookie_secure` flag is set automatically when HTTPS is detected)
+- [ ] Review MySQL database user permissions — the app only needs `SELECT, INSERT, UPDATE, DELETE` on its own database; avoid using `root` credentials in `.env`
+- [ ] Verify uploads directory blocks PHP execution (test: try to access any `.php` file placed in `uploads/` — should return 403)
+- [ ] Configure email/SMTP settings in Admin Panel → Settings → Email Settings
+- [ ] Update company information in Admin Panel → Settings
+- [ ] Add real payment method details in Admin Panel → Payment Methods, then activate them
+
+### 8. Customization
 - [ ] Update site name in Settings
-- [ ] Update contact information
-- [ ] Upload company logo
-- [ ] Customize tax rates
-- [ ] Adjust currency if needed
-- [ ] Add real venue images
-- [ ] Add real hall images
-- [ ] Customize menus
+- [ ] Upload company logo and favicon
+- [ ] Configure social media links
+- [ ] Add real venue and hall data (remove sample data from shared-hosting import if applicable)
+- [ ] Customise menus and services
+- [ ] Adjust tax rate and advance payment percentage in Settings
 
 ## Post-Installation
 
 ### Test Complete Booking Flow
 1. [ ] Start new booking from homepage
 2. [ ] Select shift, date, guests, event type
-3. [ ] View available venues
-4. [ ] Select venue and hall
-5. [ ] Choose menu(s)
-6. [ ] Add optional services
-7. [ ] Enter customer information
-8. [ ] Submit booking
-9. [ ] View confirmation page
-10. [ ] Verify booking appears in admin panel
+3. [ ] View available venues and select hall
+4. [ ] Choose menu(s) and services
+5. [ ] Enter customer information
+6. [ ] Submit booking and view confirmation
+7. [ ] Verify booking appears in admin panel
+8. [ ] Confirm booking and update payment status
 
 ### Admin Panel Tests
 1. [ ] View booking in admin dashboard
-2. [ ] Update booking status
-3. [ ] Update payment status
-4. [ ] Generate reports
-5. [ ] Export data (if implemented)
-6. [ ] Test search and filters
-7. [ ] Test sorting in data tables
+2. [ ] Update booking and payment status
+3. [ ] Generate reports
+4. [ ] Test search and filters
 
 ## Troubleshooting
 
 If you encounter issues:
 
-- [ ] Check PHP error logs
+- [ ] Check PHP error logs (`logs/error.log` inside the app, or the server error log)
 - [ ] Check MySQL error logs
 - [ ] Check web server error logs
-- [ ] Verify database connection in `.env`
-- [ ] Ensure all tables were created
-- [ ] Check file permissions
-- [ ] Clear browser cache
-- [ ] Try different browser
+- [ ] Verify database credentials in `.env`
+- [ ] Ensure all tables were created (run `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE();` — should return 21)
+- [ ] Check file permissions on `uploads/` and `logs/`
+- [ ] Clear browser cache and try again
 
 ## Production Deployment
 
 Before going live:
 
 - [ ] Backup database
-- [ ] Remove sample/test data
+- [ ] Remove or replace sample/test data
 - [ ] Change all default passwords
 - [ ] Enable HTTPS/SSL
-- [ ] Configure email settings (if implemented)
-- [ ] Set up automated backups
-- [ ] Configure error reporting (production mode)
-- [ ] Test on multiple devices
-- [ ] Test on multiple browsers
-- [ ] Load test with expected traffic
-- [ ] Set up monitoring
-- [ ] Document any customizations
-- [ ] Train staff on admin panel
+- [ ] Enable HSTS header in `.htaccess`
+- [ ] Enable `session.cookie_secure` in `config/production.php`
+- [ ] Configure email notifications
+- [ ] Set up automated database backups
+- [ ] Test on multiple devices and browsers
+- [ ] Document any customisations
 
 ## Support
 
 If you need help:
 - Review README.md documentation
-- Check troubleshooting section
-- Contact support team
+- Check the troubleshooting section above
 
 ---
 
@@ -166,7 +166,8 @@ If you need help:
 Your Venue Booking System is now ready to use.
 
 Remember to:
-1. Change the default admin password
+1. Change the default admin password immediately
 2. Customize settings for your business
 3. Add your real venue/hall data
 4. Test thoroughly before going live
+

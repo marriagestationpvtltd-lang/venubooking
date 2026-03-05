@@ -1,0 +1,92 @@
+# ============================================================================
+# PRODUCTION SECURITY CONFIGURATION
+# Venue Booking System - Apache .htaccess
+# ============================================================================
+
+# Disable directory listing
+Options -Indexes
+
+# Follow symbolic links
+Options +FollowSymLinks
+
+# Enable URL rewriting
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+</IfModule>
+
+# ============================================================================
+# BLOCK ACCESS TO SENSITIVE FILES
+# ============================================================================
+
+# Deny access to .env and environment files
+<FilesMatch "^\.env(\..*)?$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to .git directory
+<IfModule mod_rewrite.c>
+    RewriteRule ^\.git(/.*)?$ - [F,L]
+</IfModule>
+
+# Deny access to PHP configuration and sensitive files
+<FilesMatch "\.(ini|log|sh|sql|bak|swp|orig|example)$">
+    Require all denied
+</FilesMatch>
+
+# Deny access to hidden files (starting with a dot) except .htaccess itself
+<FilesMatch "^\.(?!htaccess)">
+    Require all denied
+</FilesMatch>
+
+# ============================================================================
+# SECURITY HEADERS
+# ============================================================================
+
+<IfModule mod_headers.c>
+    # Prevent MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Prevent clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Enable XSS filter in older browsers
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Control referrer information
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Remove the X-Powered-By header that exposes PHP version
+    Header always unset X-Powered-By
+
+    # Permissions Policy (disable unnecessary browser features)
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+    # Strict-Transport-Security (HSTS) - uncomment once HTTPS is fully configured
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>
+
+# ============================================================================
+# PHP SECURITY SETTINGS
+# ============================================================================
+
+<IfModule mod_php.c>
+    # Hide PHP version
+    php_flag expose_php Off
+    # Disable display of errors in production
+    php_flag display_errors Off
+    php_flag display_startup_errors Off
+    php_flag log_errors On
+</IfModule>
+
+# ============================================================================
+# PROTECT CONFIGURATION DIRECTORY
+# ============================================================================
+# Note: Apache does not apply directory-level .htaccess rules from the parent
+# for sub-directories unless AllowOverride is set. As a belt-and-suspenders
+# measure, deny direct access to the config/ directory here as well.
+
+<IfModule mod_rewrite.c>
+    RewriteRule ^config(/.*)?$ - [F,L]
+    RewriteRule ^includes(/.*)?$ - [F,L]
+    RewriteRule ^database(/.*)?$ - [F,L]
+</IfModule>
