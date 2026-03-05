@@ -92,6 +92,7 @@ $images = $stmt->fetchAll();
                             <th>Preview</th>
                             <th>Title</th>
                             <th>Section</th>
+                            <th>Event Category</th>
                             <th>Display Order</th>
                             <th>Status</th>
                             <th>Created</th>
@@ -123,6 +124,15 @@ $images = $stmt->fetchAll();
                                 </td>
                                 <td>
                                     <span class="badge bg-primary"><?php echo htmlspecialchars($image['section']); ?></span>
+                                </td>
+                                <td>
+                                    <?php if (!empty($image['event_category'])): ?>
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-folder me-1"></i><?php echo htmlspecialchars($image['event_category']); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-muted small">—</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td><?php echo $image['display_order']; ?></td>
                                 <td>

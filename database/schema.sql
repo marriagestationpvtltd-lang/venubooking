@@ -292,12 +292,14 @@ CREATE TABLE site_images (
     image_path VARCHAR(255) NOT NULL,
     section VARCHAR(100) NOT NULL,
     card_id INT NOT NULL DEFAULT 1 COMMENT 'Groups photos into cards of max 10 per section',
+    event_category VARCHAR(150) DEFAULT NULL COMMENT 'Event category folder for work_photos section (e.g. Wedding Photos)',
     display_order INT DEFAULT 0,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_section (section),
     INDEX idx_card_id (card_id),
+    INDEX idx_event_category (event_category),
     INDEX idx_status (status),
     INDEX idx_display_order (display_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -13,11 +13,22 @@ $sections = [
     'hall' => 'Hall Gallery',
     'package' => 'Package/Menu Images',
     'gallery' => 'General Gallery',
-    'work_photos' => 'Our Work (Portfolio Slideshow)',
+    'work_photos' => 'Our Work (Folder Gallery)',
     'testimonial' => 'Testimonials',
     'feature' => 'Features Section',
     'about' => 'About Us Section',
     'other' => 'Other'
+];
+
+// Predefined event categories for the work_photos folder gallery
+$event_categories = [
+    'विवाह फोटो (Wedding Photos)',
+    'व्रतबन्ध फोटो (Bratabandha Photos)',
+    'Engagement Photos',
+    'Reception Photos',
+    'Birthday Party Photos',
+    'Corporate Event Photos',
+    'Other Events',
 ];
 
 // Handle form submission
@@ -27,10 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $section = $_POST['section'];
     $display_order = intval($_POST['display_order']);
     $status = $_POST['status'];
+    // event_category is only relevant for the work_photos section
+    $event_category = ($section === 'work_photos') ? trim($_POST['event_category'] ?? '') : null;
+    if ($event_category === '') $event_category = null;
 
     // Validation
     if (empty($section)) {
         $error_message = 'Please select a section.';
+    } elseif ($section === 'work_photos' && empty($event_category)) {
+        $error_message = 'Please select or enter an event category for Our Work photos.';
     } elseif (!isset($_FILES['images']) || (count(array_filter($_FILES['images']['error'], function($e) { return $e !== UPLOAD_ERR_NO_FILE; })) === 0)) {
         $error_message = 'Please select at least one image to upload.';
     } else {
@@ -72,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $current_card_count = 0;
         }
 
-        $sql = "INSERT INTO site_images (title, description, image_path, section, card_id, display_order, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO site_images (title, description, image_path, section, card_id, event_category, display_order, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $db->prepare($sql);
 
         for ($i = 0; $i < $file_count; $i++) {
@@ -111,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (move_uploaded_file($files['tmp_name'][$i], $upload_path)) {
                 try {
-                    $result = $stmt->execute([$file_title, $description, $filename, $section, $current_card_id, $display_order, $status]);
+                    $result = $stmt->execute([$file_title, $description, $filename, $section, $current_card_id, $event_category, $display_order, $status]);
                     if ($result) {
                         $image_id = $db->lastInsertId();
                         logActivity($current_user['id'], 'Uploaded new image', 'site_images', $image_id, "Uploaded image: $file_title");
@@ -195,6 +211,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
+                    <!-- Event Category field – only shown when section = work_photos -->
+                    <div class="mb-3" id="eventCategoryField" style="display:none;">
+                        <label for="event_category" class="form-label">
+                            Event Category (Folder) <span class="text-danger">*</span>
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <select class="form-select" id="event_category_select" name="_event_category_select">
+                                    <option value="">— Choose a category —</option>
+                                    <?php foreach ($event_categories as $cat): ?>
+                                        <option value="<?php echo htmlspecialchars($cat); ?>"
+                                            <?php echo (isset($_POST['event_category']) && $_POST['event_category'] === $cat) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($cat); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                    <option value="__custom__">— Custom / other category —</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="customCategoryWrap" style="display:none;">
+                                <input type="text" class="form-control" id="event_category_custom"
+                                       placeholder="Enter custom category name">
+                            </div>
+                        </div>
+                        <input type="hidden" id="event_category" name="event_category"
+                               value="<?php echo isset($_POST['event_category']) ? htmlspecialchars($_POST['event_category']) : ''; ?>">
+                        <small class="text-muted">Photos in the same category are displayed together in one folder card.</small>
+                    </div>
+
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3" 
@@ -240,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <li><strong>Hall Gallery:</strong> Images shown in hall detail pages</li>
                             <li><strong>Package/Menu:</strong> Images for menu packages</li>
                             <li><strong>Gallery:</strong> General photo gallery section</li>
-                            <li><strong>Our Work (Portfolio Slideshow):</strong> Showcase photos of your work — displayed as an auto-scrolling infinite slideshow on the homepage. Pauses when visitors hover or touch.</li>
+                            <li><strong>Our Work (Folder Gallery):</strong> Showcase photos grouped by event category (Wedding, Bratabandha, Engagement, etc.). Each category appears as a folder card on the homepage.</li>
                             <li><strong>Other sections:</strong> Images for various other parts of the website</li>
                         </ul>
                     </div>
@@ -258,5 +302,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var sectionSel  = document.getElementById('section');
+    var catField    = document.getElementById('eventCategoryField');
+    var catSelect   = document.getElementById('event_category_select');
+    var customWrap  = document.getElementById('customCategoryWrap');
+    var customInput = document.getElementById('event_category_custom');
+    var hiddenInput = document.getElementById('event_category');
+
+    function toggleCategoryField() {
+        if (sectionSel.value === 'work_photos') {
+            catField.style.display = '';
+        } else {
+            catField.style.display = 'none';
+            hiddenInput.value = '';
+        }
+    }
+
+    function syncHidden() {
+        if (catSelect.value === '__custom__') {
+            customWrap.style.display = '';
+            hiddenInput.value = customInput.value.trim();
+        } else {
+            customWrap.style.display = 'none';
+            hiddenInput.value = catSelect.value;
+        }
+    }
+
+    sectionSel.addEventListener('change', toggleCategoryField);
+    catSelect.addEventListener('change', syncHidden);
+    customInput.addEventListener('input', syncHidden);
+
+    // Run once on page load (in case the form was re-submitted with errors)
+    toggleCategoryField();
+    if (catSelect.value) syncHidden();
+})();
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
