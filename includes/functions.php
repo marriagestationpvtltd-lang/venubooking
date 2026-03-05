@@ -3060,7 +3060,25 @@ function buildVenueProviderWhatsAppUrl($booking) {
     if (!empty($booking['menus'])) {
         $text .= "🍽️ *Selected Menus*\n";
         foreach ($booking['menus'] as $menu) {
-            $text .= "• " . strip_tags($menu['menu_name']) . "\n";
+            $menu_name = str_replace(['*', '_'], ['\*', '\_'], strip_tags($menu['menu_name']));
+            $text .= "• *" . $menu_name . "*\n";
+            if (!empty($menu['items'])) {
+                $by_category = [];
+                foreach ($menu['items'] as $item) {
+                    $cat = !empty($item['category']) ? strip_tags($item['category']) : '';
+                    $by_category[$cat][] = str_replace(['*', '_'], ['\*', '\_'], strip_tags($item['item_name']));
+                }
+                foreach ($by_category as $category => $items) {
+                    if (!empty($category)) {
+                        $cat_escaped = str_replace(['*', '_'], ['\*', '\_'], $category);
+                        $text .= "   _" . $cat_escaped . ":_ " . implode(', ', $items) . "\n";
+                    } else {
+                        foreach ($items as $item_name) {
+                            $text .= "   - " . $item_name . "\n";
+                        }
+                    }
+                }
+            }
         }
         $text .= "\n";
     }
