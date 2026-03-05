@@ -655,10 +655,25 @@ footer a:hover {
     }
 }
 
-/* Ensure the vendors carousel inner has a minimum height so slides never
-   collapse to zero-height during Bootstrap's slide transition */
+/* Vendor carousel: custom JS-controlled slide switching.
+   Items are hidden/shown by toggling the 'active' class via JavaScript.
+   A subtle fade-in animation runs whenever a slide becomes active. */
 .vendors-section .carousel-inner {
     min-height: 200px;
+}
+
+.vendors-section .carousel-item {
+    display: none;
+}
+
+.vendors-section .carousel-item.active {
+    display: block;
+    animation: vendorSlideActivate 0.35s ease-in-out;
+}
+
+@keyframes vendorSlideActivate {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 .vendor-card {

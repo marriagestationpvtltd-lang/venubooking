@@ -1037,13 +1037,17 @@ if (!empty($vendors)):
         <h2 class="text-center section-title mb-2">Our Vendors</h2>
         <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
 
-        <div id="vendorsCarousel" class="carousel slide" data-bs-ride="false">
+        <div id="vendorsCarousel" class="carousel slide"
+             aria-roledescription="carousel" aria-label="Our Vendors">
+            <!-- Visually-hidden live region: screen readers announce slide changes -->
+            <div class="visually-hidden" aria-live="polite" aria-atomic="true"
+                 id="vendorsCarouselStatus"></div>
             <div class="carousel-indicators">
                 <?php
                 $vendor_chunks = array_chunk($vendors, 3);
                 foreach ($vendor_chunks as $vi => $vchunk):
                 ?>
-                    <button type="button" data-bs-target="#vendorsCarousel" data-bs-slide-to="<?php echo $vi; ?>"
+                    <button type="button" data-vendor-slide-to="<?php echo $vi; ?>"
                             <?php echo $vi === 0 ? 'class="active" aria-current="true"' : ''; ?>
                             aria-label="Slide <?php echo $vi + 1; ?>"></button>
                 <?php endforeach; ?>
@@ -1051,7 +1055,9 @@ if (!empty($vendors)):
 
             <div class="carousel-inner pb-4">
                 <?php foreach ($vendor_chunks as $vi => $vchunk): ?>
-                    <div class="carousel-item <?php echo $vi === 0 ? 'active' : ''; ?>">
+                    <div class="carousel-item <?php echo $vi === 0 ? 'active' : ''; ?>"
+                         role="group" aria-roledescription="slide"
+                         aria-label="Slide <?php echo $vi + 1; ?> of <?php echo count($vendor_chunks); ?>">
                         <div class="row g-4 justify-content-center">
                             <?php foreach ($vchunk as $vendor):
                                 $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
@@ -1091,8 +1097,7 @@ if (!empty($vendors)):
                                         <?php if (!empty($primary_photo_path)): ?>
                                             <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($primary_photo_path), ENT_QUOTES, 'UTF-8'); ?>"
                                                  alt="<?php echo $vendor_name; ?>"
-                                                 class="vendor-photo"
-                                                 loading="lazy">
+                                                 class="vendor-photo">
                                         <?php else: ?>
                                             <div class="vendor-photo vendor-photo-placeholder">
                                                 <i class="fas fa-user-tie fa-3x text-muted"></i>
@@ -1173,12 +1178,12 @@ if (!empty($vendors)):
 
             <?php if (count($vendor_chunks) > 1): ?>
                 <button class="carousel-control-prev vendors-carousel-prev" type="button"
-                        data-bs-target="#vendorsCarousel" data-bs-slide="prev">
+                        data-vendor-slide="prev">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Previous</span>
                 </button>
                 <button class="carousel-control-next vendors-carousel-next" type="button"
-                        data-bs-target="#vendorsCarousel" data-bs-slide="next">
+                        data-vendor-slide="next">
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Next</span>
                 </button>
@@ -1413,12 +1418,65 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Explicitly initialise the vendors carousel so that every slide
-    // (not just the first one) transitions and renders correctly.
-    var vendorsCarouselEl = document.getElementById("vendorsCarousel");
-    if (vendorsCarouselEl && typeof bootstrap !== "undefined") {
-        new bootstrap.Carousel(vendorsCarouselEl, { interval: false, touch: true, wrap: true });
-    }
+    // Custom vendors carousel: pure JS slide-switching that avoids Bootstrap's
+    // carousel _getItems() picking up nested .carousel-item elements (e.g. the
+    // vendor-detail carousels inside each card), which caused slides 2+ to
+    // appear blank.
+    (function () {
+        var el = document.getElementById('vendorsCarousel');
+        if (!el) return;
+
+        // Only select DIRECT outer slides, not nested carousel items.
+        var items = Array.from(
+            el.querySelectorAll(':scope > .carousel-inner > .carousel-item')
+        );
+        var indicators = Array.from(
+            el.querySelectorAll(':scope > .carousel-indicators > [data-vendor-slide-to]')
+        );
+        if (items.length <= 1) return;
+
+        var current = 0;
+        var total   = items.length;
+
+        var statusEl = document.getElementById('vendorsCarouselStatus');
+
+        function goTo(idx) {
+            idx = ((idx % total) + total) % total;
+            if (idx === current) return;
+
+            items[current].classList.remove('active');
+            if (indicators[current]) {
+                indicators[current].classList.remove('active');
+                indicators[current].removeAttribute('aria-current');
+            }
+
+            current = idx;
+            items[current].classList.add('active');
+            if (indicators[current]) {
+                indicators[current].classList.add('active');
+                indicators[current].setAttribute('aria-current', 'true');
+            }
+
+            // Announce the slide change to screen readers
+            if (statusEl) {
+                statusEl.textContent = 'Slide ' + (current + 1) + ' of ' + total;
+            }
+        }
+
+        // Indicator buttons
+        indicators.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                goTo(parseInt(this.getAttribute('data-vendor-slide-to'), 10));
+            });
+        });
+
+        // Prev / Next buttons
+        el.querySelectorAll('[data-vendor-slide]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                goTo(this.getAttribute('data-vendor-slide') === 'prev' ? current - 1 : current + 1);
+            });
+        });
+    })();
 });
 </script>
 <style>
