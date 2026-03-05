@@ -11,6 +11,10 @@ $cities = getAllCities();
 
 // Get service packages grouped by category
 $service_categories = getServicePackagesByCategory();
+
+// Get office WhatsApp number early so it is available in the packages section
+$office_whatsapp       = getSetting('whatsapp_number', '');
+$clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 ?>
 
 <!-- Hero Section -->
@@ -196,26 +200,28 @@ $service_categories = getServicePackagesByCategory();
                                             <?php endforeach; ?>
                                         </ul>
                                     <?php endif; ?>
-                                    <?php if (!empty($pkg['description'])): ?>
-                                        <?php
-                                        // Build WhatsApp message with package details
-                                        $wa_pkg_name  = strip_tags($pkg['name']);
-                                        $wa_pkg_price = strip_tags(formatCurrency($pkg['price']));
-                                        $wa_pkg_msg   = "Hello, I would like to know more about this package:\n\nPackage: {$wa_pkg_name}\nPrice: {$wa_pkg_price}";
-                                        if (!empty($pkg['features'])) {
-                                            $wa_pkg_msg .= "\n\nFeatures:";
-                                            foreach ($pkg['features'] as $feat) {
-                                                $wa_pkg_msg .= "\n- " . strip_tags($feat);
-                                            }
+                                    <?php
+                                    // Build WhatsApp message with package details
+                                    $wa_pkg_name  = strip_tags($pkg['name']);
+                                    $wa_pkg_price = strip_tags(formatCurrency($pkg['price']));
+                                    $wa_pkg_msg   = "Hello, I would like to know more about this package:\n\nPackage: {$wa_pkg_name}\nPrice: {$wa_pkg_price}";
+                                    if (!empty($pkg['features'])) {
+                                        $wa_pkg_msg .= "\n\nFeatures:";
+                                        foreach ($pkg['features'] as $feat) {
+                                            $wa_pkg_msg .= "\n- " . strip_tags($feat);
                                         }
+                                    }
+                                    if (!empty($pkg['description'])) {
                                         $wa_pkg_msg .= "\n\nDescription:\n" . strip_tags($pkg['description']);
-                                        $wa_pkg_msg .= "\n\nPlease provide me with more details.";
-                                        $pkg_wa_url = '';
-                                        if (!empty($clean_office_whatsapp)) {
-                                            $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
-                                        }
-                                        ?>
-                                        <div class="mt-auto">
+                                    }
+                                    $wa_pkg_msg .= "\n\nPlease provide me with more details.";
+                                    $pkg_wa_url = '';
+                                    if (!empty($clean_office_whatsapp)) {
+                                        $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
+                                    }
+                                    ?>
+                                    <?php if (!empty($pkg['description'])): ?>
+                                        <div class="mb-2">
                                             <a class="btn btn-outline-success btn-sm w-100 read-more-btn"
                                                data-bs-toggle="collapse"
                                                href="#pkgDesc<?php echo (int)$pkg['id']; ?>"
@@ -227,20 +233,22 @@ $service_categories = getServicePackagesByCategory();
                                                 <div class="card card-body bg-light border-0 small">
                                                     <?php echo nl2br(htmlspecialchars($pkg['description'])); ?>
                                                 </div>
-                                                <?php if (!empty($pkg_wa_url)): ?>
-                                                    <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                                       target="_blank" rel="noopener noreferrer"
-                                                       class="btn btn-success btn-sm w-100 mt-2">
-                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                                    </a>
-                                                <?php else: ?>
-                                                    <button class="btn btn-success btn-sm w-100 mt-2" disabled>
-                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                                    </button>
-                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     <?php endif; ?>
+                                    <div class="mt-auto">
+                                        <?php if (!empty($pkg_wa_url)): ?>
+                                            <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                               target="_blank" rel="noopener noreferrer"
+                                               class="btn btn-success btn-sm w-100">
+                                                <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                            </a>
+                                        <?php else: ?>
+                                            <button class="btn btn-success btn-sm w-100" disabled>
+                                                <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1019,10 +1027,8 @@ if (!empty($work_categories)):
 <?php endif; ?>
 
 <?php
-// Get all active vendors and office WhatsApp number for the vendor listing section
+// Get all active vendors for the vendor listing section
 $vendors = getVendors();
-$office_whatsapp = getSetting('whatsapp_number', '');
-$clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 if (!empty($vendors)):
 ?>
 <!-- Vendors Section -->
