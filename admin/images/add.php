@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title_base = trim($_POST['title']);
     $description = trim($_POST['description']);
     $section = $_POST['section'];
+    $post_group = ($section === 'work_photos' && !empty(trim($_POST['post_group'] ?? ''))) ? trim($_POST['post_group']) : null;
     $display_order = intval($_POST['display_order']);
     $status = $_POST['status'];
 
@@ -46,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mkdir(UPLOAD_PATH, 0755, true);
         }
 
-        $sql = "INSERT INTO site_images (title, description, image_path, section, display_order, status) 
-                VALUES (?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO site_images (title, description, post_group, image_path, section, display_order, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $db->prepare($sql);
 
         for ($i = 0; $i < $file_count; $i++) {
@@ -79,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (move_uploaded_file($files['tmp_name'][$i], $upload_path)) {
                 try {
-                    $result = $stmt->execute([$file_title, $description, $filename, $section, $display_order, $status]);
+                    $result = $stmt->execute([$file_title, $description, $post_group, $filename, $section, $display_order, $status]);
                     if ($result) {
                         $image_id = $db->lastInsertId();
                         logActivity($current_user['id'], 'Uploaded new image', 'site_images', $image_id, "Uploaded image: $file_title");
@@ -162,6 +163,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
+                    <!-- Post Group field: only relevant for Our Work section -->
+                    <div class="mb-3" id="postGroupField" style="display:none;">
+                        <label for="post_group" class="form-label">Post / Group Name</label>
+                        <input type="text" class="form-control" id="post_group" name="post_group"
+                               value="<?php echo isset($_POST['post_group']) ? htmlspecialchars($_POST['post_group']) : ''; ?>"
+                               placeholder="e.g., Wedding at Grand Ballroom 2024">
+                        <small class="text-muted">
+                            Give this set of photos a group name. All photos uploaded with the same group name will appear together
+                            as a single post card on the homepage. Leave blank to display each photo as its own card.
+                        </small>
+                    </div>
+
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3" 
@@ -207,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <li><strong>Hall Gallery:</strong> Images shown in hall detail pages</li>
                             <li><strong>Package/Menu:</strong> Images for menu packages</li>
                             <li><strong>Gallery:</strong> General photo gallery section</li>
-                            <li><strong>Our Work (Portfolio Slideshow):</strong> Showcase photos of your work — displayed as an auto-scrolling infinite slideshow on the homepage. Pauses when visitors hover or touch.</li>
+                            <li><strong>Our Work (Portfolio Slideshow):</strong> Showcase photos of your work — displayed as an auto-scrolling slideshow on the homepage. Use the <strong>Post / Group Name</strong> field to group multiple photos into a single post card.</li>
                             <li><strong>Other sections:</strong> Images for various other parts of the website</li>
                         </ul>
                     </div>
@@ -225,5 +238,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var sectionSelect = document.getElementById('section');
+    var postGroupField = document.getElementById('postGroupField');
+    function togglePostGroup() {
+        postGroupField.style.display = sectionSelect.value === 'work_photos' ? '' : 'none';
+    }
+    sectionSelect.addEventListener('change', togglePostGroup);
+    togglePostGroup(); // run on page load (preserves value after failed submit)
+}());
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

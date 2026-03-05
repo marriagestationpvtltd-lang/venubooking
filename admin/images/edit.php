@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title']);
     $description = trim($_POST['description']);
     $section = $_POST['section'];
+    $post_group = ($section === 'work_photos' && !empty(trim($_POST['post_group'] ?? ''))) ? trim($_POST['post_group']) : null;
     $display_order = intval($_POST['display_order']);
     $status = $_POST['status'];
 
@@ -97,12 +98,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Update database if no errors
         if (empty($error_message)) {
             try {
-                $sql = "UPDATE site_images SET title = ?, description = ?, section = ?, display_order = ?, status = ?, image_path = ? WHERE id = ?";
+                $sql = "UPDATE site_images SET title = ?, description = ?, post_group = ?, section = ?, display_order = ?, status = ?, image_path = ? WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
                 $result = $stmt->execute([
                     $title,
                     $description,
+                    $post_group,
                     $section,
                     $display_order,
                     $status,
@@ -114,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Update local image array
                     $image['title'] = $title;
                     $image['description'] = $description;
+                    $image['post_group'] = $post_group;
                     $image['section'] = $section;
                     $image['display_order'] = $display_order;
                     $image['status'] = $status;
@@ -244,6 +247,18 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
                                 </div>
                             </div>
 
+                            <!-- Post Group field: only relevant for Our Work section -->
+                            <div class="mb-3" id="postGroupField" style="display:<?php echo $image['section'] === 'work_photos' ? '' : 'none'; ?>;">
+                                <label for="post_group" class="form-label">Post / Group Name</label>
+                                <input type="text" class="form-control" id="post_group" name="post_group"
+                                       value="<?php echo htmlspecialchars($image['post_group'] ?? ''); ?>"
+                                       placeholder="e.g., Wedding at Grand Ballroom 2024">
+                                <small class="text-muted">
+                                    Photos sharing the same group name appear together as one post card on the homepage.
+                                    Leave blank to show this photo as its own card.
+                                </small>
+                            </div>
+
                             <div class="mb-3">
                                 <label for="image" class="form-label">Replace Image (Optional)</label>
                                 <input type="file" class="form-control" id="image" name="image" accept="image/*">
@@ -265,5 +280,16 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var sectionSelect = document.getElementById('section');
+    var postGroupField = document.getElementById('postGroupField');
+    function togglePostGroup() {
+        postGroupField.style.display = sectionSelect.value === 'work_photos' ? '' : 'none';
+    }
+    sectionSelect.addEventListener('change', togglePostGroup);
+}());
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

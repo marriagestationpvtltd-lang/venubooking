@@ -446,9 +446,9 @@ if (!empty($gallery_images)):
 <?php endif; ?>
 
 <?php
-// Get work portfolio photos for the horizontal gallery
-$work_photos = getImagesBySection('work_photos');
-if (!empty($work_photos)):
+// Get work portfolio photos grouped by post
+$work_posts = getWorkPhotosByPost();
+if (!empty($work_posts)):
 ?>
 <!-- Our Work Gallery Section -->
 <section class="work-photos-section py-5">
@@ -458,22 +458,55 @@ if (!empty($work_photos)):
 
         <div class="work-gallery-wrapper">
             <div class="work-gallery-track" id="workGalleryTrack">
-                <?php foreach ($work_photos as $wp): ?>
+                <?php foreach ($work_posts as $post_idx => $post):
+                    $post_photos = $post['photos'];
+                    $single = count($post_photos) === 1;
+                ?>
                     <div class="work-gallery-card">
-                        <div class="work-gallery-img-wrap">
-                            <img src="<?php echo htmlspecialchars($wp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                                 alt="<?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                 class="work-gallery-img"
-                                 loading="lazy"
-                                 draggable="false">
-                        </div>
-                        <?php if (!empty($wp['title']) || !empty($wp['description'])): ?>
+                        <?php if ($single): ?>
+                            <!-- Single-photo card (original behaviour) -->
+                            <div class="work-gallery-img-wrap">
+                                <img src="<?php echo htmlspecialchars($post_photos[0]['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     alt="<?php echo htmlspecialchars($post_photos[0]['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     class="work-gallery-img"
+                                     loading="lazy"
+                                     draggable="false">
+                            </div>
+                        <?php else: ?>
+                            <!-- Multi-photo card: mini-slideshow -->
+                            <div class="work-post-slideshow" data-index="0">
+                                <div class="work-post-slides">
+                                    <?php foreach ($post_photos as $pi => $pp): ?>
+                                        <div class="work-post-slide<?php echo $pi === 0 ? ' active' : ''; ?>">
+                                            <img src="<?php echo htmlspecialchars($pp['image_url'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                 alt="<?php echo htmlspecialchars($pp['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                 class="work-gallery-img"
+                                                 loading="lazy"
+                                                 draggable="false">
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <button class="work-post-nav work-post-prev" aria-label="Previous photo">&#8249;</button>
+                                <button class="work-post-nav work-post-next" aria-label="Next photo">&#8250;</button>
+                                <div class="work-post-dots">
+                                    <?php foreach ($post_photos as $pi => $pp): ?>
+                                        <span class="work-post-dot<?php echo $pi === 0 ? ' active' : ''; ?>"
+                                              data-index="<?php echo $pi; ?>"></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($post['title']) || !empty($post['description'])): ?>
                             <div class="work-gallery-info">
-                                <?php if (!empty($wp['title'])): ?>
-                                    <h6 class="work-gallery-title"><?php echo htmlspecialchars($wp['title'], ENT_QUOTES, 'UTF-8'); ?></h6>
+                                <?php if (!empty($post['title'])): ?>
+                                    <h6 class="work-gallery-title"><?php echo htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8'); ?></h6>
                                 <?php endif; ?>
-                                <?php if (!empty($wp['description'])): ?>
-                                    <p class="work-gallery-desc"><?php echo htmlspecialchars($wp['description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                <?php if (!empty($post['description'])): ?>
+                                    <p class="work-gallery-desc"><?php echo htmlspecialchars($post['description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                <?php endif; ?>
+                                <?php if (!$single): ?>
+                                    <p class="work-post-count text-muted"><?php echo count($post_photos); ?> photos</p>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
@@ -837,7 +870,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if (e.button !== 0) return;
         var card = e.target.closest(".work-gallery-card");
         if (!card) return;
-        var img = card.querySelector(".work-gallery-img");
+        // For multi-photo posts, show the currently active slide image
+        var img = card.querySelector(".work-post-slide.active .work-gallery-img")
+                  || card.querySelector(".work-gallery-img");
         if (!img) return;
         lbStartX = e.pageX;
         lbStartY = e.pageY;
@@ -862,7 +897,9 @@ document.addEventListener("DOMContentLoaded", function() {
     track.addEventListener("touchstart", function(e) {
         var card = e.target.closest(".work-gallery-card");
         if (!card) return;
-        var img = card.querySelector(".work-gallery-img");
+        // For multi-photo posts, show the currently active slide image
+        var img = card.querySelector(".work-post-slide.active .work-gallery-img")
+                  || card.querySelector(".work-gallery-img");
         if (!img) return;
         lbTouchStartX = e.touches[0].pageX;
         lbTouchStartY = e.touches[0].pageY;
@@ -895,6 +932,53 @@ document.addEventListener("DOMContentLoaded", function() {
     document.addEventListener("keydown", function(e) {
         if (e.key === "Escape") hideLightbox();
     });
+})();
+
+// ── Mini-slideshow navigation for multi-photo work post cards ──
+(function () {
+    function goToSlide(slideshow, index) {
+        var slides = slideshow.querySelectorAll(".work-post-slide");
+        var dots   = slideshow.querySelectorAll(".work-post-dot");
+        var count  = slides.length;
+        index = ((index % count) + count) % count; // wrap around
+        slides.forEach(function (s, i) {
+            s.classList.toggle("active", i === index);
+        });
+        dots.forEach(function (d, i) {
+            d.classList.toggle("active", i === index);
+        });
+        slideshow.dataset.index = index;
+    }
+
+    // Prev / Next buttons (use closest() so cloned cards work too)
+    document.addEventListener("click", function (e) {
+        var btn = e.target.closest(".work-post-nav");
+        if (!btn) return;
+        e.stopPropagation();
+        var slideshow = btn.closest(".work-post-slideshow");
+        if (!slideshow) return;
+        var currentIndex = parseInt(slideshow.dataset.index, 10) || 0;
+        var delta = btn.classList.contains("work-post-prev") ? -1 : 1;
+        goToSlide(slideshow, currentIndex + delta);
+    });
+
+    // Dot navigation (use closest() so cloned cards work too)
+    document.addEventListener("click", function (e) {
+        var dot = e.target.closest(".work-post-dot");
+        if (!dot) return;
+        e.stopPropagation();
+        var slideshow = dot.closest(".work-post-slideshow");
+        if (!slideshow) return;
+        goToSlide(slideshow, parseInt(dot.dataset.index, 10));
+    });
+
+    // Auto-advance: single global interval iterates all slideshows (handles clones too)
+    setInterval(function () {
+        document.querySelectorAll(".work-post-slideshow:not(:hover)").forEach(function (ss) {
+            var idx = parseInt(ss.dataset.index, 10) || 0;
+            goToSlide(ss, idx + 1);
+        });
+    }, 3000);
 })();
 
 // ── Auto-scroll for package category sliders ──

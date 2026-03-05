@@ -1070,6 +1070,69 @@ function getFirstImage($section) {
 }
 
 /**
+ * Get work photos (section = 'work_photos') grouped by post_group.
+ *
+ * Returns an array of posts. Each post has:
+ *   'post_group'   – the shared label (or NULL for ungrouped photos)
+ *   'title'        – post_group value used as the card title
+ *   'description'  – description from the first photo in the group
+ *   'photos'       – array of photo rows, each with image_url added
+ *
+ * Photos that have no post_group are each returned as a single-photo post
+ * so they remain visible in the gallery.
+ */
+function getWorkPhotosByPost() {
+    $db = getDB();
+
+    $sql = "SELECT id, title, description, post_group, image_path, display_order
+            FROM site_images
+            WHERE section = 'work_photos' AND status = 'active'
+            ORDER BY display_order, created_at DESC";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute();
+    $images = $stmt->fetchAll();
+
+    $grouped = [];
+    $ungrouped_order = [];
+
+    foreach ($images as $image) {
+        $image['image_url'] = UPLOAD_URL . $image['image_path'];
+        $pg = $image['post_group'];
+
+        if (!empty($pg)) {
+            if (!isset($grouped[$pg])) {
+                $grouped[$pg] = [
+                    'post_group'  => $pg,
+                    'title'       => $pg,
+                    'description' => $image['description'],
+                    'photos'      => [],
+                    '_order'      => $image['display_order'],
+                ];
+            }
+            $grouped[$pg]['photos'][] = $image;
+        } else {
+            // Ungrouped: each image becomes its own single-photo post
+            $ungrouped_order[] = [
+                'post_group'  => null,
+                'title'       => $image['title'],
+                'description' => $image['description'],
+                'photos'      => [$image],
+                '_order'      => $image['display_order'],
+            ];
+        }
+    }
+
+    // Merge grouped and ungrouped, then sort by the minimum display_order of the post
+    $all_posts = array_merge(array_values($grouped), $ungrouped_order);
+    usort($all_posts, function($a, $b) {
+        return $a['_order'] - $b['_order'];
+    });
+
+    return $all_posts;
+}
+
+/**
  * Handle file upload for images
  * 
  * @param array $file The $_FILES array element
