@@ -33,6 +33,18 @@ INSERT INTO hall_images (hall_id, image_path, is_primary, display_order) VALUES
 (7, 'lakeview-terrace-1.jpg', 1, 1),
 (8, 'sunset-hall-1.jpg', 1, 1);
 
+-- Insert Venue Images
+INSERT INTO venue_images (venue_id, image_path, is_primary, display_order) VALUES
+(1, 'royal-palace-main.jpg', 1, 1),
+(1, 'royal-palace-hall.jpg', 0, 2),
+(1, 'royal-palace-garden.jpg', 0, 3),
+(2, 'garden-view-hall-main.jpg', 1, 1),
+(2, 'garden-view-hall-lawn.jpg', 0, 2),
+(3, 'city-convention-main.jpg', 1, 1),
+(3, 'city-convention-interior.jpg', 0, 2),
+(4, 'lakeside-resort-main.jpg', 1, 1),
+(4, 'lakeside-resort-terrace.jpg', 0, 2);
+
 -- Insert Menus
 INSERT INTO menus (name, description, price_per_person, image) VALUES
 ('Royal Gold Menu', 'Premium menu featuring the finest selection of dishes with international and local cuisine.', 2399.00, 'royal-gold-menu.jpg'),
@@ -165,31 +177,71 @@ INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_gues
 (23, 2, 1499.00, 250, 374750.00);
 
 -- Insert booking services for booking #1
-INSERT INTO booking_services (booking_id, service_id, service_name, price) VALUES
-(1, 1, 'Flower Decoration', 15000.00),
-(1, 3, 'Photography Package', 30000.00),
-(1, 5, 'DJ Service', 20000.00);
+INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(1, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
+(1, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
+(1, 5, 'DJ Service', 20000.00, 'Professional DJ with sound system and lighting', 'Entertainment', 'user', 1);
 
 -- Insert booking services for booking #2
-INSERT INTO booking_services (booking_id, service_id, service_name, price) VALUES
-(2, 1, 'Flower Decoration', 15000.00),
-(2, 3, 'Photography Package', 30000.00);
+INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(2, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
+(2, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1);
 
 -- Insert booking services for booking #23
-INSERT INTO booking_services (booking_id, service_id, service_name, price) VALUES
-(23, 1, 'Flower Decoration', 15000.00),
-(23, 2, 'Stage Decoration', 25000.00),
-(23, 3, 'Photography Package', 30000.00),
-(23, 8, 'Valet Parking', 10000.00);
+INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(23, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
+(23, 2, 'Stage Decoration', 25000.00, 'Professional stage setup with backdrop and lighting', 'Decoration', 'user', 1),
+(23, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
+(23, 8, 'Valet Parking', 10000.00, 'Professional valet parking service for guests', 'Logistics', 'user', 1);
+
+-- Insert Payment Methods
+INSERT INTO payment_methods (name, bank_details, status, display_order) VALUES
+('Bank Transfer', 'Bank: [Your Bank Name]\nAccount Name: [Account Holder Name]\nAccount Number: [Account Number]\nBranch: [Branch Name]\n\nNote: Please update these details in Admin > Payment Methods', 'inactive', 1),
+('eSewa', 'eSewa ID: [Your eSewa ID]\neSewa Number: [Your eSewa Number]\n\nNote: Please update these details in Admin > Payment Methods', 'inactive', 2),
+('Khalti', 'Khalti ID: [Your Khalti ID]\nKhalti Number: [Your Khalti Number]\n\nNote: Please update these details in Admin > Payment Methods', 'inactive', 3),
+('Cash Payment', 'Cash payment can be made at our office during business hours.\nPlease bring your booking reference number.', 'active', 4);
 
 -- Insert Sample Vendors
 -- City IDs (from schema.sql default insert): 1=Kathmandu, 2=Pokhara, 3=Lalitpur (Patan), 4=Bhaktapur
-INSERT INTO vendors (name, type, phone, email, address, city_id, notes, status) VALUES
-('Pandit Ram Prasad Sharma', 'pandit', '+977 9841001001', 'ramprasad@example.com', 'Pashupatinath Road, Kathmandu', 1, 'Experienced pandit for Hindu wedding ceremonies', 'active'),
-('Shree Photography Studio', 'photographer', '+977 9851002002', 'shree.photo@example.com', 'New Road, Kathmandu', 1, 'Professional wedding and event photography', 'active'),
-('Pokhara Lens Creations', 'photographer', '+977 9861003003', 'pokharalens@example.com', 'Lakeside, Pokhara', 2, 'Scenic and artistic photography for all events', 'active'),
-('Memory Films Pvt. Ltd.', 'videographer', '+977 9871004004', 'memoryfilms@example.com', 'Jawalakhel, Lalitpur', 3, 'HD and 4K videography with drone coverage', 'active'),
-('Swarnakar Baje Party', 'baje', '+977 9881005005', NULL, 'Bhaktapur Durbar Square Area, Bhaktapur', 4, 'Traditional Newar music ensemble for weddings', 'active'),
-('Royal Decoration House', 'decoration', '+977 9801006006', 'royaldecor@example.com', 'Thamel, Kathmandu', 1, 'Premium floral and stage decoration services', 'active'),
-('Taste of Nepal Catering', 'catering', '+977 9841007007', 'taste.nepal@example.com', 'Boudha Road, Kathmandu', 1, 'Authentic Nepali and multi-cuisine catering', 'active'),
-('Himalayan Event Decor', 'decoration', '+977 9851008008', 'himalayanevents@example.com', 'Lakeside Road, Pokhara', 2, 'Elegant decoration with mountain-inspired themes', 'active');
+INSERT INTO vendors (name, type, short_description, phone, email, address, city_id, notes, status) VALUES
+('Pandit Ram Prasad Sharma', 'pandit', 'Expert Vedic pandit for Hindu ceremonies', '+977 9841001001', 'ramprasad@example.com', 'Pashupatinath Road, Kathmandu', 1, 'Experienced pandit for Hindu wedding ceremonies', 'active'),
+('Shree Photography Studio', 'photographer', 'Professional wedding and event photography', '+977 9851002002', 'shree.photo@example.com', 'New Road, Kathmandu', 1, 'Professional wedding and event photography', 'active'),
+('Pokhara Lens Creations', 'photographer', 'Scenic and artistic photography for all events', '+977 9861003003', 'pokharalens@example.com', 'Lakeside, Pokhara', 2, 'Scenic and artistic photography for all events', 'active'),
+('Memory Films Pvt. Ltd.', 'videographer', 'HD and 4K videography with drone coverage', '+977 9871004004', 'memoryfilms@example.com', 'Jawalakhel, Lalitpur', 3, 'HD and 4K videography with drone coverage', 'active'),
+('Swarnakar Baje Party', 'baje', 'Traditional Newar music ensemble for weddings', '+977 9881005005', NULL, 'Bhaktapur Durbar Square Area, Bhaktapur', 4, 'Traditional Newar music ensemble for weddings', 'active'),
+('Royal Decoration House', 'decoration', 'Premium floral and stage decoration services', '+977 9801006006', 'royaldecor@example.com', 'Thamel, Kathmandu', 1, 'Premium floral and stage decoration services', 'active'),
+('Taste of Nepal Catering', 'catering', 'Authentic Nepali and multi-cuisine catering', '+977 9841007007', 'taste.nepal@example.com', 'Boudha Road, Kathmandu', 1, 'Authentic Nepali and multi-cuisine catering', 'active'),
+('Himalayan Event Decor', 'decoration', 'Elegant decoration with mountain-inspired themes', '+977 9851008008', 'himalayanevents@example.com', 'Lakeside Road, Pokhara', 2, 'Elegant decoration with mountain-inspired themes', 'active');
+
+-- Insert Vendor Photos
+INSERT INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VALUES
+(1, 'pandit-ram-prasad-1.jpg', 1, 1),
+(2, 'shree-photography-1.jpg', 1, 1),
+(2, 'shree-photography-2.jpg', 0, 2),
+(3, 'pokhara-lens-1.jpg', 1, 1),
+(4, 'memory-films-1.jpg', 1, 1),
+(5, 'swarnakar-baje-1.jpg', 1, 1),
+(6, 'royal-decoration-1.jpg', 1, 1),
+(6, 'royal-decoration-2.jpg', 0, 2),
+(7, 'taste-nepal-catering-1.jpg', 1, 1),
+(8, 'himalayan-event-decor-1.jpg', 1, 1);
+
+-- Link payment methods to bookings
+INSERT INTO booking_payment_methods (booking_id, payment_method_id) VALUES
+(1, 4),
+(23, 1),
+(23, 4);
+
+-- Insert Sample Payment Transactions
+INSERT INTO payments (booking_id, payment_method_id, transaction_id, paid_amount, payment_date, payment_status, notes) VALUES
+(1, 4, 'CASH-2026-0001', 479515.50, '2026-01-15 14:30:00', 'verified', 'Advance payment received in cash'),
+(23, 1, 'BT-2026-0001', 181280.25, '2026-01-25 10:15:00', 'verified', 'Advance payment via bank transfer');
+
+-- Insert Booking Vendor Assignments
+INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
+(1, 1, 'Conduct wedding rituals and puja ceremonies', 25000.00, 'Full day ceremony including havan and pheras', 'confirmed'),
+(1, 2, 'Photography coverage for the wedding', 30000.00, 'Full day photography including pre-wedding shoot', 'confirmed'),
+(1, 6, 'Stage and venue decoration', 40000.00, 'Premium floral decoration for stage and entire hall', 'confirmed'),
+(23, 1, 'Conduct reception rituals and blessings', 15000.00, 'Evening ceremony rituals', 'confirmed'),
+(23, 2, 'Photography for the reception', 30000.00, 'Event photography and portrait sessions', 'confirmed'),
+(23, 4, 'Videography coverage', 35000.00, 'HD video coverage with highlights reel', 'confirmed');

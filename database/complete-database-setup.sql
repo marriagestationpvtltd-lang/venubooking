@@ -845,6 +845,63 @@ INSERT INTO payments (booking_id, payment_method_id, transaction_id, paid_amount
 (23, 1, 'BT-2026-0001', 181280.25, '2026-01-25 10:15:00', 'verified', 'Advance payment via bank transfer'),
 (37, 1, 'BT-2026-0037', 471006.60, '2026-01-30 11:00:00', 'verified', 'Advance payment of 30% received');
 
+-- Insert Sample Venue Images
+INSERT INTO venue_images (venue_id, image_path, is_primary, display_order) VALUES
+(1, 'royal-palace-main.jpg', 1, 1),
+(1, 'royal-palace-hall.jpg', 0, 2),
+(1, 'royal-palace-garden.jpg', 0, 3),
+(2, 'garden-view-hall-main.jpg', 1, 1),
+(2, 'garden-view-hall-lawn.jpg', 0, 2),
+(3, 'city-convention-main.jpg', 1, 1),
+(3, 'city-convention-interior.jpg', 0, 2),
+(4, 'lakeside-resort-main.jpg', 1, 1),
+(4, 'lakeside-resort-terrace.jpg', 0, 2);
+
+-- Insert Sample Vendors
+-- City IDs: 1=Kathmandu, 2=Pokhara, 3=Lalitpur (Patan), 4=Bhaktapur
+INSERT INTO vendors (name, type, short_description, phone, email, address, city_id, notes, status) VALUES
+('Pandit Ram Prasad Sharma', 'pandit', 'Expert Vedic pandit for Hindu ceremonies', '+977 9841001001', 'ramprasad@example.com', 'Pashupatinath Road, Kathmandu', 1, 'Experienced pandit for Hindu wedding ceremonies', 'active'),
+('Shree Photography Studio', 'photographer', 'Professional wedding and event photography', '+977 9851002002', 'shree.photo@example.com', 'New Road, Kathmandu', 1, 'Professional wedding and event photography', 'active'),
+('Pokhara Lens Creations', 'photographer', 'Scenic and artistic photography for all events', '+977 9861003003', 'pokharalens@example.com', 'Lakeside, Pokhara', 2, 'Scenic and artistic photography for all events', 'active'),
+('Memory Films Pvt. Ltd.', 'videographer', 'HD and 4K videography with drone coverage', '+977 9871004004', 'memoryfilms@example.com', 'Jawalakhel, Lalitpur', 3, 'HD and 4K videography with drone coverage', 'active'),
+('Swarnakar Baje Party', 'baje', 'Traditional Newar music ensemble for weddings', '+977 9881005005', NULL, 'Bhaktapur Durbar Square Area, Bhaktapur', 4, 'Traditional Newar music ensemble for weddings', 'active'),
+('Royal Decoration House', 'decoration', 'Premium floral and stage decoration services', '+977 9801006006', 'royaldecor@example.com', 'Thamel, Kathmandu', 1, 'Premium floral and stage decoration services', 'active'),
+('Taste of Nepal Catering', 'catering', 'Authentic Nepali and multi-cuisine catering', '+977 9841007007', 'taste.nepal@example.com', 'Boudha Road, Kathmandu', 1, 'Authentic Nepali and multi-cuisine catering', 'active'),
+('Himalayan Event Decor', 'decoration', 'Elegant decoration with mountain-inspired themes', '+977 9851008008', 'himalayanevents@example.com', 'Lakeside Road, Pokhara', 2, 'Elegant decoration with mountain-inspired themes', 'active');
+
+-- Insert Sample Vendor Photos
+INSERT INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VALUES
+(1, 'pandit-ram-prasad-1.jpg', 1, 1),
+(2, 'shree-photography-1.jpg', 1, 1),
+(2, 'shree-photography-2.jpg', 0, 2),
+(3, 'pokhara-lens-1.jpg', 1, 1),
+(4, 'memory-films-1.jpg', 1, 1),
+(5, 'swarnakar-baje-1.jpg', 1, 1),
+(6, 'royal-decoration-1.jpg', 1, 1),
+(6, 'royal-decoration-2.jpg', 0, 2),
+(7, 'taste-nepal-catering-1.jpg', 1, 1),
+(8, 'himalayan-event-decor-1.jpg', 1, 1);
+
+-- Insert Sample Booking Vendor Assignments
+-- Booking #1 (Wedding - Sagarmatha Hall)
+INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
+(1, 1, 'Conduct wedding rituals and puja ceremonies', 25000.00, 'Full day ceremony including havan and pheras', 'confirmed'),
+(1, 2, 'Photography coverage for the wedding', 30000.00, 'Full day photography including pre-wedding shoot', 'confirmed'),
+(1, 6, 'Stage and venue decoration', 40000.00, 'Premium floral decoration for stage and entire hall', 'confirmed');
+
+-- Booking #23 (Wedding Reception - Rose Hall)
+INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
+(23, 1, 'Conduct reception rituals and blessings', 15000.00, 'Evening ceremony rituals', 'confirmed'),
+(23, 2, 'Photography for the reception', 30000.00, 'Event photography and portrait sessions', 'confirmed'),
+(23, 4, 'Videography coverage', 35000.00, 'HD video coverage with highlights reel', 'confirmed');
+
+-- Booking #37 (Wedding Ceremony - Sagarmatha Hall)
+INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
+(37, 1, 'Conduct full wedding ceremony', 30000.00, 'Complete Vedic wedding ceremony', 'assigned'),
+(37, 5, 'Traditional music performance', 20000.00, 'Baje party for baraat and ceremony', 'assigned'),
+(37, 6, 'Stage and hall decoration', 50000.00, 'Luxury decoration for wedding ceremony', 'assigned'),
+(37, 4, 'Videography with drone shots', 40000.00, 'Full day 4K videography with drone footage', 'assigned');
+
 -- ============================================================================
 -- VERIFICATION QUERIES
 -- ============================================================================
@@ -869,6 +926,7 @@ SELECT COUNT(*) as 'Total Services' FROM additional_services;
 SELECT COUNT(*) as 'Total Payment Methods' FROM payment_methods;
 SELECT COUNT(*) as 'Total Customers' FROM customers;
 SELECT COUNT(*) as 'Total Bookings' FROM bookings;
+SELECT COUNT(*) as 'Total Vendors' FROM vendors;
 SELECT COUNT(*) as 'Total Admin Users' FROM users;
 SELECT '' as '';
 
