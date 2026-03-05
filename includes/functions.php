@@ -3060,39 +3060,10 @@ function buildVenueProviderWhatsAppUrl($booking) {
     if (!empty($booking['menus'])) {
         $text .= "🍽️ *Selected Menus*\n";
         foreach ($booking['menus'] as $menu) {
-            $text .= "• " . strip_tags($menu['menu_name']) . " (Rs. " . number_format($menu['price_per_person'], 2) . "/person)\n";
-            if (!empty($menu['items'])) {
-                $categories = [];
-                foreach ($menu['items'] as $item) {
-                    $categories[$item['category']][] = strip_tags($item['item_name']);
-                }
-                foreach ($categories as $cat => $items) {
-                    $text .= "  " . strip_tags($cat) . ": " . implode(', ', $items) . "\n";
-                }
-            }
+            $text .= "• " . strip_tags($menu['menu_name']) . "\n";
         }
         $text .= "\n";
     }
-
-    if (!empty($booking['services'])) {
-        $user_services = array_filter($booking['services'], function($s) {
-            return ($s['added_by'] ?? '') !== 'admin';
-        });
-        if (!empty($user_services)) {
-            $text .= "🎉 *Additional Services*\n";
-            foreach ($user_services as $service) {
-                $qty = intval($service['quantity'] ?? 1);
-                $line = "• " . strip_tags($service['service_name']);
-                if ($qty > 1) {
-                    $line .= " (x{$qty})";
-                }
-                $text .= $line . "\n";
-            }
-            $text .= "\n";
-        }
-    }
-
-    $text .= "💰 *Total Amount: Rs. " . number_format($booking['grand_total'], 2) . "*\n\n";
 
     if (!empty($booking['special_requests'])) {
         $text .= "📝 *Special Requests*\n" . strip_tags($booking['special_requests']) . "\n\n";
