@@ -560,7 +560,7 @@ INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
 ('currency', 'NPR', 'text'),
 ('tax_rate', '13', 'number'),
 ('advance_payment_percentage', '30', 'number'),
-('company_name', 'Your Company Name', 'text'),
+('company_name', 'Venue Booking Company', 'text'),
 ('company_address', 'Your Company Address', 'text'),
 ('company_phone', '+977 1234567890', 'text'),
 ('company_email', 'company@example.com', 'text'),

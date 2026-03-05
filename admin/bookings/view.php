@@ -736,7 +736,7 @@ if (!empty($whatsapp_payment_methods)) {
     $whatsapp_text .= "Please contact us for payment details.\n\n";
 }
 
-$whatsapp_text .= "Thank you!";
+$whatsapp_text .= "Thank you!\n\nWarm regards,\n*" . strip_tags($company_name) . "*";
 
 // Build booking confirmation WhatsApp message (shown after advance payment is received)
 $booking_confirmation_vendors = $vendor_assignments;
