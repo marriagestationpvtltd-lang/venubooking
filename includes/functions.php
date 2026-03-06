@@ -898,11 +898,13 @@ function getBookingDetails($booking_id) {
         $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
                        h.name as hall_name, h.capacity,
                        v.name as venue_name, v.location, v.map_link,
-                       v.contact_phone as venue_contact_phone
+                       v.contact_phone as venue_contact_phone,
+                       ci.name as city_name
                 FROM bookings b
                 INNER JOIN customers c ON b.customer_id = c.id
                 INNER JOIN halls h ON b.hall_id = h.id
                 INNER JOIN venues v ON h.venue_id = v.id
+                LEFT JOIN cities ci ON v.city_id = ci.id
                 WHERE b.id = ?";
         
         $stmt = $db->prepare($sql);
@@ -917,6 +919,11 @@ function getBookingDetails($booking_id) {
             // Cast numeric fields to proper types to ensure strict comparisons work correctly
             // advance_payment_received is TINYINT(1) DEFAULT 0, so it will never be NULL
             $booking['advance_payment_received'] = (int)$booking['advance_payment_received'];
+
+            // Use city name as location when the legacy location field is empty
+            if (empty($booking['location']) && !empty($booking['city_name'])) {
+                $booking['location'] = $booking['city_name'];
+            }
             
             // Get menus
             $stmt = $db->prepare("SELECT bm.*, m.name as menu_name FROM booking_menus bm INNER JOIN menus m ON bm.menu_id = m.id WHERE bm.booking_id = ?");
