@@ -725,6 +725,9 @@ $whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
     "💰 Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
     "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n" .
     "📍 Venue Location: " . strip_tags($booking['location']) . "\n";
+if (!empty($booking['venue_address'])) {
+    $whatsapp_text .= "🏠 Full Address: " . strip_tags($booking['venue_address']) . "\n";
+}
 if (!empty($booking['map_link'])) {
     $whatsapp_text .= "🗺️ Google Map: " . strip_tags($booking['map_link']) . "\n";
 }
@@ -761,6 +764,9 @@ $confirmation_text .= "Event Type: " . strip_tags($booking['event_type']) . "\n\
 $confirmation_text .= "🏛️ *Venue Details*\n";
 $confirmation_text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
 $confirmation_text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+if (!empty($booking['venue_address'])) {
+    $confirmation_text .= "Full Address: " . strip_tags($booking['venue_address']) . "\n";
+}
 if (!empty($booking['map_link'])) {
     $confirmation_text .= "Google Map: " . strip_tags($booking['map_link']) . "\n";
 }
