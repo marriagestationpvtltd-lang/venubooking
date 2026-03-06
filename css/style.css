@@ -501,9 +501,42 @@ footer a:hover {
     background: var(--dark-green);
 }
 
-/* Venues Section - Homepage Carousel */
+/* Venues Section - Single horizontal scrolling row */
 .venues-section {
     background: white;
+}
+
+/* Horizontal scroll wrapper */
+.venues-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+}
+
+/* Scrollbar styling for the venues row */
+.venues-scroll-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.venues-scroll-wrapper::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: 3px;
+}
+
+.venues-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: var(--primary-green);
+    border-radius: 3px;
+}
+
+.venues-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-green);
+}
+
+/* Each venue card column — fixed width so all cards appear on one row */
+.col-venue-scroll {
+    flex: 0 0 300px;
+    width: 300px;
+    max-width: 300px;
 }
 
 .venue-card-home {
@@ -590,52 +623,12 @@ footer a:hover {
     padding: 0.4rem 0.6rem;
 }
 
-/* Carousel controls styling for main venues carousel */
-.venues-section .carousel-control-prev,
-.venues-section .carousel-control-next {
-    background-color: rgba(76, 175, 80, 0.3);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-.venues-section .carousel-control-prev {
-    left: -60px;
-}
-
-.venues-section .carousel-control-next {
-    right: -60px;
-}
-
-.venues-section .carousel-control-prev:hover,
-.venues-section .carousel-control-next:hover {
-    background-color: rgba(76, 175, 80, 0.6);
-}
-
-.venues-section .carousel-indicators {
-    margin-bottom: -30px;
-}
-
-.venues-section .carousel-indicators button {
-    background-color: var(--primary-green);
-}
-
-/* Responsive adjustments for carousel */
+/* Responsive adjustments for venue cards */
 @media (max-width: 768px) {
-    .venues-section .carousel-control-prev {
-        left: 0;
-    }
-    
-    .venues-section .carousel-control-next {
-        right: 0;
-    }
-    
-    .venues-section .carousel-control-prev,
-    .venues-section .carousel-control-next {
-        width: 40px;
-        height: 40px;
+    .col-venue-scroll {
+        flex: 0 0 260px;
+        width: 260px;
+        max-width: 260px;
     }
 }
 
