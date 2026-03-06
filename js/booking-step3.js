@@ -33,6 +33,43 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial calculation
     calculateMenuTotal();
+
+    // Menu search filter
+    const searchInput = document.getElementById('menuSearchInput');
+    const clearBtn    = document.getElementById('menuSearchClear');
+    const noResults   = document.getElementById('menuSearchNoResults');
+
+    if (searchInput) {
+        function filterMenus() {
+            const term = searchInput.value.trim().toLowerCase();
+            const cards = Array.from(document.querySelectorAll('#menusContainer [data-menu-name]'));
+            let visibleCount = 0;
+
+            cards.forEach(function(card) {
+                const name = (card.getAttribute('data-menu-name') || '').toLowerCase();
+                const show = name.includes(term);
+                card.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            if (noResults) {
+                noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+            if (clearBtn) {
+                clearBtn.style.display = term.length > 0 ? 'inline-block' : 'none';
+            }
+        }
+
+        searchInput.addEventListener('input', filterMenus);
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                searchInput.value = '';
+                filterMenus();
+                searchInput.focus();
+            });
+        }
+    }
 });
 
 // Update menu card selection state

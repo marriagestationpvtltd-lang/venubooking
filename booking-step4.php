@@ -92,6 +92,20 @@ $current_total = $totals['subtotal'];
                     <i class="fas fa-info-circle"></i> No additional services available at this time.
                 </div>
             <?php else: ?>
+                <div class="mb-4" id="serviceSearchWrapper">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="serviceSearchInput" class="form-control"
+                               placeholder="Search services by name..."
+                               aria-label="Search services by name">
+                        <button class="btn btn-outline-secondary" type="button" id="serviceSearchClear" style="display:none;" aria-label="Clear search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="serviceSearchNoResults" class="alert alert-info" style="display:none;">
+                    <i class="fas fa-info-circle"></i> No services found matching your search.
+                </div>
                 <?php
                 $grouped_services = [];
                 foreach ($services as $service) {
@@ -113,7 +127,7 @@ $current_total = $totals['subtotal'];
                             <h4 class="mb-3"><?php echo sanitize($category); ?></h4>
                             <div class="row g-3">
                                 <?php foreach ($category_services as $service): ?>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
                                         <div class="service-card card">
                                             <div class="card-body">
                                                 <div class="d-flex justify-content-between align-items-start">
@@ -159,7 +173,7 @@ $current_total = $totals['subtotal'];
                                 <div id="<?php echo $category_id; ?>" class="collapse <?php echo $is_first ? 'show' : ''; ?>">
                                     <div class="card-body p-2">
                                         <?php foreach ($category_services as $service): ?>
-                                            <div class="service-card card mb-2">
+                                            <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
                                                 <div class="card-body p-3">
                                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                                         <div class="form-check flex-grow-1">

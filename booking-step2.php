@@ -213,6 +213,20 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                     <i class="fas fa-arrow-left"></i> Back to Venues
                 </button>
             </div>
+            <div class="mb-4" id="hallSearchWrapper">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="hallSearchInput" class="form-control"
+                           placeholder="Search halls by name..."
+                           aria-label="Search halls by name">
+                    <button class="btn btn-outline-secondary" type="button" id="hallSearchClear" style="display:none;" aria-label="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="hallSearchNoResults" class="alert alert-info" style="display:none;">
+                <i class="fas fa-info-circle"></i> No halls found matching your search.
+            </div>
             <div class="row g-4" id="hallsContainer">
                 <!-- Halls will be loaded here dynamically -->
             </div>
