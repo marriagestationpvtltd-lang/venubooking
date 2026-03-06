@@ -655,80 +655,43 @@ footer a:hover {
     }
 }
 
-/* Custom vendor slider — all pages stay rendered (translated off-screen)
-   so content is never hidden with display:none, preventing blank slides */
-.vendor-slider {
+/* Vendor auto-scroll track */
+.vendor-auto-wrapper {
     position: relative;
     overflow: hidden;
 }
 
-.vendor-slider-track {
+.vendor-auto-track {
     display: flex;
-    transition: transform 0.5s ease-in-out;
-    will-change: transform;
+    flex-wrap: nowrap;
+    gap: 1.25rem;
+    overflow-x: auto;
+    cursor: grab;
+    padding-bottom: 0.75rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    user-select: none;
 }
 
-.vendor-slider-page {
-    flex: 0 0 100%;
-    width: 100%;
-    padding-bottom: 1.5rem;
+.vendor-auto-track::-webkit-scrollbar {
+    display: none;
 }
 
-/* Indicator dots */
-.vendor-slider-indicators {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 0.75rem;
+.vendor-auto-track.vendor-auto-grabbing {
+    cursor: grabbing;
+    scroll-behavior: auto;
 }
 
-.vendor-slider-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: none;
-    background-color: rgba(76, 175, 80, 0.35);
-    cursor: pointer;
-    transition: background-color 0.3s;
-    padding: 0;
+.vendor-auto-card {
+    flex: 0 0 300px;
+    width: 300px;
 }
 
-.vendor-slider-dot.active {
-    background-color: var(--primary-green);
-}
-
-/* Prev / next buttons */
-.vendor-slider-btn {
-    position: absolute;
-    top: 45%;
-    transform: translateY(-50%);
-    background-color: rgba(76, 175, 80, 0.3);
-    border: none;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    cursor: pointer;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s;
-}
-
-.vendor-slider-btn:hover {
-    background-color: rgba(76, 175, 80, 0.6);
-}
-
-.vendor-slider-prev { left: -60px; }
-.vendor-slider-next { right: -60px; }
-
-@media (max-width: 768px) {
-    .vendor-slider-prev { left: 0; }
-    .vendor-slider-next { right: 0; }
-    .vendor-slider-prev,
-    .vendor-slider-next {
-        width: 40px;
-        height: 40px;
+@media (max-width: 576px) {
+    .vendor-auto-card {
+        flex: 0 0 260px;
+        width: 260px;
     }
 }
 
