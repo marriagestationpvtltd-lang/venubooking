@@ -136,10 +136,10 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 
 <?php if (!empty($service_categories)): ?>
 <!-- Service Packages Section -->
-<section class="service-packages-section py-5 bg-light">
+<section class="service-packages-section py-5">
     <div class="container">
         <h2 class="text-center section-title mb-2">हाम्रा सेवा प्याकेजहरू</h2>
-        <p class="text-center text-muted mb-5">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+        <p class="text-center section-subtitle mb-5">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
         <?php foreach ($service_categories as $cat): ?>
             <?php if (empty($cat['packages'])) continue; ?>
@@ -156,7 +156,7 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                         $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
                     ?>
                         <div class="pkg-slider-card">
-                            <div class="package-card card h-100 shadow-sm">
+                            <div class="package-card card h-100">
                                 <?php if (!empty($pkg['photos'])): ?>
                                     <?php if (count($pkg['photos']) > 1): ?>
                                         <div id="<?php echo $pkg_carousel_id; ?>" class="carousel slide package-photo-carousel" data-bs-ride="carousel">
@@ -190,14 +190,16 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                                     <h5 class="package-name text-center mb-3">
                                         <?php echo htmlspecialchars($pkg['name']); ?>
                                     </h5>
-                                    <div class="package-price text-center mb-3">
-                                        <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
+                                    <div class="text-center mb-3">
+                                        <div class="package-price d-inline-block">
+                                            <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
+                                        </div>
                                     </div>
                                     <?php if (!empty($pkg['features'])): ?>
                                         <ul class="package-features list-unstyled mb-3">
                                             <?php foreach ($pkg['features'] as $feat): ?>
                                                 <li class="feature-item">
-                                                    <span class="text-success me-2">&#10004;</span>
+                                                    <span class="feat-check">&#10003;</span>
                                                     <?php echo htmlspecialchars($feat); ?>
                                                 </li>
                                             <?php endforeach; ?>
@@ -243,11 +245,11 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                                         <?php if (!empty($pkg_wa_url)): ?>
                                             <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
                                                target="_blank" rel="noopener noreferrer"
-                                               class="btn btn-success btn-sm w-100">
+                                               class="btn pkg-wa-btn w-100">
                                                 <i class="fab fa-whatsapp me-1"></i> Contact Us
                                             </a>
                                         <?php else: ?>
-                                            <button class="btn btn-success btn-sm w-100" disabled>
+                                            <button class="btn pkg-wa-btn w-100" disabled>
                                                 <i class="fab fa-whatsapp me-1"></i> Contact Us
                                             </button>
                                         <?php endif; ?>
