@@ -317,119 +317,89 @@ if (!empty($venues)):
         <h2 class="text-center section-title mb-4">Our Venues</h2>
         <p class="text-center text-muted mb-5">Explore our premium venues and start booking</p>
         
-        <div id="venuesCarousel" class="carousel slide" data-bs-ride="false">
-            <div class="carousel-indicators">
-                <?php 
-                $venue_chunks = array_chunk($venues, 3); // 3 venues per slide
-                foreach ($venue_chunks as $index => $chunk): 
-                ?>
-                    <button type="button" data-bs-target="#venuesCarousel" data-bs-slide-to="<?php echo $index; ?>" 
-                            <?php echo $index === 0 ? 'class="active" aria-current="true"' : ''; ?> 
-                            aria-label="Slide <?php echo $index + 1; ?>"></button>
-                <?php endforeach; ?>
-            </div>
-            
-            <div class="carousel-inner">
-                <?php foreach ($venue_chunks as $index => $chunk): ?>
-                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
-                        <div class="row g-4">
-                            <?php foreach ($chunk as $venue): 
-                                // Prepare images array - use gallery images if available, otherwise use venue's main image
-                                $images_to_display = [];
-                                
-                                if (!empty($venue['gallery_images']) && count($venue['gallery_images']) > 0) {
-                                    // Use hall images
-                                    $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
-                                    foreach ($venue['gallery_images'] as $gallery_image) {
-                                        $safe_url = $upload_url_base . rawurlencode($gallery_image['image_path']);
-                                        $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                                    }
-                                } else if (!empty($venue['image'])) {
-                                    // Use venue's main image
-                                    $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
-                                    $safe_url = $upload_url_base . rawurlencode($venue['image']);
-                                    $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                                } else {
-                                    // Use placeholder
-                                    $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
-                                }
-                                
-                                // Generate unique carousel ID for this venue
-                                $carousel_id = 'venueImageCarousel' . $venue['id'];
-                                
-                                // Truncate description and add ellipsis only if needed
-                                $description = sanitize($venue['description']);
-                                $truncated_description = substr($description, 0, 100);
-                                if (strlen($description) > 100) {
-                                    $truncated_description .= '...';
-                                }
-                            ?>
-                                <div class="col-12 col-sm-6 col-md-4">
-                                    <div class="venue-card-home card h-100 shadow-sm">
-                                        <?php if (count($images_to_display) > 1): ?>
-                                            <!-- Carousel for multiple images -->
-                                            <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
-                                                <div class="carousel-inner">
-                                                    <?php foreach ($images_to_display as $img_index => $image_url): ?>
-                                                        <div class="carousel-item <?php echo $img_index === 0 ? 'active' : ''; ?>">
-                                                            <div class="venue-image-home" style="background-image: url('<?php echo $image_url; ?>');"></div>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                                <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="prev">
-                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Previous</span>
-                                                </button>
-                                                <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="next">
-                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                    <span class="visually-hidden">Next</span>
-                                                </button>
-                                                <!-- Image counter indicator -->
-                                                <div class="carousel-indicators-counter">
-                                                    <span class="badge bg-dark bg-opacity-75">
-                                                        <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        <?php else: ?>
-                                            <!-- Single image display -->
-                                            <div class="card-img-top venue-image-home" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
-                                        <?php endif; ?>
-                                        
-                                        <div class="card-body">
-                                            <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
-                                            <p class="card-text">
-                                                <i class="fas fa-map-marker-alt text-success"></i> 
-                                                <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
-                                            </p>
-                                            <p class="card-text text-muted">
-                                                <?php echo $truncated_description; ?>
-                                            </p>
-                                            <button type="button" 
-                                                    class="btn btn-success w-100 venue-book-btn"
-                                                    data-venue-id="<?php echo $venue['id']; ?>"
-                                                    data-venue-name="<?php echo sanitize($venue['name']); ?>">
-                                                <i class="fas fa-calendar-check"></i> Book Now
-                                            </button>
+        <div class="row g-4">
+            <?php foreach ($venues as $venue): 
+                // Prepare images array - use gallery images if available, otherwise use venue's main image
+                $images_to_display = [];
+                
+                if (!empty($venue['gallery_images']) && count($venue['gallery_images']) > 0) {
+                    // Use hall images
+                    $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
+                    foreach ($venue['gallery_images'] as $gallery_image) {
+                        $safe_url = $upload_url_base . rawurlencode($gallery_image['image_path']);
+                        $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
+                    }
+                } else if (!empty($venue['image'])) {
+                    // Use venue's main image
+                    $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
+                    $safe_url = $upload_url_base . rawurlencode($venue['image']);
+                    $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
+                } else {
+                    // Use placeholder
+                    $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                }
+                
+                // Generate unique carousel ID for this venue
+                $carousel_id = 'venueImageCarousel' . $venue['id'];
+                
+                // Truncate description and add ellipsis only if needed
+                $description = sanitize($venue['description']);
+                $truncated_description = substr($description, 0, 100);
+                if (strlen($description) > 100) {
+                    $truncated_description .= '...';
+                }
+            ?>
+                <div class="col-12 col-sm-6 col-md-4">
+                    <div class="venue-card-home card h-100 shadow-sm">
+                        <?php if (count($images_to_display) > 1): ?>
+                            <!-- Carousel for multiple images -->
+                            <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
+                                <div class="carousel-inner">
+                                    <?php foreach ($images_to_display as $img_index => $image_url): ?>
+                                        <div class="carousel-item <?php echo $img_index === 0 ? 'active' : ''; ?>">
+                                            <div class="venue-image-home" style="background-image: url('<?php echo $image_url; ?>');"></div>
                                         </div>
-                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
-                            <?php endforeach; ?>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
+                                <!-- Image counter indicator -->
+                                <div class="carousel-indicators-counter">
+                                    <span class="badge bg-dark bg-opacity-75">
+                                        <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
+                                    </span>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <!-- Single image display -->
+                            <div class="card-img-top venue-image-home" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
+                        <?php endif; ?>
+                        
+                        <div class="card-body">
+                            <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
+                            <p class="card-text">
+                                <i class="fas fa-map-marker-alt text-success"></i> 
+                                <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
+                            </p>
+                            <p class="card-text text-muted">
+                                <?php echo $truncated_description; ?>
+                            </p>
+                            <button type="button" 
+                                    class="btn btn-success w-100 venue-book-btn"
+                                    data-venue-id="<?php echo $venue['id']; ?>"
+                                    data-venue-name="<?php echo sanitize($venue['name']); ?>">
+                                <i class="fas fa-calendar-check"></i> Book Now
+                            </button>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
-            
-            <?php if (count($venue_chunks) > 1): ?>
-                <button class="carousel-control-prev" type="button" data-bs-target="#venuesCarousel" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#venuesCarousel" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                </button>
-            <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>
