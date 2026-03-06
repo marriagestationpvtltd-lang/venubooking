@@ -35,6 +35,47 @@ function escapeHtml(text) {
         .replace(/'/g, '&#039;');
 }
 
+// Venue name search filter
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('venueSearchInput');
+    const clearBtn    = document.getElementById('venueSearchClear');
+    const noResults   = document.getElementById('venueSearchNoResults');
+
+    if (!searchInput) return;
+
+    // Cache venue cards once — they do not change after page load
+    const cards = Array.from(document.querySelectorAll('#venuesContainer [data-venue-name]'));
+
+    function filterVenues() {
+        const term = searchInput.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        cards.forEach(function(card) {
+            const name = (card.getAttribute('data-venue-name') || '').toLowerCase();
+            const show = name.includes(term);
+            card.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        if (noResults) {
+            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+        if (clearBtn) {
+            clearBtn.style.display = term.length > 0 ? 'inline-block' : 'none';
+        }
+    }
+
+    searchInput.addEventListener('input', filterVenues);
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            filterVenues();
+            searchInput.focus();
+        });
+    }
+});
+
 // Show halls for selected venue
 function showHalls(venueId, venueName) {
     currentVenueId = venueId;
@@ -76,9 +117,13 @@ function displayHalls(halls, venueName) {
     const hallsSection = document.getElementById('hallsSection');
     const hallsContainer = document.getElementById('hallsContainer');
     const venueNameElement = document.getElementById('venueName');
+    const searchWrapper = document.getElementById('venueSearchWrapper');
+    const searchNoResults = document.getElementById('venueSearchNoResults');
     
-    // Hide venues, show halls section
+    // Hide venues and search, show halls section
     if (venuesContainer) venuesContainer.style.display = 'none';
+    if (searchWrapper) searchWrapper.style.display = 'none';
+    if (searchNoResults) searchNoResults.style.display = 'none';
     if (hallsSection) hallsSection.style.display = 'block';
     if (venueNameElement) venueNameElement.textContent = venueName;
     
@@ -196,8 +241,10 @@ function displayHalls(halls, venueName) {
 function showVenues() {
     const venuesContainer = document.getElementById('venuesContainer');
     const hallsSection = document.getElementById('hallsSection');
+    const searchWrapper = document.getElementById('venueSearchWrapper');
     
     if (venuesContainer) venuesContainer.style.display = 'flex';
+    if (searchWrapper) searchWrapper.style.display = 'block';
     if (hallsSection) hallsSection.style.display = 'none';
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
