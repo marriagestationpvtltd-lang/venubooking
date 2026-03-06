@@ -174,7 +174,7 @@ function displayHalls(halls, venueName) {
         }
 
         const hallCard = `
-            <div class="col-md-6 col-lg-4">
+            <div class="col-md-6 col-lg-4" data-hall-name="${escapeHtml(hall.name || '')}">
                 <div class="hall-card card h-100">
                     ${imageHtml}
                     <div class="card-body">
@@ -232,9 +232,70 @@ function displayHalls(halls, venueName) {
             selectHall(hallId, hallName, venueName, basePrice, capacity);
         });
     });
+
+    // Reset and re-initialise hall search input
+    initHallSearch();
     
     // Scroll to halls section
     hallsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Initialise (or re-initialise) the hall name search filter
+function initHallSearch() {
+    const searchInput = document.getElementById('hallSearchInput');
+    const clearBtn    = document.getElementById('hallSearchClear');
+    const noResults   = document.getElementById('hallSearchNoResults');
+    const hallsContainer = document.getElementById('hallsContainer');
+
+    if (!searchInput || !hallsContainer) return;
+
+    // Abort any previously attached listeners on this element
+    if (searchInput._hallSearchAbort) {
+        searchInput._hallSearchAbort.abort();
+    }
+    const controller = new AbortController();
+    searchInput._hallSearchAbort = controller;
+    const signal = controller.signal;
+
+    // Clear any previous search value
+    searchInput.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    if (noResults) noResults.style.display = 'none';
+
+    function filterHalls() {
+        const term = searchInput.value.trim().toLowerCase();
+        const cards = Array.from(hallsContainer.querySelectorAll('[data-hall-name]'));
+        let visibleCount = 0;
+
+        cards.forEach(function(card) {
+            const name = (card.getAttribute('data-hall-name') || '').toLowerCase();
+            const show = name.includes(term);
+            card.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        if (noResults) {
+            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+        if (clearBtn) {
+            clearBtn.style.display = term.length > 0 ? 'inline-block' : 'none';
+        }
+    }
+
+    searchInput.addEventListener('input', filterHalls, { signal });
+
+    if (clearBtn) {
+        if (clearBtn._hallClearAbort) {
+            clearBtn._hallClearAbort.abort();
+        }
+        const clearController = new AbortController();
+        clearBtn._hallClearAbort = clearController;
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            filterHalls();
+            searchInput.focus();
+        }, { signal: clearController.signal });
+    }
 }
 
 // Show venues (back button)

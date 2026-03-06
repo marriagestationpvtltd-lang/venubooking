@@ -99,13 +99,27 @@ $current_total = $hall_price + $menu_total;
             </div>
         <?php else: ?>
             <form id="menuForm" method="POST" action="booking-step4.php">
-                <div class="row g-4">
+                <div class="mb-4" id="menuSearchWrapper">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="menuSearchInput" class="form-control"
+                               placeholder="Search menus by name..."
+                               aria-label="Search menus by name">
+                        <button class="btn btn-outline-secondary" type="button" id="menuSearchClear" style="display:none;" aria-label="Clear search">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="menuSearchNoResults" class="alert alert-info" style="display:none;">
+                    <i class="fas fa-info-circle"></i> No menus found matching your search.
+                </div>
+                <div class="row g-4" id="menusContainer">
                     <?php foreach ($menus as $menu): ?>
                         <?php
                         $menu_items = getMenuItems($menu['id']);
                         $is_selected = in_array($menu['id'], $selected_menus);
                         ?>
-                        <div class="col-md-6 col-lg-4">
+                        <div class="col-md-6 col-lg-4" data-menu-name="<?php echo htmlspecialchars($menu['name'], ENT_QUOTES, 'UTF-8'); ?>">
                             <div class="menu-card card h-100 <?php echo $is_selected ? 'selected' : ''; ?>">
                                 <?php if ($menu['image']): ?>
                                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($menu['image'], ENT_QUOTES, 'UTF-8'); ?>" 
