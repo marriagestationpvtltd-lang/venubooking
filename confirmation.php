@@ -103,6 +103,11 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="mb-1">
                                     <strong>Location:</strong> <?php echo sanitize($booking['location']); ?>
                                 </div>
+                                <?php if (!empty($booking['venue_address'])): ?>
+                                <div class="mb-1">
+                                    <strong>Full Address:</strong> <?php echo sanitize($booking['venue_address']); ?>
+                                </div>
+                                <?php endif; ?>
                                 <?php if (!empty($booking['map_link'])): ?>
                                 <div class="mb-1">
                                     <strong>Map:</strong>
