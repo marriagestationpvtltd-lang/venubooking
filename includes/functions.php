@@ -897,7 +897,7 @@ function getBookingDetails($booking_id) {
         
         $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
                        h.name as hall_name, h.capacity,
-                       v.name as venue_name, v.location, v.map_link,
+                       v.name as venue_name, v.location, v.address as venue_address, v.map_link,
                        v.contact_phone as venue_contact_phone,
                        ci.name as city_name
                 FROM bookings b
@@ -2039,6 +2039,12 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <span class="detail-label">Location:</span>
                         <span class="detail-value"><?php echo htmlspecialchars($booking['location']); ?></span>
                     </div>
+                    <?php if (!empty($booking['venue_address'])): ?>
+                    <div class="detail-row">
+                        <span class="detail-label">Full Address:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['venue_address']); ?></span>
+                    </div>
+                    <?php endif; ?>
                     <?php if (!empty($booking['map_link'])): ?>
                     <div class="detail-row">
                         <span class="detail-label">Google Map:</span>
@@ -3094,6 +3100,9 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
     $text .= "Event Type / Service: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
     $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+    if (!empty($booking['venue_address'])) {
+        $text .= "Venue Full Address: " . strip_tags($booking['venue_address']) . "\n";
+    }
     if (!empty($booking['map_link'])) {
         $text .= "Venue Location (Map): " . strip_tags($booking['map_link']) . "\n";
     }
@@ -3136,6 +3145,10 @@ function buildVenueProviderWhatsAppUrl($booking) {
     $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift'])) . "\n";
     $text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Hall: " . strip_tags($booking['hall_name']) . "\n";
+    $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+    if (!empty($booking['venue_address'])) {
+        $text .= "Venue Full Address: " . strip_tags($booking['venue_address']) . "\n";
+    }
     $text .= "Number of Guests: " . intval($booking['number_of_guests']) . "\n\n";
 
     if (!empty($booking['menus'])) {
@@ -3251,6 +3264,12 @@ function sendVendorAssignmentEmail($vendor_name, $vendor_email, $booking) {
                         <span class="detail-label">Venue Location:</span>
                         <span class="detail-value"><?php echo htmlspecialchars($booking['location']); ?></span>
                     </div>
+                    <?php if (!empty($booking['venue_address'])): ?>
+                    <div class="detail-row">
+                        <span class="detail-label">Full Address:</span>
+                        <span class="detail-value"><?php echo htmlspecialchars($booking['venue_address']); ?></span>
+                    </div>
+                    <?php endif; ?>
                     <?php if (!empty($booking['map_link'])): ?>
                     <div class="detail-row">
                         <span class="detail-label">Google Map:</span>
