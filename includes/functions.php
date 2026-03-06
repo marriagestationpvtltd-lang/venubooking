@@ -473,17 +473,22 @@ function getAvailableVenues($date, $shift, $city_id = null) {
 /**
  * Get all active venues for homepage display
  */
-function getAllActiveVenues() {
+function getAllActiveVenues($city_id = null) {
     $db = getDB();
     
-    // Get all active venues
+    // Get all active venues, optionally filtered by city
+    $params = [];
     $sql = "SELECT v.*, c.name AS city_name FROM venues v
             LEFT JOIN cities c ON v.city_id = c.id
-            WHERE v.status = 'active' 
-            ORDER BY v.name";
+            WHERE v.status = 'active'";
+    if ($city_id !== null) {
+        $sql .= " AND v.city_id = ?";
+        $params[] = $city_id;
+    }
+    $sql .= " ORDER BY v.name";
     
     $stmt = $db->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $venues = $stmt->fetchAll();
     
     // Process venue images and get hall images

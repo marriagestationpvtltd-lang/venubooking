@@ -501,44 +501,26 @@ footer a:hover {
     background: var(--dark-green);
 }
 
-/* Venues Section - Single horizontal scrolling row */
+/* Venues Section - Responsive grid */
 .venues-section {
     background: white;
 }
 
-/* Horizontal scroll wrapper */
-.venues-scroll-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 8px;
+/* City filter buttons */
+.venues-filter-bar .venue-city-btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: 2rem;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-/* Scrollbar styling for the venues row */
-.venues-scroll-wrapper::-webkit-scrollbar {
-    height: 6px;
+.venues-filter-bar .venue-city-btn.active {
+    background-color: var(--primary-green);
+    color: #fff;
+    border-color: var(--primary-green);
 }
 
-.venues-scroll-wrapper::-webkit-scrollbar-track {
-    background: var(--bg-light);
-    border-radius: 3px;
-}
-
-.venues-scroll-wrapper::-webkit-scrollbar-thumb {
-    background: var(--primary-green);
-    border-radius: 3px;
-}
-
-.venues-scroll-wrapper::-webkit-scrollbar-thumb:hover {
-    background: var(--dark-green);
-}
-
-/* Each venue card column — fixed width so all cards appear on one row */
-.col-venue-scroll {
-    flex: 0 0 300px;
-    width: 300px;
-    max-width: 300px;
-}
-
+/* Venue card grid — responsive via Bootstrap col classes */
 .venue-card-home {
     transition: all 0.3s;
     border: none;
@@ -551,7 +533,7 @@ footer a:hover {
 }
 
 .venue-image-home {
-    height: 250px;
+    height: 220px;
     background-size: cover;
     background-position: center;
     background-color: var(--bg-light);
@@ -570,7 +552,7 @@ footer a:hover {
 }
 
 .venue-image-carousel .carousel-item {
-    height: 250px;
+    height: 220px;
 }
 
 .venue-image-carousel .venue-image-home {
@@ -594,6 +576,14 @@ footer a:hover {
 .venue-card-home:hover .venue-image-carousel .carousel-control-prev,
 .venue-card-home:hover .venue-image-carousel .carousel-control-next {
     opacity: 1;
+}
+
+/* Always show carousel controls on touch devices */
+@media (hover: none) {
+    .venue-image-carousel .carousel-control-prev,
+    .venue-image-carousel .carousel-control-next {
+        opacity: 0.7;
+    }
 }
 
 .venue-image-carousel .carousel-control-prev {
@@ -623,12 +613,14 @@ footer a:hover {
     padding: 0.4rem 0.6rem;
 }
 
-/* Responsive adjustments for venue cards */
-@media (max-width: 768px) {
-    .col-venue-scroll {
-        flex: 0 0 260px;
-        width: 260px;
-        max-width: 260px;
+/* Responsive image height adjustments */
+@media (max-width: 575px) {
+    .venue-image-home {
+        height: 200px;
+    }
+
+    .venue-image-carousel .carousel-item {
+        height: 200px;
     }
 }
 

@@ -314,46 +314,46 @@ if (!empty($venues)):
 <!-- Venues Section -->
 <section class="venues-section py-5">
     <div class="container">
-        <h2 class="text-center section-title mb-4">Our Venues</h2>
-        <p class="text-center text-muted mb-5">Explore our premium venues and start booking</p>
-        
-        <div class="venues-scroll-wrapper">
-        <div class="row g-4 flex-nowrap venues-row-scroll">
+        <h2 class="text-center section-title mb-2">Our Venues</h2>
+        <p class="text-center text-muted mb-4">Explore our premium venues and start booking</p>
+
+        <!-- City filter bar — auto-updates from booking form selection -->
+        <div class="venues-filter-bar mb-4 d-flex flex-wrap justify-content-center gap-2" id="venueCityFilters">
+            <button type="button" class="btn btn-outline-success venue-city-btn active" data-city-id="">
+                <i class="fas fa-globe-asia me-1"></i> All Cities
+            </button>
+            <?php foreach ($cities as $city): ?>
+                <button type="button" class="btn btn-outline-success venue-city-btn"
+                        data-city-id="<?php echo (int)$city['id']; ?>">
+                    <i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($city['name'], ENT_QUOTES, 'UTF-8'); ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Venue grid — populated server-side on first load, then updated via JS -->
+        <div class="row g-4" id="venuesGrid">
             <?php foreach ($venues as $venue): 
-                // Prepare images array - use gallery images if available, otherwise use venue's main image
                 $images_to_display = [];
-                
                 if (!empty($venue['gallery_images']) && count($venue['gallery_images']) > 0) {
-                    // Use hall images
                     $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
                     foreach ($venue['gallery_images'] as $gallery_image) {
                         $safe_url = $upload_url_base . rawurlencode($gallery_image['image_path']);
                         $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
                     }
-                } else if (!empty($venue['image'])) {
-                    // Use venue's main image
+                } elseif (!empty($venue['image'])) {
                     $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
                     $safe_url = $upload_url_base . rawurlencode($venue['image']);
                     $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
                 } else {
-                    // Use placeholder
                     $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
                 }
-                
-                // Generate unique carousel ID for this venue
                 $carousel_id = 'venueImageCarousel' . $venue['id'];
-                
-                // Truncate description and add ellipsis only if needed
                 $description = sanitize($venue['description']);
-                $truncated_description = substr($description, 0, 100);
-                if (strlen($description) > 100) {
-                    $truncated_description .= '...';
-                }
+                $truncated_description = mb_strlen($description) > 100 ? mb_substr($description, 0, 100) . '...' : $description;
             ?>
-                <div class="col-venue-scroll">
+                <div class="col-12 col-sm-6 col-lg-4">
                     <div class="venue-card-home card h-100 shadow-sm">
                         <?php if (count($images_to_display) > 1): ?>
-                            <!-- Carousel for multiple images -->
                             <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
                                 <div class="carousel-inner">
                                     <?php foreach ($images_to_display as $img_index => $image_url): ?>
@@ -370,7 +370,6 @@ if (!empty($venues)):
                                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                     <span class="visually-hidden">Next</span>
                                 </button>
-                                <!-- Image counter indicator -->
                                 <div class="carousel-indicators-counter">
                                     <span class="badge bg-dark bg-opacity-75">
                                         <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
@@ -378,21 +377,20 @@ if (!empty($venues)):
                                 </div>
                             </div>
                         <?php else: ?>
-                            <!-- Single image display -->
                             <div class="card-img-top venue-image-home" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
                         <?php endif; ?>
-                        
-                        <div class="card-body">
+
+                        <div class="card-body d-flex flex-column">
                             <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
                             <p class="card-text">
-                                <i class="fas fa-map-marker-alt text-success"></i> 
+                                <i class="fas fa-map-marker-alt text-success"></i>
                                 <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
                             </p>
-                            <p class="card-text text-muted">
+                            <p class="card-text text-muted flex-grow-1">
                                 <?php echo $truncated_description; ?>
                             </p>
-                            <button type="button" 
-                                    class="btn btn-success w-100 venue-book-btn"
+                            <button type="button"
+                                    class="btn btn-success w-100 venue-book-btn mt-auto"
                                     data-venue-id="<?php echo $venue['id']; ?>"
                                     data-venue-name="<?php echo sanitize($venue['name']); ?>">
                                 <i class="fas fa-calendar-check"></i> Book Now
@@ -402,7 +400,12 @@ if (!empty($venues)):
                 </div>
             <?php endforeach; ?>
         </div>
-        </div><!-- /.venues-scroll-wrapper -->
+
+        <!-- Empty state (hidden by default) -->
+        <div id="venuesEmptyState" class="text-center py-5 d-none">
+            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No venues found for the selected city.</p>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -1283,46 +1286,143 @@ if (!empty($about_images)):
 </section>
 <?php endif; ?>
 
+<!-- Venue city filter script (output directly so PHP values can be embedded cleanly) -->
+<script>
+(function () {
+    var BASE_URL_JS = <?php echo json_encode(rtrim(BASE_URL, '/')); ?>;
+
+    function escapeHtml(str) {
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(str || ''));
+        return d.innerHTML;
+    }
+
+    function buildVenueCard(venue) {
+        var carouselId = 'venueImageCarouselDyn' + venue.id;
+        var imgHtml = '';
+        if (venue.images.length > 1) {
+            var items = venue.images.map(function (src, idx) {
+                return '<div class="carousel-item' + (idx === 0 ? ' active' : '') + '">' +
+                       '<div class="venue-image-home" style="background-image:url(\'' + src.replace(/'/g, '%27') + '\')"></div>' +
+                       '</div>';
+            }).join('');
+            imgHtml = '<div id="' + carouselId + '" class="carousel slide venue-image-carousel" data-bs-ride="carousel">' +
+                      '<div class="carousel-inner">' + items + '</div>' +
+                      '<button class="carousel-control-prev" type="button" data-bs-target="#' + carouselId + '" data-bs-slide="prev">' +
+                      '<span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Previous</span></button>' +
+                      '<button class="carousel-control-next" type="button" data-bs-target="#' + carouselId + '" data-bs-slide="next">' +
+                      '<span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Next</span></button>' +
+                      '<div class="carousel-indicators-counter"><span class="badge bg-dark bg-opacity-75"><i class="fas fa-images"></i> ' + venue.images.length + '</span></div>' +
+                      '</div>';
+        } else {
+            imgHtml = '<div class="card-img-top venue-image-home" style="background-image:url(\'' + venue.images[0].replace(/'/g, '%27') + '\')"></div>';
+        }
+        return '<div class="col-12 col-sm-6 col-lg-4">' +
+               '<div class="venue-card-home card h-100 shadow-sm">' +
+               imgHtml +
+               '<div class="card-body d-flex flex-column">' +
+               '<h5 class="card-title">' + escapeHtml(venue.name) + '</h5>' +
+               '<p class="card-text"><i class="fas fa-map-marker-alt text-success"></i> ' + escapeHtml(venue.city_name) + '</p>' +
+               '<p class="card-text text-muted flex-grow-1">' + escapeHtml(venue.description) + '</p>' +
+               '<button type="button" class="btn btn-success w-100 venue-book-btn mt-auto"' +
+               ' data-venue-id="' + venue.id + '" data-venue-name="' + escapeHtml(venue.name) + '">' +
+               '<i class="fas fa-calendar-check"></i> Book Now</button>' +
+               '</div></div></div>';
+    }
+
+    function handleVenueBookClick() {
+        var venueId   = this.getAttribute('data-venue-id');
+        var venueName = this.getAttribute('data-venue-name');
+        sessionStorage.setItem('preferred_venue_id', venueId);
+        sessionStorage.setItem('preferred_venue_name', venueName);
+        var hiddenField = document.getElementById('preferred_venue_id');
+        if (hiddenField) { hiddenField.value = venueId; }
+        var bookingFormSection = document.getElementById('bookingForm');
+        if (bookingFormSection) {
+            bookingFormSection.scrollIntoView({ behavior: 'smooth' });
+            var bookingCard = document.querySelector('.booking-card');
+            if (bookingCard) {
+                bookingCard.style.animation = 'pulse 0.5s ease-in-out';
+                setTimeout(function () { bookingCard.style.animation = ''; }, 500);
+            }
+        }
+    }
+
+    function attachBookBtnListeners() {
+        document.querySelectorAll('.venue-book-btn').forEach(function (btn) {
+            btn.removeEventListener('click', handleVenueBookClick);
+            btn.addEventListener('click', handleVenueBookClick);
+        });
+    }
+
+    function loadVenues(cityId) {
+        var url = BASE_URL_JS + '/api/get-venues.php';
+        if (cityId) { url += '?city_id=' + encodeURIComponent(cityId); }
+        var venuesGrid  = document.getElementById('venuesGrid');
+        var venuesEmpty = document.getElementById('venuesEmptyState');
+        if (!venuesGrid) return;
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success) return;
+                if (data.venues.length === 0) {
+                    venuesGrid.innerHTML = '';
+                    if (venuesEmpty) venuesEmpty.classList.remove('d-none');
+                } else {
+                    if (venuesEmpty) venuesEmpty.classList.add('d-none');
+                    venuesGrid.innerHTML = data.venues.map(buildVenueCard).join('');
+                    attachBookBtnListeners();
+                    venuesGrid.querySelectorAll('.venue-image-carousel').forEach(function (el) {
+                        new bootstrap.Carousel(el, { interval: 4000 });
+                    });
+                }
+            })
+            .catch(function () {});
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var cityFilterBtns    = document.querySelectorAll('.venue-city-btn');
+        var bookingCitySelect = document.getElementById('city_id');
+
+        // City filter pill buttons
+        cityFilterBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                cityFilterBtns.forEach(function (b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                loadVenues(this.getAttribute('data-city-id'));
+            });
+        });
+
+        // Auto-sync with booking form city dropdown
+        if (bookingCitySelect) {
+            bookingCitySelect.addEventListener('change', function () {
+                var cityId = this.value;
+                cityFilterBtns.forEach(function (b) {
+                    var match = b.getAttribute('data-city-id') === cityId ||
+                                (!cityId && b.getAttribute('data-city-id') === '');
+                    b.classList.toggle('active', match);
+                });
+                loadVenues(cityId);
+                var venuesSection = document.querySelector('.venues-section');
+                if (venuesSection) {
+                    venuesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        }
+
+        // Attach listeners to server-rendered cards on first load
+        attachBookBtnListeners();
+    });
+}());
+</script>
+
 <?php
 $extra_js = '
 <script src="' . BASE_URL . '/js/booking-flow.js"></script>
 <script>
-// Handle venue book button clicks
+// Handle venue book button clicks - preferred venue message
 document.addEventListener("DOMContentLoaded", function() {
-    const venueBookButtons = document.querySelectorAll(".venue-book-btn");
-    
-    venueBookButtons.forEach(button => {
-        button.addEventListener("click", function() {
-            const venueId = this.getAttribute("data-venue-id");
-            const venueName = this.getAttribute("data-venue-name");
-            
-            // Store venue preference in sessionStorage
-            sessionStorage.setItem("preferred_venue_id", venueId);
-            sessionStorage.setItem("preferred_venue_name", venueName);
-            
-            // Set hidden field in form
-            const hiddenField = document.getElementById("preferred_venue_id");
-            if (hiddenField) {
-                hiddenField.value = venueId;
-            }
-            
-            // Scroll to booking form
-            const bookingFormSection = document.getElementById("bookingForm");
-            if (bookingFormSection) {
-                bookingFormSection.scrollIntoView({ behavior: "smooth" });
-                
-                // Optional: Add a visual highlight to the form
-                const bookingCard = document.querySelector(".booking-card");
-                if (bookingCard) {
-                    bookingCard.style.animation = "pulse 0.5s ease-in-out";
-                    setTimeout(() => {
-                        bookingCard.style.animation = "";
-                    }, 500);
-                }
-            }
-        });
-    });
-    
+
     // Show preferred venue message if set
     const preferredVenueName = sessionStorage.getItem("preferred_venue_name");
     if (preferredVenueName) {
