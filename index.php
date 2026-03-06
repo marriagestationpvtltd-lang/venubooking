@@ -330,75 +330,85 @@ if (!empty($venues)):
             <?php endforeach; ?>
         </div>
 
-        <!-- Venue grid — populated server-side on first load, then updated via JS -->
-        <div class="row g-4" id="venuesGrid">
-            <?php foreach ($venues as $venue): 
-                $images_to_display = [];
-                if (!empty($venue['gallery_images']) && count($venue['gallery_images']) > 0) {
-                    $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
-                    foreach ($venue['gallery_images'] as $gallery_image) {
-                        $safe_url = $upload_url_base . rawurlencode($gallery_image['image_path']);
-                        $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                    }
-                } elseif (!empty($venue['image'])) {
-                    $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
-                    $safe_url = $upload_url_base . rawurlencode($venue['image']);
-                    $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                } else {
-                    $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
-                }
-                $carousel_id = 'venueImageCarousel' . $venue['id'];
-                $description = sanitize($venue['description']);
-                $truncated_description = mb_strlen($description) > 100 ? mb_substr($description, 0, 100) . '...' : $description;
-            ?>
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="venue-card-home card h-100 shadow-sm">
-                        <?php if (count($images_to_display) > 1): ?>
-                            <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
-                                <div class="carousel-inner">
-                                    <?php foreach ($images_to_display as $img_index => $image_url): ?>
-                                        <div class="carousel-item <?php echo $img_index === 0 ? 'active' : ''; ?>">
-                                            <div class="venue-image-home" style="background-image: url('<?php echo $image_url; ?>');"></div>
+        <!-- Venue slideshow — one row, scrolls horizontally when there are many venues -->
+        <div class="venues-slider-wrapper">
+            <button class="venues-slider-btn venues-slider-prev" id="venuesSliderPrev" aria-label="Previous venues" disabled>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="venues-slider-viewport" id="venuesSliderViewport">
+                <div class="venues-slider-track" id="venuesGrid">
+                    <?php foreach ($venues as $venue): 
+                        $images_to_display = [];
+                        if (!empty($venue['gallery_images']) && count($venue['gallery_images']) > 0) {
+                            $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
+                            foreach ($venue['gallery_images'] as $gallery_image) {
+                                $safe_url = $upload_url_base . rawurlencode($gallery_image['image_path']);
+                                $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
+                            }
+                        } elseif (!empty($venue['image'])) {
+                            $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
+                            $safe_url = $upload_url_base . rawurlencode($venue['image']);
+                            $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
+                        } else {
+                            $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                        }
+                        $carousel_id = 'venueImageCarousel' . $venue['id'];
+                        $description = sanitize($venue['description']);
+                        $truncated_description = mb_strlen($description) > 100 ? mb_substr($description, 0, 100) . '...' : $description;
+                    ?>
+                        <div class="venue-slide">
+                            <div class="venue-card-home card h-100 shadow-sm">
+                                <?php if (count($images_to_display) > 1): ?>
+                                    <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
+                                        <div class="carousel-inner">
+                                            <?php foreach ($images_to_display as $img_index => $image_url): ?>
+                                                <div class="carousel-item <?php echo $img_index === 0 ? 'active' : ''; ?>">
+                                                    <div class="venue-image-home" style="background-image: url('<?php echo $image_url; ?>');"></div>
+                                                </div>
+                                            <?php endforeach; ?>
                                         </div>
-                                    <?php endforeach; ?>
-                                </div>
-                                <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="prev">
-                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Previous</span>
-                                </button>
-                                <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="next">
-                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Next</span>
-                                </button>
-                                <div class="carousel-indicators-counter">
-                                    <span class="badge bg-dark bg-opacity-75">
-                                        <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
-                                    </span>
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Previous</span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Next</span>
+                                        </button>
+                                        <div class="carousel-indicators-counter">
+                                            <span class="badge bg-dark bg-opacity-75">
+                                                <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="card-img-top venue-image-home" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
+                                <?php endif; ?>
+
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
+                                    <p class="card-text">
+                                        <i class="fas fa-map-marker-alt text-success"></i>
+                                        <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
+                                    </p>
+                                    <p class="card-text text-muted flex-grow-1">
+                                        <?php echo $truncated_description; ?>
+                                    </p>
+                                    <button type="button"
+                                            class="btn btn-success w-100 venue-book-btn mt-auto"
+                                            data-venue-id="<?php echo $venue['id']; ?>"
+                                            data-venue-name="<?php echo sanitize($venue['name']); ?>">
+                                        <i class="fas fa-calendar-check"></i> Book Now
+                                    </button>
                                 </div>
                             </div>
-                        <?php else: ?>
-                            <div class="card-img-top venue-image-home" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
-                        <?php endif; ?>
-
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
-                            <p class="card-text">
-                                <i class="fas fa-map-marker-alt text-success"></i>
-                                <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
-                            </p>
-                            <p class="card-text text-muted flex-grow-1">
-                                <?php echo $truncated_description; ?>
-                            </p>
-                            <button type="button"
-                                    class="btn btn-success w-100 venue-book-btn mt-auto"
-                                    data-venue-id="<?php echo $venue['id']; ?>"
-                                    data-venue-name="<?php echo sanitize($venue['name']); ?>">
-                                <i class="fas fa-calendar-check"></i> Book Now
-                            </button>
                         </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
-            <?php endforeach; ?>
+            </div>
+            <button class="venues-slider-btn venues-slider-next" id="venuesSliderNext" aria-label="Next venues">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
 
         <!-- Empty state (hidden by default) -->
@@ -1317,7 +1327,7 @@ if (!empty($about_images)):
         } else {
             imgHtml = '<div class="card-img-top venue-image-home" style="background-image:url(\'' + encodeURI(venue.images[0]) + '\')"></div>';
         }
-        return '<div class="col-12 col-sm-6 col-lg-4">' +
+        return '<div class="venue-slide">' +
                '<div class="venue-card-home card h-100 shadow-sm">' +
                imgHtml +
                '<div class="card-body d-flex flex-column">' +
@@ -1369,6 +1379,7 @@ if (!empty($about_images)):
                         venuesEmpty.classList.remove('d-none');
                         venuesGrid.innerHTML = '';
                     }
+                    refreshVenuesSlider();
                     return;
                 }
                 if (data.venues.length === 0) {
@@ -1382,13 +1393,55 @@ if (!empty($about_images)):
                         new bootstrap.Carousel(el, { interval: 4000 });
                     });
                 }
+                // Reset scroll position and refresh nav buttons after content update
+                var viewport = document.getElementById('venuesSliderViewport');
+                if (viewport) { viewport.scrollLeft = 0; }
+                refreshVenuesSlider();
             })
             .catch(function () {
                 if (venuesEmpty) {
                     venuesGrid.innerHTML = '';
                     venuesEmpty.classList.remove('d-none');
                 }
+                refreshVenuesSlider();
             });
+    }
+
+    // Venues horizontal slider navigation
+    function refreshVenuesSlider() {
+        var viewport = document.getElementById('venuesSliderViewport');
+        var prevBtn  = document.getElementById('venuesSliderPrev');
+        var nextBtn  = document.getElementById('venuesSliderNext');
+        if (!viewport || !prevBtn || !nextBtn) return;
+        prevBtn.disabled = viewport.scrollLeft <= 0;
+        // Subtract 1 to absorb sub-pixel rounding that can prevent the button from disabling at the true end
+        nextBtn.disabled = viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 1;
+    }
+
+    function initVenuesSlider() {
+        var viewport  = document.getElementById('venuesSliderViewport');
+        var prevBtn   = document.getElementById('venuesSliderPrev');
+        var nextBtn   = document.getElementById('venuesSliderNext');
+        var sliderTrack = document.getElementById('venuesGrid');
+        if (!viewport || !prevBtn || !nextBtn) return;
+
+        function getSlideScrollAmount() {
+            var slide = viewport.querySelector('.venue-slide');
+            // Fall back to a reasonable pixel estimate if no slide is rendered yet
+            if (!slide) return 300;
+            var gap = parseFloat(getComputedStyle(sliderTrack).gap) || 24;
+            return slide.offsetWidth + gap;
+        }
+
+        prevBtn.addEventListener('click', function () {
+            viewport.scrollBy({ left: -getSlideScrollAmount(), behavior: 'smooth' });
+        });
+        nextBtn.addEventListener('click', function () {
+            viewport.scrollBy({ left: getSlideScrollAmount(), behavior: 'smooth' });
+        });
+        viewport.addEventListener('scroll', refreshVenuesSlider);
+        window.addEventListener('resize', refreshVenuesSlider);
+        refreshVenuesSlider();
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -1423,6 +1476,8 @@ if (!empty($about_images)):
 
         // Attach listeners to server-rendered cards on first load
         attachBookBtnListeners();
+        // Initialise horizontal venues slider
+        initVenuesSlider();
     });
 }());
 </script>
