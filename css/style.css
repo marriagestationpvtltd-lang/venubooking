@@ -6,19 +6,118 @@
     --light-green: #81C784;
     --accent-orange: #FFA726;
     --bg-light: #F5F5F5;
-    --text-dark: #333333;
-    --text-muted: #666666;
+    --text-dark: #1a1a2e;
+    --text-muted: #5a6475;
+
+    /* Font families */
+    --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    /* Fluid type scale (min → max across 375px–1200px viewport) */
+    --text-xs:   clamp(0.75rem,  1.8vw, 0.875rem);
+    --text-sm:   clamp(0.875rem, 2vw,   1rem);
+    --text-base: clamp(1rem,     2.2vw, 1.0625rem);
+    --text-lg:   clamp(1.125rem, 2.5vw, 1.25rem);
+    --text-xl:   clamp(1.25rem,  3vw,   1.5rem);
+    --text-2xl:  clamp(1.5rem,   4vw,   2rem);
+    --text-3xl:  clamp(1.75rem,  5vw,   2.5rem);
+    --text-4xl:  clamp(2rem,     6vw,   3.25rem);
+    --text-5xl:  clamp(2.25rem,  7vw,   4rem);
+
+    /* Line heights */
+    --leading-tight:  1.2;
+    --leading-snug:   1.4;
+    --leading-normal: 1.6;
+    --leading-relaxed:1.75;
+
+    /* Letter spacing */
+    --tracking-tight:  -0.03em;
+    --tracking-normal:  0;
+    --tracking-wide:    0.04em;
+    --tracking-wider:   0.08em;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
     color: var(--text-dark);
     background-color: var(--bg-light);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* ── Global heading typography ── */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    line-height: var(--leading-tight);
+    color: var(--text-dark);
+    letter-spacing: var(--tracking-tight);
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl);  }
+h5 { font-size: var(--text-lg);  font-family: var(--font-body); font-weight: 600; letter-spacing: normal; }
+h6 { font-size: var(--text-base); font-family: var(--font-body); font-weight: 600; letter-spacing: normal; }
+
+/* ── Section title shared style ── */
+.section-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    color: var(--text-dark);
+}
+
+.section-subtitle {
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--text-muted);
+    line-height: var(--leading-relaxed);
+    font-weight: 400;
+}
+
+p {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+}
+
+.lead {
+    font-size: var(--text-lg);
+    font-weight: 400;
+    line-height: var(--leading-relaxed);
+}
+
+small, .small {
+    font-size: var(--text-xs);
+}
+
+/* Labels and form text use body font with slightly muted weight */
+label, .form-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+}
+
+/* Navigation links */
+.nav-link {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    letter-spacing: var(--tracking-wide);
 }
 
 /* Navbar Styles */
 .navbar-brand {
-    font-size: 1.5rem;
+    font-family: var(--font-heading);
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .navbar {
@@ -30,6 +129,25 @@ body {
     background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
     position: relative;
     overflow: hidden;
+}
+
+/* Hero heading – uses elegant serif for premium feel */
+.hero-section h1,
+.hero-section .display-4 {
+    font-family: var(--font-heading);
+    font-size: var(--text-5xl);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+.hero-section .lead {
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    font-weight: 400;
+    line-height: var(--leading-relaxed);
+    opacity: 0.95;
 }
 
 /* Hero banner: carousel and single image as full-bleed background */
@@ -76,14 +194,25 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
+.booking-card h4,
+.booking-card h3 {
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: normal;
+}
+
 .booking-card .form-label {
+    font-family: var(--font-body);
     font-weight: 600;
+    font-size: var(--text-sm);
     color: var(--text-dark);
     margin-bottom: 0.25rem;
 }
 
 .booking-card .form-control,
 .booking-card .form-select {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
     border: 2px solid #e0e0e0;
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
@@ -97,6 +226,12 @@ body {
 }
 
 /* Buttons */
+.btn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+}
+
 .btn-success {
     background-color: var(--primary-green);
     border-color: var(--primary-green);
@@ -135,6 +270,19 @@ body {
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     transition: all 0.3s;
     height: 100%;
+}
+
+.feature-card h5 {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: var(--text-base);
+    letter-spacing: normal;
+}
+
+.feature-card p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: var(--leading-relaxed);
 }
 
 .feature-card:hover {
@@ -458,6 +606,23 @@ body {
 /* Footer */
 footer {
     margin-top: auto;
+}
+
+footer h5 {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: var(--text-base);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
+footer p,
+footer li,
+footer a {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
 }
 
 footer a {
@@ -827,11 +992,14 @@ footer a:hover {
 }
 
 .service-packages-section .section-title {
-    font-size: 2.2rem;
+    font-family: var(--font-heading);
+    font-size: var(--text-3xl);
+    letter-spacing: var(--tracking-tight);
 }
 
 .service-packages-section .section-subtitle {
-    font-size: 1.05rem;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
     color: #5a7a5e;
     max-width: 560px;
     margin-left: auto;
@@ -841,7 +1009,8 @@ footer a:hover {
 .service-category-title {
     position: relative;
     text-align: center;
-    font-size: 1.5rem;
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
     font-weight: 700;
     color: #2E7D32;
     margin-bottom: 2rem;
@@ -884,7 +1053,8 @@ footer a:hover {
 }
 
 .package-name {
-    font-size: 1.15rem;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
     font-weight: 700;
     color: #1a2e1c;
     letter-spacing: -0.2px;
@@ -900,7 +1070,8 @@ footer a:hover {
 }
 
 .package-price .price-label {
-    font-size: 1.6rem;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     font-weight: 800;
     color: #ffffff;
     letter-spacing: -0.5px;
@@ -908,7 +1079,8 @@ footer a:hover {
 }
 
 .package-price .price-sublabel {
-    font-size: 0.75rem;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
     color: rgba(255, 255, 255, 0.85);
     display: block;
     line-height: 1;
@@ -925,10 +1097,11 @@ footer a:hover {
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.4rem 0;
-    font-size: 0.9rem;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
     border-bottom: 1px solid #f0f0f0;
     color: #3a3a3a;
-    line-height: 1.4;
+    line-height: var(--leading-snug);
 }
 
 .feature-item:last-child {

@@ -20,8 +20,9 @@
 
 /* Large Devices (desktops, 992px and up) */
 @media (max-width: 1199px) {
-    .hero-section h1 {
-        font-size: 2.5rem;
+    .hero-section h1,
+    .hero-section .display-4 {
+        font-size: clamp(2rem, 5vw, 2.75rem);
     }
     
     .booking-card {
@@ -39,6 +40,15 @@
     .hero-overlay {
         min-height: auto;
         padding: 2rem 0;
+    }
+
+    .hero-section h1,
+    .hero-section .display-4 {
+        font-size: clamp(1.85rem, 4.5vw, 2.5rem);
+    }
+
+    .section-title {
+        font-size: clamp(1.5rem, 4vw, 2rem);
     }
     
     .progress-steps {
@@ -69,30 +79,51 @@
 
 /* Small Devices (landscape phones, 576px and up) */
 @media (max-width: 767px) {
-    .hero-section h1 {
-        font-size: 2rem;
+    /* Hero typography — comfortable on tablet/phablet */
+    .hero-section h1,
+    .hero-section .display-4 {
+        font-size: clamp(1.75rem, 6vw, 2.25rem);
         margin-bottom: 1rem !important;
+        line-height: 1.15;
     }
     
     .hero-section .lead {
-        font-size: 1rem;
+        font-size: clamp(0.95rem, 2.8vw, 1.1rem);
         margin-bottom: 1.5rem !important;
+    }
+
+    /* Section titles */
+    .section-title {
+        font-size: clamp(1.35rem, 5vw, 1.75rem);
+    }
+
+    .section-subtitle {
+        font-size: clamp(0.9rem, 2.5vw, 1rem);
     }
     
     .booking-card {
         padding: 1.5rem;
     }
     
-    .booking-card h3 {
-        font-size: 1.25rem;
+    .booking-card h3,
+    .booking-card h4 {
+        font-size: clamp(1rem, 3.5vw, 1.2rem);
     }
     
     .feature-card {
         margin-bottom: 1rem;
     }
+
+    .feature-card h5 {
+        font-size: clamp(0.9rem, 2.5vw, 1rem);
+    }
+
+    .feature-card p {
+        font-size: clamp(0.8rem, 2vw, 0.9rem);
+    }
     
     .navbar-brand {
-        font-size: 1.2rem;
+        font-size: clamp(1rem, 4vw, 1.25rem);
     }
     
     /* Sticky Progress Bar on Mobile */
@@ -266,7 +297,7 @@
         min-height: 44px;
         min-width: 44px;
         padding: 0.5rem 1rem;
-        font-size: 1rem;
+        font-size: clamp(0.9rem, 2.5vw, 1rem);
     }
     
     /* Ensure form controls are touch-friendly */
@@ -354,7 +385,7 @@
     /* Forms */
     .btn-lg {
         padding: 0.75rem 1.5rem;
-        font-size: 1rem;
+        font-size: clamp(0.9rem, 2.5vw, 1rem);
     }
     
     /* Improve touch targets for mobile */
@@ -429,8 +460,20 @@
 
 /* Extra Small Devices (portrait phones, less than 576px) */
 @media (max-width: 575px) {
-    .hero-section h1 {
-        font-size: 1.75rem;
+    /* Hero — very small screens */
+    .hero-section h1,
+    .hero-section .display-4 {
+        font-size: clamp(1.5rem, 7vw, 1.9rem);
+        line-height: 1.15;
+    }
+
+    .hero-section .lead {
+        font-size: clamp(0.875rem, 3vw, 1rem);
+    }
+
+    /* Section titles */
+    .section-title {
+        font-size: clamp(1.2rem, 5.5vw, 1.5rem);
     }
     
     .booking-card {
@@ -438,14 +481,14 @@
     }
     
     .btn {
-        font-size: 0.95rem;
+        font-size: clamp(0.875rem, 2.5vw, 0.95rem);
         padding: 0.875rem 1.25rem;
         min-height: 48px;
     }
     
     /* Ensure navigation buttons are easy to tap */
     .btn-lg {
-        font-size: 1rem;
+        font-size: clamp(0.9rem, 2.5vw, 1rem);
         padding: 1rem 1.5rem;
         min-height: 52px;
     }
