@@ -317,7 +317,8 @@ if (!empty($venues)):
         <h2 class="text-center section-title mb-4">Our Venues</h2>
         <p class="text-center text-muted mb-5">Explore our premium venues and start booking</p>
         
-        <div class="row g-4">
+        <div class="venues-scroll-wrapper">
+        <div class="row g-4 flex-nowrap venues-row-scroll">
             <?php foreach ($venues as $venue): 
                 // Prepare images array - use gallery images if available, otherwise use venue's main image
                 $images_to_display = [];
@@ -349,7 +350,7 @@ if (!empty($venues)):
                     $truncated_description .= '...';
                 }
             ?>
-                <div class="col-12 col-sm-6 col-md-4">
+                <div class="col-venue-scroll">
                     <div class="venue-card-home card h-100 shadow-sm">
                         <?php if (count($images_to_display) > 1): ?>
                             <!-- Carousel for multiple images -->
@@ -401,6 +402,7 @@ if (!empty($venues)):
                 </div>
             <?php endforeach; ?>
         </div>
+        </div><!-- /.venues-scroll-wrapper -->
     </div>
 </section>
 <?php endif; ?>
