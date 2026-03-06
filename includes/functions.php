@@ -3129,7 +3129,7 @@ function buildVenueProviderWhatsAppUrl($booking) {
     $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift'])) . "\n";
     $text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Hall: " . strip_tags($booking['hall_name']) . "\n";
-    $text .= "Number of Guests: " . intval($booking['guests']) . "\n\n";
+    $text .= "Number of Guests: " . intval($booking['number_of_guests']) . "\n\n";
 
     if (!empty($booking['menus'])) {
         $text .= "🍽️ *Selected Menus*\n";
