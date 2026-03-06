@@ -1037,148 +1037,122 @@ if (!empty($vendors)):
         <h2 class="text-center section-title mb-2">Our Vendors</h2>
         <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
 
-        <?php $vendor_chunks = array_chunk($vendors, 3); ?>
-        <div id="vendorSlider" class="vendor-slider">
-            <div class="vendor-slider-track" id="vendorSliderTrack">
-                <?php foreach ($vendor_chunks as $vi => $vchunk): ?>
-                    <div class="vendor-slider-page">
-                        <div class="row g-4 justify-content-center">
-                            <?php foreach ($vchunk as $vendor):
-                                $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
-                                $vendor_name        = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
-                                $vendor_location    = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $vendor_address     = htmlspecialchars($vendor['address'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $vendor_notes       = htmlspecialchars($vendor['notes'] ?? '', ENT_QUOTES, 'UTF-8');
-                                $vendor_description = htmlspecialchars($vendor['short_description'] ?? '', ENT_QUOTES, 'UTF-8');
+        <div class="vendor-auto-wrapper">
+            <div class="vendor-auto-track" data-vendor-slider>
+                <?php foreach ($vendors as $vendor):
+                    $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
+                    $vendor_name        = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
+                    $vendor_location    = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
+                    $vendor_address     = htmlspecialchars($vendor['address'] ?? '', ENT_QUOTES, 'UTF-8');
+                    $vendor_notes       = htmlspecialchars($vendor['notes'] ?? '', ENT_QUOTES, 'UTF-8');
+                    $vendor_description = htmlspecialchars($vendor['short_description'] ?? '', ENT_QUOTES, 'UTF-8');
 
-                                // Resolve primary photo from vendor_photos table (falls back to legacy photo column)
-                                $vendor_photos_list  = getVendorPhotos($vendor['id']);
-                                $primary_photo_path  = !empty($vendor_photos_list) ? $vendor_photos_list[0]['image_path'] : ($vendor['photo'] ?? '');
+                    // Resolve primary photo from vendor_photos table (falls back to legacy photo column)
+                    $vendor_photos_list  = getVendorPhotos($vendor['id']);
+                    $primary_photo_path  = !empty($vendor_photos_list) ? $vendor_photos_list[0]['image_path'] : ($vendor['photo'] ?? '');
 
-                                // Build WhatsApp URL for Contact Us (use plain text values, not HTML-escaped)
-                                $wa_vendor_name = strip_tags($vendor['name']);
-                                $wa_vendor_type = strip_tags(getVendorTypeLabel($vendor['type']));
-                                $wa_message = "Hello, I am interested in your vendor: {$wa_vendor_name} ({$wa_vendor_type}). Please contact me with more details.";
-                                $wa_url = '';
-                                if (!empty($clean_office_whatsapp)) {
-                                    $wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_message);
-                                }
+                    // Build WhatsApp URL for Contact Us (use plain text values, not HTML-escaped)
+                    $wa_vendor_name = strip_tags($vendor['name']);
+                    $wa_vendor_type = strip_tags(getVendorTypeLabel($vendor['type']));
+                    $wa_message = "Hello, I am interested in your vendor: {$wa_vendor_name} ({$wa_vendor_type}). Please contact me with more details.";
+                    $wa_url = '';
+                    if (!empty($clean_office_whatsapp)) {
+                        $wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_message);
+                    }
 
-                                // Build additional info slides (address and/or notes)
-                                $extra_slides = [];
-                                if (!empty($vendor['address'])) {
-                                    $extra_slides[] = ['icon' => 'fas fa-map-marker-alt', 'label' => 'Address', 'value' => $vendor_address];
-                                }
-                                if (!empty($vendor['notes'])) {
-                                    $extra_slides[] = ['icon' => 'fas fa-info-circle', 'label' => 'About', 'value' => $vendor_notes];
-                                }
+                    // Build additional info slides (address and/or notes)
+                    $extra_slides = [];
+                    if (!empty($vendor['address'])) {
+                        $extra_slides[] = ['icon' => 'fas fa-map-marker-alt', 'label' => 'Address', 'value' => $vendor_address];
+                    }
+                    if (!empty($vendor['notes'])) {
+                        $extra_slides[] = ['icon' => 'fas fa-info-circle', 'label' => 'About', 'value' => $vendor_notes];
+                    }
 
-                                $detail_carousel_id = 'vendorDetail' . (int)$vendor['id'];
-                            ?>
-                                <div class="col-12 col-sm-6 col-md-4">
-                                    <div class="vendor-card card h-100 shadow-sm">
-                                        <!-- Vendor Photo -->
-                                        <?php if (!empty($primary_photo_path)): ?>
-                                            <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($primary_photo_path), ENT_QUOTES, 'UTF-8'); ?>"
-                                                 alt="<?php echo $vendor_name; ?>"
-                                                 class="vendor-photo"
-                                                 loading="lazy">
-                                        <?php else: ?>
-                                            <div class="vendor-photo vendor-photo-placeholder">
-                                                <i class="fas fa-user-tie fa-3x text-muted"></i>
-                                            </div>
-                                        <?php endif; ?>
-
-                                        <div class="card-body d-flex flex-column">
-                                            <!-- Vendor Type Badge -->
-                                            <span class="badge bg-success mb-2 align-self-start">
-                                                <i class="fas fa-tag me-1"></i><?php echo $vendor_type_label; ?>
-                                            </span>
-                                            <!-- Vendor Name -->
-                                            <h5 class="card-title mb-1"><?php echo $vendor_name; ?></h5>
-                                            <!-- Vendor Short Description -->
-                                            <?php if (!empty($vendor_description)): ?>
-                                                <p class="card-text text-muted small mb-2"><?php echo $vendor_description; ?></p>
-                                            <?php endif; ?>
-                                            <!-- Vendor Location -->
-                                            <?php if (!empty($vendor_location)): ?>
-                                                <p class="card-text text-muted mb-2">
-                                                    <i class="fas fa-map-marker-alt text-success"></i>
-                                                    <?php echo $vendor_location; ?>
-                                                </p>
-                                            <?php endif; ?>
-
-                                            <!-- Additional info slider -->
-                                            <?php if (!empty($extra_slides)): ?>
-                                                <div id="<?php echo $detail_carousel_id; ?>" class="carousel slide vendor-detail-carousel mb-3" data-bs-ride="false">
-                                                    <div class="carousel-inner">
-                                                        <?php foreach ($extra_slides as $si => $slide): ?>
-                                                            <div class="carousel-item <?php echo $si === 0 ? 'active' : ''; ?>">
-                                                                <div class="vendor-detail-slide p-2 rounded bg-light">
-                                                                    <small class="text-muted d-block fw-semibold mb-1">
-                                                                        <i class="<?php echo htmlspecialchars($slide['icon'], ENT_QUOTES, 'UTF-8'); ?> me-1"></i><?php echo htmlspecialchars($slide['label'], ENT_QUOTES, 'UTF-8'); ?>
-                                                                    </small>
-                                                                    <small><?php echo $slide['value']; ?></small>
-                                                                </div>
-                                                            </div>
-                                                        <?php endforeach; ?>
-                                                    </div>
-                                                    <?php if (count($extra_slides) > 1): ?>
-                                                        <button class="carousel-control-prev vendor-detail-prev" type="button"
-                                                                data-bs-target="#<?php echo $detail_carousel_id; ?>" data-bs-slide="prev">
-                                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                            <span class="visually-hidden">Previous</span>
-                                                        </button>
-                                                        <button class="carousel-control-next vendor-detail-next" type="button"
-                                                                data-bs-target="#<?php echo $detail_carousel_id; ?>" data-bs-slide="next">
-                                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                            <span class="visually-hidden">Next</span>
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php endif; ?>
-
-                                            <!-- Contact Us button -->
-                                            <div class="mt-auto">
-                                                <?php if (!empty($wa_url)): ?>
-                                                    <a href="<?php echo htmlspecialchars($wa_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                                       target="_blank" rel="noopener noreferrer"
-                                                       class="btn btn-success w-100">
-                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                                    </a>
-                                                <?php else: ?>
-                                                    <button class="btn btn-success w-100" disabled>
-                                                        <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                                    </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    </div>
+                    $detail_carousel_id = 'vendorDetail' . (int)$vendor['id'];
+                ?>
+                    <div class="vendor-auto-card">
+                        <div class="vendor-card card h-100 shadow-sm">
+                            <!-- Vendor Photo -->
+                            <?php if (!empty($primary_photo_path)): ?>
+                                <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($primary_photo_path), ENT_QUOTES, 'UTF-8'); ?>"
+                                     alt="<?php echo $vendor_name; ?>"
+                                     class="vendor-photo"
+                                     loading="lazy">
+                            <?php else: ?>
+                                <div class="vendor-photo vendor-photo-placeholder">
+                                    <i class="fas fa-user-tie fa-3x text-muted"></i>
                                 </div>
-                            <?php endforeach; ?>
+                            <?php endif; ?>
+
+                            <div class="card-body d-flex flex-column">
+                                <!-- Vendor Type Badge -->
+                                <span class="badge bg-success mb-2 align-self-start">
+                                    <i class="fas fa-tag me-1"></i><?php echo $vendor_type_label; ?>
+                                </span>
+                                <!-- Vendor Name -->
+                                <h5 class="card-title mb-1"><?php echo $vendor_name; ?></h5>
+                                <!-- Vendor Short Description -->
+                                <?php if (!empty($vendor_description)): ?>
+                                    <p class="card-text text-muted small mb-2"><?php echo $vendor_description; ?></p>
+                                <?php endif; ?>
+                                <!-- Vendor Location -->
+                                <?php if (!empty($vendor_location)): ?>
+                                    <p class="card-text text-muted mb-2">
+                                        <i class="fas fa-map-marker-alt text-success"></i>
+                                        <?php echo $vendor_location; ?>
+                                    </p>
+                                <?php endif; ?>
+
+                                <!-- Additional info slider -->
+                                <?php if (!empty($extra_slides)): ?>
+                                    <div id="<?php echo $detail_carousel_id; ?>" class="carousel slide vendor-detail-carousel mb-3" data-bs-ride="false">
+                                        <div class="carousel-inner">
+                                            <?php foreach ($extra_slides as $si => $slide): ?>
+                                                <div class="carousel-item <?php echo $si === 0 ? 'active' : ''; ?>">
+                                                    <div class="vendor-detail-slide p-2 rounded bg-light">
+                                                        <small class="text-muted d-block fw-semibold mb-1">
+                                                            <i class="<?php echo htmlspecialchars($slide['icon'], ENT_QUOTES, 'UTF-8'); ?> me-1"></i><?php echo htmlspecialchars($slide['label'], ENT_QUOTES, 'UTF-8'); ?>
+                                                        </small>
+                                                        <small><?php echo $slide['value']; ?></small>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <?php if (count($extra_slides) > 1): ?>
+                                            <button class="carousel-control-prev vendor-detail-prev" type="button"
+                                                    data-bs-target="#<?php echo $detail_carousel_id; ?>" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next vendor-detail-next" type="button"
+                                                    data-bs-target="#<?php echo $detail_carousel_id; ?>" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Contact Us button -->
+                                <div class="mt-auto">
+                                    <?php if (!empty($wa_url)): ?>
+                                        <a href="<?php echo htmlspecialchars($wa_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                           target="_blank" rel="noopener noreferrer"
+                                           class="btn btn-success w-100">
+                                            <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-success w-100" disabled>
+                                            <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-
-            <?php if (count($vendor_chunks) > 1): ?>
-                <div class="vendor-slider-indicators">
-                    <?php foreach ($vendor_chunks as $vi => $vchunk): ?>
-                        <button type="button"
-                                class="vendor-slider-dot<?php echo $vi === 0 ? ' active' : ''; ?>"
-                                data-slide="<?php echo $vi; ?>"
-                                aria-label="Page <?php echo $vi + 1; ?>"></button>
-                    <?php endforeach; ?>
-                </div>
-                <button class="vendor-slider-btn vendor-slider-prev" id="vendorSliderPrev" aria-label="Previous vendors">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                </button>
-                <button class="vendor-slider-btn vendor-slider-next" id="vendorSliderNext" aria-label="Next vendors">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                </button>
-            <?php endif; ?>
         </div>
     </div>
 </section>
@@ -1409,53 +1383,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Vendor slider — custom CSS-transform slider replaces Bootstrap carousel
-    // so that all pages are always rendered (just translated off-screen) and
-    // never hidden with display:none, which caused slides 2+ to appear blank.
-    (function () {
-        var slider = document.getElementById("vendorSlider");
-        if (!slider) return;
 
-        var track    = document.getElementById("vendorSliderTrack");
-        var pages    = track.querySelectorAll(".vendor-slider-page");
-        var dots     = slider.querySelectorAll(".vendor-slider-dot");
-        var prevBtn  = document.getElementById("vendorSliderPrev");
-        var nextBtn  = document.getElementById("vendorSliderNext");
-        var total    = pages.length;
-        var current  = 0;
-
-        function goTo(index) {
-            if (total <= 1) return;
-            if (index < 0)      index = total - 1;
-            if (index >= total) index = 0;
-            current = index;
-            track.style.transform = "translateX(-" + (current * 100) + "%)";
-            dots.forEach(function (dot, i) {
-                dot.classList.toggle("active", i === current);
-            });
-        }
-
-        if (prevBtn) { prevBtn.addEventListener("click", function () { goTo(current - 1); }); }
-        if (nextBtn) { nextBtn.addEventListener("click", function () { goTo(current + 1); }); }
-        dots.forEach(function (dot, i) {
-            dot.addEventListener("click", function () { goTo(i); });
-        });
-
-        // Touch / swipe support
-        var touchStartX = 0;
-        slider.addEventListener("touchstart", function (e) {
-            if (e.changedTouches.length > 0) {
-                touchStartX = e.changedTouches[0].clientX;
-            }
-        }, { passive: true });
-        slider.addEventListener("touchend", function (e) {
-            if (e.changedTouches.length === 0) return;
-            var delta = e.changedTouches[0].clientX - touchStartX;
-            if (Math.abs(delta) > 50) {
-                delta < 0 ? goTo(current + 1) : goTo(current - 1);
-            }
-        }, { passive: true });
-    }());
 });
 </script>
 <style>
@@ -1512,7 +1440,8 @@ document.addEventListener("DOMContentLoaded", function() {
             if (!isPaused()) {
                 track.scrollLeft += speed;
                 var half = track.scrollWidth / 2;
-                // Subtract 1px tolerance to avoid floating-point overshoot
+                // Reset 1px early to tolerate floating-point rounding
+                // (scrollLeft may not land exactly on half before overshooting)
                 if (track.scrollLeft >= half - 1) {
                     track.scrollLeft -= half;
                 }
@@ -1545,6 +1474,105 @@ document.addEventListener("DOMContentLoaded", function() {
             isDown = false;
             dragging = false;
             track.classList.remove("pkg-slider-grabbing");
+            document.removeEventListener("mousemove", onMove);
+        }
+        document.addEventListener("mouseup", stopDrag);
+
+        // Touch: pause auto-scroll and drag-to-scroll
+        var tStartX = 0, tScrollStart = 0;
+        track.addEventListener("touchstart", function(e) {
+            hovered = true;
+            dragging = true;
+            tStartX = e.touches[0].pageX;
+            tScrollStart = track.scrollLeft;
+        }, { passive: true });
+        track.addEventListener("touchmove", function(e) {
+            track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
+        }, { passive: true });
+        track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
+        track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
+    });
+})();
+</script>
+<script>
+// ── Auto-scroll for vendor slider ──
+(function() {
+    var speed = 0.5; // pixels per frame
+    var dragSensitivity = 1.5;
+
+    document.querySelectorAll("[data-vendor-slider]").forEach(function(track) {
+        // Only enable auto-scroll when content overflows the wrapper
+        if (track.scrollWidth <= track.clientWidth) return;
+
+        // Duplicate cards for seamless infinite loop
+        var origCards = Array.from(track.children);
+        origCards.forEach(function(card, idx) {
+            var clone = card.cloneNode(true);
+            // Remap all IDs in the clone to avoid duplicate-ID conflicts.
+            var idMap = {};
+            clone.querySelectorAll(\'[id]\').forEach(function(el) {
+                var oldId = el.id;
+                var newId = oldId + \'_vc\' + idx;
+                idMap[oldId] = newId;
+                el.id = newId;
+            });
+            // Update all href and data-bs-target references in a single pass
+            clone.querySelectorAll(\'[href], [data-bs-target]\').forEach(function(el) {
+                [\'href\', \'data-bs-target\'].forEach(function(attr) {
+                    var val = el.getAttribute(attr);
+                    if (val && val.charAt(0) === \'#\') {
+                        var refId = val.slice(1);
+                        if (idMap.hasOwnProperty(refId)) {
+                            el.setAttribute(attr, \'#\' + idMap[refId]);
+                        }
+                    }
+                });
+            });
+            track.appendChild(clone);
+        });
+
+        var hovered = false, dragging = false;
+
+        function isPaused() { return hovered || dragging; }
+
+        function step() {
+            if (!isPaused()) {
+                track.scrollLeft += speed;
+                var half = track.scrollWidth / 2;
+                // Reset 1px early to tolerate floating-point rounding
+                // (scrollLeft may not land exactly on half before overshooting)
+                if (track.scrollLeft >= half - 1) {
+                    track.scrollLeft -= half;
+                }
+            }
+            requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+
+        // Pause on mouse hover
+        track.addEventListener("mouseenter", function() { hovered = true; });
+        track.addEventListener("mouseleave", function() { hovered = false; });
+
+        // Mouse drag-to-scroll
+        var isDown = false, startX = 0, scrollStart = 0;
+        track.addEventListener("mousedown", function(e) {
+            isDown = true;
+            dragging = true;
+            track.classList.add("vendor-auto-grabbing");
+            startX = e.pageX - track.offsetLeft;
+            scrollStart = track.scrollLeft;
+            document.addEventListener("mousemove", onMove);
+            e.preventDefault();
+        });
+        function onMove(e) {
+            if (!isDown) return;
+            track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
+        }
+        function stopDrag() {
+            if (!isDown) return;
+            isDown = false;
+            dragging = false;
+            track.classList.remove("vendor-auto-grabbing");
             document.removeEventListener("mousemove", onMove);
         }
         document.addEventListener("mouseup", stopDrag);
