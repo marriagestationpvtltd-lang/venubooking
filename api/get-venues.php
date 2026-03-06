@@ -6,7 +6,9 @@
 header('Content-Type: application/json');
 require_once __DIR__ . '/../includes/functions.php';
 
-$city_id = isset($_GET['city_id']) && is_numeric($_GET['city_id']) ? intval($_GET['city_id']) : null;
+$city_id = (isset($_GET['city_id']) && $_GET['city_id'] !== '' && is_numeric($_GET['city_id']) && (int)$_GET['city_id'] > 0)
+    ? (int)$_GET['city_id']
+    : null;
 
 try {
     $venues = getAllActiveVenues($city_id);
@@ -44,5 +46,6 @@ try {
 
     echo json_encode(['success' => true, 'venues' => $result]);
 } catch (Exception $e) {
+    error_log('get-venues.php error: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Error loading venues.']);
 }

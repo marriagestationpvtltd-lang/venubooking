@@ -1303,7 +1303,7 @@ if (!empty($about_images)):
         if (venue.images.length > 1) {
             var items = venue.images.map(function (src, idx) {
                 return '<div class="carousel-item' + (idx === 0 ? ' active' : '') + '">' +
-                       '<div class="venue-image-home" style="background-image:url(\'' + src.replace(/'/g, '%27') + '\')"></div>' +
+                       '<div class="venue-image-home" style="background-image:url(\'' + encodeURI(src) + '\')"></div>' +
                        '</div>';
             }).join('');
             imgHtml = '<div id="' + carouselId + '" class="carousel slide venue-image-carousel" data-bs-ride="carousel">' +
@@ -1315,7 +1315,7 @@ if (!empty($about_images)):
                       '<div class="carousel-indicators-counter"><span class="badge bg-dark bg-opacity-75"><i class="fas fa-images"></i> ' + venue.images.length + '</span></div>' +
                       '</div>';
         } else {
-            imgHtml = '<div class="card-img-top venue-image-home" style="background-image:url(\'' + venue.images[0].replace(/'/g, '%27') + '\')"></div>';
+            imgHtml = '<div class="card-img-top venue-image-home" style="background-image:url(\'' + encodeURI(venue.images[0]) + '\')"></div>';
         }
         return '<div class="col-12 col-sm-6 col-lg-4">' +
                '<div class="venue-card-home card h-100 shadow-sm">' +
@@ -1364,7 +1364,13 @@ if (!empty($about_images)):
         fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (!data.success) return;
+                if (!data.success) {
+                    if (venuesEmpty) {
+                        venuesEmpty.classList.remove('d-none');
+                        venuesGrid.innerHTML = '';
+                    }
+                    return;
+                }
                 if (data.venues.length === 0) {
                     venuesGrid.innerHTML = '';
                     if (venuesEmpty) venuesEmpty.classList.remove('d-none');
@@ -1377,7 +1383,12 @@ if (!empty($about_images)):
                     });
                 }
             })
-            .catch(function () {});
+            .catch(function () {
+                if (venuesEmpty) {
+                    venuesGrid.innerHTML = '';
+                    venuesEmpty.classList.remove('d-none');
+                }
+            });
     }
 
     document.addEventListener('DOMContentLoaded', function () {
