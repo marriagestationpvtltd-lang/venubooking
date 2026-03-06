@@ -624,6 +624,90 @@ footer a:hover {
     }
 }
 
+/* Venues horizontal one-row slideshow */
+.venues-slider-wrapper {
+    position: relative;
+    padding: 0 52px;
+}
+
+.venues-slider-viewport {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.venues-slider-viewport::-webkit-scrollbar {
+    display: none;
+}
+
+.venues-slider-track {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1.5rem;
+    padding-bottom: 6px; /* room for card box-shadow */
+}
+
+/* Show 3 cards at a time on desktop */
+.venue-slide {
+    flex: 0 0 calc((100% - 3rem) / 3);
+    min-width: 0;
+}
+
+/* 2 cards on tablet */
+@media (max-width: 991px) {
+    .venue-slide {
+        flex: 0 0 calc((100% - 1.5rem) / 2);
+    }
+}
+
+/* 1 card on mobile */
+@media (max-width: 575px) {
+    .venue-slide {
+        flex: 0 0 100%;
+    }
+
+    .venues-slider-wrapper {
+        padding: 0 44px;
+    }
+}
+
+/* Prev / next navigation buttons */
+.venues-slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: var(--primary-green);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.venues-slider-btn:hover:not(:disabled) {
+    background: var(--dark-green);
+}
+
+.venues-slider-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.venues-slider-prev {
+    left: 0;
+}
+
+.venues-slider-next {
+    right: 0;
+}
+
 /* ===================== Vendors Section ===================== */
 .vendors-section {
     background-color: var(--bg-light);
