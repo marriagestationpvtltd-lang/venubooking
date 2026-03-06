@@ -148,6 +148,9 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                     <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
                 </h3>
                 <div class="pkg-slider-wrapper">
+                    <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
                 <div class="pkg-slider-track" data-pkg-slider>
                     <?php foreach ($cat['packages'] as $pkg):
                         $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
@@ -254,7 +257,13 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                         </div>
                     <?php endforeach; ?>
                 </div>
+                    <button class="pkg-slider-nav pkg-slider-next" type="button" aria-label="Next packages">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
+                <p class="text-center pkg-swipe-hint d-md-none mt-2 mb-0">
+                    <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
+                </p>
             </div>
         <?php endforeach; ?>
     </div>
@@ -1574,6 +1583,47 @@ document.addEventListener("DOMContentLoaded", function() {
         }, { passive: true });
         track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
         track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
+    });
+})();
+</script>
+<script>
+// ── Pkg slider prev/next navigation buttons ──
+(function() {
+    document.querySelectorAll(".pkg-slider-wrapper").forEach(function(wrapper) {
+        var track = wrapper.querySelector("[data-pkg-slider]");
+        var prevBtn = wrapper.querySelector(".pkg-slider-prev");
+        var nextBtn = wrapper.querySelector(".pkg-slider-next");
+        if (!track) return;
+
+        function getCardWidth() {
+            var card = track.querySelector(".pkg-slider-card");
+            if (!card) return 320; // fallback: matches pkg-slider-card width in CSS
+            var gap = parseFloat(getComputedStyle(track).gap) || 20;
+            return card.offsetWidth + gap;
+        }
+
+        // Hide nav buttons when the slider does not overflow.
+        // The +2 tolerance handles sub-pixel rounding differences across browsers.
+        function updateNavVisibility() {
+            var overflows = track.scrollWidth > wrapper.clientWidth + 2;
+            if (prevBtn) prevBtn.style.display = overflows ? "" : "none";
+            if (nextBtn) nextBtn.style.display = overflows ? "" : "none";
+        }
+        updateNavVisibility();
+        window.addEventListener("resize", updateNavVisibility);
+
+        if (prevBtn) {
+            prevBtn.addEventListener("click", function(e) {
+                e.stopPropagation();
+                track.scrollBy({ left: -getCardWidth(), behavior: "smooth" });
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener("click", function(e) {
+                e.stopPropagation();
+                track.scrollBy({ left: getCardWidth(), behavior: "smooth" });
+            });
+        }
     });
 })();
 </script>

@@ -751,7 +751,7 @@ footer a:hover {
 }
 
 .service-category-title .category-label {
-    background: #fff;
+    background: #f8f9fa;
     padding: 0 1rem;
     position: relative;
     z-index: 1;
@@ -770,6 +770,7 @@ footer a:hover {
 
 .package-card {
     border: 1px solid #e0e0e0;
+    border-top: 3px solid #4CAF50;
     border-radius: 12px;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -873,6 +874,83 @@ footer a:hover {
         flex: 0 0 260px;
         width: 260px;
     }
+}
+
+/* Gradient edge fades – indicate more content off-screen */
+.pkg-slider-wrapper::before,
+.pkg-slider-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 64px;
+    z-index: 1; /* below nav buttons (z-index: 5) */
+    pointer-events: none;
+}
+
+.pkg-slider-wrapper::before {
+    left: 0;
+    background: linear-gradient(to right, #f8f9fa 0%, transparent 100%);
+}
+
+.pkg-slider-wrapper::after {
+    right: 0;
+    background: linear-gradient(to left, #f8f9fa 0%, transparent 100%);
+}
+
+/* Prev / next navigation buttons */
+.pkg-slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 50%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+    cursor: pointer;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2E7D32;
+    font-size: 0.88rem;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+
+.pkg-slider-nav:hover {
+    background: #4CAF50;
+    color: #fff;
+    border-color: #4CAF50;
+    box-shadow: 0 4px 14px rgba(76, 175, 80, 0.32);
+}
+
+.pkg-slider-prev {
+    left: 8px;
+}
+
+.pkg-slider-next {
+    right: 8px;
+}
+
+/* On touch-only devices use smaller, slightly transparent buttons */
+@media (hover: none) {
+    .pkg-slider-nav {
+        width: 34px;
+        height: 34px;
+        font-size: 0.8rem;
+        opacity: 0.82;
+    }
+}
+
+/* Mobile swipe hint */
+.pkg-swipe-hint {
+    font-size: 0.82rem;
+    color: #6c757d;
+    letter-spacing: 0.2px;
 }
 
 /* ===== Our Work – Folder Gallery + Slideshow Modal ===== */
