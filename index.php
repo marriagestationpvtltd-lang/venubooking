@@ -1026,12 +1026,31 @@ if (!empty($work_categories)):
 // Get all active vendors for the vendor listing section
 $vendors = getVendors();
 if (!empty($vendors)):
+    // Collect distinct vendor types present in the current vendor list
+    $vendor_type_slugs_present = array_filter(array_unique(array_column($vendors, 'type')));
+    $all_vendor_types = getVendorTypes();
+    $present_vendor_types = array_filter($all_vendor_types, function($vt) use ($vendor_type_slugs_present) {
+        return in_array($vt['slug'], $vendor_type_slugs_present, true);
+    });
 ?>
 <!-- Vendors Section -->
 <section class="vendors-section py-5">
     <div class="container">
         <h2 class="text-center section-title mb-2">Our Vendors</h2>
         <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
+
+        <?php if (count($present_vendor_types) > 1): ?>
+        <!-- Vendor Category Filter Buttons -->
+        <div class="vendor-filter-bar text-center mb-4" id="vendorFilterBar">
+            <button class="vendor-filter-btn active" data-filter="all">All</button>
+            <?php foreach ($present_vendor_types as $vt): ?>
+                <button class="vendor-filter-btn"
+                        data-filter="<?php echo htmlspecialchars($vt['slug'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php echo htmlspecialchars($vt['label'], ENT_QUOTES, 'UTF-8'); ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <div class="vendor-auto-wrapper">
             <div class="vendor-auto-track" data-vendor-slider>
@@ -1067,7 +1086,7 @@ if (!empty($vendors)):
 
                     $detail_carousel_id = 'vendorDetail' . (int)$vendor['id'];
                 ?>
-                    <div class="vendor-auto-card">
+                    <div class="vendor-auto-card" data-vendor-type="<?php echo htmlspecialchars($vendor['type'], ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="vendor-card card h-100 shadow-sm">
                             <!-- Vendor Photo -->
                             <?php if (!empty($primary_photo_path)): ?>
@@ -1685,6 +1704,45 @@ document.addEventListener("DOMContentLoaded", function() {
 })();
 </script>
 <script>
+// ── Vendor category filter ──
+(function() {
+    var filterBar = document.getElementById('vendorFilterBar');
+    if (!filterBar) return;
+
+    var wrapper = document.querySelector('.vendor-auto-wrapper');
+    var track = document.querySelector('[data-vendor-slider]');
+    if (!track || !wrapper) return;
+
+    filterBar.addEventListener('click', function(e) {
+        var btn = e.target.closest('.vendor-filter-btn');
+        if (!btn) return;
+
+        // Update active button style
+        filterBar.querySelectorAll('.vendor-filter-btn').forEach(function(b) {
+            b.classList.toggle('active', b === btn);
+        });
+
+        var filter = btn.getAttribute('data-filter');
+
+        if (filter === 'all') {
+            // Restore auto-scroll: show all cards, remove filter-active flag
+            wrapper.removeAttribute('data-filter-active');
+            Array.from(track.querySelectorAll('.vendor-auto-card')).forEach(function(card) {
+                card.style.display = '';
+            });
+            track.scrollLeft = 0;
+        } else {
+            // Activate filter: pause auto-scroll, show only matching cards
+            wrapper.setAttribute('data-filter-active', filter);
+            Array.from(track.querySelectorAll('.vendor-auto-card')).forEach(function(card) {
+                card.style.display = card.getAttribute('data-vendor-type') === filter ? '' : 'none';
+            });
+            track.scrollLeft = 0;
+        }
+    });
+})();
+</script>
+<script>
 // ── Auto-scroll for vendor slider ──
 (function() {
     var speed = 0.5; // pixels per frame
@@ -1723,7 +1781,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         var hovered = false, dragging = false;
 
-        function isPaused() { return hovered || dragging; }
+        function isPaused() { return hovered || dragging || (track.parentElement && track.parentElement.hasAttribute('data-filter-active')); }
 
         function step() {
             if (!isPaused()) {

@@ -985,6 +985,53 @@ footer a:hover {
     height: 12px;
 }
 
+/* Vendor category filter buttons */
+.vendor-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.vendor-filter-btn {
+    padding: 0.4rem 1.1rem;
+    border: 2px solid var(--primary-green, #4caf50);
+    background: transparent;
+    color: var(--primary-green, #4caf50);
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.vendor-filter-btn:hover,
+.vendor-filter-btn.active {
+    background: var(--primary-green, #4caf50);
+    color: #fff;
+}
+
+/* Grid layout when a category filter is active */
+.vendor-auto-wrapper[data-filter-active] .vendor-auto-track {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    cursor: default;
+    justify-content: center;
+    padding-bottom: 0;
+}
+
+.vendor-auto-wrapper[data-filter-active] .vendor-auto-card {
+    flex: 0 0 300px;
+    width: 300px;
+}
+
+@media (max-width: 576px) {
+    .vendor-auto-wrapper[data-filter-active] .vendor-auto-card {
+        flex: 0 0 260px;
+        width: 260px;
+    }
+}
+
 
 /* ===== Service Packages Section – Premium UI ===== */
 .service-packages-section {
