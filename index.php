@@ -1706,36 +1706,36 @@ document.addEventListener("DOMContentLoaded", function() {
 <script>
 // ── Vendor category filter ──
 (function() {
-    var filterBar = document.getElementById('vendorFilterBar');
+    var filterBar = document.getElementById(\'vendorFilterBar\');
     if (!filterBar) return;
 
-    var wrapper = document.querySelector('.vendor-auto-wrapper');
-    var track = document.querySelector('[data-vendor-slider]');
+    var wrapper = document.querySelector(\'.vendor-auto-wrapper\');
+    var track = document.querySelector(\'[data-vendor-slider]\');
     if (!track || !wrapper) return;
 
-    filterBar.addEventListener('click', function(e) {
-        var btn = e.target.closest('.vendor-filter-btn');
+    filterBar.addEventListener(\'click\', function(e) {
+        var btn = e.target.closest(\'.vendor-filter-btn\');
         if (!btn) return;
 
         // Update active button style
-        filterBar.querySelectorAll('.vendor-filter-btn').forEach(function(b) {
-            b.classList.toggle('active', b === btn);
+        filterBar.querySelectorAll(\'.vendor-filter-btn\').forEach(function(b) {
+            b.classList.toggle(\'active\', b === btn);
         });
 
-        var filter = btn.getAttribute('data-filter');
+        var filter = btn.getAttribute(\'data-filter\');
 
-        if (filter === 'all') {
+        if (filter === \'all\') {
             // Restore auto-scroll: show all cards, remove filter-active flag
-            wrapper.removeAttribute('data-filter-active');
-            Array.from(track.querySelectorAll('.vendor-auto-card')).forEach(function(card) {
-                card.style.display = '';
+            wrapper.removeAttribute(\'data-filter-active\');
+            Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) {
+                card.style.display = \'\';
             });
             track.scrollLeft = 0;
         } else {
             // Activate filter: pause auto-scroll, show only matching cards
-            wrapper.setAttribute('data-filter-active', filter);
-            Array.from(track.querySelectorAll('.vendor-auto-card')).forEach(function(card) {
-                card.style.display = card.getAttribute('data-vendor-type') === filter ? '' : 'none';
+            wrapper.setAttribute(\'data-filter-active\', filter);
+            Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) {
+                card.style.display = card.getAttribute(\'data-vendor-type\') === filter ? \'\' : \'none\';
             });
             track.scrollLeft = 0;
         }
@@ -1781,7 +1781,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         var hovered = false, dragging = false;
 
-        function isPaused() { return hovered || dragging || (track.parentElement && track.parentElement.hasAttribute('data-filter-active')); }
+        function isPaused() { return hovered || dragging || (track.parentElement && track.parentElement.hasAttribute(\'data-filter-active\')); }
 
         function step() {
             if (!isPaused()) {
