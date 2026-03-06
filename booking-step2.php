@@ -123,6 +123,20 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                 <a href="index.php" class="alert-link">Try a different city or date.</a>
             </div>
         <?php else: ?>
+            <div class="mb-4" id="venueSearchWrapper">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="venueSearchInput" class="form-control"
+                           placeholder="Search venues by name..."
+                           aria-label="Search venues by name">
+                    <button class="btn btn-outline-secondary" type="button" id="venueSearchClear" style="display:none;" aria-label="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="venueSearchNoResults" class="alert alert-info" style="display:none;">
+                <i class="fas fa-info-circle"></i> No venues found matching your search.
+            </div>
             <div class="row g-4" id="venuesContainer">
                 <?php foreach ($venues as $venue):
                     // Build images array for carousel (prefer gallery_images, fall back to single image)
@@ -140,7 +154,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                     }
                     $step2_carousel_id = 'venueStep2Carousel' . $venue['id'];
                 ?>
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4" data-venue-name="<?php echo htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="venue-card card h-100 shadow-sm">
                             <?php if (count($images_to_display) > 1): ?>
                                 <div id="<?php echo $step2_carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
