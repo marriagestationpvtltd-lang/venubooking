@@ -655,10 +655,81 @@ footer a:hover {
     }
 }
 
-/* Ensure the vendors carousel inner has a minimum height so slides never
-   collapse to zero-height during Bootstrap's slide transition */
-.vendors-section .carousel-inner {
-    min-height: 200px;
+/* Custom vendor slider — all pages stay rendered (translated off-screen)
+   so content is never hidden with display:none, preventing blank slides */
+.vendor-slider {
+    position: relative;
+    overflow: hidden;
+}
+
+.vendor-slider-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    will-change: transform;
+}
+
+.vendor-slider-page {
+    flex: 0 0 100%;
+    width: 100%;
+    padding-bottom: 1.5rem;
+}
+
+/* Indicator dots */
+.vendor-slider-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 0.75rem;
+}
+
+.vendor-slider-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(76, 175, 80, 0.35);
+    cursor: pointer;
+    transition: background-color 0.3s;
+    padding: 0;
+}
+
+.vendor-slider-dot.active {
+    background-color: var(--primary-green);
+}
+
+/* Prev / next buttons */
+.vendor-slider-btn {
+    position: absolute;
+    top: 45%;
+    transform: translateY(-50%);
+    background-color: rgba(76, 175, 80, 0.3);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.vendor-slider-btn:hover {
+    background-color: rgba(76, 175, 80, 0.6);
+}
+
+.vendor-slider-prev { left: -60px; }
+.vendor-slider-next { right: -60px; }
+
+@media (max-width: 768px) {
+    .vendor-slider-prev { left: 0; }
+    .vendor-slider-next { right: 0; }
+    .vendor-slider-prev,
+    .vendor-slider-next {
+        width: 40px;
+        height: 40px;
+    }
 }
 
 .vendor-card {
@@ -717,38 +788,6 @@ footer a:hover {
     height: 12px;
 }
 
-/* Vendors outer carousel controls */
-.vendors-section .vendors-carousel-prev,
-.vendors-section .vendors-carousel-next {
-    background-color: rgba(76, 175, 80, 0.3);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-.vendors-section .vendors-carousel-prev { left: -60px; }
-.vendors-section .vendors-carousel-next { right: -60px; }
-
-.vendors-section .vendors-carousel-prev:hover,
-.vendors-section .vendors-carousel-next:hover {
-    background-color: rgba(76, 175, 80, 0.6);
-}
-
-.vendors-section .carousel-indicators button {
-    background-color: var(--primary-green);
-}
-
-@media (max-width: 768px) {
-    .vendors-section .vendors-carousel-prev { left: 0; }
-    .vendors-section .vendors-carousel-next { right: 0; }
-    .vendors-section .vendors-carousel-prev,
-    .vendors-section .vendors-carousel-next {
-        width: 40px;
-        height: 40px;
-    }
-}
 
 /* ===== Service Packages Section ===== */
 .service-packages-section {
