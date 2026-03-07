@@ -7,11 +7,13 @@ require_once __DIR__ . '/includes/functions.php';
 // Get booking data from session or POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['booking_data'] = [
-        'shift' => $_POST['shift'],
+        'shift'      => $_POST['shift'],
+        'start_time' => $_POST['start_time'] ?? '',
+        'end_time'   => $_POST['end_time']   ?? '',
         'event_date' => $_POST['event_date'],
-        'guests' => $_POST['guests'],
+        'guests'     => $_POST['guests'],
         'event_type' => $_POST['event_type'],
-        'city_id' => isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null
+        'city_id'    => isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null
     ];
     
     // Check if there's a preferred venue
@@ -83,6 +85,9 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                 <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
                     <i class="fas fa-clock"></i> <?php echo ucfirst($booking_data['shift']); ?>
+                    <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>
+                        <span class="ms-1">(<?php echo formatBookingTime($booking_data['start_time']); ?> – <?php echo formatBookingTime($booking_data['end_time']); ?>)</span>
+                    <?php endif; ?>
                     <span class="mx-2 d-none d-md-inline">|</span>
                 </span>
                 <span class="d-block d-md-inline">

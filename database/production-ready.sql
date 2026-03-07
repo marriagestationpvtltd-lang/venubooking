@@ -279,6 +279,8 @@ CREATE TABLE bookings (
     customer_id INT NOT NULL,
     hall_id INT NOT NULL,
     event_date DATE NOT NULL,
+    start_time TIME DEFAULT NULL,
+    end_time TIME DEFAULT NULL,
     shift ENUM('morning', 'afternoon', 'evening', 'fullday') NOT NULL,
     event_type VARCHAR(100) NOT NULL,
     number_of_guests INT NOT NULL,

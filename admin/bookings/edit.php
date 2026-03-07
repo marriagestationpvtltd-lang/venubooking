@@ -57,6 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $hall_id = intval($_POST['hall_id']);
     $event_date = $_POST['event_date'];
     $shift = $_POST['shift'];
+    $start_time = $_POST['start_time'] ?? '';
+    $end_time   = $_POST['end_time']   ?? '';
+    if (empty($start_time) || empty($end_time)) {
+        $shift_times = getShiftDefaultTimes($shift);
+        if (empty($start_time)) $start_time = $shift_times['start'];
+        if (empty($end_time))   $end_time   = $shift_times['end'];
+    }
     $event_type = trim($_POST['event_type']);
     $number_of_guests = intval($_POST['number_of_guests']);
     $special_requests = trim($_POST['special_requests']);
@@ -96,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Update booking basic info (totals will be recalculated after services are inserted)
                 $sql = "UPDATE bookings SET 
-                        hall_id = ?, event_date = ?, shift = ?, 
+                        hall_id = ?, event_date = ?, start_time = ?, end_time = ?, shift = ?, 
                         event_type = ?, number_of_guests = ?, 
                         special_requests = ?, booking_status = ?, payment_status = ?
                         WHERE id = ?";
@@ -105,6 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([
                     $hall_id,
                     $event_date,
+                    $start_time ?: null,
+                    $end_time   ?: null,
                     $shift,
                     $event_type,
                     $number_of_guests,
@@ -294,10 +303,10 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="mb-3">
                                 <label for="shift" class="form-label">Shift <span class="text-danger">*</span></label>
                                 <select class="form-select" id="shift" name="shift" required>
-                                    <option value="morning" <?php echo ($booking['shift'] == 'morning') ? 'selected' : ''; ?>>Morning</option>
-                                    <option value="afternoon" <?php echo ($booking['shift'] == 'afternoon') ? 'selected' : ''; ?>>Afternoon</option>
-                                    <option value="evening" <?php echo ($booking['shift'] == 'evening') ? 'selected' : ''; ?>>Evening</option>
-                                    <option value="fullday" <?php echo ($booking['shift'] == 'fullday') ? 'selected' : ''; ?>>Full Day</option>
+                                    <option value="morning" <?php echo ($booking['shift'] == 'morning') ? 'selected' : ''; ?>>Morning (6:00 AM – 12:00 PM)</option>
+                                    <option value="afternoon" <?php echo ($booking['shift'] == 'afternoon') ? 'selected' : ''; ?>>Afternoon (12:00 PM – 6:00 PM)</option>
+                                    <option value="evening" <?php echo ($booking['shift'] == 'evening') ? 'selected' : ''; ?>>Evening (6:00 PM – 11:00 PM)</option>
+                                    <option value="fullday" <?php echo ($booking['shift'] == 'fullday') ? 'selected' : ''; ?>>Full Day (6:00 AM – 11:00 PM)</option>
                                 </select>
                             </div>
                         </div>
@@ -306,6 +315,30 @@ require_once __DIR__ . '/../includes/header.php';
                                 <label for="number_of_guests" class="form-label">Number of Guests <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="number_of_guests" name="number_of_guests" 
                                        value="<?php echo $booking['number_of_guests']; ?>" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_time" class="form-label"><i class="fas fa-hourglass-start text-success me-1"></i>Start Time</label>
+                                <?php
+                                    // Use saved value; fall back to shift default for old bookings with no time
+                                    $edit_default_times = getShiftDefaultTimes($booking['shift']);
+                                    $edit_start = !empty($booking['start_time']) ? substr($booking['start_time'], 0, 5) : $edit_default_times['start'];
+                                    $edit_end   = !empty($booking['end_time'])   ? substr($booking['end_time'], 0, 5)   : $edit_default_times['end'];
+                                ?>
+                                <input type="time" class="form-control" id="start_time" name="start_time"
+                                       value="<?php echo htmlspecialchars($edit_start); ?>">
+                                <small class="text-muted">Auto-filled from shift; adjust if needed.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_time" class="form-label"><i class="fas fa-hourglass-end text-success me-1"></i>End Time</label>
+                                <input type="time" class="form-control" id="end_time" name="end_time"
+                                       value="<?php echo htmlspecialchars($edit_end); ?>">
                             </div>
                         </div>
                     </div>
@@ -550,6 +583,30 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 });
+</script>
+
+<script>
+// Shift → Time auto-fill for admin Edit Booking form
+(function() {
+    var shiftTimes = {
+        'morning':   { start: '06:00', end: '12:00' },
+        'afternoon': { start: '12:00', end: '18:00' },
+        'evening':   { start: '18:00', end: '23:00' },
+        'fullday':   { start: '06:00', end: '23:00' }
+    };
+    var shiftSel   = document.getElementById('shift');
+    var startInput = document.getElementById('start_time');
+    var endInput   = document.getElementById('end_time');
+    if (shiftSel && startInput && endInput) {
+        shiftSel.addEventListener('change', function() {
+            var times = shiftTimes[this.value];
+            if (times) {
+                startInput.value = times.start;
+                endInput.value   = times.end;
+            }
+        });
+    }
+}());
 </script>
 
 <?php 

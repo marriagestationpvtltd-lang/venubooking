@@ -108,7 +108,10 @@ $bookings = $stmt->fetchAll();
                             <td>
                                 <strong><?php echo date('M d, Y', strtotime($booking['event_date'])); ?></strong><br>
                                 <small class="text-muted">
-                                    <i class="fas fa-sun"></i> <?php echo ucfirst($booking['shift']); ?>
+                                    <i class="fas fa-clock"></i> <?php echo ucfirst($booking['shift']); ?>
+                                    <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>
+                                        <br><i class="fas fa-hourglass-start"></i> <?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>
+                                    <?php endif; ?>
                                 </small>
                             </td>
                             <td>
