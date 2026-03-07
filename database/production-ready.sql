@@ -7,6 +7,11 @@
 --   3. Essential system settings only
 --   4. Placeholder payment methods (inactive by default)
 --   5. NO sample data - ready for production use
+--
+-- SAFE TO RE-RUN: This script uses CREATE TABLE IF NOT EXISTS and
+-- INSERT IGNORE so it will NOT destroy any existing data. Re-running
+-- it on an existing database will only add missing tables and skip
+-- rows that already exist.
 -- 
 -- IMPORTANT SECURITY NOTES:
 --   - Change the default admin password immediately after installation
@@ -26,42 +31,11 @@
 -- NOTE: Make sure you have selected your database before running this script
 -- This script does NOT create a database - you must create/select one first
 
--- Drop existing tables if they exist (for clean setup)
-SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS activity_logs;
-DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS booking_payment_methods;
-DROP TABLE IF EXISTS payment_methods;
-DROP TABLE IF EXISTS booking_vendor_assignments;
-DROP TABLE IF EXISTS booking_services;
-DROP TABLE IF EXISTS booking_menus;
-DROP TABLE IF EXISTS bookings;
-DROP TABLE IF EXISTS customers;
-DROP TABLE IF EXISTS hall_menus;
-DROP TABLE IF EXISTS menu_items;
-DROP TABLE IF EXISTS menus;
-DROP TABLE IF EXISTS additional_services;
-DROP TABLE IF EXISTS service_package_photos;
-DROP TABLE IF EXISTS service_package_features;
-DROP TABLE IF EXISTS service_packages;
-DROP TABLE IF EXISTS service_categories;
-DROP TABLE IF EXISTS vendor_photos;
-DROP TABLE IF EXISTS vendors;
-DROP TABLE IF EXISTS vendor_types;
-DROP TABLE IF EXISTS hall_images;
-DROP TABLE IF EXISTS venue_images;
-DROP TABLE IF EXISTS halls;
-DROP TABLE IF EXISTS venues;
-DROP TABLE IF EXISTS cities;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS settings;
-DROP TABLE IF EXISTS site_images;
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
 -- TABLE: cities
 -- ============================================================================
-CREATE TABLE cities (
+CREATE TABLE IF NOT EXISTS cities (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     status ENUM('active', 'inactive') DEFAULT 'active',
@@ -73,7 +47,7 @@ CREATE TABLE cities (
 -- ============================================================================
 -- TABLE: venues
 -- ============================================================================
-CREATE TABLE venues (
+CREATE TABLE IF NOT EXISTS venues (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
@@ -93,7 +67,7 @@ CREATE TABLE venues (
 -- ============================================================================
 -- TABLE: venue_images
 -- ============================================================================
-CREATE TABLE venue_images (
+CREATE TABLE IF NOT EXISTS venue_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     venue_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -106,7 +80,7 @@ CREATE TABLE venue_images (
 -- ============================================================================
 -- TABLE: halls
 -- ============================================================================
-CREATE TABLE halls (
+CREATE TABLE IF NOT EXISTS halls (
     id INT PRIMARY KEY AUTO_INCREMENT,
     venue_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -125,7 +99,7 @@ CREATE TABLE halls (
 -- ============================================================================
 -- TABLE: hall_images
 -- ============================================================================
-CREATE TABLE hall_images (
+CREATE TABLE IF NOT EXISTS hall_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -138,7 +112,7 @@ CREATE TABLE hall_images (
 -- ============================================================================
 -- TABLE: menus
 -- ============================================================================
-CREATE TABLE menus (
+CREATE TABLE IF NOT EXISTS menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -152,7 +126,7 @@ CREATE TABLE menus (
 -- ============================================================================
 -- TABLE: menu_items
 -- ============================================================================
-CREATE TABLE menu_items (
+CREATE TABLE IF NOT EXISTS menu_items (
     id INT PRIMARY KEY AUTO_INCREMENT,
     menu_id INT NOT NULL,
     item_name VARCHAR(255) NOT NULL,
@@ -165,7 +139,7 @@ CREATE TABLE menu_items (
 -- ============================================================================
 -- TABLE: hall_menus (many-to-many relationship)
 -- ============================================================================
-CREATE TABLE hall_menus (
+CREATE TABLE IF NOT EXISTS hall_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     menu_id INT NOT NULL,
@@ -179,7 +153,7 @@ CREATE TABLE hall_menus (
 -- ============================================================================
 -- TABLE: additional_services
 -- ============================================================================
-CREATE TABLE additional_services (
+CREATE TABLE IF NOT EXISTS additional_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -193,7 +167,7 @@ CREATE TABLE additional_services (
 -- ============================================================================
 -- TABLE: service_categories (event types for service packages, e.g. Wedding, Birthday)
 -- ============================================================================
-CREATE TABLE service_categories (
+CREATE TABLE IF NOT EXISTS service_categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -208,7 +182,7 @@ CREATE TABLE service_categories (
 -- ============================================================================
 -- TABLE: service_packages (packages offered under each service category)
 -- ============================================================================
-CREATE TABLE service_packages (
+CREATE TABLE IF NOT EXISTS service_packages (
     id INT PRIMARY KEY AUTO_INCREMENT,
     category_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -227,7 +201,7 @@ CREATE TABLE service_packages (
 -- ============================================================================
 -- TABLE: service_package_features (feature bullet points per package)
 -- ============================================================================
-CREATE TABLE service_package_features (
+CREATE TABLE IF NOT EXISTS service_package_features (
     id INT PRIMARY KEY AUTO_INCREMENT,
     package_id INT NOT NULL,
     feature_text VARCHAR(500) NOT NULL,
@@ -241,7 +215,7 @@ CREATE TABLE service_package_features (
 -- ============================================================================
 -- TABLE: service_package_photos (multiple photos per service package)
 -- ============================================================================
-CREATE TABLE service_package_photos (
+CREATE TABLE IF NOT EXISTS service_package_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     package_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -255,7 +229,7 @@ CREATE TABLE service_package_photos (
 -- ============================================================================
 -- TABLE: customers
 -- ============================================================================
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
     id INT PRIMARY KEY AUTO_INCREMENT,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20) NOT NULL,
@@ -273,7 +247,7 @@ CREATE TABLE customers (
 -- ============================================================================
 -- TABLE: bookings
 -- ============================================================================
-CREATE TABLE bookings (
+CREATE TABLE IF NOT EXISTS bookings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_number VARCHAR(50) UNIQUE NOT NULL,
     customer_id INT NOT NULL,
@@ -307,7 +281,7 @@ CREATE TABLE bookings (
 -- ============================================================================
 -- TABLE: booking_menus (link bookings with selected menus)
 -- ============================================================================
-CREATE TABLE booking_menus (
+CREATE TABLE IF NOT EXISTS booking_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     menu_id INT NOT NULL,
@@ -322,7 +296,7 @@ CREATE TABLE booking_menus (
 -- ============================================================================
 -- TABLE: booking_services (link bookings with selected services)
 -- ============================================================================
-CREATE TABLE booking_services (
+CREATE TABLE IF NOT EXISTS booking_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     service_id INT NOT NULL DEFAULT 0 COMMENT '0 for admin services, >0 for user services referencing additional_services',
@@ -341,7 +315,7 @@ CREATE TABLE booking_services (
 -- ============================================================================
 -- TABLE: payment_methods
 -- ============================================================================
-CREATE TABLE payment_methods (
+CREATE TABLE IF NOT EXISTS payment_methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     qr_code VARCHAR(255),
@@ -357,7 +331,7 @@ CREATE TABLE payment_methods (
 -- ============================================================================
 -- TABLE: booking_payment_methods (junction table)
 -- ============================================================================
-CREATE TABLE booking_payment_methods (
+CREATE TABLE IF NOT EXISTS booking_payment_methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     payment_method_id INT NOT NULL,
@@ -370,7 +344,7 @@ CREATE TABLE booking_payment_methods (
 -- ============================================================================
 -- TABLE: payments (track payment transactions)
 -- ============================================================================
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     payment_method_id INT,
@@ -392,7 +366,7 @@ CREATE TABLE payments (
 -- ============================================================================
 -- TABLE: users (admin users)
 -- ============================================================================
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -408,7 +382,7 @@ CREATE TABLE users (
 -- ============================================================================
 -- TABLE: settings
 -- ============================================================================
-CREATE TABLE settings (
+CREATE TABLE IF NOT EXISTS settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     setting_key VARCHAR(100) UNIQUE NOT NULL,
     setting_value TEXT,
@@ -420,7 +394,7 @@ CREATE TABLE settings (
 -- ============================================================================
 -- TABLE: activity_logs
 -- ============================================================================
-CREATE TABLE activity_logs (
+CREATE TABLE IF NOT EXISTS activity_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT,
     action VARCHAR(255) NOT NULL,
@@ -437,7 +411,7 @@ CREATE TABLE activity_logs (
 -- ============================================================================
 -- TABLE: site_images (for dynamic image management)
 -- ============================================================================
-CREATE TABLE site_images (
+CREATE TABLE IF NOT EXISTS site_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -459,7 +433,7 @@ CREATE TABLE site_images (
 -- ============================================================================
 -- TABLE: vendor_types (admin-managed vendor type definitions)
 -- ============================================================================
-CREATE TABLE vendor_types (
+CREATE TABLE IF NOT EXISTS vendor_types (
     id INT PRIMARY KEY AUTO_INCREMENT,
     slug VARCHAR(100) NOT NULL UNIQUE COMMENT 'Stored in vendors.type column',
     label VARCHAR(255) NOT NULL COMMENT 'Human-readable display name',
@@ -474,7 +448,7 @@ CREATE TABLE vendor_types (
 -- ============================================================================
 -- TABLE: vendors (service providers assigned to bookings)
 -- ============================================================================
-CREATE TABLE vendors (
+CREATE TABLE IF NOT EXISTS vendors (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL DEFAULT 'other',
@@ -496,7 +470,7 @@ CREATE TABLE vendors (
 -- ============================================================================
 -- TABLE: vendor_photos (multiple photos per vendor)
 -- ============================================================================
-CREATE TABLE vendor_photos (
+CREATE TABLE IF NOT EXISTS vendor_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     vendor_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -510,7 +484,7 @@ CREATE TABLE vendor_photos (
 -- ============================================================================
 -- TABLE: booking_vendor_assignments (assigns vendors to specific tasks within a booking)
 -- ============================================================================
-CREATE TABLE booking_vendor_assignments (
+CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     vendor_id INT NOT NULL,
@@ -582,7 +556,7 @@ INSERT IGNORE INTO users (username, password, full_name, email, role, status)
 VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
 
 -- Insert default cities (Nepal)
-INSERT INTO cities (name, status) VALUES
+INSERT IGNORE INTO cities (name, status) VALUES
 ('Kathmandu', 'active'),
 ('Pokhara', 'active'),
 ('Lalitpur (Patan)', 'active'),
@@ -601,7 +575,7 @@ INSERT INTO cities (name, status) VALUES
 
 -- Insert essential system settings
 -- These are default values - configure them in Admin Panel → Settings
-INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
+INSERT IGNORE INTO settings (setting_key, setting_value, setting_type) VALUES
 ('site_name', 'Venue Booking System', 'text'),
 ('site_logo', '', 'text'),
 ('contact_email', 'info@example.com', 'text'),
@@ -653,7 +627,7 @@ Date changes are subject to availability and must be requested at least 15 days 
 
 -- Insert placeholder payment methods (INACTIVE by default)
 -- IMPORTANT: Update these details in Admin Panel → Payment Methods before activating!
-INSERT INTO payment_methods (name, bank_details, status, display_order) VALUES
+INSERT IGNORE INTO payment_methods (name, bank_details, status, display_order) VALUES
 ('Bank Transfer', 'Bank: [Your Bank Name]
 Account Name: [Account Holder Name]
 Account Number: [Your Account Number]
@@ -683,7 +657,7 @@ Contact: [Your Phone Number]
 Please bring your booking reference number when making payment.', 'inactive', 4);
 
 -- Insert default vendor types
-INSERT INTO vendor_types (slug, label, display_order) VALUES
+INSERT IGNORE INTO vendor_types (slug, label, display_order) VALUES
 ('photographer', 'Photographer', 1),
 ('videographer', 'Videographer', 2),
 ('decorator', 'Decorator / Florist', 3),
