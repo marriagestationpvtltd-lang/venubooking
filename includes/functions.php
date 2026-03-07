@@ -310,6 +310,36 @@ function formatBookingTime($time) {
 }
 
 /**
+ * Build the "Shift / Time" display string used in WhatsApp messages.
+ *
+ * Uses the booking's actual start/end times when available.  When they are
+ * absent (e.g. for bookings created before the time columns were added), the
+ * function falls back to the default time range for the booking's shift so
+ * that every WhatsApp message always contains a specific time window.
+ *
+ * @param  array  $booking  Booking row containing 'shift', 'start_time', 'end_time'
+ * @return string           e.g. "Evening (06:00 PM – 11:00 PM)"
+ */
+function getBookingShiftTimeDisplay($booking) {
+    $display = ucfirst(strip_tags($booking['shift'] ?? ''));
+    $start   = $booking['start_time'] ?? '';
+    $end     = $booking['end_time']   ?? '';
+
+    // Fall back to shift defaults when explicit times are not stored
+    if (empty($start) || empty($end)) {
+        $defaults = getShiftDefaultTimes($booking['shift'] ?? '');
+        $start    = $defaults['start'];
+        $end      = $defaults['end'];
+    }
+
+    if (!empty($start) && !empty($end)) {
+        $display .= ' (' . formatBookingTime($start) . ' – ' . formatBookingTime($end) . ')';
+    }
+
+    return $display;
+}
+
+/**
  * Generate HTML <option> elements for a time dropdown.
  *
  * Options span 00:00–23:30 in 30-minute intervals.
@@ -3163,11 +3193,7 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
     $text  = "Dear " . strip_tags($vendor_name) . ",\n\n";
     $text .= "We would like to inform you that you have been officially assigned to the following event. Please find the details below:\n\n";
     $text .= "Event Date: " . convertToNepaliDate($booking['event_date']) . "\n";
-    $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift'] ?? ''));
-    if (!empty($booking['start_time']) && !empty($booking['end_time'])) {
-        $text .= " (" . formatBookingTime($booking['start_time']) . " – " . formatBookingTime($booking['end_time']) . ")";
-    }
-    $text .= "\n";
+    $text .= "Shift / Time: " . getBookingShiftTimeDisplay($booking) . "\n";
     $text .= "Event Type / Service: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
     $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
@@ -3213,11 +3239,7 @@ function buildVenueProviderWhatsAppUrl($booking) {
     $text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
     $text .= "Event Date (BS): " . $nepali_date . "\n";
     $text .= "Event Date (AD): " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
-    $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift']));
-    if (!empty($booking['start_time']) && !empty($booking['end_time'])) {
-        $text .= " (" . formatBookingTime($booking['start_time']) . " – " . formatBookingTime($booking['end_time']) . ")";
-    }
-    $text .= "\n";
+    $text .= "Shift / Time: " . getBookingShiftTimeDisplay($booking) . "\n";
     $text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Hall: " . strip_tags($booking['hall_name']) . "\n";
     $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
