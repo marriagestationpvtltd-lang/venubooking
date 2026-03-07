@@ -68,6 +68,57 @@ if (isset($_POST['upload_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Handle 360° panoramic image upload
+if (isset($_POST['upload_pano']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_FILES['hall_pano_image']) && $_FILES['hall_pano_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $pano_result = handleImageUpload($_FILES['hall_pano_image'], 'hall_pano');
+        if ($pano_result['success']) {
+            try {
+                // Delete old pano image if it exists
+                if (!empty($hall['pano_image'])) {
+                    deleteUploadedFile($hall['pano_image']);
+                }
+                $db->prepare("UPDATE halls SET pano_image = ? WHERE id = ?")->execute([$pano_result['filename'], $hall_id]);
+                logActivity($current_user['id'], 'Uploaded hall pano image', 'halls', $hall_id, "Uploaded 360° pano for hall: {$hall['name']}");
+                // Refresh hall data
+                $stmt = $db->prepare("SELECT * FROM halls WHERE id = ?");
+                $stmt->execute([$hall_id]);
+                $hall = $stmt->fetch();
+                $success_message = '360° panoramic image uploaded successfully!';
+            } catch (Exception $e) {
+                deleteUploadedFile($pano_result['filename']);
+                $error_message = 'Error saving panoramic image: ' . $e->getMessage();
+            }
+        } else {
+            $error_message = $pano_result['message'];
+        }
+    } else {
+        $error_message = 'Please select a panoramic image to upload.';
+    }
+}
+
+// Handle 360° panoramic image deletion
+if (isset($_POST['delete_pano']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
+        try {
+            if (!empty($hall['pano_image'])) {
+                deleteUploadedFile($hall['pano_image']);
+            }
+            $db->prepare("UPDATE halls SET pano_image = NULL WHERE id = ?")->execute([$hall_id]);
+            logActivity($current_user['id'], 'Deleted hall pano image', 'halls', $hall_id, "Deleted 360° pano for hall: {$hall['name']}");
+            // Refresh hall data
+            $stmt = $db->prepare("SELECT * FROM halls WHERE id = ?");
+            $stmt->execute([$hall_id]);
+            $hall = $stmt->fetch();
+            $success_message = '360° panoramic image deleted successfully!';
+        } catch (Exception $e) {
+            $error_message = 'Error deleting panoramic image: ' . $e->getMessage();
+        }
+    }
+}
+
 // Handle image deletion via POST
 if (isset($_POST['delete_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF token
@@ -494,5 +545,84 @@ function confirmDelete() {
     }
 }
 </script>
+
+<?php
+// Display 360° panoramic image section
+?>
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-street-view text-primary"></i> 360° Panoramic Photo</h5>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#uploadPanoForm">
+                    <i class="fas fa-upload"></i> <?php echo !empty($hall['pano_image']) ? 'Replace Pano Photo' : 'Upload Pano Photo'; ?>
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Pano Upload Form -->
+                <div class="collapse mb-3" id="uploadPanoForm">
+                    <div class="card">
+                        <div class="card-body bg-light">
+                            <h6 class="card-title">Upload 360° Panoramic Photo</h6>
+                            <p class="text-muted small">Upload an equirectangular panoramic image. This will be displayed as an interactive 360° viewer on the booking page.</p>
+                            <form method="POST" action="" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="hall_pano_image" class="form-label">Panoramic Image <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="hall_pano_image" name="hall_pano_image" accept="image/*" required>
+                                    <small class="text-muted">Equirectangular format (2:1 aspect ratio). JPG or PNG. Max 5MB.</small>
+                                </div>
+                                <button type="submit" name="upload_pano" class="btn btn-success">
+                                    <i class="fas fa-upload"></i> Upload Panoramic Image
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display Current Pano Image -->
+                <?php if (!empty($hall['pano_image'])): ?>
+                    <?php $pano_url = UPLOAD_URL . rawurlencode($hall['pano_image']); ?>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div id="hallPanoPreview" style="width:100%;height:300px;border-radius:8px;overflow:hidden;"></div>
+                        </div>
+                        <div class="col-md-4 d-flex flex-column justify-content-center">
+                            <p class="text-muted small mb-2"><strong>File:</strong> <?php echo htmlspecialchars($hall['pano_image'], ENT_QUOTES, 'UTF-8'); ?></p>
+                            <p class="text-muted small mb-3"><i class="fas fa-info-circle"></i> This equirectangular image is shown as an interactive 360° viewer to customers on the booking page.</p>
+                            <form method="POST" action="">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                                <button type="submit" name="delete_pano" value="1" class="btn btn-danger btn-sm"
+                                        onclick="return confirm('Delete the 360° panoramic photo for this hall?')">
+                                    <i class="fas fa-trash"></i> Delete Pano Photo
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- Pannellum 360° preview in admin -->
+                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+                    <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        pannellum.viewer('hallPanoPreview', {
+                            type: 'equirectangular',
+                            panorama: <?php echo json_encode($pano_url); ?>,
+                            autoLoad: true,
+                            autoRotate: -2, // negative = counter-clockwise, degrees/second
+                            showControls: true,
+                            showZoomCtrl: false,
+                            showFullscreenCtrl: true,
+                            compass: false
+                        });
+                    });
+                    </script>
+                <?php else: ?>
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> No 360° panoramic photo uploaded yet. Click "Upload Pano Photo" to add one.
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

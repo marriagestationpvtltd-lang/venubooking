@@ -140,6 +140,36 @@ function displayHalls(halls, venueName) {
     
     hallsContainer.innerHTML = '';
     
+    // Ensure the 360° pano modal exists in the DOM (inject once)
+    if (!document.getElementById('panoViewerModal')) {
+        const modalHtml = `
+        <div class="modal fade" id="panoViewerModal" tabindex="-1" aria-labelledby="panoViewerModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="panoViewerModalLabel">
+                            <i class="fas fa-street-view text-primary"></i> <span id="panoViewerHallName"></span> — 360° View
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <div id="panoViewerContainer" style="width:100%;height:480px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Destroy Pannellum viewer when modal closes to free resources
+        const panoModal = document.getElementById('panoViewerModal');
+        panoModal.addEventListener('hidden.bs.modal', function() {
+            if (window._panoViewerInstance) {
+                window._panoViewerInstance.destroy();
+                window._panoViewerInstance = null;
+            }
+        });
+    }
+
     // Build all hall cards HTML first for better performance
     let hallsHtml = '';
     
@@ -184,6 +214,7 @@ function displayHalls(halls, venueName) {
                                 <i class="fas fa-users"></i> ${parseInt(hall.capacity, 10) || 0} pax
                             </span>
                             <span class="badge bg-info ms-2">${escapeHtml(hall.indoor_outdoor)}</span>
+                            ${hall.pano_image_url ? `<span class="badge bg-primary ms-2"><i class="fas fa-street-view"></i> 360°</span>` : ''}
                         </div>
                         <p class="card-text text-muted">${escapeHtml(hall.description || '')}</p>
                         ${hall.features ? `<p class="small"><strong>Features:</strong> ${escapeHtml(hall.features)}</p>` : ''}
@@ -191,6 +222,12 @@ function displayHalls(halls, venueName) {
                             <span class="text-muted">Base Price:</span>
                             <h5 class="text-success mb-0">${formatCurrency(parseFloat(hall.base_price) || 0)}</h5>
                         </div>
+                        ${hall.pano_image_url ? `
+                        <button class="btn btn-outline-primary w-100 mb-2 view-pano-btn"
+                                data-pano-url="${escapeHtml(hall.pano_image_url)}"
+                                data-hall-name="${escapeHtml(hall.name || '')}">
+                            <i class="fas fa-street-view"></i> View 360° Panorama
+                        </button>` : ''}
                         ${hall.available ? 
                             `<button class="btn btn-success w-100 select-hall-btn" 
                                      data-hall-id="${parseInt(hall.id, 10) || 0}" 
@@ -230,6 +267,15 @@ function displayHalls(halls, venueName) {
             }
             
             selectHall(hallId, hallName, venueName, basePrice, capacity);
+        });
+    });
+
+    // Add event listeners to 360° panorama view buttons
+    hallsContainer.querySelectorAll('.view-pano-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const panoUrl = this.getAttribute('data-pano-url');
+            const hallName = this.getAttribute('data-hall-name') || '';
+            openPanoViewer(panoUrl, hallName);
         });
     });
 
@@ -355,4 +401,40 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
         }
         showError('An error occurred while selecting the hall');
     });
+}
+
+// Open the 360° panoramic viewer modal for a hall
+function openPanoViewer(panoUrl, hallName) {
+    const modalEl = document.getElementById('panoViewerModal');
+    if (!modalEl || typeof pannellum === 'undefined') return;
+
+    // Set hall name in modal title
+    const nameEl = document.getElementById('panoViewerHallName');
+    if (nameEl) nameEl.textContent = hallName;
+
+    // Show the modal
+    const modal = bootstrap.Modal.getOrCreate(modalEl);
+    modal.show();
+
+    // Initialise Pannellum after the modal is fully visible
+    modalEl.addEventListener('shown.bs.modal', function initViewer() {
+        // Destroy any existing instance first
+        if (window._panoViewerInstance) {
+            window._panoViewerInstance.destroy();
+            window._panoViewerInstance = null;
+        }
+
+        window._panoViewerInstance = pannellum.viewer('panoViewerContainer', {
+            type: 'equirectangular',
+            panorama: panoUrl,
+            autoLoad: true,
+            autoRotate: -2,            // negative = counter-clockwise, degrees/second
+            autoRotateInactivityDelay: 3000,
+            showControls: true,
+            showZoomCtrl: true,
+            showFullscreenCtrl: true,
+            compass: false,
+            keyboardZoom: false
+        });
+    }, { once: true });
 }

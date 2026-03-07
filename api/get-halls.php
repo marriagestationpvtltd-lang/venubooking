@@ -44,6 +44,9 @@ try {
             $hall['image'] = null;
             $hall['image_url'] = null;
         }
+
+        // Include 360° panoramic image URL if available
+        $hall['pano_image_url'] = !empty($hall['pano_image']) ? UPLOAD_URL . $hall['pano_image'] : null;
     }
     
     echo json_encode([

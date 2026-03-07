@@ -76,6 +76,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 }
+
+                // Handle 360° panoramic image upload if provided
+                if (isset($_FILES['hall_pano_image']) && $_FILES['hall_pano_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                    $pano_result = handleImageUpload($_FILES['hall_pano_image'], 'hall_pano');
+                    if ($pano_result['success']) {
+                        try {
+                            $db->prepare("UPDATE halls SET pano_image = ? WHERE id = ?")->execute([$pano_result['filename'], $hall_id]);
+                            logActivity($current_user['id'], 'Uploaded hall pano image', 'halls', $hall_id, "Uploaded 360° pano for hall: $name");
+                        } catch (Exception $e) {
+                            deleteUploadedFile($pano_result['filename']);
+                        }
+                    }
+                }
                 
                 // Log activity
                 logActivity($current_user['id'], 'Added new hall', 'halls', $hall_id, "Added hall: $name");
@@ -218,6 +231,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label for="hall_image" class="form-label">Hall Image (Optional)</label>
                         <input type="file" class="form-control" id="hall_image" name="hall_image" accept="image/*">
                         <small class="text-muted">Upload a primary image for this hall. JPG, PNG, GIF, or WebP. Max 5MB</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="hall_pano_image" class="form-label"><i class="fas fa-street-view text-primary"></i> 360° Panoramic Photo (Optional)</label>
+                        <input type="file" class="form-control" id="hall_pano_image" name="hall_pano_image" accept="image/*">
+                        <small class="text-muted">Upload an equirectangular (360°) panoramic photo for an immersive hall preview. JPG or PNG recommended. Max 5MB.</small>
                     </div>
 
                     <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">Assign Menus to Hall</h6>
