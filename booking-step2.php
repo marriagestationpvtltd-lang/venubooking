@@ -212,7 +212,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                                 <p class="card-text text-muted"><?php echo sanitize(substr($venue['description'], 0, 100)); ?>...</p>
                                 <?php if (!empty($venue_pano_url)): ?>
                                 <button type="button" class="btn btn-outline-primary w-100 mb-2"
-                                        onclick="openPanoViewer(<?php echo json_encode($venue_pano_url); ?>, <?php echo json_encode(htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8')); ?>)">
+                                        onclick="openPanoViewer(<?php echo htmlspecialchars(json_encode($venue_pano_url), ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars(json_encode($venue['name']), ENT_QUOTES, 'UTF-8'); ?>)">
                                     <i class="fas fa-street-view"></i> View 360° Photo
                                 </button>
                                 <?php endif; ?>
