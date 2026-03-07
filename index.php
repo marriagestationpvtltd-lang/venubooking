@@ -1926,6 +1926,14 @@ document.addEventListener("DOMContentLoaded", function() {
             .filter(function(c) { return c.style.display !== \'none\'; });
         if (origCards.length === 0) return;
 
+        // Only auto-scroll (and clone) when the visible content overflows the wrapper.
+        // Without this check, filtering to a small number of vendors would still
+        // create clones, making each card appear twice on-screen ("double duplicate").
+        if (track.scrollWidth <= track.clientWidth + 2) {
+            track.scrollLeft = 0;
+            return;
+        }
+
         // Clone visible cards for seamless infinite loop
         origCards.forEach(function(card, idx) {
             var clone = card.cloneNode(true);
