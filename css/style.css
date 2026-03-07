@@ -889,32 +889,17 @@ footer a:hover {
     }
 }
 
-/* Vendor auto-scroll track */
+/* Vendor grid */
 .vendor-auto-wrapper {
     position: relative;
-    overflow: hidden;
 }
 
 .vendor-auto-track {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 1.25rem;
-    overflow-x: auto;
-    cursor: grab;
+    justify-content: center;
     padding-bottom: 0.75rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-    user-select: none;
-}
-
-.vendor-auto-track::-webkit-scrollbar {
-    display: none;
-}
-
-.vendor-auto-track.vendor-auto-grabbing {
-    cursor: grabbing;
-    scroll-behavior: auto;
 }
 
 .vendor-auto-card {
@@ -1011,26 +996,6 @@ footer a:hover {
     color: #fff;
 }
 
-/* Grid layout when a category filter is active */
-.vendor-auto-wrapper[data-filter-active] .vendor-auto-track {
-    flex-wrap: wrap;
-    overflow-x: visible;
-    cursor: default;
-    justify-content: center;
-    padding-bottom: 0;
-}
-
-.vendor-auto-wrapper[data-filter-active] .vendor-auto-card {
-    flex: 0 0 300px;
-    width: 300px;
-}
-
-@media (max-width: 576px) {
-    .vendor-auto-wrapper[data-filter-active] .vendor-auto-card {
-        flex: 0 0 260px;
-        width: 260px;
-    }
-}
 
 
 /* ===== Service Packages Section – Premium UI ===== */
