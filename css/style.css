@@ -892,14 +892,26 @@ footer a:hover {
 /* Vendor grid */
 .vendor-auto-wrapper {
     position: relative;
+    overflow: hidden;
 }
 
 .vendor-auto-track {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 1.25rem;
-    justify-content: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    cursor: grab;
     padding-bottom: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.vendor-auto-track::-webkit-scrollbar {
+    display: none;
+}
+
+.vendor-auto-track.vendor-grabbing {
+    cursor: grabbing;
 }
 
 .vendor-auto-card {

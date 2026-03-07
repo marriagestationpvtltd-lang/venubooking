@@ -2918,7 +2918,7 @@ function getVendors($type = null) {
             $stmt = $db->prepare("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id WHERE v.status = 'active' AND v.type = ? ORDER BY v.name");
             $stmt->execute([$type]);
         } else {
-            $stmt = $db->prepare("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id WHERE v.status = 'active' ORDER BY v.type, v.name");
+            $stmt = $db->prepare("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id WHERE v.status = 'active' ORDER BY v.id DESC");
             $stmt->execute();
         }
         return $stmt->fetchAll();

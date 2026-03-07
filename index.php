@@ -1888,29 +1888,133 @@ document.addEventListener("DOMContentLoaded", function() {
 })();
 </script>
 <script>
-// ── Vendor category filter ──
+// ── Vendor auto-scroll carousel ──
 (function() {
-    var filterBar = document.getElementById(\'vendorFilterBar\');
-    if (!filterBar) return;
+    var speed = 0.5; // pixels per frame
+    var dragSensitivity = 1.5;
 
+    var filterBar = document.getElementById(\'vendorFilterBar\');
     var track = document.querySelector(\'[data-vendor-slider]\');
     if (!track) return;
 
-    filterBar.addEventListener(\'click\', function(e) {
-        var btn = e.target.closest(\'.vendor-filter-btn\');
-        if (!btn) return;
+    var hovered = false, dragging = false;
+    var rafId = null;
 
-        // Update active button style
-        filterBar.querySelectorAll(\'.vendor-filter-btn\').forEach(function(b) {
-            b.classList.toggle(\'active\', b === btn);
-        });
+    function isPaused() { return hovered || dragging; }
 
-        var filter = btn.getAttribute(\'data-filter\');
-
-        Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) {
-            card.style.display = (filter === \'all\' || card.getAttribute(\'data-vendor-type\') === filter) ? \'\' : \'none\';
-        });
+    // Mark all original cards so we can tell them apart from clones
+    Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) {
+        card.setAttribute(\'data-original\', \'1\');
     });
+
+    function initSlider() {
+        // Cancel any running animation
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+        // Remove existing clones
+        Array.from(track.querySelectorAll(\'[data-clone]\'))
+            .forEach(function(c) { track.removeChild(c); });
+
+        // Collect original visible cards
+        var origCards = Array.from(track.querySelectorAll(\'.vendor-auto-card[data-original]\'))
+            .filter(function(c) { return c.style.display !== \'none\'; });
+        if (origCards.length === 0) return;
+
+        // Clone visible cards for seamless infinite loop
+        origCards.forEach(function(card, idx) {
+            var clone = card.cloneNode(true);
+            clone.removeAttribute(\'data-original\');
+            clone.setAttribute(\'data-clone\', \'1\');
+            // Remap IDs to avoid duplicate-ID conflicts
+            var idMap = {};
+            clone.querySelectorAll(\'[id]\').forEach(function(el) {
+                var oldId = el.id;
+                var newId = oldId + \'_vc\' + idx;
+                idMap[oldId] = newId;
+                el.id = newId;
+            });
+            clone.querySelectorAll(\'[href], [data-bs-target]\').forEach(function(el) {
+                [\'href\', \'data-bs-target\'].forEach(function(attr) {
+                    var val = el.getAttribute(attr);
+                    if (val && val.charAt(0) === \'#\') {
+                        var refId = val.slice(1);
+                        if (idMap.hasOwnProperty(refId)) el.setAttribute(attr, \'#\' + idMap[refId]);
+                    }
+                });
+            });
+            track.appendChild(clone);
+        });
+
+        track.scrollLeft = 0;
+
+        function step() {
+            if (!isPaused()) {
+                track.scrollLeft += speed;
+                var half = track.scrollWidth / 2;
+                if (track.scrollLeft >= half - 1) {
+                    track.scrollLeft -= half;
+                }
+            }
+            rafId = requestAnimationFrame(step);
+        }
+        rafId = requestAnimationFrame(step);
+    }
+
+    initSlider();
+
+    // Pause on mouse hover
+    track.addEventListener(\'mouseenter\', function() { hovered = true; });
+    track.addEventListener(\'mouseleave\', function() { hovered = false; });
+
+    // Mouse drag-to-scroll
+    var isDown = false, startX = 0, scrollStart = 0;
+    track.addEventListener(\'mousedown\', function(e) {
+        isDown = true; dragging = true;
+        track.classList.add(\'vendor-grabbing\');
+        startX = e.pageX - track.offsetLeft;
+        scrollStart = track.scrollLeft;
+        document.addEventListener(\'mousemove\', onMove);
+        e.preventDefault();
+    });
+    function onMove(e) {
+        if (!isDown) return;
+        track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
+    }
+    function stopDrag() {
+        if (!isDown) return;
+        isDown = false; dragging = false;
+        track.classList.remove(\'vendor-grabbing\');
+        document.removeEventListener(\'mousemove\', onMove);
+    }
+    document.addEventListener(\'mouseup\', stopDrag);
+
+    // Touch support
+    var tStartX = 0, tScrollStart = 0;
+    track.addEventListener(\'touchstart\', function(e) {
+        hovered = true; dragging = true;
+        tStartX = e.touches[0].pageX; tScrollStart = track.scrollLeft;
+    }, { passive: true });
+    track.addEventListener(\'touchmove\', function(e) {
+        track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
+    }, { passive: true });
+    track.addEventListener(\'touchend\', function() { hovered = false; dragging = false; }, { passive: true });
+    track.addEventListener(\'touchcancel\', function() { hovered = false; dragging = false; }, { passive: true });
+
+    // Category filter buttons – reinitialise slider after filtering
+    if (filterBar) {
+        filterBar.addEventListener(\'click\', function(e) {
+            var btn = e.target.closest(\'.vendor-filter-btn\');
+            if (!btn) return;
+            filterBar.querySelectorAll(\'.vendor-filter-btn\').forEach(function(b) {
+                b.classList.toggle(\'active\', b === btn);
+            });
+            var filter = btn.getAttribute(\'data-filter\');
+            Array.from(track.querySelectorAll(\'.vendor-auto-card[data-original]\')).forEach(function(card) {
+                card.style.display = (filter === \'all\' || card.getAttribute(\'data-vendor-type\') === filter) ? \'\' : \'none\';
+            });
+            initSlider();
+        });
+    }
 })();
 </script>
 
