@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS venues (
     contact_phone VARCHAR(20),
     contact_email VARCHAR(100),
     map_link VARCHAR(500) NULL,
+    pano_image VARCHAR(255) DEFAULT NULL COMMENT '360° equirectangular panoramic image filename (stored in uploads/)',
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -123,6 +124,7 @@ CREATE TABLE IF NOT EXISTS halls (
     base_price DECIMAL(10, 2) NOT NULL,
     description TEXT,
     features TEXT,
+    pano_image VARCHAR(255) DEFAULT NULL COMMENT '360° equirectangular panoramic image filename (stored in uploads/)',
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -994,3 +996,43 @@ SELECT '' as '';
 SELECT '============================================' as '';
 SELECT 'SETUP COMPLETE - System Ready to Use!' as 'Final Status';
 SELECT '============================================' as '';
+
+-- ============================================================================
+-- SCHEMA UPGRADES: Add any missing columns to existing tables
+-- Safe to run on both fresh and existing databases (MySQL 5.7+ compatible)
+-- ============================================================================
+
+DROP PROCEDURE IF EXISTS add_pano_image_columns;
+
+DELIMITER $$
+CREATE PROCEDURE add_pano_image_columns()
+BEGIN
+    -- Add pano_image to venues if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'venues'
+          AND column_name = 'pano_image'
+    ) THEN
+        ALTER TABLE venues ADD COLUMN pano_image VARCHAR(255) DEFAULT NULL
+            COMMENT '360° equirectangular panoramic image filename (stored in uploads/)'
+            AFTER map_link;
+    END IF;
+
+    -- Add pano_image to halls if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'halls'
+          AND column_name = 'pano_image'
+    ) THEN
+        ALTER TABLE halls ADD COLUMN pano_image VARCHAR(255) DEFAULT NULL
+            COMMENT '360° equirectangular panoramic image filename (stored in uploads/)'
+            AFTER features;
+    END IF;
+END$$
+
+DELIMITER ;
+
+CALL add_pano_image_columns();
+DROP PROCEDURE IF EXISTS add_pano_image_columns;
