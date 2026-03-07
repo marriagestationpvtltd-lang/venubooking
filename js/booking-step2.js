@@ -407,11 +407,34 @@ function ensurePanoModal() {
     }
 }
 
+// Render a plain-image fallback inside the pano container
+function showPanoFallback(containerId, panoUrl, message) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    container.style.background = '#000';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.innerHTML = '';
+    var img = document.createElement('img');
+    img.src = panoUrl;
+    img.alt = '360\u00b0 panoramic photo';
+    img.style.cssText = 'max-width:100%;max-height:440px;object-fit:contain;';
+    container.appendChild(img);
+    if (message) {
+        var p = document.createElement('p');
+        p.className = 'text-white mt-2 small';
+        p.textContent = message;
+        container.appendChild(p);
+    }
+}
+
 // Open the 360° panoramic viewer modal for a hall
 function openPanoViewer(panoUrl, hallName) {
     ensurePanoModal();
     const modalEl = document.getElementById('panoViewerModal');
-    if (!modalEl || typeof pannellum === 'undefined') return;
+    if (!modalEl) return;
 
     // Set hall name in modal title
     const nameEl = document.getElementById('panoViewerHallName');
@@ -421,7 +444,7 @@ function openPanoViewer(panoUrl, hallName) {
     const modal = bootstrap.Modal.getOrCreate(modalEl);
     modal.show();
 
-    // Initialise Pannellum after the modal is fully visible
+    // Initialise Pannellum (or fallback) after the modal is fully visible
     modalEl.addEventListener('shown.bs.modal', function initViewer() {
         // Destroy any existing instance first
         if (window._panoViewerInstance) {
@@ -429,17 +452,35 @@ function openPanoViewer(panoUrl, hallName) {
             window._panoViewerInstance = null;
         }
 
+        const container = document.getElementById('panoViewerContainer');
+        if (container) container.innerHTML = '';
+
+        if (typeof pannellum === 'undefined') {
+            showPanoFallback('panoViewerContainer', panoUrl,
+                'Interactive 360° viewer unavailable — showing flat preview.');
+            return;
+        }
+
         window._panoViewerInstance = pannellum.viewer('panoViewerContainer', {
             type: 'equirectangular',
             panorama: panoUrl,
             autoLoad: true,
-            autoRotate: -2,            // negative = counter-clockwise, degrees/second
+            autoRotate: -2,
             autoRotateInactivityDelay: 3000,
             showControls: true,
             showZoomCtrl: true,
             showFullscreenCtrl: true,
             compass: false,
             keyboardZoom: false
+        });
+
+        window._panoViewerInstance.on('error', function() {
+            if (window._panoViewerInstance) {
+                window._panoViewerInstance.destroy();
+                window._panoViewerInstance = null;
+            }
+            showPanoFallback('panoViewerContainer', panoUrl,
+                'Could not load interactive viewer — showing flat preview.');
         });
     }, { once: true });
 }
