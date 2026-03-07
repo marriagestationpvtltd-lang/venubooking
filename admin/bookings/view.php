@@ -363,6 +363,13 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
         }
     }
 }
+
+// Resolve display time – prefer saved start/end times; fall back to shift defaults so that
+// the booking time is always visible in both the screen view and the print invoice.
+$shift_default_times  = getShiftDefaultTimes($booking['shift']);
+$display_start_time   = !empty($booking['start_time']) ? $booking['start_time'] : $shift_default_times['start'];
+$display_end_time     = !empty($booking['end_time'])   ? $booking['end_time']   : $shift_default_times['end'];
+$has_display_time     = !empty($display_start_time) && !empty($display_end_time);
 ?>
 
 <div class="print-invoice-only" style="display: none;">
@@ -434,12 +441,11 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                     <span class="info-label">Event Date:</span>
                     <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> — <?php echo ucfirst($booking['shift']); ?></span>
                 </div>
-                <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>
+                <?php if ($has_display_time): ?>
                 <div class="info-row">
                     <span class="info-label">Event Time:</span>
                     <span class="info-value">
-                        <i class="fas fa-clock text-success me-1"></i>
-                        <?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>
+                        <?php echo formatBookingTime($display_start_time); ?> – <?php echo formatBookingTime($display_end_time); ?>
                     </span>
                 </div>
                 <?php endif; ?>
@@ -1096,10 +1102,10 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                 <i class="far fa-clock text-warning me-2"></i>
                                 <?php echo ucfirst($booking['shift']); ?>
                             </p>
-                            <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>
+                            <?php if ($has_display_time): ?>
                             <small class="text-muted">
                                 <i class="fas fa-hourglass-start me-1"></i>
-                                <?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>
+                                <?php echo formatBookingTime($display_start_time); ?> – <?php echo formatBookingTime($display_end_time); ?>
                             </small>
                             <?php endif; ?>
                         </div>
