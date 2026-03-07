@@ -3163,6 +3163,11 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
     $text  = "Dear " . strip_tags($vendor_name) . ",\n\n";
     $text .= "We would like to inform you that you have been officially assigned to the following event. Please find the details below:\n\n";
     $text .= "Event Date: " . convertToNepaliDate($booking['event_date']) . "\n";
+    $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift'] ?? ''));
+    if (!empty($booking['start_time']) && !empty($booking['end_time'])) {
+        $text .= " (" . formatBookingTime($booking['start_time']) . " – " . formatBookingTime($booking['end_time']) . ")";
+    }
+    $text .= "\n";
     $text .= "Event Type / Service: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
     $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
