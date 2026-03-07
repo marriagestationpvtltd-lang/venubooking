@@ -36,9 +36,12 @@ access_log
 *.swp
 *~
 
-# Vendor directories (if using Composer)
-vendor/
+# Vendor directories (if using Composer) — root-level only
+/vendor/
 composer.lock
+
+# Admin frontend vendor (Bootstrap, jQuery etc.) — track these
+!/admin/vendor/
 
 # Node modules (if using npm)
 node_modules/
