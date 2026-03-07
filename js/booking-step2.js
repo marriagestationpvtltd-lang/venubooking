@@ -443,7 +443,7 @@ function openPanoViewer(panoUrl, hallName) {
     if (nameEl) nameEl.textContent = hallName;
 
     // Show the modal
-    const modal = bootstrap.Modal.getOrCreate(modalEl);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 
     // Initialise Pannellum (or fallback) after the modal is fully visible

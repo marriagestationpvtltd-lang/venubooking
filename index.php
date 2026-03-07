@@ -1513,7 +1513,7 @@ if (!empty($about_images)):
         if (!modalEl) return;
         var nameEl = document.getElementById('homePanoViewerVenueName');
         if (nameEl) nameEl.textContent = venueName;
-        var modal = bootstrap.Modal.getOrCreate(modalEl);
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
         modalEl.addEventListener('shown.bs.modal', function initViewer() {
             if (window._homePanoViewerInstance) {
