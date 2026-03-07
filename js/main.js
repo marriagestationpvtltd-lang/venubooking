@@ -8,6 +8,9 @@ let appSettings = {
     tax_rate: 13
 };
 
+// Tracks which form fields already have an error-clear listener attached
+const _errorClearListeners = new WeakMap();
+
 // Load settings from API
 async function loadSettings() {
     try {
@@ -200,6 +203,20 @@ function showFieldError(input, message) {
     }
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
+
+    // Clear the error as soon as the user starts correcting the field
+    if (!_errorClearListeners.has(input)) {
+        const eventType = (input.type === 'file' || input.type === 'radio' ||
+            input.type === 'checkbox' || input.tagName === 'SELECT') ? 'change' : 'input';
+        const clearError = function() {
+            input.classList.remove('is-invalid');
+            hideFieldError(input);
+            _errorClearListeners.delete(input);
+            input.removeEventListener(eventType, clearError);
+        };
+        input.addEventListener(eventType, clearError);
+        _errorClearListeners.set(input, clearError);
+    }
 }
 
 // Hide field error
@@ -238,6 +255,19 @@ function validateRequiredFields(formElement) {
         if (!field.value.trim()) {
             field.classList.add('is-invalid');
             allValid = false;
+
+            // Clear the error as soon as the user starts correcting the field
+            if (!_errorClearListeners.has(field)) {
+                const eventType = (field.type === 'file' || field.type === 'radio' ||
+                    field.type === 'checkbox' || field.tagName === 'SELECT') ? 'change' : 'input';
+                const clearError = function() {
+                    field.classList.remove('is-invalid');
+                    _errorClearListeners.delete(field);
+                    field.removeEventListener(eventType, clearError);
+                };
+                field.addEventListener(eventType, clearError);
+                _errorClearListeners.set(field, clearError);
+            }
         }
     });
     
