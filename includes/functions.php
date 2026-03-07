@@ -310,6 +310,38 @@ function formatBookingTime($time) {
 }
 
 /**
+ * Generate HTML <option> elements for a time dropdown.
+ *
+ * Options span 00:00–23:30 in 30-minute intervals.
+ * Values are stored as "HH:MM" (24-hour); labels are shown in 12-hour AM/PM format.
+ *
+ * @param  string $selected  Currently selected time in "HH:MM" or "HH:MM:SS" format
+ * @return string            HTML <option> tags (safe to echo inside a <select>)
+ */
+function generateTimeOptions($selected = '') {
+    // Normalize to "HH:MM" so comparison works regardless of seconds.
+    // Accept only valid HH:MM values to prevent any injection through the
+    // $selected parameter (values are matched against a known safe list).
+    if (!empty($selected)) {
+        $selected = substr($selected, 0, 5);
+        // Discard anything that does not look like a time value
+        if (!preg_match('/^\d{2}:\d{2}$/', $selected)) {
+            $selected = '';
+        }
+    }
+    $html = '<option value="">-- Select Time --</option>';
+    for ($h = 0; $h < 24; $h++) {
+        foreach ([0, 30] as $m) {
+            $value = sprintf('%02d:%02d', $h, $m);
+            $label = date('h:i A', mktime($h, $m, 0));
+            $sel   = ($value === $selected) ? ' selected' : '';
+            $html .= "<option value=\"{$value}\"{$sel}>{$label}</option>";
+        }
+    }
+    return $html;
+}
+
+/**
  * Check if hall is available for booking
  */
 function checkHallAvailability($hall_id, $date, $shift) {

@@ -89,13 +89,17 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <label for="start_time" class="form-label small text-muted mb-1">Start Time</label>
-                                        <input type="time" class="form-control form-control-sm" id="start_time" name="start_time" required>
-                                        <div class="invalid-feedback">Please enter a start time.</div>
+                                        <select class="form-select form-select-sm" id="start_time" name="start_time" required>
+                                            <?php echo generateTimeOptions(); ?>
+                                        </select>
+                                        <div class="invalid-feedback">Please select a start time.</div>
                                     </div>
                                     <div class="col-6">
                                         <label for="end_time" class="form-label small text-muted mb-1">End Time</label>
-                                        <input type="time" class="form-control form-control-sm" id="end_time" name="end_time" required>
-                                        <div class="invalid-feedback">Please enter an end time.</div>
+                                        <select class="form-select form-select-sm" id="end_time" name="end_time" required>
+                                            <?php echo generateTimeOptions(); ?>
+                                        </select>
+                                        <div class="invalid-feedback">Please select an end time.</div>
                                     </div>
                                 </div>
                                 <small class="form-text text-muted">Auto-filled from shift — adjust if needed.</small>

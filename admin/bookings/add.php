@@ -282,22 +282,27 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="mb-3">
                                 <label for="start_time" class="form-label"><i class="fas fa-hourglass-start text-success me-1"></i>Start Time</label>
                                 <?php
-                                    // Use submitted value, or derive default from the selected shift
-                                    $default_shift = isset($_POST['shift']) ? $_POST['shift'] : 'evening';
-                                    $default_times = getShiftDefaultTimes($default_shift);
-                                    $add_start_time = isset($_POST['start_time']) ? htmlspecialchars($_POST['start_time']) : $default_times['start'];
-                                    $add_end_time   = isset($_POST['end_time'])   ? htmlspecialchars($_POST['end_time'])   : $default_times['end'];
+                                    // Use submitted value, or derive default from the selected shift.
+                                    // Strip to "HH:MM" and sanitize before passing to generateTimeOptions.
+                                    $default_shift  = isset($_POST['shift']) ? $_POST['shift'] : 'evening';
+                                    $default_times  = getShiftDefaultTimes($default_shift);
+                                    $raw_start      = isset($_POST['start_time']) ? $_POST['start_time'] : $default_times['start'];
+                                    $raw_end        = isset($_POST['end_time'])   ? $_POST['end_time']   : $default_times['end'];
+                                    $add_start_time = preg_match('/^\d{2}:\d{2}$/', substr($raw_start, 0, 5)) ? substr($raw_start, 0, 5) : $default_times['start'];
+                                    $add_end_time   = preg_match('/^\d{2}:\d{2}$/', substr($raw_end, 0, 5))   ? substr($raw_end, 0, 5)   : $default_times['end'];
                                 ?>
-                                <input type="time" class="form-control" id="start_time" name="start_time"
-                                       value="<?php echo $add_start_time; ?>">
+                                <select class="form-select" id="start_time" name="start_time">
+                                    <?php echo generateTimeOptions($add_start_time); ?>
+                                </select>
                                 <small class="text-muted">Auto-filled from shift; adjust if needed.</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="end_time" class="form-label"><i class="fas fa-hourglass-end text-success me-1"></i>End Time</label>
-                                <input type="time" class="form-control" id="end_time" name="end_time"
-                                       value="<?php echo $add_end_time; ?>">
+                                <select class="form-select" id="end_time" name="end_time">
+                                    <?php echo generateTimeOptions($add_end_time); ?>
+                                </select>
                             </div>
                         </div>
                     </div>

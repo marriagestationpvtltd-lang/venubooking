@@ -329,16 +329,18 @@ require_once __DIR__ . '/../includes/header.php';
                                     $edit_start = !empty($booking['start_time']) ? substr($booking['start_time'], 0, 5) : $edit_default_times['start'];
                                     $edit_end   = !empty($booking['end_time'])   ? substr($booking['end_time'], 0, 5)   : $edit_default_times['end'];
                                 ?>
-                                <input type="time" class="form-control" id="start_time" name="start_time"
-                                       value="<?php echo htmlspecialchars($edit_start); ?>">
+                                <select class="form-select" id="start_time" name="start_time">
+                                    <?php echo generateTimeOptions($edit_start); ?>
+                                </select>
                                 <small class="text-muted">Auto-filled from shift; adjust if needed.</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="end_time" class="form-label"><i class="fas fa-hourglass-end text-success me-1"></i>End Time</label>
-                                <input type="time" class="form-control" id="end_time" name="end_time"
-                                       value="<?php echo htmlspecialchars($edit_end); ?>">
+                                <select class="form-select" id="end_time" name="end_time">
+                                    <?php echo generateTimeOptions($edit_end); ?>
+                                </select>
                             </div>
                         </div>
                     </div>
