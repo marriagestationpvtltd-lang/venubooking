@@ -1893,9 +1893,8 @@ document.addEventListener("DOMContentLoaded", function() {
     var filterBar = document.getElementById(\'vendorFilterBar\');
     if (!filterBar) return;
 
-    var wrapper = document.querySelector(\'.vendor-auto-wrapper\');
     var track = document.querySelector(\'[data-vendor-slider]\');
-    if (!track || !wrapper) return;
+    if (!track) return;
 
     filterBar.addEventListener(\'click\', function(e) {
         var btn = e.target.closest(\'.vendor-filter-btn\');
@@ -1908,123 +1907,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
         var filter = btn.getAttribute(\'data-filter\');
 
-        if (filter === \'all\') {
-            // Restore auto-scroll: show all cards, remove filter-active flag
-            wrapper.removeAttribute(\'data-filter-active\');
-            Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) {
-                card.style.display = \'\';
-            });
-            track.scrollLeft = 0;
-        } else {
-            // Activate filter: pause auto-scroll, show only matching cards
-            wrapper.setAttribute(\'data-filter-active\', filter);
-            Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) {
-                card.style.display = card.getAttribute(\'data-vendor-type\') === filter ? \'\' : \'none\';
-            });
-            track.scrollLeft = 0;
-        }
+        Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) {
+            card.style.display = (filter === \'all\' || card.getAttribute(\'data-vendor-type\') === filter) ? \'\' : \'none\';
+        });
     });
 })();
 </script>
-<script>
-// ── Auto-scroll for vendor slider ──
-(function() {
-    var speed = 0.5; // pixels per frame
-    var dragSensitivity = 1.5;
 
-    document.querySelectorAll("[data-vendor-slider]").forEach(function(track) {
-        // Only enable auto-scroll when content overflows the wrapper
-        if (track.scrollWidth <= track.clientWidth) return;
-
-        // Duplicate cards for seamless infinite loop
-        var origCards = Array.from(track.children);
-        origCards.forEach(function(card, idx) {
-            var clone = card.cloneNode(true);
-            // Remap all IDs in the clone to avoid duplicate-ID conflicts.
-            var idMap = {};
-            clone.querySelectorAll(\'[id]\').forEach(function(el) {
-                var oldId = el.id;
-                var newId = oldId + \'_vc\' + idx;
-                idMap[oldId] = newId;
-                el.id = newId;
-            });
-            // Update all href and data-bs-target references in a single pass
-            clone.querySelectorAll(\'[href], [data-bs-target]\').forEach(function(el) {
-                [\'href\', \'data-bs-target\'].forEach(function(attr) {
-                    var val = el.getAttribute(attr);
-                    if (val && val.charAt(0) === \'#\') {
-                        var refId = val.slice(1);
-                        if (idMap.hasOwnProperty(refId)) {
-                            el.setAttribute(attr, \'#\' + idMap[refId]);
-                        }
-                    }
-                });
-            });
-            track.appendChild(clone);
-        });
-
-        var hovered = false, dragging = false;
-
-        function isPaused() { return hovered || dragging || (track.parentElement && track.parentElement.hasAttribute(\'data-filter-active\')); }
-
-        function step() {
-            if (!isPaused()) {
-                track.scrollLeft += speed;
-                var half = track.scrollWidth / 2;
-                // Reset 1px early to tolerate floating-point rounding
-                // (scrollLeft may not land exactly on half before overshooting)
-                if (track.scrollLeft >= half - 1) {
-                    track.scrollLeft -= half;
-                }
-            }
-            requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
-
-        // Pause on mouse hover
-        track.addEventListener("mouseenter", function() { hovered = true; });
-        track.addEventListener("mouseleave", function() { hovered = false; });
-
-        // Mouse drag-to-scroll
-        var isDown = false, startX = 0, scrollStart = 0;
-        track.addEventListener("mousedown", function(e) {
-            isDown = true;
-            dragging = true;
-            track.classList.add("vendor-auto-grabbing");
-            startX = e.pageX - track.offsetLeft;
-            scrollStart = track.scrollLeft;
-            document.addEventListener("mousemove", onMove);
-            e.preventDefault();
-        });
-        function onMove(e) {
-            if (!isDown) return;
-            track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
-        }
-        function stopDrag() {
-            if (!isDown) return;
-            isDown = false;
-            dragging = false;
-            track.classList.remove("vendor-auto-grabbing");
-            document.removeEventListener("mousemove", onMove);
-        }
-        document.addEventListener("mouseup", stopDrag);
-
-        // Touch: pause auto-scroll and drag-to-scroll
-        var tStartX = 0, tScrollStart = 0;
-        track.addEventListener("touchstart", function(e) {
-            hovered = true;
-            dragging = true;
-            tStartX = e.touches[0].pageX;
-            tScrollStart = track.scrollLeft;
-        }, { passive: true });
-        track.addEventListener("touchmove", function(e) {
-            track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
-        }, { passive: true });
-        track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
-        track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
-    });
-})();
-</script>
 ';
 require_once __DIR__ . '/includes/footer.php';
 ?>
