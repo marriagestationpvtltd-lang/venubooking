@@ -28,6 +28,13 @@ if ($payment_submitted) {
 // Clear the booking completed session
 unset($_SESSION['booking_completed']);
 
+// Resolve display time – prefer saved start/end times; fall back to shift defaults so the
+// booking time is always visible in the confirmation details and when printing.
+$conf_shift_times      = getShiftDefaultTimes($booking['shift']);
+$conf_display_start    = !empty($booking['start_time']) ? $booking['start_time'] : $conf_shift_times['start'];
+$conf_display_end      = !empty($booking['end_time'])   ? $booking['end_time']   : $conf_shift_times['end'];
+$conf_has_display_time = !empty($conf_display_start) && !empty($conf_display_end);
+
 $page_title = 'Booking Confirmed';
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -88,8 +95,8 @@ require_once __DIR__ . '/includes/header.php';
                                 </div>
                                 <div class="mb-1">
                                     <strong>Shift:</strong> <?php echo ucfirst($booking['shift']); ?>
-                                    <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>
-                                        <span class="text-muted ms-1">(<?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>)</span>
+                                    <?php if ($conf_has_display_time): ?>
+                                        <span class="text-muted ms-1">(<?php echo formatBookingTime($conf_display_start); ?> – <?php echo formatBookingTime($conf_display_end); ?>)</span>
                                     <?php endif; ?>
                                 </div>
                                 <div class="mb-1">
