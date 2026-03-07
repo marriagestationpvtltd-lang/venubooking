@@ -87,68 +87,134 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Form validation
-        bookingForm.addEventListener('submit', function(event) {
-            const shift = document.getElementById('shift').value;
-            const eventDate = document.getElementById('event_date').value;
-            const guests = parseInt(document.getElementById('guests').value);
-            const eventType = document.getElementById('event_type').value;
-            
-            let errors = [];
-            
-            if (!shift) {
-                errors.push('Please select a shift');
-            }
-            
-            if (!eventDate) {
-                errors.push('Please select an event date');
-            } else {
-                const selectedDate = new Date(eventDate);
-                
-                // Use Nepal timezone for validation
-                let todayInNepal;
-                if (typeof window.nepaliDateUtils !== 'undefined' && window.nepaliDateUtils.getTodayInNepal) {
-                    const nepalToday = window.nepaliDateUtils.getTodayInNepal();
-                    todayInNepal = new Date(Date.UTC(nepalToday.year, nepalToday.month - 1, nepalToday.day));
+        // Helper: mark a field as invalid (shows its inline error message)
+        function markFieldInvalid(el) {
+            el.classList.add('is-invalid');
+            el.classList.remove('is-valid');
+        }
+
+        // Helper: mark a field as valid (hides its inline error message)
+        function markFieldValid(el) {
+            el.classList.remove('is-invalid');
+            el.classList.add('is-valid');
+        }
+
+        // Real-time error clearing: update validation state when the user
+        // interacts with a field.
+        function addRealTimeClear(el, eventType) {
+            el.addEventListener(eventType, function() {
+                if (this.value) {
+                    markFieldValid(this);
                 } else {
-                    // Fallback to client time
-                    todayInNepal = new Date();
-                    todayInNepal.setHours(0, 0, 0, 0);
-                }
-                
-                if (selectedDate <= todayInNepal) {
-                    errors.push('Event date must be in the future');
-                }
-            }
-            
-            if (!guests || guests < 10) {
-                errors.push('Minimum 10 guests required');
-            }
-            
-            if (!eventType) {
-                errors.push('Please select an event type');
-            }
-            
-            if (errors.length > 0) {
-                event.preventDefault();
-                showError(errors.join('\n'));
-                return false;
-            }
-        });
-        
-        // Real-time validation
-        const guestsInput = document.getElementById('guests');
-        if (guestsInput) {
-            guestsInput.addEventListener('input', function() {
-                const value = parseInt(this.value);
-                if (value && value < 10) {
-                    this.classList.add('is-invalid');
-                } else if (value) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
+                    // Field was cleared — remove all validation styling
+                    this.classList.remove('is-invalid', 'is-valid');
                 }
             });
         }
+
+        const cityEl      = document.getElementById('city_id');
+        const shiftEl     = document.getElementById('shift');
+        const startTimeEl = document.getElementById('start_time');
+        const endTimeEl   = document.getElementById('end_time');
+        const eventDateEl = document.getElementById('event_date');
+        const guestsInput = document.getElementById('guests');
+        const eventTypeEl = document.getElementById('event_type');
+
+        // Attach real-time clearing listeners
+        if (cityEl)      addRealTimeClear(cityEl,      'change');
+        if (shiftEl)     addRealTimeClear(shiftEl,     'change');
+        if (startTimeEl) addRealTimeClear(startTimeEl, 'change');
+        if (endTimeEl)   addRealTimeClear(endTimeEl,   'change');
+        if (eventDateEl) addRealTimeClear(eventDateEl, 'change');
+        if (eventTypeEl) addRealTimeClear(eventTypeEl, 'change');
+        if (guestsInput) {
+            guestsInput.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                if (!this.value) {
+                    // Field cleared — remove all validation styling
+                    this.classList.remove('is-invalid', 'is-valid');
+                } else if (value && value >= 10) {
+                    markFieldValid(this);
+                } else {
+                    markFieldInvalid(this);
+                }
+            });
+        }
+
+        // Form validation on submit — mark each field individually so that
+        // filled fields do NOT show an error and empty/invalid ones do.
+        bookingForm.addEventListener('submit', function(event) {
+            let isValid = true;
+
+            // City
+            if (cityEl) {
+                if (!cityEl.value) { markFieldInvalid(cityEl); isValid = false; }
+                else { markFieldValid(cityEl); }
+            }
+
+            // Shift
+            if (shiftEl) {
+                if (!shiftEl.value) { markFieldInvalid(shiftEl); isValid = false; }
+                else { markFieldValid(shiftEl); }
+            }
+
+            // Start time
+            if (startTimeEl) {
+                if (!startTimeEl.value) { markFieldInvalid(startTimeEl); isValid = false; }
+                else { markFieldValid(startTimeEl); }
+            }
+
+            // End time
+            if (endTimeEl) {
+                if (!endTimeEl.value) { markFieldInvalid(endTimeEl); isValid = false; }
+                else { markFieldValid(endTimeEl); }
+            }
+
+            // Event date
+            if (eventDateEl) {
+                const eventDate = eventDateEl.value;
+                if (!eventDate) {
+                    markFieldInvalid(eventDateEl); isValid = false;
+                } else {
+                    const selectedDate = new Date(eventDate);
+
+                    // Use Nepal timezone for validation
+                    let todayInNepal;
+                    if (typeof window.nepaliDateUtils !== 'undefined' && window.nepaliDateUtils.getTodayInNepal) {
+                        const nepalToday = window.nepaliDateUtils.getTodayInNepal();
+                        todayInNepal = new Date(Date.UTC(nepalToday.year, nepalToday.month - 1, nepalToday.day));
+                    } else {
+                        // Fallback to client time
+                        todayInNepal = new Date();
+                        todayInNepal.setHours(0, 0, 0, 0);
+                    }
+
+                    if (selectedDate <= todayInNepal) {
+                        markFieldInvalid(eventDateEl); isValid = false;
+                    } else {
+                        markFieldValid(eventDateEl);
+                    }
+                }
+            }
+
+            // Guests
+            if (guestsInput) {
+                const guests = parseInt(guestsInput.value);
+                if (!guests || guests < 10) { markFieldInvalid(guestsInput); isValid = false; }
+                else { markFieldValid(guestsInput); }
+            }
+
+            // Event type
+            if (eventTypeEl) {
+                if (!eventTypeEl.value) { markFieldInvalid(eventTypeEl); isValid = false; }
+                else { markFieldValid(eventTypeEl); }
+            }
+
+            if (!isValid) {
+                event.preventDefault();
+                return false;
+            }
+        });
     }
 });
 
