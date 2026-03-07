@@ -161,6 +161,14 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                         $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
                     }
                     $step2_carousel_id = 'venueStep2Carousel' . $venue['id'];
+                    // Build 360° panoramic URL if the venue has one
+                    $venue_pano_url = '';
+                    if (!empty($venue['pano_image'])) {
+                        $pano_filename = basename($venue['pano_image']);
+                        if (preg_match(SAFE_FILENAME_PATTERN, $pano_filename) && file_exists(UPLOAD_PATH . $pano_filename)) {
+                            $venue_pano_url = UPLOAD_URL . rawurlencode($pano_filename);
+                        }
+                    }
                 ?>
                     <div class="col-md-6 col-lg-4" data-venue-name="<?php echo htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="venue-card card h-100 shadow-sm">
@@ -202,6 +210,12 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                                     <?php endif; ?>
                                 </p>
                                 <p class="card-text text-muted"><?php echo sanitize(substr($venue['description'], 0, 100)); ?>...</p>
+                                <?php if (!empty($venue_pano_url)): ?>
+                                <button type="button" class="btn btn-outline-primary w-100 mb-2"
+                                        onclick="openPanoViewer(<?php echo json_encode($venue_pano_url); ?>, <?php echo json_encode(htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8')); ?>)">
+                                    <i class="fas fa-street-view"></i> View 360° Photo
+                                </button>
+                                <?php endif; ?>
                                 <button type="button" class="btn btn-success w-100" 
                                         onclick="showHalls(<?php echo $venue['id']; ?>, '<?php echo sanitize($venue['name']); ?>')">
                                     <i class="fas fa-eye"></i> View Halls

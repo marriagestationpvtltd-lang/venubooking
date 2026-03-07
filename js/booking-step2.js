@@ -141,34 +141,7 @@ function displayHalls(halls, venueName) {
     hallsContainer.innerHTML = '';
     
     // Ensure the 360° pano modal exists in the DOM (inject once)
-    if (!document.getElementById('panoViewerModal')) {
-        const modalHtml = `
-        <div class="modal fade" id="panoViewerModal" tabindex="-1" aria-labelledby="panoViewerModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="panoViewerModalLabel">
-                            <i class="fas fa-street-view text-primary"></i> <span id="panoViewerHallName"></span> — 360° View
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body p-0">
-                        <div id="panoViewerContainer" style="width:100%;height:480px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        // Destroy Pannellum viewer when modal closes to free resources
-        const panoModal = document.getElementById('panoViewerModal');
-        panoModal.addEventListener('hidden.bs.modal', function() {
-            if (window._panoViewerInstance) {
-                window._panoViewerInstance.destroy();
-                window._panoViewerInstance = null;
-            }
-        });
-    }
+    ensurePanoModal();
 
     // Build all hall cards HTML first for better performance
     let hallsHtml = '';
@@ -403,8 +376,40 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
     });
 }
 
+// Ensure the 360° pano viewer modal exists in the DOM (inject once)
+function ensurePanoModal() {
+    if (!document.getElementById('panoViewerModal')) {
+        const modalHtml = `
+        <div class="modal fade" id="panoViewerModal" tabindex="-1" aria-labelledby="panoViewerModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="panoViewerModalLabel">
+                            <i class="fas fa-street-view text-primary"></i> <span id="panoViewerHallName"></span> — 360° View
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <div id="panoViewerContainer" style="width:100%;height:480px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Destroy Pannellum viewer when modal closes to free resources
+        document.getElementById('panoViewerModal').addEventListener('hidden.bs.modal', function() {
+            if (window._panoViewerInstance) {
+                window._panoViewerInstance.destroy();
+                window._panoViewerInstance = null;
+            }
+        });
+    }
+}
+
 // Open the 360° panoramic viewer modal for a hall
 function openPanoViewer(panoUrl, hallName) {
+    ensurePanoModal();
     const modalEl = document.getElementById('panoViewerModal');
     if (!modalEl || typeof pannellum === 'undefined') return;
 
