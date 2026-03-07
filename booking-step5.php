@@ -433,6 +433,7 @@ require_once __DIR__ . '/includes/header.php';
                                                 <option value="<?php echo $method['id']; ?>" <?php echo ($payment_method_id == $method['id']) ? 'selected' : ''; ?>><?php echo sanitize($method['name']); ?></option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <div class="invalid-feedback">Please select a payment method.</div>
                                     </div>
 
                                     <!-- Payment Method Details Display -->
@@ -470,6 +471,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <label for="transaction_id" class="form-label">Transaction ID / Reference Number <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="transaction_id" name="transaction_id" 
                                            placeholder="Enter your transaction ID or reference number" value="<?php echo sanitize($transaction_id); ?>">
+                                    <div class="invalid-feedback">Please enter the transaction ID / reference number.</div>
                                     <small class="form-text text-muted">The reference number from your payment transaction</small>
                                 </div>
 
@@ -478,6 +480,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <label for="paid_amount" class="form-label">Paid Amount <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="paid_amount" name="paid_amount" 
                                            step="0.01" min="0" placeholder="0.00" value="<?php echo !empty($paid_amount) ? sanitize($paid_amount) : $advance['amount']; ?>">
+                                    <div class="invalid-feedback">Please enter a valid paid amount.</div>
                                     <small class="form-text text-muted">Amount you have paid</small>
                                 </div>
 
@@ -486,6 +489,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <label for="payment_slip" class="form-label">Payment Slip / Screenshot <span class="text-danger">*</span></label>
                                     <input type="file" class="form-control" id="payment_slip" name="payment_slip" 
                                            accept="image/*">
+                                    <div class="invalid-feedback">Please upload the payment slip / screenshot.</div>
                                     <small class="form-text text-muted">Upload a screenshot or photo of your payment receipt (JPG, PNG, GIF, or WebP)</small>
                                 </div>
                             </div>
@@ -714,22 +718,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const backToPaymentBtn = document.getElementById('back_to_payment_btn');
     
     // Clear validation errors in real-time as the user fills in the fields
-    const fullNameInput = document.getElementById('full_name');
-    const phoneInput = document.getElementById('phone');
-    if (fullNameInput) {
-        fullNameInput.addEventListener('input', function() {
-            if (this.value.trim()) {
+    function attachErrorClearListener(input) {
+        if (!input) return;
+        const isBinary = input.type === 'file' || input.type === 'radio' ||
+            input.type === 'checkbox' || input.tagName === 'SELECT';
+        const eventType = isBinary ? 'change' : 'input';
+        input.addEventListener(eventType, function() {
+            const hasValue = isBinary
+                ? (input.type === 'file' ? input.files && input.files.length > 0 : input.value)
+                : input.value.trim();
+            if (hasValue) {
                 this.classList.remove('is-invalid');
             }
         });
     }
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function() {
-            if (this.value.trim()) {
-                this.classList.remove('is-invalid');
-            }
-        });
-    }
+
+    [
+        document.getElementById('full_name'),
+        document.getElementById('phone'),
+        document.getElementById('email'),
+        document.getElementById('address'),
+        document.getElementById('special_requests'),
+        document.getElementById('transaction_id'),
+        document.getElementById('paid_amount'),
+        document.getElementById('payment_method_id'),
+        document.getElementById('payment_slip')
+    ].forEach(attachErrorClearListener);
 
     // Step 1 -> Step 2: Show Bill Summary
     continueToBillBtn.addEventListener('click', function() {
@@ -851,29 +865,37 @@ document.addEventListener('DOMContentLoaded', function() {
     if (customerForm) {
         customerForm.addEventListener('submit', function(e) {
             if (paymentWithRadio && paymentWithRadio.checked) {
-                const paymentMethodId = document.getElementById('payment_method_id').value;
-                const transactionId = document.getElementById('transaction_id').value.trim();
-                const paidAmount = document.getElementById('paid_amount').value;
-                const paymentSlip = document.getElementById('payment_slip').files.length;
-                
-                if (!paymentMethodId) {
+                const paymentMethodEl = document.getElementById('payment_method_id');
+                const transactionIdEl = document.getElementById('transaction_id');
+                const paidAmountEl = document.getElementById('paid_amount');
+                const paymentSlipEl = document.getElementById('payment_slip');
+
+                let firstInvalid = null;
+
+                if (!paymentMethodEl.value) {
                     e.preventDefault();
-                    alert('Please select a payment method.');
-                    return false;
+                    paymentMethodEl.classList.add('is-invalid');
+                    if (!firstInvalid) firstInvalid = paymentMethodEl;
                 }
-                if (!transactionId) {
+                if (!transactionIdEl.value.trim()) {
                     e.preventDefault();
-                    alert('Please enter the transaction ID / reference number.');
-                    return false;
+                    transactionIdEl.classList.add('is-invalid');
+                    if (!firstInvalid) firstInvalid = transactionIdEl;
                 }
-                if (!paidAmount || parseFloat(paidAmount) <= 0) {
+                if (!paidAmountEl.value || parseFloat(paidAmountEl.value) <= 0) {
                     e.preventDefault();
-                    alert('Please enter a valid paid amount.');
-                    return false;
+                    paidAmountEl.classList.add('is-invalid');
+                    if (!firstInvalid) firstInvalid = paidAmountEl;
                 }
-                if (!paymentSlip) {
+                if (!paymentSlipEl.files || paymentSlipEl.files.length === 0) {
                     e.preventDefault();
-                    alert('Please upload the payment slip / screenshot.');
+                    paymentSlipEl.classList.add('is-invalid');
+                    if (!firstInvalid) firstInvalid = paymentSlipEl;
+                }
+
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
                     return false;
                 }
             }
