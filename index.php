@@ -1094,7 +1094,13 @@ if (!empty($vendors)):
 
         <div class="vendor-auto-wrapper">
             <div class="vendor-auto-track" data-vendor-slider>
-                <?php foreach ($vendors as $vendor):
+                <?php
+                $seen_vendor_ids = [];
+                foreach ($vendors as $vendor):
+                    // Deduplicate: skip vendors already rendered
+                    if (in_array((int)$vendor['id'], $seen_vendor_ids, true)) continue;
+                    $seen_vendor_ids[] = (int)$vendor['id'];
+
                     $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
                     $vendor_name        = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
                     $vendor_location    = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
@@ -1153,9 +1159,9 @@ if (!empty($vendors)):
                                 <?php endif; ?>
                                 <!-- Vendor Location -->
                                 <?php if (!empty($vendor_location)): ?>
-                                    <p class="card-text text-muted mb-2">
-                                        <i class="fas fa-map-marker-alt text-success"></i>
-                                        <?php echo $vendor_location; ?>
+                                    <p class="card-text text-muted mb-2 d-flex align-items-center gap-1">
+                                        <i class="fas fa-map-marker-alt text-success flex-shrink-0"></i>
+                                        <span><?php echo $vendor_location; ?></span>
                                     </p>
                                 <?php endif; ?>
 
