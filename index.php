@@ -1,5 +1,6 @@
 <?php
 $page_title = 'Book Your Event';
+$extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">';
 require_once __DIR__ . '/includes/header.php';
 
 // Get ALL banner images (not limited to 1)
@@ -389,6 +390,14 @@ if (!empty($venues)):
                         $carousel_id = 'venueImageCarousel' . $venue['id'];
                         $description = sanitize($venue['description']);
                         $truncated_description = mb_strlen($description) > 100 ? mb_substr($description, 0, 100) . '...' : $description;
+                        // Build 360° panoramic URL if the venue has one
+                        $home_pano_url = '';
+                        if (!empty($venue['pano_image'])) {
+                            $home_pano_fn = basename($venue['pano_image']);
+                            if (preg_match(SAFE_FILENAME_PATTERN, $home_pano_fn) && file_exists(UPLOAD_PATH . $home_pano_fn)) {
+                                $home_pano_url = UPLOAD_URL . rawurlencode($home_pano_fn);
+                            }
+                        }
                     ?>
                         <div class="venue-slide">
                             <div class="venue-card-home card h-100 shadow-sm">
@@ -428,6 +437,14 @@ if (!empty($venues)):
                                     <p class="card-text text-muted flex-grow-1">
                                         <?php echo $truncated_description; ?>
                                     </p>
+                                    <?php if (!empty($home_pano_url)): ?>
+                                    <button type="button"
+                                            class="btn btn-outline-primary w-100 home-pano-btn mb-2"
+                                            data-pano-url="<?php echo htmlspecialchars($home_pano_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                            data-venue-name="<?php echo htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <i class="fas fa-street-view"></i> View 360°
+                                    </button>
+                                    <?php endif; ?>
                                     <button type="button"
                                             class="btn btn-success w-100 venue-book-btn mt-auto"
                                             data-venue-id="<?php echo $venue['id']; ?>"
@@ -1380,6 +1397,12 @@ if (!empty($about_images)):
         } else {
             imgHtml = '<div class="card-img-top venue-image-home" style="background-image:url(\'' + encodeURI(venue.images[0]) + '\')"></div>';
         }
+        var panoBtn = venue.pano_image_url
+            ? '<button type="button" class="btn btn-outline-primary w-100 home-pano-btn mb-2"' +
+              ' data-pano-url="' + escapeHtml(venue.pano_image_url) + '"' +
+              ' data-venue-name="' + escapeHtml(venue.name) + '">' +
+              '<i class="fas fa-street-view"></i> View 360°</button>'
+            : '';
         return '<div class="venue-slide">' +
                '<div class="venue-card-home card h-100 shadow-sm">' +
                imgHtml +
@@ -1387,6 +1410,7 @@ if (!empty($about_images)):
                '<h5 class="card-title">' + escapeHtml(venue.name) + '</h5>' +
                '<p class="card-text"><i class="fas fa-map-marker-alt text-success"></i> ' + escapeHtml(venue.city_name) + '</p>' +
                '<p class="card-text text-muted flex-grow-1">' + escapeHtml(venue.description) + '</p>' +
+               panoBtn +
                '<button type="button" class="btn btn-success w-100 venue-book-btn mt-auto"' +
                ' data-venue-id="' + venue.id + '" data-venue-name="' + escapeHtml(venue.name) + '">' +
                '<i class="fas fa-calendar-check"></i> Book Now</button>' +
@@ -1418,6 +1442,79 @@ if (!empty($about_images)):
         });
     }
 
+    function handleHomePanoClick() {
+        var panoUrl   = this.getAttribute('data-pano-url');
+        var venueName = this.getAttribute('data-venue-name') || '';
+        openHomePanoViewer(panoUrl, venueName);
+    }
+
+    function attachPanoBtnListeners() {
+        document.querySelectorAll('.home-pano-btn').forEach(function (btn) {
+            btn.removeEventListener('click', handleHomePanoClick);
+            btn.addEventListener('click', handleHomePanoClick);
+        });
+    }
+
+    function ensureHomePanoModal() {
+        if (!document.getElementById('homePanoViewerModal')) {
+            var modalHtml =
+                '<div class="modal fade" id="homePanoViewerModal" tabindex="-1" aria-labelledby="homePanoViewerModalLabel" aria-hidden="true">' +
+                  '<div class="modal-dialog modal-xl modal-dialog-centered">' +
+                    '<div class="modal-content">' +
+                      '<div class="modal-header">' +
+                        '<h5 class="modal-title" id="homePanoViewerModalLabel">' +
+                          '<i class="fas fa-street-view text-primary"></i> <span id="homePanoViewerVenueName"></span> — 360° View' +
+                        '</h5>' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                      '</div>' +
+                      '<div class="modal-body p-0">' +
+                        '<div id="homePanoViewerContainer" style="width:100%;height:480px;"></div>' +
+                      '</div>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>';
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('homePanoViewerModal').addEventListener('hidden.bs.modal', function () {
+                if (window._homePanoViewerInstance) {
+                    window._homePanoViewerInstance.destroy();
+                    window._homePanoViewerInstance = null;
+                }
+            });
+        }
+    }
+
+    function openHomePanoViewer(panoUrl, venueName) {
+        ensureHomePanoModal();
+        var modalEl = document.getElementById('homePanoViewerModal');
+        if (!modalEl) return;
+        if (typeof pannellum === 'undefined') {
+            console.warn('Pannellum viewer library is not loaded. Cannot show 360° panorama.');
+            return;
+        }
+        var nameEl = document.getElementById('homePanoViewerVenueName');
+        if (nameEl) nameEl.textContent = venueName;
+        var modal = bootstrap.Modal.getOrCreate(modalEl);
+        modal.show();
+        modalEl.addEventListener('shown.bs.modal', function initViewer() {
+            if (window._homePanoViewerInstance) {
+                window._homePanoViewerInstance.destroy();
+                window._homePanoViewerInstance = null;
+            }
+            window._homePanoViewerInstance = pannellum.viewer('homePanoViewerContainer', {
+                type: 'equirectangular',
+                panorama: panoUrl,
+                autoLoad: true,
+                autoRotate: -2,
+                autoRotateInactivityDelay: 3000,
+                showControls: true,
+                showZoomCtrl: true,
+                showFullscreenCtrl: true,
+                compass: false,
+                keyboardZoom: false
+            });
+        }, { once: true });
+    }
+
     function loadVenues(cityId) {
         var url = BASE_URL_JS + '/api/get-venues.php';
         if (cityId) { url += '?city_id=' + encodeURIComponent(cityId); }
@@ -1442,6 +1539,7 @@ if (!empty($about_images)):
                     if (venuesEmpty) venuesEmpty.classList.add('d-none');
                     venuesGrid.innerHTML = data.venues.map(buildVenueCard).join('');
                     attachBookBtnListeners();
+                    attachPanoBtnListeners();
                     venuesGrid.querySelectorAll('.venue-image-carousel').forEach(function (el) {
                         new bootstrap.Carousel(el, { interval: 4000 });
                     });
@@ -1520,15 +1618,12 @@ if (!empty($about_images)):
                     b.classList.toggle('active', match);
                 });
                 loadVenues(cityId);
-                var venuesSection = document.querySelector('.venues-section');
-                if (venuesSection) {
-                    venuesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
             });
         }
 
         // Attach listeners to server-rendered cards on first load
         attachBookBtnListeners();
+        attachPanoBtnListeners();
         // Initialise horizontal venues slider
         initVenuesSlider();
     });
@@ -1537,6 +1632,7 @@ if (!empty($about_images)):
 
 <?php
 $extra_js = '
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 <script src="' . BASE_URL . '/js/booking-flow.js"></script>
 <script>
 // Handle venue book button clicks - preferred venue message
