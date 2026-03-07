@@ -1483,26 +1483,28 @@ if (!empty($about_images)):
         }
     }
 
-    function showHomePanoFallback(panoUrl, message) {
+    function showHomePanoFallback(panoUrl) {
         var container = document.getElementById('homePanoViewerContainer');
         if (!container) return;
-        container.style.background = '#000';
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.alignItems = 'center';
-        container.style.justifyContent = 'center';
+        container.style.cssText = 'width:100%;height:480px;background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center;';
         container.innerHTML = '';
         var img = document.createElement('img');
         img.src = panoUrl;
         img.alt = '360\u00b0 panoramic photo';
-        img.style.cssText = 'max-width:100%;max-height:440px;object-fit:contain;';
+        img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+        img.onerror = function () {
+            img.style.display = 'none';
+            var msg = document.createElement('div');
+            msg.style.cssText = 'color:#fff;text-align:center;';
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-image fa-3x';
+            icon.style.cssText = 'opacity:.5;display:block;margin-bottom:8px;';
+            var text = document.createTextNode('Image could not be loaded.');
+            msg.appendChild(icon);
+            msg.appendChild(text);
+            container.appendChild(msg);
+        };
         container.appendChild(img);
-        if (message) {
-            var p = document.createElement('p');
-            p.className = 'text-white mt-2 small';
-            p.textContent = message;
-            container.appendChild(p);
-        }
     }
 
     function openHomePanoViewer(panoUrl, venueName) {
@@ -1522,32 +1524,36 @@ if (!empty($about_images)):
             if (container) container.innerHTML = '';
 
             if (typeof pannellum === 'undefined') {
-                showHomePanoFallback(panoUrl,
-                    'Interactive 360\u00b0 viewer unavailable \u2014 showing flat preview.');
+                showHomePanoFallback(panoUrl);
                 return;
             }
 
-            window._homePanoViewerInstance = pannellum.viewer('homePanoViewerContainer', {
-                type: 'equirectangular',
-                panorama: panoUrl,
-                autoLoad: true,
-                autoRotate: -2,
-                autoRotateInactivityDelay: 3000,
-                showControls: true,
-                showZoomCtrl: true,
-                showFullscreenCtrl: true,
-                compass: false,
-                keyboardZoom: false
-            });
+            try {
+                window._homePanoViewerInstance = pannellum.viewer('homePanoViewerContainer', {
+                    type: 'equirectangular',
+                    panorama: panoUrl,
+                    autoLoad: true,
+                    autoRotate: -2,
+                    autoRotateInactivityDelay: 3000,
+                    showControls: true,
+                    showZoomCtrl: true,
+                    showFullscreenCtrl: true,
+                    compass: false,
+                    keyboardZoom: false
+                });
 
-            window._homePanoViewerInstance.on('error', function() {
-                if (window._homePanoViewerInstance) {
-                    window._homePanoViewerInstance.destroy();
-                    window._homePanoViewerInstance = null;
-                }
-                showHomePanoFallback(panoUrl,
-                    'Could not load interactive viewer \u2014 showing flat preview.');
-            });
+                window._homePanoViewerInstance.on('error', function() {
+                    if (window._homePanoViewerInstance) {
+                        window._homePanoViewerInstance.destroy();
+                        window._homePanoViewerInstance = null;
+                    }
+                    showHomePanoFallback(panoUrl);
+                });
+            } catch (e) {
+                window._homePanoViewerInstance = null;
+                console.error('Pannellum initialization failed:', e);
+                showHomePanoFallback(panoUrl);
+            }
         }, { once: true });
     }
 

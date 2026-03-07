@@ -408,26 +408,28 @@ function ensurePanoModal() {
 }
 
 // Render a plain-image fallback inside the pano container
-function showPanoFallback(containerId, panoUrl, message) {
+function showPanoFallback(containerId, panoUrl) {
     var container = document.getElementById(containerId);
     if (!container) return;
-    container.style.background = '#000';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.alignItems = 'center';
-    container.style.justifyContent = 'center';
+    container.style.cssText = 'width:100%;height:480px;background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center;';
     container.innerHTML = '';
     var img = document.createElement('img');
     img.src = panoUrl;
     img.alt = '360\u00b0 panoramic photo';
-    img.style.cssText = 'max-width:100%;max-height:440px;object-fit:contain;';
+    img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+    img.onerror = function () {
+        img.style.display = 'none';
+        var msg = document.createElement('div');
+        msg.style.cssText = 'color:#fff;text-align:center;';
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-image fa-3x';
+        icon.style.cssText = 'opacity:.5;display:block;margin-bottom:8px;';
+        var text = document.createTextNode('Image could not be loaded.');
+        msg.appendChild(icon);
+        msg.appendChild(text);
+        container.appendChild(msg);
+    };
     container.appendChild(img);
-    if (message) {
-        var p = document.createElement('p');
-        p.className = 'text-white mt-2 small';
-        p.textContent = message;
-        container.appendChild(p);
-    }
 }
 
 // Open the 360° panoramic viewer modal for a hall
@@ -456,31 +458,35 @@ function openPanoViewer(panoUrl, hallName) {
         if (container) container.innerHTML = '';
 
         if (typeof pannellum === 'undefined') {
-            showPanoFallback('panoViewerContainer', panoUrl,
-                'Interactive 360° viewer unavailable — showing flat preview.');
+            showPanoFallback('panoViewerContainer', panoUrl);
             return;
         }
 
-        window._panoViewerInstance = pannellum.viewer('panoViewerContainer', {
-            type: 'equirectangular',
-            panorama: panoUrl,
-            autoLoad: true,
-            autoRotate: -2,
-            autoRotateInactivityDelay: 3000,
-            showControls: true,
-            showZoomCtrl: true,
-            showFullscreenCtrl: true,
-            compass: false,
-            keyboardZoom: false
-        });
+        try {
+            window._panoViewerInstance = pannellum.viewer('panoViewerContainer', {
+                type: 'equirectangular',
+                panorama: panoUrl,
+                autoLoad: true,
+                autoRotate: -2,
+                autoRotateInactivityDelay: 3000,
+                showControls: true,
+                showZoomCtrl: true,
+                showFullscreenCtrl: true,
+                compass: false,
+                keyboardZoom: false
+            });
 
-        window._panoViewerInstance.on('error', function() {
-            if (window._panoViewerInstance) {
-                window._panoViewerInstance.destroy();
-                window._panoViewerInstance = null;
-            }
-            showPanoFallback('panoViewerContainer', panoUrl,
-                'Could not load interactive viewer — showing flat preview.');
-        });
+            window._panoViewerInstance.on('error', function() {
+                if (window._panoViewerInstance) {
+                    window._panoViewerInstance.destroy();
+                    window._panoViewerInstance = null;
+                }
+                showPanoFallback('panoViewerContainer', panoUrl);
+            });
+        } catch (e) {
+            window._panoViewerInstance = null;
+            console.error('Pannellum initialization failed:', e);
+            showPanoFallback('panoViewerContainer', panoUrl);
+        }
     }, { once: true });
 }
