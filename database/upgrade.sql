@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS venues (
     contact_phone VARCHAR(20),
     contact_email VARCHAR(100),
     map_link VARCHAR(500) DEFAULT NULL,
+    pano_image VARCHAR(255) DEFAULT NULL,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -73,6 +74,7 @@ CREATE TABLE IF NOT EXISTS halls (
     base_price DECIMAL(10, 2) NOT NULL,
     description TEXT,
     features TEXT,
+    pano_image VARCHAR(255) DEFAULT NULL,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -641,6 +643,30 @@ BEGIN
                 COMMENT 'Groups vendor photos into cards of max 10'
             AFTER vendor_id;
         ALTER TABLE vendor_photos ADD INDEX idx_photo_card_id (photo_card_id);
+    END IF;
+
+    -- ---- venues.pano_image ----------------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'venues'
+          AND column_name = 'pano_image'
+    ) THEN
+        ALTER TABLE venues ADD COLUMN pano_image VARCHAR(255) DEFAULT NULL
+            COMMENT '360° equirectangular panoramic image filename (stored in uploads/)'
+            AFTER map_link;
+    END IF;
+
+    -- ---- halls.pano_image -----------------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'halls'
+          AND column_name = 'pano_image'
+    ) THEN
+        ALTER TABLE halls ADD COLUMN pano_image VARCHAR(255) DEFAULT NULL
+            COMMENT '360° equirectangular panoramic image filename (stored in uploads/)'
+            AFTER features;
     END IF;
 
 END$$
