@@ -35,12 +35,22 @@ try {
             ? mb_substr($description, 0, 100) . '...'
             : $description;
 
+        // Validate 360° panoramic image
+        $pano_image_url = null;
+        if (!empty($venue['pano_image'])) {
+            $pano_filename = basename($venue['pano_image']);
+            if (preg_match(SAFE_FILENAME_PATTERN, $pano_filename) && file_exists(UPLOAD_PATH . $pano_filename)) {
+                $pano_image_url = UPLOAD_URL . rawurlencode($pano_filename);
+            }
+        }
+
         $result[] = [
-            'id'          => (int) $venue['id'],
-            'name'        => $venue['name'],
-            'city_name'   => $venue['city_name'] ?? ($venue['location'] ?? ''),
-            'description' => $truncated,
-            'images'      => $images_to_display,
+            'id'            => (int) $venue['id'],
+            'name'          => $venue['name'],
+            'city_name'     => $venue['city_name'] ?? ($venue['location'] ?? ''),
+            'description'   => $truncated,
+            'images'        => $images_to_display,
+            'pano_image_url' => $pano_image_url,
         ];
     }
 
