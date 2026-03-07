@@ -1483,14 +1483,32 @@ if (!empty($about_images)):
         }
     }
 
+    function showHomePanoFallback(panoUrl, message) {
+        var container = document.getElementById('homePanoViewerContainer');
+        if (!container) return;
+        container.style.background = '#000';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        container.innerHTML = '';
+        var img = document.createElement('img');
+        img.src = panoUrl;
+        img.alt = '360\u00b0 panoramic photo';
+        img.style.cssText = 'max-width:100%;max-height:440px;object-fit:contain;';
+        container.appendChild(img);
+        if (message) {
+            var p = document.createElement('p');
+            p.className = 'text-white mt-2 small';
+            p.textContent = message;
+            container.appendChild(p);
+        }
+    }
+
     function openHomePanoViewer(panoUrl, venueName) {
         ensureHomePanoModal();
         var modalEl = document.getElementById('homePanoViewerModal');
         if (!modalEl) return;
-        if (typeof pannellum === 'undefined') {
-            console.warn('Pannellum viewer library is not loaded. Cannot show 360° panorama.');
-            return;
-        }
         var nameEl = document.getElementById('homePanoViewerVenueName');
         if (nameEl) nameEl.textContent = venueName;
         var modal = bootstrap.Modal.getOrCreate(modalEl);
@@ -1500,6 +1518,15 @@ if (!empty($about_images)):
                 window._homePanoViewerInstance.destroy();
                 window._homePanoViewerInstance = null;
             }
+            var container = document.getElementById('homePanoViewerContainer');
+            if (container) container.innerHTML = '';
+
+            if (typeof pannellum === 'undefined') {
+                showHomePanoFallback(panoUrl,
+                    'Interactive 360\u00b0 viewer unavailable \u2014 showing flat preview.');
+                return;
+            }
+
             window._homePanoViewerInstance = pannellum.viewer('homePanoViewerContainer', {
                 type: 'equirectangular',
                 panorama: panoUrl,
@@ -1511,6 +1538,15 @@ if (!empty($about_images)):
                 showFullscreenCtrl: true,
                 compass: false,
                 keyboardZoom: false
+            });
+
+            window._homePanoViewerInstance.on('error', function() {
+                if (window._homePanoViewerInstance) {
+                    window._homePanoViewerInstance.destroy();
+                    window._homePanoViewerInstance = null;
+                }
+                showHomePanoFallback(panoUrl,
+                    'Could not load interactive viewer \u2014 showing flat preview.');
             });
         }, { once: true });
     }

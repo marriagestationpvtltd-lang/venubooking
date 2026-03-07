@@ -46,7 +46,14 @@ try {
         }
 
         // Include 360° panoramic image URL if available
-        $hall['pano_image_url'] = !empty($hall['pano_image']) ? UPLOAD_URL . $hall['pano_image'] : null;
+        $pano_image_url = null;
+        if (!empty($hall['pano_image'])) {
+            $pano_filename = basename($hall['pano_image']);
+            if (preg_match(SAFE_FILENAME_PATTERN, $pano_filename) && file_exists(UPLOAD_PATH . $pano_filename)) {
+                $pano_image_url = UPLOAD_URL . rawurlencode($pano_filename);
+            }
+        }
+        $hall['pano_image_url'] = $pano_image_url;
     }
     
     echo json_encode([
