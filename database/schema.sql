@@ -2,9 +2,12 @@
 -- NOTE: Make sure you have selected your database before running this script
 -- For command line: mysql -u username -p database_name < database/schema.sql
 -- For phpMyAdmin: Select your database first, then import this file
+--
+-- SAFE TO RE-RUN: Uses CREATE TABLE IF NOT EXISTS so it will NOT drop or
+-- overwrite any existing tables or data.
 
 -- Table: cities
-CREATE TABLE cities (
+CREATE TABLE IF NOT EXISTS cities (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     status ENUM('active', 'inactive') DEFAULT 'active',
@@ -14,7 +17,7 @@ CREATE TABLE cities (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: venues
-CREATE TABLE venues (
+CREATE TABLE IF NOT EXISTS venues (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
@@ -32,7 +35,7 @@ CREATE TABLE venues (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: venue_images
-CREATE TABLE venue_images (
+CREATE TABLE IF NOT EXISTS venue_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     venue_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -43,7 +46,7 @@ CREATE TABLE venue_images (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: halls
-CREATE TABLE halls (
+CREATE TABLE IF NOT EXISTS halls (
     id INT PRIMARY KEY AUTO_INCREMENT,
     venue_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -60,7 +63,7 @@ CREATE TABLE halls (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: hall_images
-CREATE TABLE hall_images (
+CREATE TABLE IF NOT EXISTS hall_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -71,7 +74,7 @@ CREATE TABLE hall_images (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: menus
-CREATE TABLE menus (
+CREATE TABLE IF NOT EXISTS menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -83,7 +86,7 @@ CREATE TABLE menus (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: menu_items
-CREATE TABLE menu_items (
+CREATE TABLE IF NOT EXISTS menu_items (
     id INT PRIMARY KEY AUTO_INCREMENT,
     menu_id INT NOT NULL,
     item_name VARCHAR(255) NOT NULL,
@@ -94,7 +97,7 @@ CREATE TABLE menu_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: hall_menus (many-to-many relationship)
-CREATE TABLE hall_menus (
+CREATE TABLE IF NOT EXISTS hall_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     menu_id INT NOT NULL,
@@ -106,7 +109,7 @@ CREATE TABLE hall_menus (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: additional_services
-CREATE TABLE additional_services (
+CREATE TABLE IF NOT EXISTS additional_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -118,7 +121,7 @@ CREATE TABLE additional_services (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: customers
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
     id INT PRIMARY KEY AUTO_INCREMENT,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20) NOT NULL,
@@ -134,7 +137,7 @@ CREATE TABLE customers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: bookings
-CREATE TABLE bookings (
+CREATE TABLE IF NOT EXISTS bookings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_number VARCHAR(50) UNIQUE NOT NULL,
     customer_id INT NOT NULL,
@@ -166,7 +169,7 @@ CREATE TABLE bookings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: booking_menus (link bookings with selected menus)
-CREATE TABLE booking_menus (
+CREATE TABLE IF NOT EXISTS booking_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     menu_id INT NOT NULL,
@@ -179,7 +182,7 @@ CREATE TABLE booking_menus (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: booking_services (link bookings with selected services)
-CREATE TABLE booking_services (
+CREATE TABLE IF NOT EXISTS booking_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     service_id INT NOT NULL DEFAULT 0 COMMENT '0 for admin-added services, >0 references additional_services',
@@ -196,7 +199,7 @@ CREATE TABLE booking_services (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: payment_methods
-CREATE TABLE payment_methods (
+CREATE TABLE IF NOT EXISTS payment_methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     qr_code VARCHAR(255),
@@ -210,7 +213,7 @@ CREATE TABLE payment_methods (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: booking_payment_methods (junction table)
-CREATE TABLE booking_payment_methods (
+CREATE TABLE IF NOT EXISTS booking_payment_methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     payment_method_id INT NOT NULL,
@@ -221,7 +224,7 @@ CREATE TABLE booking_payment_methods (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: payments (track payment transactions)
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     payment_method_id INT,
@@ -241,7 +244,7 @@ CREATE TABLE payments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: users (admin users)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -255,7 +258,7 @@ CREATE TABLE users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: settings
-CREATE TABLE settings (
+CREATE TABLE IF NOT EXISTS settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     setting_key VARCHAR(100) UNIQUE NOT NULL,
     setting_value TEXT,
@@ -265,7 +268,7 @@ CREATE TABLE settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: activity_logs
-CREATE TABLE activity_logs (
+CREATE TABLE IF NOT EXISTS activity_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT,
     action VARCHAR(255) NOT NULL,
@@ -287,7 +290,7 @@ INSERT IGNORE INTO users (username, password, full_name, email, role, status)
 VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
 
 -- Table: site_images (for dynamic image management)
-CREATE TABLE site_images (
+CREATE TABLE IF NOT EXISTS site_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -307,7 +310,7 @@ CREATE TABLE site_images (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Insert default cities (Nepal)
-INSERT INTO cities (name, status) VALUES
+INSERT IGNORE INTO cities (name, status) VALUES
 ('Kathmandu', 'active'),
 ('Pokhara', 'active'),
 ('Lalitpur (Patan)', 'active'),
@@ -325,7 +328,7 @@ INSERT INTO cities (name, status) VALUES
 ('Tulsipur', 'active');
 
 -- Insert default settings
-INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
+INSERT IGNORE INTO settings (setting_key, setting_value, setting_type) VALUES
 ('site_name', 'Venue Booking System', 'text'),
 ('site_logo', '', 'text'),
 ('site_favicon', '', 'file'),

@@ -4,6 +4,22 @@ This directory contains all database-related files for the Venue Booking System.
 
 ## 📁 Files
 
+### Upgrading an Existing Database (Keep Your Data)
+
+**`upgrade.sql`** - ⭐ **USE THIS TO ADD NEW FEATURES WITHOUT LOSING DATA**
+- Runs safely on any existing database — **never drops or overwrites data**
+- Creates any tables that are missing
+- Adds any columns that are missing (detected via information_schema)
+- Inserts essential reference rows (admin user, cities, settings, etc.) only when absent
+- **Run this whenever you update the codebase to pick up new database features**
+
+```bash
+# Command line
+mysql -u username -p database_name < database/upgrade.sql
+
+# phpMyAdmin: Select your database → Import → choose upgrade.sql → Go
+```
+
 ### For Production Deployment
 
 **`production-shared-hosting.sql`** - ⭐ **RECOMMENDED FOR SHARED HOSTING**
@@ -12,6 +28,7 @@ This directory contains all database-related files for the Venue Booking System.
 - Creates all 28 required tables (including service packages)
 - Includes default admin user (admin/Admin@123)
 - Includes comprehensive test data (venues, halls, menus, services, bookings, service packages)
+- **Safe to re-run** — uses `CREATE TABLE IF NOT EXISTS` and `INSERT IGNORE`
 - **Perfect for immediate deployment with demo data!**
 - See [SHARED_HOSTING_SETUP.md](../SHARED_HOSTING_SETUP.md) for detailed instructions
 
@@ -22,6 +39,7 @@ This directory contains all database-related files for the Venue Booking System.
 - Includes essential system settings only
 - Includes placeholder payment methods (inactive by default)
 - **NO sample data** - clean database ready for your real data
+- **Safe to re-run** — uses `CREATE TABLE IF NOT EXISTS` and `INSERT IGNORE`
 - **Use this for production/live websites when you don't need test data!**
 
 ### For Development/Testing
@@ -33,6 +51,7 @@ This directory contains all database-related files for the Venue Booking System.
 - Loads all essential settings
 - Includes sample data (venues, halls, menus, services, service packages)
 - Contains test bookings #23 and #37
+- **Safe to re-run** — uses `CREATE TABLE IF NOT EXISTS` and `INSERT IGNORE`
 - **Use this for local development and testing!**
 
 ### Original Files (Reference Only)
@@ -61,9 +80,19 @@ This directory contains all database-related files for the Venue Booking System.
 - `add_invoice_content_settings.sql` - Invoice customization
 - And other feature migrations
 
-These are for incremental updates if you already have a database.
+These are incremental updates if you already have a database.
+For a one-stop upgrade, use **`upgrade.sql`** instead.
 
 ## 🚀 Quick Start
+
+### Upgrading an Existing Database (No Data Loss)
+
+```bash
+# Safe upgrade — only adds what is missing, never removes anything
+mysql -u username -p database_name < database/upgrade.sql
+```
+
+Or via phpMyAdmin: Select your database → Import → `upgrade.sql` → Go.
 
 ### For Production Deployment
 
@@ -226,14 +255,7 @@ DB_PASS=your_password
 If some tables are missing after import:
 1. Make sure you selected the correct database before importing
 2. Check for import errors in phpMyAdmin
-3. Try importing again with the database selected
-
-### "Foreign key constraint fails"
-
-The script handles this automatically with `FOREIGN_KEY_CHECKS = 0`. If you see this error:
-1. Make sure you're running the complete file in one go
-2. Don't run partial scripts
-3. Ensure all tables are being created in the correct order
+3. Try importing `upgrade.sql` — it adds only what is missing without touching your data
 
 ## 📚 Database Schema Diagram
 
@@ -320,6 +342,9 @@ See the comprehensive guides:
 
 ## 🎯 Quick Decision Guide
 
+**I already have a database and want to add new features without losing data:**
+→ Use `upgrade.sql` — safe, idempotent, adds only what is missing
+
 **I'm deploying to shared hosting with cPanel:**
 → Use `production-shared-hosting.sql` + Read [SHARED_HOSTING_SETUP.md](../SHARED_HOSTING_SETUP.md)
    (Includes test data for immediate demonstration)
@@ -336,5 +361,6 @@ See the comprehensive guides:
 
 ---
 
-**Last Updated:** January 2026  
-**Database Version:** 2.0 (Production-Ready Edition)
+**Last Updated:** March 2026  
+**Database Version:** 2.1 (Non-Destructive Edition)
+

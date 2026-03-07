@@ -9,6 +9,11 @@
 --   4. Sample data for venues, halls, menus, and services
 --   5. Sample bookings including booking #23 for testing
 --   6. Payment methods and payment tracking tables
+--
+-- SAFE TO RE-RUN: This script uses CREATE TABLE IF NOT EXISTS and
+-- INSERT IGNORE so it will NOT destroy any existing data. Re-running
+-- it on an existing database will only add missing tables and skip
+-- rows that already exist.
 -- 
 -- HOW TO USE:
 -- 1. Create a database in your MySQL server or cPanel
@@ -22,42 +27,11 @@
 -- NOTE: Make sure you have selected your database before running this script
 -- This script does NOT create a database - you must create/select one first
 
--- Drop existing tables if they exist (for clean setup)
-SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS activity_logs;
-DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS booking_payment_methods;
-DROP TABLE IF EXISTS payment_methods;
-DROP TABLE IF EXISTS booking_services;
-DROP TABLE IF EXISTS booking_menus;
-DROP TABLE IF EXISTS bookings;
-DROP TABLE IF EXISTS customers;
-DROP TABLE IF EXISTS hall_menus;
-DROP TABLE IF EXISTS menu_items;
-DROP TABLE IF EXISTS menus;
-DROP TABLE IF EXISTS additional_services;
-DROP TABLE IF EXISTS service_package_photos;
-DROP TABLE IF EXISTS service_package_features;
-DROP TABLE IF EXISTS service_packages;
-DROP TABLE IF EXISTS service_categories;
-DROP TABLE IF EXISTS hall_images;
-DROP TABLE IF EXISTS venue_images;
-DROP TABLE IF EXISTS halls;
-DROP TABLE IF EXISTS venues;
-DROP TABLE IF EXISTS cities;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS settings;
-DROP TABLE IF EXISTS site_images;
-DROP TABLE IF EXISTS booking_vendor_assignments;
-DROP TABLE IF EXISTS vendor_photos;
-DROP TABLE IF EXISTS vendors;
-DROP TABLE IF EXISTS vendor_types;
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
 -- TABLE: cities
 -- ============================================================================
-CREATE TABLE cities (
+CREATE TABLE IF NOT EXISTS cities (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
     status ENUM('active', 'inactive') DEFAULT 'active',
@@ -69,7 +43,7 @@ CREATE TABLE cities (
 -- ============================================================================
 -- TABLE: venues
 -- ============================================================================
-CREATE TABLE venues (
+CREATE TABLE IF NOT EXISTS venues (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
@@ -89,7 +63,7 @@ CREATE TABLE venues (
 -- ============================================================================
 -- TABLE: venue_images
 -- ============================================================================
-CREATE TABLE venue_images (
+CREATE TABLE IF NOT EXISTS venue_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     venue_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -102,7 +76,7 @@ CREATE TABLE venue_images (
 -- ============================================================================
 -- TABLE: halls
 -- ============================================================================
-CREATE TABLE halls (
+CREATE TABLE IF NOT EXISTS halls (
     id INT PRIMARY KEY AUTO_INCREMENT,
     venue_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -121,7 +95,7 @@ CREATE TABLE halls (
 -- ============================================================================
 -- TABLE: hall_images
 -- ============================================================================
-CREATE TABLE hall_images (
+CREATE TABLE IF NOT EXISTS hall_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -134,7 +108,7 @@ CREATE TABLE hall_images (
 -- ============================================================================
 -- TABLE: menus
 -- ============================================================================
-CREATE TABLE menus (
+CREATE TABLE IF NOT EXISTS menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -148,7 +122,7 @@ CREATE TABLE menus (
 -- ============================================================================
 -- TABLE: menu_items
 -- ============================================================================
-CREATE TABLE menu_items (
+CREATE TABLE IF NOT EXISTS menu_items (
     id INT PRIMARY KEY AUTO_INCREMENT,
     menu_id INT NOT NULL,
     item_name VARCHAR(255) NOT NULL,
@@ -161,7 +135,7 @@ CREATE TABLE menu_items (
 -- ============================================================================
 -- TABLE: hall_menus (many-to-many relationship)
 -- ============================================================================
-CREATE TABLE hall_menus (
+CREATE TABLE IF NOT EXISTS hall_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     hall_id INT NOT NULL,
     menu_id INT NOT NULL,
@@ -175,7 +149,7 @@ CREATE TABLE hall_menus (
 -- ============================================================================
 -- TABLE: additional_services
 -- ============================================================================
-CREATE TABLE additional_services (
+CREATE TABLE IF NOT EXISTS additional_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -189,7 +163,7 @@ CREATE TABLE additional_services (
 -- ============================================================================
 -- TABLE: service_categories (event types for service packages, e.g. Wedding, Birthday)
 -- ============================================================================
-CREATE TABLE service_categories (
+CREATE TABLE IF NOT EXISTS service_categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -204,7 +178,7 @@ CREATE TABLE service_categories (
 -- ============================================================================
 -- TABLE: service_packages (packages offered under each service category)
 -- ============================================================================
-CREATE TABLE service_packages (
+CREATE TABLE IF NOT EXISTS service_packages (
     id INT PRIMARY KEY AUTO_INCREMENT,
     category_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -223,7 +197,7 @@ CREATE TABLE service_packages (
 -- ============================================================================
 -- TABLE: service_package_features (feature bullet points per package)
 -- ============================================================================
-CREATE TABLE service_package_features (
+CREATE TABLE IF NOT EXISTS service_package_features (
     id INT PRIMARY KEY AUTO_INCREMENT,
     package_id INT NOT NULL,
     feature_text VARCHAR(500) NOT NULL,
@@ -237,7 +211,7 @@ CREATE TABLE service_package_features (
 -- ============================================================================
 -- TABLE: service_package_photos (multiple photos per service package)
 -- ============================================================================
-CREATE TABLE service_package_photos (
+CREATE TABLE IF NOT EXISTS service_package_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     package_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -251,7 +225,7 @@ CREATE TABLE service_package_photos (
 -- ============================================================================
 -- TABLE: customers
 -- ============================================================================
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
     id INT PRIMARY KEY AUTO_INCREMENT,
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20) NOT NULL,
@@ -269,12 +243,14 @@ CREATE TABLE customers (
 -- ============================================================================
 -- TABLE: bookings
 -- ============================================================================
-CREATE TABLE bookings (
+CREATE TABLE IF NOT EXISTS bookings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_number VARCHAR(50) UNIQUE NOT NULL,
     customer_id INT NOT NULL,
     hall_id INT NOT NULL,
     event_date DATE NOT NULL,
+    start_time TIME DEFAULT NULL,
+    end_time TIME DEFAULT NULL,
     shift ENUM('morning', 'afternoon', 'evening', 'fullday') NOT NULL,
     event_type VARCHAR(100) NOT NULL,
     number_of_guests INT NOT NULL,
@@ -301,7 +277,7 @@ CREATE TABLE bookings (
 -- ============================================================================
 -- TABLE: booking_menus (link bookings with selected menus)
 -- ============================================================================
-CREATE TABLE booking_menus (
+CREATE TABLE IF NOT EXISTS booking_menus (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     menu_id INT NOT NULL,
@@ -316,7 +292,7 @@ CREATE TABLE booking_menus (
 -- ============================================================================
 -- TABLE: booking_services (link bookings with selected services)
 -- ============================================================================
-CREATE TABLE booking_services (
+CREATE TABLE IF NOT EXISTS booking_services (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     service_id INT NOT NULL DEFAULT 0 COMMENT '0 for admin services, >0 for user services referencing additional_services',
@@ -335,7 +311,7 @@ CREATE TABLE booking_services (
 -- ============================================================================
 -- TABLE: payment_methods
 -- ============================================================================
-CREATE TABLE payment_methods (
+CREATE TABLE IF NOT EXISTS payment_methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     qr_code VARCHAR(255),
@@ -351,7 +327,7 @@ CREATE TABLE payment_methods (
 -- ============================================================================
 -- TABLE: booking_payment_methods (junction table)
 -- ============================================================================
-CREATE TABLE booking_payment_methods (
+CREATE TABLE IF NOT EXISTS booking_payment_methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     payment_method_id INT NOT NULL,
@@ -364,7 +340,7 @@ CREATE TABLE booking_payment_methods (
 -- ============================================================================
 -- TABLE: payments (track payment transactions)
 -- ============================================================================
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
     payment_method_id INT,
@@ -386,7 +362,7 @@ CREATE TABLE payments (
 -- ============================================================================
 -- TABLE: users (admin users)
 -- ============================================================================
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -402,7 +378,7 @@ CREATE TABLE users (
 -- ============================================================================
 -- TABLE: settings
 -- ============================================================================
-CREATE TABLE settings (
+CREATE TABLE IF NOT EXISTS settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     setting_key VARCHAR(100) UNIQUE NOT NULL,
     setting_value TEXT,
@@ -414,7 +390,7 @@ CREATE TABLE settings (
 -- ============================================================================
 -- TABLE: activity_logs
 -- ============================================================================
-CREATE TABLE activity_logs (
+CREATE TABLE IF NOT EXISTS activity_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT,
     action VARCHAR(255) NOT NULL,
@@ -431,7 +407,7 @@ CREATE TABLE activity_logs (
 -- ============================================================================
 -- TABLE: site_images (for dynamic image management)
 -- ============================================================================
-CREATE TABLE site_images (
+CREATE TABLE IF NOT EXISTS site_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -453,7 +429,7 @@ CREATE TABLE site_images (
 -- ============================================================================
 -- TABLE: vendor_types (admin-managed vendor type definitions)
 -- ============================================================================
-CREATE TABLE vendor_types (
+CREATE TABLE IF NOT EXISTS vendor_types (
     id INT PRIMARY KEY AUTO_INCREMENT,
     slug VARCHAR(100) NOT NULL UNIQUE COMMENT 'Stored in vendors.type column',
     label VARCHAR(255) NOT NULL COMMENT 'Human-readable display name',
@@ -468,7 +444,7 @@ CREATE TABLE vendor_types (
 -- ============================================================================
 -- TABLE: vendors (service providers assigned to bookings)
 -- ============================================================================
-CREATE TABLE vendors (
+CREATE TABLE IF NOT EXISTS vendors (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL DEFAULT 'other',
@@ -490,7 +466,7 @@ CREATE TABLE vendors (
 -- ============================================================================
 -- TABLE: vendor_photos (multiple photos per vendor)
 -- ============================================================================
-CREATE TABLE vendor_photos (
+CREATE TABLE IF NOT EXISTS vendor_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     vendor_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
@@ -504,7 +480,7 @@ CREATE TABLE vendor_photos (
 -- ============================================================================
 -- TABLE: booking_vendor_assignments (assigns vendors to specific tasks within a booking)
 -- ============================================================================
-CREATE TABLE booking_vendor_assignments (
+CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
     vendor_id INT NOT NULL,
@@ -529,7 +505,7 @@ CREATE TABLE booking_vendor_assignments (
 -- ⚠️ SECURITY WARNING: Change this password immediately after installation!
 INSERT IGNORE INTO users (username, password, full_name, email, role, status) 
 VALUES ('admin', '$2y$10$5sw.gEWePITwobdChuwoRuRT4dtOnxCFf/RMosnL9JVeEeb3teuna', 'System Administrator', 'admin@venubooking.com', 'admin', 'active');
-INSERT INTO cities (name, status) VALUES
+INSERT IGNORE INTO cities (name, status) VALUES
 ('Kathmandu', 'active'),
 ('Pokhara', 'active'),
 ('Lalitpur (Patan)', 'active'),
@@ -547,7 +523,7 @@ INSERT INTO cities (name, status) VALUES
 ('Tulsipur', 'active');
 
 -- Insert default vendor types
-INSERT INTO vendor_types (slug, label, display_order) VALUES
+INSERT IGNORE INTO vendor_types (slug, label, display_order) VALUES
 ('pandit',       'Pandit',            1),
 ('photographer', 'Photographer',      2),
 ('videographer', 'Videographer',      3),
@@ -557,7 +533,7 @@ INSERT INTO vendor_types (slug, label, display_order) VALUES
 ('other',        'Other',             7);
 
 -- Insert default settings
-INSERT INTO settings (setting_key, setting_value, setting_type) VALUES
+INSERT IGNORE INTO settings (setting_key, setting_value, setting_type) VALUES
 ('site_name', 'Venue Booking System', 'text'),
 ('site_logo', '', 'text'),
 ('contact_email', 'info@venubooking.com', 'text'),
@@ -608,14 +584,14 @@ Date changes are subject to availability and must be requested at least 15 days 
 ('smtp_encryption', 'tls', 'text');
 
 -- Insert Venues
-INSERT INTO venues (name, location, address, description, image, contact_phone, contact_email) VALUES
+INSERT IGNORE INTO venues (name, location, address, description, image, contact_phone, contact_email) VALUES
 ('Royal Palace', 'Kathmandu', 'Durbar Marg, Kathmandu', 'Luxury venue in the heart of Kathmandu with traditional architecture and modern amenities.', 'royal-palace.jpg', '+977 1-4234567', 'info@royalpalace.com'),
 ('Garden View Hall', 'Lalitpur', 'Jawalakhel, Lalitpur', 'Beautiful garden venue perfect for outdoor events with stunning greenery.', 'garden-view.jpg', '+977 1-5234567', 'contact@gardenview.com'),
 ('City Convention Center', 'Kathmandu', 'Thamel, Kathmandu', 'Modern convention center with state-of-the-art facilities for corporate events.', 'city-convention.jpg', '+977 1-4123456', 'info@cityconvention.com'),
 ('Lakeside Resort', 'Pokhara', 'Lakeside Road, Pokhara', 'Scenic lakeside venue with breathtaking mountain views.', 'lakeside-resort.jpg', '+977 61-234567', 'booking@lakesideresort.com');
 
 -- Insert Halls
-INSERT INTO halls (venue_id, name, capacity, hall_type, indoor_outdoor, base_price, description, features) VALUES
+INSERT IGNORE INTO halls (venue_id, name, capacity, hall_type, indoor_outdoor, base_price, description, features) VALUES
 (1, 'Sagarmatha Hall', 700, 'single', 'indoor', 150000.00, 'Our flagship hall with capacity of 700 guests. Features premium amenities and elegant decor.', 'Air conditioning, Stage, Sound system, LED screens'),
 (1, 'Everest Hall', 500, 'single', 'indoor', 120000.00, 'Mid-sized hall perfect for intimate gatherings with modern facilities.', 'Air conditioning, Stage, Sound system'),
 (2, 'Garden Lawn', 1000, 'single', 'outdoor', 180000.00, 'Expansive outdoor lawn with beautiful garden setting, ideal for large weddings.', 'Garden setting, Gazebo, Outdoor lighting'),
@@ -626,7 +602,7 @@ INSERT INTO halls (venue_id, name, capacity, hall_type, indoor_outdoor, base_pri
 (4, 'Sunset Hall', 350, 'single', 'indoor', 90000.00, 'Indoor hall with large windows offering panoramic sunset views.', 'Air conditioning, Stage, Natural lighting');
 
 -- Insert Hall Images
-INSERT INTO hall_images (hall_id, image_path, is_primary, display_order) VALUES
+INSERT IGNORE INTO hall_images (hall_id, image_path, is_primary, display_order) VALUES
 (1, 'sagarmatha-hall-1.jpg', 1, 1),
 (1, 'sagarmatha-hall-2.jpg', 0, 2),
 (2, 'everest-hall-1.jpg', 1, 1),
@@ -639,7 +615,7 @@ INSERT INTO hall_images (hall_id, image_path, is_primary, display_order) VALUES
 (8, 'sunset-hall-1.jpg', 1, 1);
 
 -- Insert Menus
-INSERT INTO menus (name, description, price_per_person, image) VALUES
+INSERT IGNORE INTO menus (name, description, price_per_person, image) VALUES
 ('Royal Gold Menu', 'Premium menu featuring the finest selection of dishes with international and local cuisine.', 2399.00, 'royal-gold-menu.jpg'),
 ('Silver Deluxe Menu', 'Deluxe menu with a perfect blend of traditional and modern dishes.', 1899.00, 'silver-deluxe-menu.jpg'),
 ('Bronze Classic Menu', 'Classic menu with popular dishes that satisfy all tastes.', 1499.00, 'bronze-classic-menu.jpg'),
@@ -647,7 +623,7 @@ INSERT INTO menus (name, description, price_per_person, image) VALUES
 ('Premium Platinum', 'Ultimate luxury menu with exotic dishes and premium ingredients.', 2999.00, 'premium-platinum-menu.jpg');
 
 -- Insert Menu Items for Royal Gold Menu
-INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
+INSERT IGNORE INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (1, 'Welcome Drinks (Mocktails)', 'Beverages', 1),
 (1, 'Assorted Salads', 'Appetizers', 2),
 (1, 'Paneer Tikka', 'Appetizers', 3),
@@ -661,7 +637,7 @@ INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (1, 'Ice Cream & Gulab Jamun', 'Desserts', 11);
 
 -- Insert Menu Items for Silver Deluxe Menu
-INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
+INSERT IGNORE INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (2, 'Fruit Juice', 'Beverages', 1),
 (2, 'Green Salad', 'Appetizers', 2),
 (2, 'Veg Pakora', 'Appetizers', 3),
@@ -674,7 +650,7 @@ INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (2, 'Rasgulla', 'Desserts', 10);
 
 -- Insert Menu Items for Bronze Classic Menu
-INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
+INSERT IGNORE INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (3, 'Soft Drinks', 'Beverages', 1),
 (3, 'Mixed Salad', 'Appetizers', 2),
 (3, 'Chicken Curry', 'Main Course', 3),
@@ -685,7 +661,7 @@ INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (3, 'Seasonal Fruits', 'Desserts', 8);
 
 -- Insert Menu Items for Vegetarian Special
-INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
+INSERT IGNORE INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (4, 'Fresh Juice', 'Beverages', 1),
 (4, 'Fruit Salad', 'Appetizers', 2),
 (4, 'Paneer Butter Masala', 'Main Course', 3),
@@ -697,7 +673,7 @@ INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (4, 'Kheer', 'Desserts', 9);
 
 -- Insert Menu Items for Premium Platinum
-INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
+INSERT IGNORE INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (5, 'Premium Cocktails/Mocktails', 'Beverages', 1),
 (5, 'Caesar Salad', 'Appetizers', 2),
 (5, 'Grilled Prawns', 'Appetizers', 3),
@@ -712,7 +688,7 @@ INSERT INTO menu_items (menu_id, item_name, category, display_order) VALUES
 (5, 'Fresh Fruit Platter', 'Desserts', 12);
 
 -- Link Halls with Menus (all halls can offer all menus)
-INSERT INTO hall_menus (hall_id, menu_id) VALUES
+INSERT IGNORE INTO hall_menus (hall_id, menu_id) VALUES
 -- Sagarmatha Hall
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5),
 -- Everest Hall
@@ -731,7 +707,7 @@ INSERT INTO hall_menus (hall_id, menu_id) VALUES
 (8, 1), (8, 2), (8, 3), (8, 4), (8, 5);
 
 -- Insert Additional Services
-INSERT INTO additional_services (name, description, price, category) VALUES
+INSERT IGNORE INTO additional_services (name, description, price, category) VALUES
 ('Flower Decoration', 'Beautiful floral arrangements throughout the venue', 15000.00, 'Decoration'),
 ('Stage Decoration', 'Professional stage setup with backdrop and lighting', 25000.00, 'Decoration'),
 ('Photography Package', 'Professional photography services for the entire event', 30000.00, 'Photography'),
@@ -742,13 +718,13 @@ INSERT INTO additional_services (name, description, price, category) VALUES
 ('Valet Parking', 'Professional valet parking service for guests', 10000.00, 'Logistics');
 
 -- Insert Sample Service Categories
-INSERT INTO service_categories (name, description, display_order, status) VALUES
+INSERT IGNORE INTO service_categories (name, description, display_order, status) VALUES
 ('विवाह', 'विवाह समारोहको लागि विशेष प्याकेजहरू', 1, 'active'),
 ('पास्नी', 'पास्नी (अन्नप्राशन) समारोहको लागि प्याकेजहरू', 2, 'active'),
 ('व्रतबन्द', 'व्रतबन्द समारोहको लागि प्याकेजहरू', 3, 'active');
 
 -- Insert Sample Service Packages
-INSERT INTO service_packages (category_id, name, description, price, display_order, status) VALUES
+INSERT IGNORE INTO service_packages (category_id, name, description, price, display_order, status) VALUES
 (1, 'Silver Wedding Package', 'Essential wedding package with all key services', 250000.00, 1, 'active'),
 (1, 'Gold Wedding Package', 'Premium wedding package with enhanced services', 450000.00, 2, 'active'),
 (1, 'Platinum Wedding Package', 'All-inclusive luxury wedding package', 750000.00, 3, 'active'),
@@ -757,7 +733,7 @@ INSERT INTO service_packages (category_id, name, description, price, display_ord
 (3, 'Bratabandha Package', 'Complete Bratabandha ceremony package', 120000.00, 1, 'active');
 
 -- Insert Sample Service Package Features
-INSERT INTO service_package_features (package_id, feature_text, display_order) VALUES
+INSERT IGNORE INTO service_package_features (package_id, feature_text, display_order) VALUES
 (1, 'Hall decoration with flowers', 1),
 (1, 'Photography (4 hours)', 2),
 (1, 'DJ music system', 3),
@@ -786,7 +762,7 @@ INSERT INTO service_package_features (package_id, feature_text, display_order) V
 (6, 'Catering arrangement', 4);
 
 -- Insert Payment Methods
-INSERT INTO payment_methods (name, bank_details, status, display_order) VALUES
+INSERT IGNORE INTO payment_methods (name, bank_details, status, display_order) VALUES
 ('Bank Transfer', 'Bank: [Your Bank Name]
 Account Name: [Account Holder Name]
 Account Number: [Account Number]
@@ -805,7 +781,7 @@ Note: Please update these details in Admin > Payment Methods', 'inactive', 3),
 Please bring your booking reference number.', 'active', 4);
 
 -- Insert Sample Customers
-INSERT INTO customers (full_name, phone, email, address) VALUES
+INSERT IGNORE INTO customers (full_name, phone, email, address) VALUES
 ('Ramesh Sharma', '+977 9841234567', 'ramesh.sharma@example.com', 'Kathmandu, Nepal'),
 ('Sita Thapa', '+977 9851234567', 'sita.thapa@example.com', 'Lalitpur, Nepal'),
 ('Bijay Kumar', '+977 9861234567', 'bijay.kumar@example.com', 'Bhaktapur, Nepal'),
@@ -815,55 +791,55 @@ INSERT INTO customers (full_name, phone, email, address) VALUES
 ('Uttam Acharya', '+977 9801234567', 'uttam.acharya@example.com', 'Kathmandu, Nepal');
 
 -- Insert Sample Bookings (Including booking with ID=37 and ID=23 for testing)
-INSERT INTO bookings (id, booking_number, customer_id, hall_id, event_date, shift, event_type, number_of_guests, hall_price, menu_total, services_total, subtotal, tax_amount, grand_total, special_requests, booking_status, payment_status) VALUES
+INSERT IGNORE INTO bookings (id, booking_number, customer_id, hall_id, event_date, shift, event_type, number_of_guests, hall_price, menu_total, services_total, subtotal, tax_amount, grand_total, special_requests, booking_status, payment_status) VALUES
 (1, 'BK-20260115-0001', 1, 1, '2026-02-15', 'evening', 'Wedding', 500, 150000.00, 1199500.00, 65000.00, 1414500.00, 183885.00, 1598385.00, 'Please arrange for vegetarian options separately', 'confirmed', 'partial'),
 (2, 'BK-20260120-0002', 2, 3, '2026-03-20', 'fullday', 'Birthday Party', 200, 180000.00, 299800.00, 45000.00, 524800.00, 68224.00, 593024.00, NULL, 'pending', 'pending'),
 (23, 'BK-20260125-0023', 7, 4, '2026-04-10', 'evening', 'Wedding Reception', 250, 80000.00, 374750.00, 80000.00, 534750.00, 69517.50, 604267.50, 'Please provide separate dining area for elderly guests', 'confirmed', 'partial'),
 (37, 'BK-20260130-0037', 3, 1, '2026-05-20', 'evening', 'Wedding Ceremony', 600, 150000.00, 1139400.00, 100000.00, 1389400.00, 180622.00, 1570022.00, 'Need special lighting arrangements for photography. Also require separate arrangements for kids.', 'confirmed', 'partial');
 
 -- Insert booking menus for booking #1
-INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
+INSERT IGNORE INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
 (1, 1, 2399.00, 500, 1199500.00);
 
 -- Insert booking menus for booking #2
-INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
+INSERT IGNORE INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
 (2, 4, 1499.00, 200, 299800.00);
 
 -- Insert booking menus for booking #23
-INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
+INSERT IGNORE INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
 (23, 2, 1499.00, 250, 374750.00);
 
 -- Insert booking menus for booking #37
-INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
+INSERT IGNORE INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
 (37, 1, 1899.00, 600, 1139400.00);
 
 -- Insert booking services for booking #1
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
 (1, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
 (1, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
 (1, 5, 'DJ Service', 20000.00, 'Professional DJ with sound system and lighting', 'Entertainment', 'user', 1);
 
 -- Insert booking services for booking #2
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
 (2, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
 (2, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1);
 
 -- Insert booking services for booking #23
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
 (23, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
 (23, 2, 'Stage Decoration', 25000.00, 'Professional stage setup with backdrop and lighting', 'Decoration', 'user', 1),
 (23, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
 (23, 8, 'Valet Parking', 10000.00, 'Professional valet parking service for guests', 'Logistics', 'user', 1);
 
 -- Insert booking services for booking #37
-INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
 (37, 1, 'Flower Decoration', 15000.00, 'Beautiful floral arrangements throughout the venue', 'Decoration', 'user', 1),
 (37, 2, 'Stage Decoration', 25000.00, 'Professional stage setup with backdrop and lighting', 'Decoration', 'user', 1),
 (37, 3, 'Photography Package', 30000.00, 'Professional photography services for the entire event', 'Photography', 'user', 1),
 (37, 4, 'Videography Package', 40000.00, 'HD video coverage with edited highlights', 'Videography', 'user', 1);
 
 -- Insert payment methods for bookings (link active payment methods to bookings)
-INSERT INTO booking_payment_methods (booking_id, payment_method_id) VALUES
+INSERT IGNORE INTO booking_payment_methods (booking_id, payment_method_id) VALUES
 (1, 4),
 (23, 1),
 (23, 4),
@@ -871,13 +847,13 @@ INSERT INTO booking_payment_methods (booking_id, payment_method_id) VALUES
 (37, 2);
 
 -- Insert sample payment transactions
-INSERT INTO payments (booking_id, payment_method_id, transaction_id, paid_amount, payment_date, payment_status, notes) VALUES
+INSERT IGNORE INTO payments (booking_id, payment_method_id, transaction_id, paid_amount, payment_date, payment_status, notes) VALUES
 (1, 4, 'CASH-2026-0001', 479515.50, '2026-01-15 14:30:00', 'verified', 'Advance payment received in cash'),
 (23, 1, 'BT-2026-0001', 181280.25, '2026-01-25 10:15:00', 'verified', 'Advance payment via bank transfer'),
 (37, 1, 'BT-2026-0037', 471006.60, '2026-01-30 11:00:00', 'verified', 'Advance payment of 30% received');
 
 -- Insert Sample Venue Images
-INSERT INTO venue_images (venue_id, image_path, is_primary, display_order) VALUES
+INSERT IGNORE INTO venue_images (venue_id, image_path, is_primary, display_order) VALUES
 (1, 'royal-palace-main.jpg', 1, 1),
 (1, 'royal-palace-hall.jpg', 0, 2),
 (1, 'royal-palace-garden.jpg', 0, 3),
@@ -890,7 +866,7 @@ INSERT INTO venue_images (venue_id, image_path, is_primary, display_order) VALUE
 
 -- Insert Sample Vendors
 -- City IDs: 1=Kathmandu, 2=Pokhara, 3=Lalitpur (Patan), 4=Bhaktapur
-INSERT INTO vendors (name, type, short_description, phone, email, address, city_id, notes, status) VALUES
+INSERT IGNORE INTO vendors (name, type, short_description, phone, email, address, city_id, notes, status) VALUES
 ('Pandit Ram Prasad Sharma', 'pandit', 'Expert Vedic pandit for Hindu ceremonies', '+977 9841001001', 'ramprasad@example.com', 'Pashupatinath Road, Kathmandu', 1, 'Experienced pandit for Hindu wedding ceremonies', 'active'),
 ('Shree Photography Studio', 'photographer', 'Professional wedding and event photography', '+977 9851002002', 'shree.photo@example.com', 'New Road, Kathmandu', 1, 'Professional wedding and event photography', 'active'),
 ('Pokhara Lens Creations', 'photographer', 'Scenic and artistic photography for all events', '+977 9861003003', 'pokharalens@example.com', 'Lakeside, Pokhara', 2, 'Scenic and artistic photography for all events', 'active'),
@@ -901,7 +877,7 @@ INSERT INTO vendors (name, type, short_description, phone, email, address, city_
 ('Himalayan Event Decor', 'decoration', 'Elegant decoration with mountain-inspired themes', '+977 9851008008', 'himalayanevents@example.com', 'Lakeside Road, Pokhara', 2, 'Elegant decoration with mountain-inspired themes', 'active');
 
 -- Insert Sample Vendor Photos
-INSERT INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VALUES
+INSERT IGNORE INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VALUES
 (1, 'pandit-ram-prasad-1.jpg', 1, 1),
 (2, 'shree-photography-1.jpg', 1, 1),
 (2, 'shree-photography-2.jpg', 0, 2),
@@ -915,19 +891,19 @@ INSERT INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VAL
 
 -- Insert Sample Booking Vendor Assignments
 -- Booking #1 (Wedding - Sagarmatha Hall)
-INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
+INSERT IGNORE INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
 (1, 1, 'Conduct wedding rituals and puja ceremonies', 25000.00, 'Full day ceremony including havan and pheras', 'confirmed'),
 (1, 2, 'Photography coverage for the wedding', 30000.00, 'Full day photography including pre-wedding shoot', 'confirmed'),
 (1, 6, 'Stage and venue decoration', 40000.00, 'Premium floral decoration for stage and entire hall', 'confirmed');
 
 -- Booking #23 (Wedding Reception - Rose Hall)
-INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
+INSERT IGNORE INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
 (23, 1, 'Conduct reception rituals and blessings', 15000.00, 'Evening ceremony rituals', 'confirmed'),
 (23, 2, 'Photography for the reception', 30000.00, 'Event photography and portrait sessions', 'confirmed'),
 (23, 4, 'Videography coverage', 35000.00, 'HD video coverage with highlights reel', 'confirmed');
 
 -- Booking #37 (Wedding Ceremony - Sagarmatha Hall)
-INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
+INSERT IGNORE INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status) VALUES
 (37, 1, 'Conduct full wedding ceremony', 30000.00, 'Complete Vedic wedding ceremony', 'assigned'),
 (37, 5, 'Traditional music performance', 20000.00, 'Baje party for baraat and ceremony', 'assigned'),
 (37, 6, 'Stage and hall decoration', 50000.00, 'Luxury decoration for wedding ceremony', 'assigned'),
