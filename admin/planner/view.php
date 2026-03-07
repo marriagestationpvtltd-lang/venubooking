@@ -185,109 +185,107 @@ $task_categories = [
     </div>
 </div>
 
-<!-- Tasks Section -->
-<div class="card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-list-check"></i> Planning Checklist</h5>
-        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-            <i class="fas fa-plus"></i> Add Task
+<!-- Tasks Section (Dark Planner Design) -->
+<div class="planner-dark-panel">
+    <div class="planner-dark-header d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0 planner-dark-title"><i class="fas fa-calendar-check me-2"></i>Planning Checklist</h5>
+        <button type="button" class="btn btn-sm planner-add-btn" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+            <i class="fas fa-plus me-1"></i> Add Task
         </button>
     </div>
-    <div class="card-body p-0">
 
-        <?php if (empty($all_tasks)): ?>
-            <div class="text-center py-5">
-                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                <h6 class="text-muted">No tasks yet</h6>
-                <p class="text-muted">Add tasks to track your event planning progress.</p>
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-                    <i class="fas fa-plus"></i> Add First Task
-                </button>
+    <?php if (empty($all_tasks)): ?>
+        <div class="text-center py-5">
+            <div class="planner-empty-icon mx-auto mb-3">
+                <i class="fas fa-clipboard-list"></i>
             </div>
-        <?php else: ?>
-            <?php foreach ($tasks_by_cat as $category => $tasks): ?>
-                <div class="px-3 pt-3">
-                    <h6 class="text-uppercase text-muted small fw-bold mb-2">
-                        <i class="fas fa-folder-open"></i> <?php echo htmlspecialchars($category); ?>
-                    </h6>
+            <h6 class="planner-empty-title">No tasks yet</h6>
+            <p class="planner-empty-sub">Add tasks to track your event planning progress.</p>
+            <button type="button" class="btn planner-add-btn" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <i class="fas fa-plus me-1"></i> Add First Task
+            </button>
+        </div>
+    <?php else: ?>
+        <?php foreach ($tasks_by_cat as $category => $tasks): ?>
+            <div class="planner-category-block mb-4">
+                <!-- Category Header -->
+                <div class="planner-cat-header mb-3">
+                    <div class="planner-cat-icon-wrap">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div>
+                        <div class="planner-cat-name"><?php echo htmlspecialchars($category); ?></div>
+                        <div class="planner-cat-sub">Choose from <?php echo count($tasks); ?> <?php echo count($tasks) === 1 ? 'item' : 'items'; ?></div>
+                    </div>
                 </div>
-                <div class="list-group list-group-flush mb-3">
-                    <?php foreach ($tasks as $task): ?>
-                        <?php
-                        $ts_colors = ['pending' => 'secondary', 'in_progress' => 'info', 'completed' => 'success'];
-                        $tc = $ts_colors[$task['status']] ?? 'secondary';
-                        $pri_colors = ['low' => 'success', 'medium' => 'warning', 'high' => 'danger'];
-                        $pc = $pri_colors[$task['priority']] ?? 'secondary';
-                        ?>
-                        <div class="list-group-item list-group-item-action px-4 task-row <?php echo $task['status'] === 'completed' ? 'task-completed' : ''; ?>"
-                             id="task-<?php echo (int)$task['id']; ?>">
-                            <div class="d-flex align-items-start gap-3">
-                                <!-- Toggle checkbox -->
-                                <div class="pt-1">
-                                    <input type="checkbox" class="form-check-input task-toggle"
-                                           style="width:1.2rem;height:1.2rem;cursor:pointer;"
-                                           data-task-id="<?php echo (int)$task['id']; ?>"
-                                           data-plan-id="<?php echo $plan_id; ?>"
-                                           <?php echo $task['status'] === 'completed' ? 'checked' : ''; ?>>
-                                </div>
 
-                                <!-- Task content -->
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
-                                        <div>
-                                            <span class="fw-semibold task-name"><?php echo htmlspecialchars($task['task_name']); ?></span>
-                                            <span class="badge bg-<?php echo $pc; ?> ms-1 badge-sm"><?php echo ucfirst($task['priority']); ?></span>
-                                            <span class="badge bg-<?php echo $tc; ?> ms-1 badge-sm"><?php echo ucfirst(str_replace('_', ' ', $task['status'])); ?></span>
-                                        </div>
-                                        <div class="d-flex gap-1 task-actions">
-                                            <button type="button" class="btn btn-xs btn-outline-warning edit-task-btn"
-                                                    data-task='<?php echo htmlspecialchars(json_encode($task), ENT_QUOTES | ENT_HTML5, 'UTF-8'); ?>'
-                                                    title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <form method="POST" action="task-delete.php" style="display:inline;"
-                                                  onsubmit="return confirm('Delete this task?');">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
-                                                <input type="hidden" name="task_id" value="<?php echo (int)$task['id']; ?>">
-                                                <input type="hidden" name="plan_id" value="<?php echo $plan_id; ?>">
-                                                <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                    <?php if (!empty($task['description'])): ?>
-                                        <small class="text-muted d-block mt-1"><?php echo htmlspecialchars($task['description']); ?></small>
-                                    <?php endif; ?>
-                                    <div class="d-flex flex-wrap gap-3 mt-1 small text-muted">
-                                        <?php if ($task['due_date']): ?>
-                                            <?php
-                                            $due = strtotime($task['due_date']);
-                                            $today = strtotime('today');
-                                            $overdue = $due < $today && $task['status'] !== 'completed';
-                                            ?>
-                                            <span class="<?php echo $overdue ? 'text-danger fw-semibold' : ''; ?>">
-                                                <i class="fas fa-calendar-day"></i>
-                                                Due: <?php echo date('M d, Y', $due); ?>
-                                                <?php if ($overdue): ?><span class="badge bg-danger ms-1">Overdue</span><?php endif; ?>
-                                            </span>
-                                        <?php endif; ?>
-                                        <?php if ($task['estimated_cost'] > 0): ?>
-                                            <span><i class="fas fa-tag"></i> Est: <?php echo formatCurrency($task['estimated_cost']); ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($task['actual_cost'] > 0): ?>
-                                            <span><i class="fas fa-receipt"></i> Actual: <?php echo formatCurrency($task['actual_cost']); ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
+                <!-- Task Rows -->
+                <?php foreach ($tasks as $task): ?>
+                    <?php
+                    $due_str   = '';
+                    $overdue   = false;
+                    if ($task['due_date']) {
+                        $due     = strtotime($task['due_date']);
+                        $today   = strtotime('today');
+                        $overdue = $due < $today && $task['status'] !== 'completed';
+                        $due_str = date('M d, Y', $due);
+                    }
+                    $pri_colors = ['low' => 'success', 'medium' => 'warning', 'high' => 'danger'];
+                    $pc = $pri_colors[$task['priority']] ?? 'secondary';
+                    ?>
+                    <div class="planner-item-row <?php echo $task['status'] === 'completed' ? 'task-completed' : ''; ?>"
+                         id="task-<?php echo (int)$task['id']; ?>">
+                        <!-- Left: box icon -->
+                        <div class="planner-item-icon">
+                            <i class="fas fa-cube"></i>
+                        </div>
+
+                        <!-- Middle: task info -->
+                        <div class="planner-item-body flex-grow-1">
+                            <div class="planner-item-name task-name"><?php echo htmlspecialchars($task['task_name']); ?></div>
+                            <?php if (!empty($task['description'])): ?>
+                                <div class="planner-item-desc"><?php echo htmlspecialchars($task['description']); ?></div>
+                            <?php endif; ?>
+                            <div class="planner-item-meta d-flex flex-wrap gap-2 mt-1">
+                                <span class="planner-badge planner-badge-<?php echo $pc; ?>"><?php echo ucfirst($task['priority']); ?></span>
+                                <?php if ($due_str): ?>
+                                    <span class="planner-item-due <?php echo $overdue ? 'planner-overdue' : ''; ?>">
+                                        <i class="fas fa-calendar-day me-1"></i><?php echo $due_str; ?>
+                                        <?php if ($overdue): ?><span class="planner-badge planner-badge-danger ms-1">Overdue</span><?php endif; ?>
+                                    </span>
+                                <?php endif; ?>
+                                <?php if ($task['estimated_cost'] > 0): ?>
+                                    <span class="planner-item-cost"><i class="fas fa-tag me-1"></i><?php echo formatCurrency($task['estimated_cost']); ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
 
-    </div>
+                        <!-- Right: actions + toggle -->
+                        <div class="planner-item-actions d-flex align-items-center gap-2">
+                            <button type="button" class="planner-action-btn edit-task-btn"
+                                    data-task='<?php echo htmlspecialchars(json_encode($task), ENT_QUOTES | ENT_HTML5, 'UTF-8'); ?>'
+                                    title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form method="POST" action="task-delete.php" style="display:inline;"
+                                  onsubmit="return confirm('Delete this task?');">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="task_id" value="<?php echo (int)$task['id']; ?>">
+                                <input type="hidden" name="plan_id" value="<?php echo $plan_id; ?>">
+                                <button type="submit" class="planner-action-btn planner-action-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                            <input type="checkbox" class="planner-toggle task-toggle"
+                                   data-task-id="<?php echo (int)$task['id']; ?>"
+                                   data-plan-id="<?php echo $plan_id; ?>"
+                                   <?php echo $task['status'] === 'completed' ? 'checked' : ''; ?>>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>
 
 <!-- Add Task Modal -->
@@ -492,20 +490,215 @@ JS;
 ?>
 
 <style>
-.task-completed .task-name {
-    text-decoration: line-through;
-    color: #6c757d;
+/* ── Dark Planner Panel ─────────────────────────────────────────────── */
+.planner-dark-panel {
+    background: #0d1323;
+    border-radius: 14px;
+    padding: 1.75rem 1.5rem;
+    border: 1px solid rgba(255,255,255,0.07);
 }
-.task-row {
+
+.planner-dark-title {
+    color: #f1f5f9;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+/* Add Task button */
+.planner-add-btn {
+    background: rgba(76,175,80,0.15);
+    color: #4CAF50;
+    border: 1px solid rgba(76,175,80,0.35);
+    font-size: 0.82rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
     transition: background 0.2s;
 }
-.btn-xs {
-    padding: 0.15rem 0.4rem;
+.planner-add-btn:hover {
+    background: rgba(76,175,80,0.28);
+    color: #81C784;
+}
+
+/* ── Category block ─────────────────────────────────────────────────── */
+.planner-cat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0 0.25rem;
+}
+.planner-cat-icon-wrap {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.planner-cat-name {
+    color: #e2e8f0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+.planner-cat-sub {
+    color: #64748b;
+    font-size: 0.78rem;
+    margin-top: 2px;
+}
+
+/* ── Task item row ──────────────────────────────────────────────────── */
+.planner-item-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    transition: background 0.18s;
+}
+.planner-item-row:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.planner-item-icon {
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.planner-item-name {
+    color: #e2e8f0;
+    font-size: 0.97rem;
+    font-weight: 500;
+}
+
+.planner-item-desc {
+    color: #64748b;
+    font-size: 0.78rem;
+    margin-top: 2px;
+}
+
+.planner-item-meta {
     font-size: 0.75rem;
 }
-.badge-sm {
-    font-size: 0.7rem;
+
+.planner-item-due {
+    color: #64748b;
 }
+.planner-overdue {
+    color: #f87171 !important;
+    font-weight: 600;
+}
+
+.planner-item-cost {
+    color: #64748b;
+}
+
+/* Badges */
+.planner-badge {
+    display: inline-block;
+    padding: 0.18rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.planner-badge-success  { background: rgba(74,222,128,0.15); color: #4ade80; }
+.planner-badge-warning  { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+.planner-badge-danger   { background: rgba(248,113,113,0.15); color: #f87171; }
+
+/* ── Circular toggle ────────────────────────────────────────────────── */
+.planner-toggle {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.25);
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255,255,255,0.08);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
+}
+.planner-toggle:checked {
+    background: #4CAF50;
+    border-color: #4CAF50;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+    background-size: 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.planner-toggle:hover:not(:checked) {
+    border-color: rgba(255,255,255,0.5);
+}
+
+/* ── Completed state ────────────────────────────────────────────────── */
+.task-completed .planner-item-icon {
+    opacity: 0.45;
+}
+.task-completed .planner-item-name {
+    text-decoration: line-through;
+    color: #475569;
+}
+
+/* ── Action buttons ─────────────────────────────────────────────────── */
+.planner-action-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+.planner-action-btn:hover {
+    background: rgba(255,193,7,0.2);
+    color: #fbbf24;
+    border-color: rgba(255,193,7,0.3);
+}
+.planner-action-danger:hover {
+    background: rgba(239,68,68,0.2);
+    color: #f87171;
+    border-color: rgba(239,68,68,0.3);
+}
+
+/* ── Empty state ────────────────────────────────────────────────────── */
+.planner-empty-icon {
+    width: 64px;
+    height: 64px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: #475569;
+}
+.planner-empty-title { color: #94a3b8; font-size: 1rem; margin-bottom: 0.35rem; }
+.planner-empty-sub   { color: #475569; font-size: 0.85rem; margin-bottom: 1rem; }
+
+/* ── Legacy helpers kept for modals ─────────────────────────────────── */
+.btn-xs { padding: 0.15rem 0.4rem; font-size: 0.75rem; }
+.badge-sm { font-size: 0.7rem; }
 </style>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
