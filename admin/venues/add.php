@@ -81,6 +81,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
+                    // Handle 360° panoramic image upload
+                    if (isset($_FILES['venue_pano_image']) && $_FILES['venue_pano_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                        $pano_result = handleImageUpload($_FILES['venue_pano_image'], 'venue_pano');
+                        if ($pano_result['success']) {
+                            try {
+                                $db->prepare("UPDATE venues SET pano_image = ? WHERE id = ?")->execute([$pano_result['filename'], $venue_id]);
+                                logActivity($current_user['id'], 'Uploaded venue pano image', 'venues', $venue_id, "Uploaded 360° pano for venue: $name");
+                            } catch (Exception $e) {
+                                deleteUploadedFile($pano_result['filename']);
+                            }
+                        }
+                    }
+
                     // Log activity
                     logActivity($current_user['id'], 'Added new venue', 'venues', $venue_id, "Added venue: $name");
                     
@@ -203,6 +216,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="form-label">Venue Photos (Optional)</label>
                         <input type="file" class="form-control" id="venue_images" name="venue_images[]" accept="image/*" multiple>
                         <small class="text-muted">Upload one or more photos for this venue. JPG, PNG, GIF, or WebP. Max 5MB each. The first photo uploaded here will be set as the primary gallery image.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="venue_pano_image" class="form-label"><i class="fas fa-street-view text-primary"></i> 360° Panoramic Photo (Optional)</label>
+                        <input type="file" class="form-control" id="venue_pano_image" name="venue_pano_image" accept="image/*">
+                        <small class="text-muted">Upload an equirectangular (360°) panoramic photo for an immersive venue preview. JPG or PNG recommended. Max 5MB.</small>
                     </div>
 
                     <div class="mb-3">

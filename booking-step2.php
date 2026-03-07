@@ -4,6 +4,9 @@ $page_title = 'Select Venue & Hall';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
 
+// Load Pannellum 360° viewer CSS (JS will be added to extra_js below with booking data)
+$extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">';
+
 // Get booking data from session or POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['booking_data'] = [
@@ -241,6 +244,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
 
 <?php
 $extra_js = '
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 <script>
 const bookingData = ' . json_encode($booking_data) . ';
 const preferredVenueId = ' . ($preferred_venue_id ? $preferred_venue_id : 'null') . ';
