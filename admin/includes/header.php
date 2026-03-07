@@ -16,13 +16,13 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
     <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?>Admin Panel</title>
     
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>/admin/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/admin/vendor/fontawesome/css/all.min.css">
     
     <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/admin/vendor/datatables/css/dataTables.bootstrap5.min.css">
     
     <style>
         :root {
@@ -184,6 +184,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/vendor-types/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendor-types') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-tags"></i> Vendor Types
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/planner/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/planner/') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-tasks"></i> Planner
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'images') ? 'active' : ''; ?>">
                 <i class="fas fa-images"></i> Images

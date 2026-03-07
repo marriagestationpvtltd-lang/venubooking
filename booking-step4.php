@@ -71,6 +71,11 @@ $current_total = $totals['subtotal'];
                 <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
                     <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?>
+                    <span class="mx-1">•</span>
+                    <i class="fas fa-clock"></i> <?php echo ucfirst($booking_data['shift']); ?>
+                    <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>
+                        (<?php echo formatBookingTime($booking_data['start_time']); ?> – <?php echo formatBookingTime($booking_data['end_time']); ?>)
+                    <?php endif; ?>
                 </span>
             </div>
             <div class="col-md-4 col-12 text-md-end mt-2 mt-md-0">

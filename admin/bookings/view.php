@@ -432,8 +432,17 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
                 </div>
                 <div class="info-row">
                     <span class="info-label">Event Date:</span>
-                    <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> (<?php echo ucfirst($booking['shift']); ?>)</span>
+                    <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> — <?php echo ucfirst($booking['shift']); ?></span>
                 </div>
+                <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>
+                <div class="info-row">
+                    <span class="info-label">Event Time:</span>
+                    <span class="info-value">
+                        <i class="fas fa-clock text-success me-1"></i>
+                        <?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>
+                    </span>
+                </div>
+                <?php endif; ?>
                 <div class="info-row">
                     <span class="info-label">Venue:</span>
                     <span class="info-value"><?php echo htmlspecialchars($booking['venue_name']); ?> - <?php echo htmlspecialchars($booking['hall_name']); ?></span>
@@ -1072,11 +1081,17 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                     </div>
                     <div class="col-md-4">
                         <div class="info-item">
-                            <label class="text-muted small fw-semibold mb-1">Shift</label>
+                            <label class="text-muted small fw-semibold mb-1">Shift & Time</label>
                             <p class="mb-0 fw-bold text-dark">
                                 <i class="far fa-clock text-warning me-2"></i>
                                 <?php echo ucfirst($booking['shift']); ?>
                             </p>
+                            <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>
+                            <small class="text-muted">
+                                <i class="fas fa-hourglass-start me-1"></i>
+                                <?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>
+                            </small>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-4">

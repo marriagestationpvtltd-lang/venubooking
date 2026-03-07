@@ -283,6 +283,65 @@ function validatePhoneNumber($phone) {
 }
 
 /**
+ * Return the default start and end times for a given shift.
+ *
+ * @param  string $shift  One of: morning, afternoon, evening, fullday
+ * @return array          ['start' => 'HH:MM', 'end' => 'HH:MM']
+ */
+function getShiftDefaultTimes($shift) {
+    $defaults = [
+        'morning'   => ['start' => '06:00', 'end' => '12:00'],
+        'afternoon' => ['start' => '12:00', 'end' => '18:00'],
+        'evening'   => ['start' => '18:00', 'end' => '23:00'],
+        'fullday'   => ['start' => '06:00', 'end' => '23:00'],
+    ];
+    return $defaults[$shift] ?? ['start' => '', 'end' => ''];
+}
+
+/**
+ * Format a TIME string (HH:MM:SS or HH:MM) to 12-hour display (e.g. "06:00 AM").
+ *
+ * @param  string|null $time
+ * @return string
+ */
+function formatBookingTime($time) {
+    if (empty($time)) return '';
+    return date('h:i A', strtotime($time));
+}
+
+/**
+ * Generate HTML <option> elements for a time dropdown.
+ *
+ * Options span 00:00–23:30 in 30-minute intervals.
+ * Values are stored as "HH:MM" (24-hour); labels are shown in 12-hour AM/PM format.
+ *
+ * @param  string $selected  Currently selected time in "HH:MM" or "HH:MM:SS" format
+ * @return string            HTML <option> tags (safe to echo inside a <select>)
+ */
+function generateTimeOptions($selected = '') {
+    // Normalize to "HH:MM" so comparison works regardless of seconds.
+    // Accept only valid HH:MM values to prevent any injection through the
+    // $selected parameter (values are matched against a known safe list).
+    if (!empty($selected)) {
+        $selected = substr($selected, 0, 5);
+        // Discard anything that does not look like a time value
+        if (!preg_match('/^\d{2}:\d{2}$/', $selected)) {
+            $selected = '';
+        }
+    }
+    $html = '<option value="">-- Select Time --</option>';
+    for ($h = 0; $h < 24; $h++) {
+        foreach ([0, 30] as $m) {
+            $value = sprintf('%02d:%02d', $h, $m);
+            $label = date('h:i A', mktime($h, $m, 0));
+            $sel   = ($value === $selected) ? ' selected' : '';
+            $html .= "<option value=\"{$value}\"{$sel}>{$label}</option>";
+        }
+    }
+    return $html;
+}
+
+/**
  * Check if hall is available for booking
  */
 function checkHallAvailability($hall_id, $date, $shift) {
@@ -804,12 +863,17 @@ function createBooking($data) {
         );
         
         // Insert booking
+        // Derive default times from shift if not explicitly provided
+        $shift_times = getShiftDefaultTimes($data['shift']);
+        $start_time = !empty($data['start_time']) ? $data['start_time'] : $shift_times['start'];
+        $end_time   = !empty($data['end_time'])   ? $data['end_time']   : $shift_times['end'];
+
         $sql = "INSERT INTO bookings (
-                    booking_number, customer_id, hall_id, event_date, shift, 
+                    booking_number, customer_id, hall_id, event_date, start_time, end_time, shift,
                     event_type, number_of_guests, hall_price, menu_total, 
                     services_total, subtotal, tax_amount, grand_total, 
                     special_requests, booking_status, payment_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
         
         $stmt = $db->prepare($sql);
         $stmt->execute([
@@ -817,6 +881,8 @@ function createBooking($data) {
             $customer_id,
             $data['hall_id'],
             $data['event_date'],
+            $start_time ?: null,
+            $end_time   ?: null,
             $data['shift'],
             $data['event_type'],
             $data['guests'],
@@ -2021,7 +2087,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Shift:</span>
-                        <span class="detail-value"><?php echo ucfirst($booking['shift']); ?></span>
+                        <span class="detail-value"><?php echo ucfirst($booking['shift']); ?><?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?> (<?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>)<?php endif; ?></span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Number of Guests:</span>
@@ -3142,7 +3208,11 @@ function buildVenueProviderWhatsAppUrl($booking) {
     $text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
     $text .= "Event Date (BS): " . $nepali_date . "\n";
     $text .= "Event Date (AD): " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
-    $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift'])) . "\n";
+    $text .= "Shift / Time: " . ucfirst(strip_tags($booking['shift']));
+    if (!empty($booking['start_time']) && !empty($booking['end_time'])) {
+        $text .= " (" . formatBookingTime($booking['start_time']) . " – " . formatBookingTime($booking['end_time']) . ")";
+    }
+    $text .= "\n";
     $text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
     $text .= "Hall: " . strip_tags($booking['hall_name']) . "\n";
     $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
@@ -3251,7 +3321,7 @@ function sendVendorAssignmentEmail($vendor_name, $vendor_email, $booking) {
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Shift:</span>
-                        <span class="detail-value"><?php echo ucfirst($booking['shift']); ?></span>
+                        <span class="detail-value"><?php echo ucfirst($booking['shift']); ?><?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?> (<?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>)<?php endif; ?></span>
                     </div>
                 </div>
                 <div class="booking-details">

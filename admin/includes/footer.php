@@ -1,20 +1,20 @@
     </div>
     
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/jquery/jquery.min.js"></script>
     
     <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     
     <!-- DataTables -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/datatables/js/jquery.dataTables.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/datatables/js/dataTables.bootstrap5.min.js"></script>
     
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/chartjs/chart.umd.min.js"></script>
     
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/sweetalert2/sweetalert2.all.min.js"></script>
     
     <script>
         // Sidebar toggle for mobile

@@ -88,6 +88,9 @@ require_once __DIR__ . '/includes/header.php';
                                 </div>
                                 <div class="mb-1">
                                     <strong>Shift:</strong> <?php echo ucfirst($booking['shift']); ?>
+                                    <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>
+                                        <span class="text-muted ms-1">(<?php echo formatBookingTime($booking['start_time']); ?> – <?php echo formatBookingTime($booking['end_time']); ?>)</span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="mb-1">
                                     <strong>Number of Guests:</strong> <?php echo $booking['number_of_guests']; ?> persons
