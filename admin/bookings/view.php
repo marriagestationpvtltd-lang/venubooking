@@ -830,7 +830,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-circle-dot text-primary me-2"></i>
                                 <span class="fw-bold small text-uppercase text-muted">Booking Status</span>
-                                <span class="badge bg-<?php echo $booking_status_color; ?> ms-auto">
+                                <span class="badge bg-<?php echo $booking_status_color; ?> ms-auto" id="booking-status-badge">
                                     <?php echo $booking_status_display; ?>
                                 </span>
                             </div>
@@ -838,7 +838,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                 <input type="hidden" name="action" value="update_status">
                                 <input type="hidden" name="old_booking_status" value="<?php echo htmlspecialchars($booking['booking_status']); ?>">
                                 <div class="d-flex align-items-center gap-2">
-                                    <select name="booking_status" class="form-select form-select-sm flex-grow-1">
+                                    <select name="booking_status" class="form-select form-select-sm flex-grow-1" id="booking-status-select">
                                         <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>⏳ Pending</option>
                                         <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>💳 Payment Submitted</option>
                                         <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>✅ Confirmed</option>
@@ -850,38 +850,29 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                     </button>
                                 </div>
                             </form>
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Pending &amp; Confirmed are auto-set by Payment Status. Use this form only for Cancelled / Completed.
+                            </small>
                         </div>
                     </div>
 
-                    <!-- Advance Payment Status -->
+                    <!-- Advance Payment Status (auto-managed by Payment Status) -->
                     <div class="col-lg-4 col-md-6">
                         <div class="quick-check-item h-100">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-money-check-alt text-success me-2"></i>
                                 <span class="fw-bold small text-uppercase text-muted">Advance Payment</span>
                                 <?php if ($booking['advance_payment_received'] === 1): ?>
-                                    <span class="badge bg-success ms-auto"><i class="fas fa-check-circle me-1"></i>Received</span>
+                                    <span class="badge bg-success ms-auto" id="advance-payment-badge"><i class="fas fa-check-circle me-1"></i>Received</span>
                                 <?php else: ?>
-                                    <span class="badge bg-danger ms-auto"><i class="fas fa-times-circle me-1"></i>Not Received</span>
+                                    <span class="badge bg-danger ms-auto" id="advance-payment-badge"><i class="fas fa-times-circle me-1"></i>Not Received</span>
                                 <?php endif; ?>
                             </div>
-                            <form method="POST" action="" class="advance-payment-form">
-                                <input type="hidden" name="action" value="toggle_advance_payment">
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="form-check form-switch flex-grow-1 mb-0">
-                                        <input class="form-check-input" type="checkbox" role="switch"
-                                               id="advance_payment_received" name="advance_payment_received"
-                                               value="1" <?php echo ($booking['advance_payment_received'] === 1) ? 'checked' : ''; ?>
-                                               style="cursor: pointer;">
-                                        <label class="form-check-label small" for="advance_payment_received" style="cursor: pointer;">
-                                            Mark as received
-                                        </label>
-                                    </div>
-                                    <button type="submit" class="btn btn-success btn-sm">
-                                        <i class="fas fa-save"></i> Save
-                                    </button>
-                                </div>
-                            </form>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Auto-managed by Payment Status. No manual update needed.
+                            </small>
                         </div>
                     </div>
 
@@ -905,7 +896,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                     <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
                                     <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                                 </select>
-                                <small class="text-muted d-block mt-1">Flow: Pending → Partial → Paid</small>
+                                <small class="text-muted d-block mt-1">Flow: Pending → Partial → Paid. Auto-updates Booking &amp; Advance Payment.</small>
                             </div>
                         </div>
                     </div>
@@ -2999,13 +2990,44 @@ $tab_payments_count = count($payment_transactions);
                         badge.textContent = labelMap[newStatus] || newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
                     }
 
+                    // Auto-update Booking Status badge and dropdown
+                    if (data.booking_status) {
+                        const bookingBadge = document.getElementById('booking-status-badge');
+                        if (bookingBadge) {
+                            const bsColorMap = {pending: 'warning', confirmed: 'success', cancelled: 'danger', completed: 'primary', payment_submitted: 'info'};
+                            const bsLabelMap = {pending: 'Pending', confirmed: 'Confirmed', cancelled: 'Cancelled', completed: 'Completed', payment_submitted: 'Payment submitted'};
+                            bookingBadge.className = 'badge bg-' + (bsColorMap[data.booking_status] || 'info') + ' ms-auto';
+                            bookingBadge.textContent = bsLabelMap[data.booking_status] || data.booking_status;
+                        }
+                        const bookingSelect = document.getElementById('booking-status-select');
+                        if (bookingSelect) {
+                            bookingSelect.value = data.booking_status;
+                            const hiddenOld = bookingSelect.closest('form') && bookingSelect.closest('form').querySelector('[name="old_booking_status"]');
+                            if (hiddenOld) { hiddenOld.value = data.booking_status; }
+                        }
+                    }
+
+                    // Auto-update Advance Payment badge
+                    const advanceBadge = document.getElementById('advance-payment-badge');
+                    if (advanceBadge && typeof data.advance_payment_received !== 'undefined') {
+                        if (data.advance_payment_received === 1) {
+                            advanceBadge.className = 'badge bg-success ms-auto';
+                            advanceBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Received';
+                        } else {
+                            advanceBadge.className = 'badge bg-danger ms-auto';
+                            advanceBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i>Not Received';
+                        }
+                    }
+
                     // Update button sections based on new payment status
                     // Show "Booking Confirmation" only when advance payment is received AND status is not pending
-                    const advancePaymentReceived = <?php echo ($booking['advance_payment_received'] === 1) ? 'true' : 'false'; ?>;
+                    const newAdvanceReceived = (typeof data.advance_payment_received !== 'undefined')
+                        ? (data.advance_payment_received === 1)
+                        : <?php echo ($booking['advance_payment_received'] === 1) ? 'true' : 'false'; ?>;
                     const confirmSection = document.getElementById('booking-confirmation-section');
                     const requestSection = document.getElementById('payment-request-section');
                     if (confirmSection && requestSection) {
-                        const showConfirmation = advancePaymentReceived && newStatus.toLowerCase() !== 'pending';
+                        const showConfirmation = newAdvanceReceived && newStatus.toLowerCase() !== 'pending';
                         confirmSection.style.display = showConfirmation ? '' : 'none';
                         requestSection.style.display = showConfirmation ? 'none' : '';
                     }

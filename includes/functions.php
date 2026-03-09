@@ -1120,6 +1120,31 @@ function calculateBookingStatusVariables($booking) {
 }
 
 /**
+ * Return the auto-derived booking_status and advance_payment_received
+ * values that correspond to a given payment_status.
+ *
+ * Rules:
+ *   pending  → booking_status = pending,   advance_payment_received = 0
+ *   partial  → booking_status = confirmed, advance_payment_received = 1
+ *   paid     → booking_status = confirmed, advance_payment_received = 1
+ *   (other)  → no change (returns null values so caller keeps current values)
+ *
+ * @param  string $payment_status  One of 'pending','partial','paid','cancelled'
+ * @return array{booking_status: string|null, advance_payment_received: int|null}
+ */
+function getAutoStatusByPaymentStatus(string $payment_status): array {
+    switch ($payment_status) {
+        case 'pending':
+            return ['booking_status' => 'pending', 'advance_payment_received' => 0];
+        case 'partial':
+        case 'paid':
+            return ['booking_status' => 'confirmed', 'advance_payment_received' => 1];
+        default:
+            return ['booking_status' => null, 'advance_payment_received' => null];
+    }
+}
+
+/**
  * Format currency
  */
 function formatCurrency($amount) {
