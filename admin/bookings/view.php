@@ -913,73 +913,78 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                     <!-- Send Payment Request / Booking Confirmation -->
                     <div class="col-lg-4 col-md-12">
                         <div class="quick-check-item h-100">
-                            <?php if ($booking['advance_payment_received'] === 1): ?>
-                            <!-- Booking Confirmation (shown after advance payment received) -->
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span class="fw-bold small text-uppercase text-muted">Booking Confirmation</span>
+                            <?php
+                            // Show "Booking Confirmation" only when advance payment is received AND payment status is not pending
+                            $show_confirmation = ($booking['advance_payment_received'] === 1 && strtolower($booking['payment_status']) !== 'pending');
+                            ?>
+                            <!-- Booking Confirmation (shown after advance payment received and payment status is not pending) -->
+                            <div id="booking-confirmation-section" <?php echo $show_confirmation ? '' : 'style="display:none"'; ?>>
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <span class="fw-bold small text-uppercase text-muted">Booking Confirmation</span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <form method="POST" action="" class="flex-fill">
+                                        <input type="hidden" name="action" value="send_booking_confirmation_email">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm w-100" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
+                                            <i class="fas fa-envelope me-1"></i> Email
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="" id="confirmationWhatsappForm" class="flex-fill">
+                                        <input type="hidden" name="action" value="send_booking_confirmation_whatsapp">
+                                        <button type="submit" class="btn btn-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
+                                            <i class="fab fa-whatsapp me-1"></i> ✅ Booking Confirmation
+                                        </button>
+                                    </form>
+                                </div>
+                                <?php if (empty($booking['phone']) && empty($booking['email'])): ?>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i> No contact info available
+                                    </small>
+                                <?php elseif (empty($booking['phone'])): ?>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i> Phone not available
+                                    </small>
+                                <?php elseif (empty($booking['email'])): ?>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i> Email not available
+                                    </small>
+                                <?php endif; ?>
                             </div>
-                            <div class="d-flex gap-2">
-                                <form method="POST" action="" class="flex-fill">
-                                    <input type="hidden" name="action" value="send_booking_confirmation_email">
-                                    <button type="submit" class="btn btn-outline-primary btn-sm w-100" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
-                                        <i class="fas fa-envelope me-1"></i> Email
-                                    </button>
-                                </form>
-                                <form method="POST" action="" id="confirmationWhatsappForm" class="flex-fill">
-                                    <input type="hidden" name="action" value="send_booking_confirmation_whatsapp">
-                                    <button type="submit" class="btn btn-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
-                                        <i class="fab fa-whatsapp me-1"></i> ✅ Booking Confirmation
-                                    </button>
-                                </form>
+                            <!-- Send Payment Request (shown when payment status is pending or advance payment not yet received) -->
+                            <div id="payment-request-section" <?php echo $show_confirmation ? 'style="display:none"' : ''; ?>>
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-paper-plane text-info me-2"></i>
+                                    <span class="fw-bold small text-uppercase text-muted">Send Payment Request</span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <form method="POST" action="" class="flex-fill">
+                                        <input type="hidden" name="action" value="send_payment_request_email">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm w-100" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
+                                            <i class="fas fa-envelope me-1"></i> Email
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="" id="whatsappForm" class="flex-fill">
+                                        <input type="hidden" name="action" value="send_payment_request_whatsapp">
+                                        <button type="submit" class="btn btn-outline-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
+                                            <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                                        </button>
+                                    </form>
+                                </div>
+                                <?php if (empty($booking['email']) && empty($booking['phone'])): ?>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i> No contact info available
+                                    </small>
+                                <?php elseif (empty($booking['email'])): ?>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i> Email not available
+                                    </small>
+                                <?php elseif (empty($booking['phone'])): ?>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i> Phone not available
+                                    </small>
+                                <?php endif; ?>
                             </div>
-                            <?php if (empty($booking['phone']) && empty($booking['email'])): ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> No contact info available
-                                </small>
-                            <?php elseif (empty($booking['phone'])): ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> Phone not available
-                                </small>
-                            <?php elseif (empty($booking['email'])): ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> Email not available
-                                </small>
-                            <?php endif; ?>
-                            <?php else: ?>
-                            <!-- Send Payment Request (shown before advance payment received) -->
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-paper-plane text-info me-2"></i>
-                                <span class="fw-bold small text-uppercase text-muted">Send Payment Request</span>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <form method="POST" action="" class="flex-fill">
-                                    <input type="hidden" name="action" value="send_payment_request_email">
-                                    <button type="submit" class="btn btn-outline-primary btn-sm w-100" <?php echo empty($booking['email']) ? 'disabled' : ''; ?>>
-                                        <i class="fas fa-envelope me-1"></i> Email
-                                    </button>
-                                </form>
-                                <form method="POST" action="" id="whatsappForm" class="flex-fill">
-                                    <input type="hidden" name="action" value="send_payment_request_whatsapp">
-                                    <button type="submit" class="btn btn-outline-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
-                                        <i class="fab fa-whatsapp me-1"></i> WhatsApp
-                                    </button>
-                                </form>
-                            </div>
-                            <?php if (empty($booking['email']) && empty($booking['phone'])): ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> No contact info available
-                                </small>
-                            <?php elseif (empty($booking['email'])): ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> Email not available
-                                </small>
-                            <?php elseif (empty($booking['phone'])): ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> Phone not available
-                                </small>
-                            <?php endif; ?>
-                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -2992,6 +2997,17 @@ $tab_payments_count = count($payment_transactions);
                         const labelMap = {paid: 'Paid', partial: 'Partial', pending: 'Pending', cancelled: 'Cancelled'};
                         badge.className = 'badge bg-' + (colorMap[newStatus] || 'secondary') + ' ms-auto';
                         badge.textContent = labelMap[newStatus] || newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+                    }
+
+                    // Update button sections based on new payment status
+                    // Show "Booking Confirmation" only when advance payment is received AND status is not pending
+                    const advancePaymentReceived = <?php echo ($booking['advance_payment_received'] === 1) ? 'true' : 'false'; ?>;
+                    const confirmSection = document.getElementById('booking-confirmation-section');
+                    const requestSection = document.getElementById('payment-request-section');
+                    if (confirmSection && requestSection) {
+                        const showConfirmation = advancePaymentReceived && newStatus.toLowerCase() !== 'pending';
+                        confirmSection.style.display = showConfirmation ? '' : 'none';
+                        requestSection.style.display = showConfirmation ? 'none' : '';
                     }
 
                     var successMsg = 'Payment status updated successfully.';
