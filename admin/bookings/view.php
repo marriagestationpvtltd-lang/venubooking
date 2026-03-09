@@ -825,22 +825,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                     <?php echo $booking_status_display; ?>
                                 </span>
                             </div>
-                            <form method="POST" action="" class="status-update-form">
-                                <input type="hidden" name="action" value="update_status">
-                                <input type="hidden" name="old_booking_status" value="<?php echo $booking['booking_status']; ?>">
-                                <div class="input-group input-group-sm">
-                                    <select class="form-select" id="booking_status" name="booking_status">
-                                        <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                        <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>Payment Submitted</option>
-                                        <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
-                                        <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                        <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-check"></i> Update
-                                    </button>
-                                </div>
-                            </form>
+
                         </div>
                     </div>
 

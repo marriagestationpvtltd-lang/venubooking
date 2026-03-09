@@ -474,14 +474,17 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="booking_status" class="form-label">Booking Status</label>
-                                <select class="form-select" id="booking_status" name="booking_status">
-                                    <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>Payment Submitted</option>
-                                    <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
-                                    <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                    <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
-                                </select>
+                                <div class="form-label fw-semibold">Booking Status</div>
+                                <input type="hidden" name="booking_status" value="<?php echo htmlspecialchars($booking['booking_status']); ?>">
+                                <div class="form-control-plaintext">
+                                    <span class="badge bg-<?php
+                                        echo $booking['booking_status'] == 'confirmed' ? 'success' :
+                                            ($booking['booking_status'] == 'payment_submitted' ? 'info' :
+                                            ($booking['booking_status'] == 'pending' ? 'warning' :
+                                            ($booking['booking_status'] == 'cancelled' ? 'danger' :
+                                            ($booking['booking_status'] == 'completed' ? 'primary' : 'secondary'))));
+                                    ?> px-2 py-1 fs-6"><?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?></span>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
