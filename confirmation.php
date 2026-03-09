@@ -92,6 +92,7 @@ require_once __DIR__ . '/includes/header.php';
                                 </div>
                                 <div class="mb-1">
                                     <strong>Date:</strong> <?php echo date('F d, Y', strtotime($booking['event_date'])); ?>
+                                    <small class="text-muted">(<?php echo convertToNepaliDate($booking['event_date']); ?>)</small>
                                 </div>
                                 <div class="mb-1">
                                     <strong>Shift:</strong> <?php echo ucfirst($booking['shift']); ?>

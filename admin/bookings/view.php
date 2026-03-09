@@ -406,9 +406,11 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
         <div class="invoice-details-bar">
             <div class="invoice-detail-item">
                 <strong>Invoice Date:</strong> <?php echo date('F d, Y', strtotime($booking['created_at'])); ?>
+                <small class="text-muted">(<?php echo convertToNepaliDate($booking['created_at']); ?>)</small>
             </div>
             <div class="invoice-detail-item">
                 <strong>Booking Date:</strong> <?php echo date('F d, Y', strtotime($booking['event_date'])); ?>
+                <small class="text-muted">(<?php echo convertToNepaliDate($booking['event_date']); ?>)</small>
             </div>
             <div class="invoice-detail-item">
                 <strong>Booking No:</strong> <?php echo htmlspecialchars($booking['booking_number']); ?>
@@ -439,7 +441,7 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                 </div>
                 <div class="info-row">
                     <span class="info-label">Event Date:</span>
-                    <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> — <?php echo ucfirst($booking['shift']); ?></span>
+                    <span class="info-value"><?php echo date('F d, Y', strtotime($booking['event_date'])); ?> <small class="text-muted">(<?php echo convertToNepaliDate($booking['event_date']); ?>)</small> — <?php echo ucfirst($booking['shift']); ?></span>
                 </div>
                 <?php if ($has_display_time): ?>
                 <div class="info-row">
@@ -1797,6 +1799,8 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                 <td class="fw-semibold">
                                     <i class="far fa-calendar-alt text-primary me-2"></i>
                                     <?php echo date('M d, Y', strtotime($payment['payment_date'])); ?>
+                                    <br>
+                                    <small class="text-muted"><?php echo convertToNepaliDate($payment['payment_date']); ?></small>
                                     <br>
                                     <small class="text-muted"><?php echo date('h:i A', strtotime($payment['payment_date'])); ?></small>
                                 </td>
