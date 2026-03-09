@@ -874,6 +874,36 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                         </div>
                     </div>
 
+                    <!-- Payment Status -->
+                    <div class="col-lg-4 col-md-6">
+                        <div class="quick-check-item h-100">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-credit-card text-info me-2"></i>
+                                <span class="fw-bold small text-uppercase text-muted">Payment Status</span>
+                                <span class="badge bg-<?php echo $payment_status_color; ?> ms-auto" id="payment-status-badge">
+                                    <?php echo $payment_status_display; ?>
+                                </span>
+                            </div>
+                            <div class="payment-status-container">
+                                <select class="form-select form-select-sm payment-status-select
+                                    <?php
+                                        $ps = $booking['payment_status'];
+                                        echo $ps === 'paid' ? 'status-paid' :
+                                             ($ps === 'partial' ? 'status-partial' :
+                                             ($ps === 'cancelled' ? 'status-cancelled' : 'status-pending'));
+                                    ?>"
+                                    id="payment-status-select"
+                                    data-booking-id="<?php echo $booking['id']; ?>"
+                                    data-current-status="<?php echo $booking['payment_status']; ?>">
+                                    <option value="pending" <?php echo ($booking['payment_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="partial" <?php echo ($booking['payment_status'] == 'partial') ? 'selected' : ''; ?>>Partial</option>
+                                    <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
+                                    <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Send Payment Request / Booking Confirmation -->
                     <div class="col-lg-4 col-md-12">
                         <div class="quick-check-item h-100">
@@ -2885,6 +2915,67 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
     }
 }
 
+/* Payment Status Select Styles */
+.payment-status-container {
+    min-width: 130px;
+}
+
+.payment-status-select {
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 2px solid #dee2e6;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.payment-status-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+    border-color: #4CAF50;
+}
+
+.payment-status-select.status-paid {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.payment-status-select.status-partial {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.payment-status-select.status-pending {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.payment-status-select.status-cancelled {
+    background-color: #e2e3e5;
+    border-color: #6c757d;
+    color: #383d41;
+}
+
+.payment-status-select.updating {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Toast notification styles */
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.custom-toast {
+    min-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .quick-action-section {
@@ -2959,8 +3050,138 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
     }
 })();
 
+// Handle payment status change via AJAX
+(function() {
+    const paymentStatusSelect = document.getElementById('payment-status-select');
+    const paymentStatusBadge = document.getElementById('payment-status-badge');
+
+    if (!paymentStatusSelect) return;
+
+    const badgeColorMap = {
+        paid: 'success',
+        partial: 'warning',
+        pending: 'danger',
+        cancelled: 'secondary'
+    };
+    const badgeLabelMap = {
+        paid: 'Paid',
+        partial: 'Partial',
+        pending: 'Pending',
+        cancelled: 'Cancelled'
+    };
+
+    paymentStatusSelect.addEventListener('change', function() {
+        const bookingId = this.dataset.bookingId;
+        const newStatus = this.value;
+        const oldStatus = this.dataset.currentStatus;
+        const selectElement = this;
+
+        if (!confirm('Are you sure you want to change payment status from "' + oldStatus + '" to "' + newStatus + '"?')) {
+            this.value = oldStatus;
+            return;
+        }
+
+        selectElement.classList.add('updating');
+
+        const formData = new FormData();
+        formData.append('booking_id', bookingId);
+        formData.append('payment_status', newStatus);
+
+        fetch('update-payment-status.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            selectElement.classList.remove('updating');
+
+            if (data.success) {
+                selectElement.dataset.currentStatus = newStatus;
+
+                selectElement.classList.remove('status-pending', 'status-partial', 'status-paid', 'status-cancelled');
+                selectElement.classList.add('status-' + newStatus);
+
+                if (paymentStatusBadge) {
+                    paymentStatusBadge.className = 'badge bg-' + (badgeColorMap[newStatus] || 'secondary') + ' ms-auto';
+                    paymentStatusBadge.textContent = badgeLabelMap[newStatus] || newStatus;
+                }
+
+                showPaymentToast('Success', 'Payment status updated successfully', 'success');
+
+                if (data.is_backward) {
+                    showPaymentToast('Warning', 'You moved the payment status backward in the flow', 'warning');
+                }
+            } else {
+                selectElement.value = oldStatus;
+                showPaymentToast('Error', data.message || 'Failed to update payment status', 'danger');
+            }
+        })
+        .catch(function(error) {
+            selectElement.classList.remove('updating');
+            selectElement.value = oldStatus;
+            showPaymentToast('Error', 'An error occurred. Please try again.', 'danger');
+            console.error('Error:', error);
+        });
+    });
+
+    function showPaymentToast(title, message, type) {
+        type = type || 'info';
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toastId = `toast-${Date.now()}`;
+        const bgClass = type === 'success' ? 'bg-success' :
+                        type === 'danger'  ? 'bg-danger'  :
+                        type === 'warning' ? 'bg-warning'  : 'bg-info';
+        const iconClass = type === 'success' ? 'check-circle' :
+                          type === 'danger'  ? 'exclamation-circle' :
+                          type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+
+        const toastEl = document.createElement('div');
+        toastEl.id = toastId;
+        toastEl.className = `toast custom-toast ${bgClass} text-white`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+
+        const header = document.createElement('div');
+        header.className = `toast-header ${bgClass} text-white`;
+        const icon = document.createElement('i');
+        icon.className = `fas fa-${iconClass} me-2`;
+        const strong = document.createElement('strong');
+        strong.className = 'me-auto';
+        strong.textContent = title;
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close btn-close-white';
+        closeBtn.setAttribute('data-bs-dismiss', 'toast');
+        closeBtn.setAttribute('aria-label', 'Close');
+        header.appendChild(icon);
+        header.appendChild(strong);
+        header.appendChild(closeBtn);
+
+        const body = document.createElement('div');
+        body.className = 'toast-body';
+        body.textContent = message;
+
+        toastEl.appendChild(header);
+        toastEl.appendChild(body);
+        toastContainer.appendChild(toastEl);
+
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+        toastEl.addEventListener('hidden.bs.toast', function() { toastEl.remove(); });
+    }
+})();
 
 
 </script>
+
+<!-- Toast Container for Notifications -->
+<div class="toast-container"></div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
