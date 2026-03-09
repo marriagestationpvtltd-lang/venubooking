@@ -151,30 +151,25 @@ $bookings = $stmt->fetchAll();
                                 </span>
                             </td>
                             <td>
-                                <!-- Quick Payment Status Update -->
-                                <div class="payment-status-container" data-booking-id="<?php echo $booking['id']; ?>">
-                                    <select class="form-select form-select-sm payment-status-select 
-                                        <?php 
-                                            echo $booking['payment_status'] == 'paid' ? 'status-paid' : 
-                                                ($booking['payment_status'] == 'partial' ? 'status-partial' : 
-                                                ($booking['payment_status'] == 'cancelled' ? 'status-cancelled' : 'status-pending')); 
-                                        ?>" 
-                                        data-booking-id="<?php echo $booking['id']; ?>"
-                                        data-current-status="<?php echo $booking['payment_status']; ?>">
-                                        <option value="pending" <?php echo ($booking['payment_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                        <option value="partial" <?php echo ($booking['payment_status'] == 'partial') ? 'selected' : ''; ?>>Partial</option>
-                                        <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
-                                        <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                    </select>
-                                    <?php if ($payment_percentage > 0 && $payment_percentage < 100): ?>
-                                        <div class="progress mt-1" style="height: 3px;">
-                                            <div class="progress-bar bg-warning" role="progressbar" 
-                                                style="width: <?php echo $payment_percentage; ?>%" 
-                                                aria-valuenow="<?php echo $payment_percentage; ?>" 
-                                                aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+                                <!-- Payment Status (read-only; change via View Details) -->
+                                <span class="badge bg-<?php 
+                                    echo $booking['payment_status'] == 'paid' ? 'success' : 
+                                        ($booking['payment_status'] == 'partial' ? 'warning' : 
+                                        ($booking['payment_status'] == 'cancelled' ? 'secondary' : 'danger')); 
+                                ?> px-2 py-1"
+                                    title="Payment status is read-only on this page. Use View Details to update it."
+                                    role="status"
+                                    aria-label="Payment status: <?php echo htmlspecialchars(ucfirst($booking['payment_status']), ENT_QUOTES, 'UTF-8'); ?> (read-only)">
+                                    <?php echo ucfirst($booking['payment_status']); ?>
+                                </span>
+                                <?php if ($payment_percentage > 0 && $payment_percentage < 100): ?>
+                                    <div class="progress mt-1" style="height: 3px; min-width: 60px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                            style="width: <?php echo $payment_percentage; ?>%" 
+                                            aria-valuenow="<?php echo $payment_percentage; ?>" 
+                                            aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td class="text-center">
                                 <div class="btn-group" role="group">
@@ -260,50 +255,7 @@ $bookings = $stmt->fetchAll();
 }
 
 .payment-status-container {
-    min-width: 130px;
-}
-
-.payment-status-select {
-    font-size: 0.875rem;
-    font-weight: 500;
-    border: 2px solid #dee2e6;
-    padding: 4px 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.payment-status-select:focus {
-    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
-    border-color: #4CAF50;
-}
-
-.payment-status-select.status-paid {
-    background-color: #d4edda;
-    border-color: #28a745;
-    color: #155724;
-}
-
-.payment-status-select.status-partial {
-    background-color: #fff3cd;
-    border-color: #ffc107;
-    color: #856404;
-}
-
-.payment-status-select.status-pending {
-    background-color: #f8d7da;
-    border-color: #dc3545;
-    color: #721c24;
-}
-
-.payment-status-select.status-cancelled {
-    background-color: #e2e3e5;
-    border-color: #6c757d;
-    color: #383d41;
-}
-
-.payment-status-select.updating {
-    opacity: 0.6;
-    pointer-events: none;
+    min-width: 80px;
 }
 
 .btn-group .btn {
@@ -320,24 +272,8 @@ $bookings = $stmt->fetchAll();
     border-bottom-right-radius: 0.25rem;
 }
 
-/* Toast notification styles */
-.toast-container {
-    position: fixed;
-    top: 80px;
-    right: 20px;
-    z-index: 9999;
-}
-
-.custom-toast {
-    min-width: 300px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
 </style>
 
-<!-- Toast Container for Notifications -->
-<div class="toast-container"></div>
-
-<!-- JavaScript for Quick Payment Status Update -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
@@ -353,110 +289,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle payment status change
-    const paymentStatusSelects = document.querySelectorAll('.payment-status-select');
-    
-    paymentStatusSelects.forEach(select => {
-        select.addEventListener('change', function() {
-            const bookingId = this.dataset.bookingId;
-            const newStatus = this.value;
-            const oldStatus = this.dataset.currentStatus;
-            const selectElement = this;
-            
-            // Confirm the change
-            if (!confirm(`Are you sure you want to change payment status from "${oldStatus}" to "${newStatus}"?`)) {
-                // Revert to old value
-                this.value = oldStatus;
-                return;
-            }
-            
-            // Add updating class
-            selectElement.classList.add('updating');
-            
-            // Send AJAX request
-            const formData = new FormData();
-            formData.append('booking_id', bookingId);
-            formData.append('payment_status', newStatus);
-            
-            fetch('update-payment-status.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                selectElement.classList.remove('updating');
-                
-                if (data.success) {
-                    // Update the current status
-                    selectElement.dataset.currentStatus = newStatus;
-                    
-                    // Update visual styling
-                    selectElement.classList.remove('status-pending', 'status-partial', 'status-paid', 'status-cancelled');
-                    selectElement.classList.add('status-' + newStatus);
-                    
-                    // Show success toast
-                    showToast('Success', 'Payment status updated successfully', 'success');
-                    
-                    // Show warning if backward flow
-                    if (data.is_backward) {
-                        showToast('Warning', 'You moved the payment status backward in the flow', 'warning');
-                    }
-                } else {
-                    // Revert to old status
-                    selectElement.value = oldStatus;
-                    
-                    // Show error toast
-                    showToast('Error', data.message || 'Failed to update payment status', 'danger');
-                }
-            })
-            .catch(error => {
-                selectElement.classList.remove('updating');
-                selectElement.value = oldStatus;
-                
-                // Show error toast
-                showToast('Error', 'An error occurred. Please try again.', 'danger');
-                console.error('Error:', error);
-            });
-        });
-    });
-    
-    // Toast notification function
-    function showToast(title, message, type = 'info') {
-        const toastContainer = document.querySelector('.toast-container');
-        
-        const toastId = 'toast-' + Date.now();
-        const bgClass = type === 'success' ? 'bg-success' : 
-                       type === 'danger' ? 'bg-danger' : 
-                       type === 'warning' ? 'bg-warning' : 'bg-info';
-        
-        const toastHTML = `
-            <div id="${toastId}" class="toast custom-toast ${bgClass} text-white" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header ${bgClass} text-white">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-                    <strong class="me-auto">${title}</strong>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body">
-                    ${message}
-                </div>
-            </div>
-        `;
-        
-        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-        
-        const toastElement = document.getElementById(toastId);
-        const toast = new bootstrap.Toast(toastElement, {
-            autohide: true,
-            delay: 5000
-        });
-        
-        toast.show();
-        
-        // Remove from DOM after hidden
-        toastElement.addEventListener('hidden.bs.toast', function() {
-            toastElement.remove();
-        });
-    }
 });
 </script>
 
