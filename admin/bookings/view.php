@@ -1278,10 +1278,6 @@ $user_services_total = 0;
 foreach ($user_services as $_svc) {
     $user_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
 }
-$admin_services_total_pre = 0;
-foreach ($admin_services as $_svc) {
-    $admin_services_total_pre += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
-}
 $booking_payment_methods = getBookingPaymentMethods($booking_id);
 $tab_services_count = count($user_services) + count($admin_services) + count($booking['menus'] ?? []);
 $tab_payments_count = count($payment_transactions);
@@ -2873,11 +2869,11 @@ $tab_payments_count = count($payment_transactions);
     'use strict';
 
     var tabButtons = document.querySelectorAll('#bookingDetailTabs [data-bs-toggle="tab"]');
-    var phpInitialTab = <?php echo json_encode($initial_tab); ?>;
+    var initialTabId = <?php echo json_encode($initial_tab); ?>;
 
     // Determine which tab to activate (PHP-set > hash > sessionStorage > default overview)
-    var activeTabId = phpInitialTab !== 'tab-overview'
-        ? phpInitialTab
+    var activeTabId = initialTabId !== 'tab-overview'
+        ? initialTabId
         : (window.location.hash.replace('#', '') || sessionStorage.getItem('bookingViewTab_<?php echo $booking_id; ?>'));
 
     if (activeTabId && activeTabId !== 'tab-overview') {
