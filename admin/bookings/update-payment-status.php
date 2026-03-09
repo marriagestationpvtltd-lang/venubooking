@@ -55,30 +55,40 @@ try {
         $is_backward = true;
     }
     
-    // Update the payment status
-    $stmt = $db->prepare("UPDATE bookings SET payment_status = ? WHERE id = ?");
-    $stmt->execute([$new_payment_status, $booking_id]);
-    
+    // Derive booking_status and advance_payment_received from the new payment_status
+    $auto = getAutoStatusByPaymentStatus($new_payment_status);
+    $new_booking_status  = $auto['booking_status']          ?? $booking['booking_status'];
+    $new_advance_payment = $auto['advance_payment_received'] ?? $booking['advance_payment_received'];
+
+    // Update payment_status, booking_status, and advance_payment_received atomically
+    $stmt = $db->prepare(
+        "UPDATE bookings SET payment_status = ?, booking_status = ?, advance_payment_received = ? WHERE id = ?"
+    );
+    $stmt->execute([$new_payment_status, $new_booking_status, $new_advance_payment, $booking_id]);
+
     // Log the activity
     $action_details = "Payment status changed from {$old_payment_status} to {$new_payment_status}";
     if ($is_backward) {
         $action_details .= " (backward flow)";
     }
-    
+    $action_details .= "; booking_status auto-set to {$new_booking_status}; advance_payment_received auto-set to {$new_advance_payment}";
+
     logActivity(
-        $current_user['id'], 
-        'Updated payment status', 
-        'bookings', 
-        $booking_id, 
+        $current_user['id'],
+        'Updated payment status',
+        'bookings',
+        $booking_id,
         $action_details . " for booking: {$booking['booking_number']}"
     );
-    
-    // Return success response
+
+    // Return success response including auto-updated fields so the UI can reflect them
     echo json_encode([
         'success' => true,
         'message' => 'Payment status updated successfully',
         'old_status' => $old_payment_status,
         'new_status' => $new_payment_status,
+        'booking_status' => $new_booking_status,
+        'advance_payment_received' => $new_advance_payment,
         'is_backward' => $is_backward
     ]);
     
