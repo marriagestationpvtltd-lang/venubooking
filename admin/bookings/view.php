@@ -875,12 +875,16 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                 </span>
                             </div>
                             <div class="payment-status-container">
-                                <span class="small text-muted">
-                                    <?php
-                                        $ps_labels = ['paid' => 'Paid', 'partial' => 'Partial', 'cancelled' => 'Cancelled', 'pending' => 'Pending'];
-                                        echo htmlspecialchars($ps_labels[$booking['payment_status']] ?? 'Pending');
-                                    ?>
-                                </span>
+                                <select class="form-select form-select-sm payment-status-select"
+                                    id="payment-status-select"
+                                    data-booking-id="<?php echo (int)$booking['id']; ?>"
+                                    data-current-status="<?php echo htmlspecialchars($booking['payment_status'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <option value="pending" <?php echo ($booking['payment_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="partial" <?php echo ($booking['payment_status'] == 'partial') ? 'selected' : ''; ?>>Partial</option>
+                                    <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
+                                    <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Flow: Pending → Partial → Paid</small>
                             </div>
                         </div>
                     </div>
@@ -2956,6 +2960,66 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
             setTimeout(function() {
                 venueProviderWhatsappForm.submit();
             }, WHATSAPP_REDIRECT_DELAY);
+        });
+    }
+
+    // Handle payment status change from the View Details dropdown
+    const paymentStatusSelect = document.getElementById('payment-status-select');
+    if (paymentStatusSelect) {
+        paymentStatusSelect.addEventListener('change', function() {
+            const bookingId = this.dataset.bookingId;
+            const newStatus = this.value;
+            const oldStatus = this.dataset.currentStatus;
+            const selectElement = this;
+
+            if (!confirm('Are you sure you want to change payment status from "' + oldStatus + '" to "' + newStatus + '"?')) {
+                this.value = oldStatus;
+                return;
+            }
+
+            selectElement.disabled = true;
+
+            const formData = new FormData();
+            formData.append('booking_id', bookingId);
+            formData.append('payment_status', newStatus);
+
+            fetch('update-payment-status.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                selectElement.disabled = false;
+
+                if (data.success) {
+                    selectElement.dataset.currentStatus = newStatus;
+
+                    // Update the badge color and label
+                    const badge = document.getElementById('payment-status-badge');
+                    if (badge) {
+                        const colorMap = {paid: 'success', partial: 'warning', pending: 'danger', cancelled: 'secondary'};
+                        const labelMap = {paid: 'Paid', partial: 'Partial', pending: 'Pending', cancelled: 'Cancelled'};
+                        badge.className = 'badge bg-' + (colorMap[newStatus] || 'secondary') + ' ms-auto';
+                        badge.textContent = labelMap[newStatus] || newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+                    }
+
+                    var successMsg = 'Payment status updated successfully.';
+                    if (data.is_backward) {
+                        successMsg += '\n\nNote: You moved the payment status backward in the flow.';
+                    }
+                    alert(successMsg);
+                } else {
+                    selectElement.value = oldStatus;
+                    // Use a safe static message to avoid displaying unescaped server content
+                    alert('Failed to update payment status. Please try again.');
+                }
+            })
+            .catch(function(error) {
+                selectElement.disabled = false;
+                selectElement.value = oldStatus;
+                alert('An error occurred. Please try again.');
+                console.error('Error:', error);
+            });
         });
     }
 })();
