@@ -310,6 +310,10 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
         }
     }
 }
+$admin_services_total = 0;
+foreach ($admin_services as $_svc) {
+    $admin_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
+}
 
 // Resolve display time – prefer saved start/end times; fall back to shift defaults so that
 // the booking time is always visible in both the screen view and the print invoice.
@@ -1187,6 +1191,111 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                     <?php endif; ?>
                 </div>
 
+                <!-- Admin Added Services -->
+                <div class="border-top mt-3 pt-2" id="admin-added-services">
+                    <!-- Section Header -->
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-shield-alt text-secondary" style="font-size:.85rem;"></i>
+                            <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.06em;">Admin Added Services</span>
+                            <?php if (!empty($admin_services)): ?>
+                                <span class="badge bg-dark" style="font-size:.65rem;"><?php echo count($admin_services); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <?php if (count($admin_services) > 0): ?>
+                    <div class="table-responsive mb-2">
+                        <table class="table table-sm table-bordered mb-0 align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Service</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Price</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center">Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($admin_services as $service):
+                                    $service_price = floatval($service['price'] ?? 0);
+                                    $service_qty   = intval($service['quantity'] ?? 1);
+                                    $service_total = $service_price * $service_qty;
+                                ?>
+                                <tr>
+                                    <td class="service-info-cell">
+                                        <i class="fas fa-shield-alt text-warning me-2"></i>
+                                        <strong><?php echo htmlspecialchars($service['service_name']); ?></strong>
+                                        <?php if (!empty($service['description'])): ?>
+                                            <small class="service-description"><?php echo htmlspecialchars($service['description']); ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center"><span class="badge bg-info"><?php echo $service_qty; ?></span></td>
+                                    <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service_price); ?></td>
+                                    <td class="text-end fw-bold text-success"><?php echo formatCurrency($service_total); ?></td>
+                                    <td class="text-center">
+                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this service?');">
+                                            <input type="hidden" name="action" value="delete_admin_service">
+                                            <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                            <button type="submit" class="btn btn-danger btn-sm py-0 px-1" title="Delete">
+                                                <i class="fas fa-trash small"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <td colspan="3" class="text-end fw-bold small">Total Admin Services:</td>
+                                    <td colspan="2" class="text-end"><strong class="text-success"><?php echo formatCurrency($admin_services_total); ?></strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <?php else: ?>
+                    <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> No admin services added yet.</p>
+                    <?php endif; ?>
+
+                    <!-- Add Service Form -->
+                    <div class="border-top pt-2">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-plus-circle text-success me-1" style="font-size:.85rem;"></i>
+                            <span class="fw-semibold text-muted" style="font-size:.8rem;">Add a Service</span>
+                        </div>
+                        <form method="POST" action="">
+                            <input type="hidden" name="action" value="add_admin_service">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-auto">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Service Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" name="service_name"
+                                           placeholder="Service Name" required>
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Description</label>
+                                    <input type="text" class="form-control form-control-sm" name="description"
+                                           placeholder="Description (optional)">
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Qty <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control form-control-sm" name="quantity"
+                                           min="1" value="1" style="width:70px;" required>
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Price <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control form-control-sm" name="price"
+                                           min="0" step="0.01" style="width:100px;" required>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-plus me-1"></i>Add
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -1200,12 +1309,8 @@ $user_services_total = 0;
 foreach ($user_services as $_svc) {
     $user_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
 }
-$admin_services_total = 0;
-foreach ($admin_services as $_svc) {
-    $admin_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
-}
 $booking_payment_methods = getBookingPaymentMethods($booking_id);
-$tab_services_count = count($user_services) + count($booking['menus'] ?? []) + count($admin_services);
+$tab_services_count = count($user_services) + count($booking['menus'] ?? []);
 $tab_payments_count = count($payment_transactions);
 ?>
 
@@ -1494,103 +1599,6 @@ $tab_payments_count = count($payment_transactions);
                             </div>
                         </div>
                         <?php endif; ?>
-
-                        <!-- Admin Added Services -->
-                        <div class="mb-2">
-                            <div class="section-label-premium mb-2">
-                                <span class="section-dot bg-dark"></span>
-                                <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Admin Added Services</span>
-                                <?php if (count($admin_services) > 0): ?>
-                                    <span class="badge bg-dark ms-1" style="font-size:.65rem;"><?php echo count($admin_services); ?></span>
-                                <?php endif; ?>
-                            </div>
-
-                            <?php if (count($admin_services) > 0): ?>
-                            <div class="table-responsive mb-3">
-                                <table class="table table-sm table-hover mb-0 border rounded">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th class="fw-semibold">Service</th>
-                                            <th class="fw-semibold text-center">Qty</th>
-                                            <th class="fw-semibold text-end">Price</th>
-                                            <th class="fw-semibold text-end">Total</th>
-                                            <th class="fw-semibold text-center">Delete</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($admin_services as $service):
-                                            $service_price = floatval($service['price'] ?? 0);
-                                            $service_qty   = intval($service['quantity'] ?? 1);
-                                            $service_total = $service_price * $service_qty;
-                                        ?>
-                                        <tr>
-                                            <td class="service-info-cell">
-                                                <i class="fas fa-shield-alt text-warning me-2"></i>
-                                                <strong><?php echo htmlspecialchars($service['service_name']); ?></strong>
-                                                <?php if (!empty($service['description'])): ?>
-                                                    <small class="service-description"><?php echo htmlspecialchars($service['description']); ?></small>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-center"><span class="badge bg-info"><?php echo $service_qty; ?></span></td>
-                                            <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service_price); ?></td>
-                                            <td class="text-end fw-bold text-success"><?php echo formatCurrency($service_total); ?></td>
-                                            <td class="text-center">
-                                                <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this service?');">
-                                                    <input type="hidden" name="action" value="delete_admin_service">
-                                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                                    <button type="submit" class="btn btn-danger btn-sm py-0 px-1" title="Delete">
-                                                        <i class="fas fa-trash small"></i>
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                    <tfoot>
-                                        <tr class="table-light">
-                                            <td colspan="3" class="text-end fw-bold small">Total Admin Services:</td>
-                                            <td colspan="2" class="text-end"><strong class="text-success"><?php echo formatCurrency($admin_services_total); ?></strong></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <?php else: ?>
-                            <p class="text-muted small mb-3"><i class="fas fa-info-circle me-1"></i> No admin services added yet.</p>
-                            <?php endif; ?>
-
-                            <!-- Add Admin Service Form -->
-                            <div class="border rounded p-3 bg-light">
-                                <h6 class="fw-bold mb-3 small text-uppercase text-muted">
-                                    <i class="fas fa-plus-circle text-success me-1"></i> Add Admin Service
-                                </h6>
-                                <form method="POST" action="">
-                                    <input type="hidden" name="action" value="add_admin_service">
-                                    <div class="row g-2">
-                                        <div class="col-md-4">
-                                            <input type="text" class="form-control form-control-sm" name="service_name"
-                                                   placeholder="Service Name *" required>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <input type="text" class="form-control form-control-sm" name="description"
-                                                   placeholder="Description (optional)">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="number" class="form-control form-control-sm" name="quantity"
-                                                   min="1" value="1" placeholder="Qty *" required>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="number" class="form-control form-control-sm" name="price"
-                                                   min="0" step="0.01" placeholder="Price *" required>
-                                        </div>
-                                        <div class="col-md-1">
-                                            <button type="submit" class="btn btn-success btn-sm w-100">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
 
                     </div>
                 </div>
