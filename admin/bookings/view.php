@@ -755,10 +755,21 @@ $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 // Build venue provider WhatsApp URL
 $venue_provider_wa_url = buildVenueProviderWhatsAppUrl($booking);
 $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'] ?? '');
+// Pre-compute variables for tabbed layout
+// (admin_services and user_services already computed above for print invoice)
+$user_services_count = count($user_services);
+$user_services_total = 0;
+foreach ($user_services as $_svc) {
+    $user_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
+}
+$booking_payment_methods = getBookingPaymentMethods($booking_id);
+$tab_services_count = count($user_services) + count($booking['menus'] ?? []);
+$tab_payments_count = count($payment_transactions);
 ?>
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm border-0">
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Quick Check</h5>
                 <small class="opacity-75">Manage statuses &amp; send requests in one place</small>
@@ -767,7 +778,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                 <div class="row g-3">
 
                     <!-- Booking Status -->
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-md-6">
                         <div class="quick-check-item h-100">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-circle-dot text-primary me-2"></i>
@@ -784,7 +795,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                     </div>
 
                     <!-- Advance Payment Status (auto-managed by Payment Status) -->
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-md-6">
                         <div class="quick-check-item h-100">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-money-check-alt text-success me-2"></i>
@@ -803,7 +814,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                     </div>
 
                     <!-- Payment Status -->
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-md-6">
                         <div class="quick-check-item h-100">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-credit-card text-info me-2"></i>
@@ -828,7 +839,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                     </div>
 
                     <!-- Send Payment Request / Booking Confirmation -->
-                    <div class="col-lg-4 col-md-12">
+                    <div class="col-md-6">
                         <div class="quick-check-item h-100">
                             <?php
                             // Show "Booking Confirmation" only when advance payment is received AND payment status is not pending
@@ -906,7 +917,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                     </div>
 
                     <!-- Venue Provider Notification -->
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-md-6">
                         <div class="quick-check-item h-100">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-building text-warning me-2"></i>
@@ -1298,25 +1309,8 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
 
             </div>
         </div>
-    </div>
-</div>
 
-<?php
-// Pre-compute variables for tabbed layout
-// (admin_services and user_services already computed above for print invoice)
-$user_services_count = count($user_services);
-$user_services_total = 0;
-foreach ($user_services as $_svc) {
-    $user_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
-}
-$booking_payment_methods = getBookingPaymentMethods($booking_id);
-$tab_services_count = count($user_services) + count($booking['menus'] ?? []);
-$tab_payments_count = count($payment_transactions);
-?>
-
-<div class="row g-4">
-    <!-- Main Tabbed Content -->
-    <div class="col-lg-8">
+        <!-- Main Tabbed Content -->
         <div class="card shadow border-0 booking-detail-tabs">
             <!-- Tab Navigation -->
             <div class="card-header bg-white border-bottom p-0">
