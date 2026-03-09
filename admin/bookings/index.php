@@ -143,7 +143,10 @@ $bookings = $stmt->fetchAll();
                                         ($booking['booking_status'] == 'pending' ? 'warning' : 
                                         ($booking['booking_status'] == 'cancelled' ? 'danger' : 
                                         ($booking['booking_status'] == 'completed' ? 'primary' : 'secondary')))); 
-                                ?> px-2 py-1">
+                                ?> px-2 py-1 booking-status-badge"
+                                    title="Booking status is read-only on this page. Use the View page to update it."
+                                    role="status"
+                                    aria-label="Booking status: <?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?> (read-only)">
                                     <?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?>
                                 </span>
                             </td>
@@ -251,6 +254,11 @@ $bookings = $stmt->fetchAll();
     font-size: 1.1rem;
 }
 
+.booking-status-badge {
+    cursor: not-allowed;
+    user-select: none;
+}
+
 .payment-status-container {
     min-width: 130px;
 }
@@ -338,6 +346,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
+    // Handle booking status badge click (read-only enforcement)
+    document.querySelectorAll('.booking-status-badge').forEach(function(badge) {
+        badge.addEventListener('click', function() {
+            alert('Booking status cannot be edited from this page. This field is read-only.');
+        });
+    });
+
     // Handle payment status change
     const paymentStatusSelects = document.querySelectorAll('.payment-status-select');
     
