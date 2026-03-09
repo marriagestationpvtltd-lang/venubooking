@@ -1215,7 +1215,7 @@ $tab_payments_count = count($payment_transactions);
         <div class="card shadow border-0 booking-detail-tabs">
             <!-- Tab Navigation -->
             <div class="card-header bg-white border-bottom p-0">
-                <ul class="nav nav-tabs border-0 px-3 pt-2 gap-1" id="bookingDetailTabs" role="tablist">
+                <ul class="nav nav-tabs border-0 px-3" id="bookingDetailTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active fw-semibold px-3" id="tab-overview-btn"
                                 data-bs-toggle="tab" data-bs-target="#tab-overview"
@@ -1955,23 +1955,39 @@ $tab_payments_count = count($payment_transactions);
 
 .booking-detail-tabs .card-header {
     border-radius: 0 !important;
+    padding: 0 !important;
 }
 
-/* Nav tabs inside the card */
-.booking-detail-tabs .nav-tabs .nav-link {
+/* Nav tabs container: remove Bootstrap's border-bottom and reset gap */
+.booking-detail-tabs .nav-tabs {
+    border-bottom: none;
+    gap: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+}
+
+/* Nav tab links: higher specificity (.card-header added) overrides Bootstrap's
+   .nav-tabs .nav-link (030) and .nav-tabs .nav-link.active (030) without !important */
+.booking-detail-tabs .card-header .nav-tabs .nav-link {
     color: #6c757d;
     border: none;
     border-bottom: 2px solid transparent;
     border-radius: 0;
-    padding: .55rem 1rem;
-    font-size: .85rem;
+    margin-bottom: 0;           /* neutralise Bootstrap's -1px overlap trick */
+    padding: .7rem 1.25rem;
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    background: transparent;
     transition: color .15s ease, border-color .15s ease;
 }
-.booking-detail-tabs .nav-tabs .nav-link:hover {
+.booking-detail-tabs .card-header .nav-tabs .nav-link:hover {
     color: #0d6efd;
-    border-bottom-color: #b0c4de;
+    border-bottom-color: #b0c4de; /* muted blue — softer than the active #0d6efd */
+    background: rgba(13,110,253,.04);
 }
-.booking-detail-tabs .nav-tabs .nav-link.active {
+.booking-detail-tabs .card-header .nav-tabs .nav-link.active {
     color: #0d6efd;
     font-weight: 600;
     border-bottom: 2px solid #0d6efd;
