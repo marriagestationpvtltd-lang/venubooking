@@ -1376,6 +1376,7 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                 <i class="far fa-calendar text-danger me-2"></i>
                                 <?php echo date('M d, Y', strtotime($booking['event_date'])); ?>
                             </p>
+                            <small class="text-muted">(<?php echo convertToNepaliDate($booking['event_date']); ?>)</small>
                         </div>
                     </div>
                     <div class="col-md-4">
