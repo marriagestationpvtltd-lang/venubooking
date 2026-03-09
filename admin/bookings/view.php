@@ -160,68 +160,6 @@ if (isset($_POST['action'])) {
         } else {
             $error_message = 'Customer email not found. Cannot send email.';
         }
-    } elseif ($action === 'update_status') {
-        // Handle quick status update
-        $new_booking_status = trim($_POST['booking_status'] ?? '');
-        $old_booking_status = trim($_POST['old_booking_status'] ?? '');
-        
-        // Validate booking status
-        $valid_statuses = ['pending', 'payment_submitted', 'confirmed', 'cancelled', 'completed'];
-        if (!in_array($new_booking_status, $valid_statuses)) {
-            $error_message = 'Invalid booking status.';
-        } else {
-            try {
-                $stmt = $db->prepare("UPDATE bookings SET booking_status = ? WHERE id = ?");
-                $stmt->execute([$new_booking_status, $booking_id]);
-                
-                logActivity($current_user['id'], 'Updated booking status', 'bookings', $booking_id, "Status changed from {$old_booking_status} to {$new_booking_status}");
-                
-                $success_message = "Booking status updated successfully from " . ucfirst($old_booking_status) . " to " . ucfirst($new_booking_status);
-                
-                // Re-fetch booking to get updated status
-                $booking = getBookingDetails($booking_id);
-                
-                // Recalculate helper variables for consistent display
-                $status_vars = calculateBookingStatusVariables($booking);
-                extract($status_vars);
-            } catch (Exception $e) {
-                $error_message = 'Failed to update booking status. Please try again.';
-            }
-            
-            // Send email notification outside try-catch so that email failures do not
-            // mask the successfully updated booking status in the database
-            if (empty($error_message)) {
-                try {
-                    sendBookingNotification($booking_id, 'update', $old_booking_status);
-                } catch (Exception $e) {
-                    error_log("Booking status notification email failed for booking ID {$booking_id}: " . $e->getMessage());
-                }
-            }
-        }
-    } elseif ($action === 'toggle_advance_payment') {
-        // Handle advance payment status toggle
-        $new_advance_status = isset($_POST['advance_payment_received']) ? 1 : 0;
-        $old_advance_status = $booking['advance_payment_received'];
-        
-        try {
-            $stmt = $db->prepare("UPDATE bookings SET advance_payment_received = ? WHERE id = ?");
-            $stmt->execute([$new_advance_status, $booking_id]);
-            
-            $old_status_text = ($old_advance_status === 1) ? 'received' : 'not received';
-            $new_status_text = ($new_advance_status === 1) ? 'received' : 'not received';
-            logActivity($current_user['id'], 'Updated advance payment status', 'bookings', $booking_id, "Advance payment changed from {$old_status_text} to {$new_status_text} for booking: {$booking['booking_number']}");
-            
-            $success_message = "Advance payment status updated successfully to: " . ucfirst($new_status_text);
-            
-            // Re-fetch booking to get updated status
-            $booking = getBookingDetails($booking_id);
-            
-            // Recalculate helper variables for consistent display
-            $status_vars = calculateBookingStatusVariables($booking);
-            extract($status_vars);
-        } catch (Exception $e) {
-            $error_message = 'Failed to update advance payment status. Please try again.';
-        }
     } elseif ($action === 'add_vendor_assignment') {
         $vendor_id_input    = intval($_POST['vendor_id'] ?? 0);
         $task_description   = trim($_POST['task_description'] ?? '');
@@ -834,25 +772,9 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                     <?php echo $booking_status_display; ?>
                                 </span>
                             </div>
-                            <form method="POST" action="" class="status-update-form">
-                                <input type="hidden" name="action" value="update_status">
-                                <input type="hidden" name="old_booking_status" value="<?php echo htmlspecialchars($booking['booking_status']); ?>">
-                                <div class="d-flex align-items-center gap-2">
-                                    <select name="booking_status" class="form-select form-select-sm flex-grow-1" id="booking-status-select">
-                                        <option value="pending" <?php echo ($booking['booking_status'] == 'pending') ? 'selected' : ''; ?>>⏳ Pending</option>
-                                        <option value="payment_submitted" <?php echo ($booking['booking_status'] == 'payment_submitted') ? 'selected' : ''; ?>>💳 Payment Submitted</option>
-                                        <option value="confirmed" <?php echo ($booking['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>✅ Confirmed</option>
-                                        <option value="cancelled" <?php echo ($booking['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>❌ Cancelled</option>
-                                        <option value="completed" <?php echo ($booking['booking_status'] == 'completed') ? 'selected' : ''; ?>>🏁 Completed</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-save me-1"></i>Save
-                                    </button>
-                                </div>
-                            </form>
                             <small class="text-muted d-block mt-1">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Pending &amp; Confirmed are auto-set by Payment Status. Use this form only for Cancelled / Completed.
+                                <i class="fas fa-lock me-1"></i>
+                                <strong>Updated – Read Only.</strong> Auto-set by Payment Status.
                             </small>
                         </div>
                     </div>
@@ -869,9 +791,9 @@ $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'
                                     <span class="badge bg-danger ms-auto" id="advance-payment-badge"><i class="fas fa-times-circle me-1"></i>Not Received</span>
                                 <?php endif; ?>
                             </div>
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Auto-managed by Payment Status. No manual update needed.
+                            <small class="text-muted d-block mt-1">
+                                <i class="fas fa-lock me-1"></i>
+                                <strong>Updated – Read Only.</strong> Auto-managed by Payment Status.
                             </small>
                         </div>
                     </div>
@@ -2990,7 +2912,7 @@ $tab_payments_count = count($payment_transactions);
                         badge.textContent = labelMap[newStatus] || newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
                     }
 
-                    // Auto-update Booking Status badge and dropdown
+                    // Auto-update Booking Status badge
                     if (data.booking_status) {
                         const bookingBadge = document.getElementById('booking-status-badge');
                         if (bookingBadge) {
@@ -2998,12 +2920,6 @@ $tab_payments_count = count($payment_transactions);
                             const bsLabelMap = {pending: 'Pending', confirmed: 'Confirmed', cancelled: 'Cancelled', completed: 'Completed', payment_submitted: 'Payment submitted'};
                             bookingBadge.className = 'badge bg-' + (bsColorMap[data.booking_status] || 'info') + ' ms-auto';
                             bookingBadge.textContent = bsLabelMap[data.booking_status] || data.booking_status;
-                        }
-                        const bookingSelect = document.getElementById('booking-status-select');
-                        if (bookingSelect) {
-                            bookingSelect.value = data.booking_status;
-                            const hiddenOld = bookingSelect.closest('form') && bookingSelect.closest('form').querySelector('[name="old_booking_status"]');
-                            if (hiddenOld) { hiddenOld.value = data.booking_status; }
                         }
                     }
 
