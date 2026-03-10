@@ -31,6 +31,11 @@ define('ADMIN_SERVICE_NO_REF_ID', 0);
 define('ADMIN_SERVICE_DEFAULT_CATEGORY', '');
 
 /**
+ * Category value used when a predefined service package is added to a booking
+ */
+define('PACKAGE_SERVICE_CATEGORY', 'package');
+
+/**
  * Database column names for admin services feature
  * These constants ensure consistency across the codebase
  */
@@ -2761,6 +2766,73 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
         $db->rollBack();
         // Log general error without sensitive details
         error_log("Error adding admin service: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Add a predefined service package to a booking.
+ * The package is stored in booking_services with category = PACKAGE_SERVICE_CATEGORY
+ * and added_by = ADMIN_SERVICE_TYPE so it can be managed like an admin service.
+ *
+ * @param int $booking_id  Booking ID
+ * @param int $package_id  ID from service_packages table
+ * @param int $quantity    Quantity (default 1)
+ * @return bool|int Returns booking_service ID on success, false on failure
+ */
+function addPackageToBooking($booking_id, $package_id, $quantity = 1) {
+    $db = getDB();
+
+    try {
+        $booking_id = intval($booking_id);
+        $package_id = intval($package_id);
+        $quantity   = max(1, intval($quantity));
+
+        // Fetch package details
+        $stmt = $db->prepare("SELECT * FROM service_packages WHERE id = ? AND status = 'active'");
+        $stmt->execute([$package_id]);
+        $package = $stmt->fetch();
+
+        if (!$package) {
+            throw new Exception("Package not found or is inactive");
+        }
+
+        $price       = floatval($package['price']);
+        $name        = trim($package['name']);
+        $description = trim($package['description'] ?? '');
+
+        if ($price <= 0) {
+            throw new Exception("Package price must be greater than 0");
+        }
+
+        $db->beginTransaction();
+
+        $insert = $db->prepare("
+            INSERT INTO booking_services
+            (booking_id, service_id, service_name, price, description, category, added_by, quantity)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $insert->execute([
+            $booking_id,
+            $package_id,
+            $name,
+            $price,
+            $description,
+            PACKAGE_SERVICE_CATEGORY,
+            ADMIN_SERVICE_TYPE,
+            $quantity,
+        ]);
+        $service_id = $db->lastInsertId();
+
+        recalculateBookingTotals($booking_id);
+
+        $db->commit();
+        return $service_id;
+    } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log("Error adding package to booking: " . $e->getMessage());
         return false;
     }
 }
