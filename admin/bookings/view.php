@@ -250,6 +250,14 @@ $vendor_assignments = getBookingVendorAssignments($booking_id);
 // Get available vendors for the assignment form (used in Quick Check panel)
 $all_vendors = getAvailableVendors($booking['event_date']);
 
+// Batch-fetch primary photo URLs for all relevant vendors (avoids N+1 queries)
+$_vendor_photo_ids = array_unique(array_merge(
+    array_column($vendor_assignments, 'vendor_id'),
+    array_column($all_vendors, 'id')
+));
+$vendor_primary_photos = getVendorPrimaryPhotoUrls($_vendor_photo_ids);
+unset($_vendor_photo_ids);
+
 // Get payment transactions for display
 $payment_transactions = getBookingPayments($booking_id);
 
@@ -956,6 +964,7 @@ $tab_payments_count = count($payment_transactions);
                         'name'        => $v['name'],
                         'description' => $v['short_description'] ?? '',
                         'city'        => $v['city_name'] ?? '',
+                        'photo'       => $vendor_primary_photos[$v['id']] ?? '',
                     ];
                 }
                 // Filter vendor types list to only those that have available vendors
@@ -1014,6 +1023,17 @@ $tab_payments_count = count($payment_transactions);
                                 <?php foreach ($vendor_assignments as $assignment): ?>
                                 <tr>
                                     <td class="text-nowrap">
+                                        <?php $va_photo_url = $vendor_primary_photos[$assignment['vendor_id']] ?? ''; ?>
+                                        <?php if (!empty($va_photo_url)): ?>
+                                            <img src="<?php echo htmlspecialchars($va_photo_url); ?>"
+                                                 alt="<?php echo htmlspecialchars($assignment['vendor_name']); ?>"
+                                                 style="width:32px;height:32px;object-fit:cover;border-radius:50%;margin-right:5px;vertical-align:middle;">
+                                        <?php else: ?>
+                                            <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded-circle me-1"
+                                                  style="width:32px;height:32px;font-size:.8rem;vertical-align:middle;">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        <?php endif; ?>
                                         <span class="fw-semibold"><?php echo htmlspecialchars($assignment['vendor_name']); ?></span>
                                         <?php if (!empty($assignment['vendor_phone'])): ?>
                                             <span class="text-muted ms-1" style="font-size:.75rem;"><i class="fas fa-phone"></i> <?php echo htmlspecialchars($assignment['vendor_phone']); ?></span>
@@ -1099,8 +1119,13 @@ $tab_payments_count = count($payment_transactions);
                                         <select name="vendor_id" id="vendorSelect" class="form-select form-select-sm" style="min-width:150px;">
                                             <option value="">— Vendor —</option>
                                         </select>
-                                        <div id="vendorInfoDisplay" class="d-none">
-                                            <small id="vendorLocationInfo" class="text-muted" style="font-size:.72rem;"></small>
+                                        <div id="vendorInfoDisplay" class="d-none mt-1">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img id="vendorPhotoPreview" src="" alt=""
+                                                     class="d-none rounded-circle"
+                                                     style="width:40px;height:40px;object-fit:cover;">
+                                                <small id="vendorLocationInfo" class="text-muted" style="font-size:.72rem;"></small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1137,6 +1162,7 @@ $tab_payments_count = count($payment_transactions);
                         var taskDescInput = document.getElementById('taskDescriptionInput');
                         var vendorInfoDiv = document.getElementById('vendorInfoDisplay');
                         var vendorLocInfo = document.getElementById('vendorLocationInfo');
+                        var vendorPhoto   = document.getElementById('vendorPhotoPreview');
 
                         typeSelect.addEventListener('change', function() {
                             var type = this.value;
@@ -1144,6 +1170,8 @@ $tab_payments_count = count($payment_transactions);
                             vendorWrapper.classList.add('d-none');
                             vendorInfoDiv.classList.add('d-none');
                             vendorLocInfo.textContent = '';
+                            vendorPhoto.classList.add('d-none');
+                            vendorPhoto.src = '';
                             taskDescInput.value = '';
 
                             if (type && vendorsByType[type]) {
@@ -1153,6 +1181,7 @@ $tab_payments_count = count($payment_transactions);
                                     opt.textContent = v.name;
                                     opt.dataset.description = v.description || '';
                                     opt.dataset.city = v.city || '';
+                                    opt.dataset.photo = v.photo || '';
                                     vendorSelect.appendChild(opt);
                                 });
                                 vendorWrapper.classList.remove('d-none');
@@ -1163,8 +1192,17 @@ $tab_payments_count = count($payment_transactions);
                             var selectedOpt = this.options[this.selectedIndex];
                             var description = selectedOpt.dataset.description || '';
                             var city        = selectedOpt.dataset.city || '';
+                            var photo       = selectedOpt.dataset.photo || '';
 
                             taskDescInput.value = description || '';
+
+                            if (photo) {
+                                vendorPhoto.src = photo;
+                                vendorPhoto.classList.remove('d-none');
+                            } else {
+                                vendorPhoto.classList.add('d-none');
+                                vendorPhoto.src = '';
+                            }
 
                             if (city) {
                                 vendorLocInfo.textContent = '';
@@ -1172,6 +1210,8 @@ $tab_payments_count = count($payment_transactions);
                                 icon2.className = 'fas fa-map-marker-alt me-1';
                                 vendorLocInfo.appendChild(icon2);
                                 vendorLocInfo.appendChild(document.createTextNode(city));
+                                vendorInfoDiv.classList.remove('d-none');
+                            } else if (photo) {
                                 vendorInfoDiv.classList.remove('d-none');
                             } else {
                                 vendorInfoDiv.classList.add('d-none');
