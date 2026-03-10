@@ -3032,6 +3032,46 @@ function getVendorPhotos($vendor_id) {
 }
 
 /**
+ * Get the primary photo URL for multiple vendors at once (avoids N+1 queries).
+ *
+ * @param int[] $vendor_ids
+ * @return array Associative array keyed by vendor_id with the primary photo URL string (or '' if none).
+ */
+function getVendorPrimaryPhotoUrls(array $vendor_ids) {
+    if (empty($vendor_ids)) {
+        return [];
+    }
+    $db = getDB();
+    $ids = array_map('intval', $vendor_ids);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    try {
+        $stmt = $db->prepare("
+            SELECT vendor_id, image_path
+            FROM vendor_photos
+            WHERE vendor_id IN ($placeholders)
+            ORDER BY vendor_id, is_primary DESC, display_order ASC, id ASC
+        ");
+        $stmt->execute($ids);
+        $rows = $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+    $result = [];
+    foreach ($rows as $row) {
+        $vid = (int)$row['vendor_id'];
+        if (isset($result[$vid])) {
+            continue; // already captured the best photo for this vendor
+        }
+        $safe = !empty($row['image_path']) ? basename($row['image_path']) : '';
+        if (!empty($safe) && preg_match(SAFE_FILENAME_PATTERN, $safe)
+            && file_exists(UPLOAD_PATH . $safe)) {
+            $result[$vid] = UPLOAD_URL . $safe;
+        }
+    }
+    return $result;
+}
+
+/**
  * Get vendor assignments for a booking
  *
  * @param int $booking_id
