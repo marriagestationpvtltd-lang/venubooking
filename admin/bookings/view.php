@@ -657,6 +657,7 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                         }
                     ?></td>
                 </tr>
+                <?php if ($booking['payment_status'] !== 'paid'): ?>
                 <tr class="due-amount-row">
                     <td class="payment-label"><strong>Balance Due Amount:</strong></td>
                     <td class="payment-value"><strong><?php echo formatCurrency($balance_due); ?></strong></td>
@@ -665,6 +666,12 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                     <td class="payment-label">Amount in Words:</td>
                     <td class="payment-value-words"><?php echo numberToWords($balance_due); ?> Only</td>
                 </tr>
+                <?php else: ?>
+                <tr class="due-amount-row">
+                    <td class="payment-label"><strong>Payment Status:</strong></td>
+                    <td class="payment-value"><strong style="color: green;">✓ Fully Paid - All Accounts Cleared</strong></td>
+                </tr>
+                <?php endif; ?>
                 <tr>
                     <td class="payment-label">Payment Mode:</td>
                     <td class="payment-value"><?php echo htmlspecialchars($payment_mode); ?></td>
@@ -1953,12 +1960,21 @@ $available_packages_by_category = getServicePackagesByCategory();
                                             <strong><?php echo formatCurrency($booking['grand_total']); ?></strong>
                                         </td>
                                     </tr>
+                                    <?php if ($booking['payment_status'] !== 'paid'): ?>
                                     <tr class="table-light">
                                         <td colspan="3" class="text-end small">Balance Due:</td>
                                         <td colspan="3" class="text-end">
                                             <strong class="text-danger"><?php echo formatCurrency($balance_due); ?></strong>
                                         </td>
                                     </tr>
+                                    <?php else: ?>
+                                    <tr class="table-light">
+                                        <td colspan="3" class="text-end small">Payment Status:</td>
+                                        <td colspan="3" class="text-end">
+                                            <strong class="text-success"><i class="fas fa-check-circle me-1"></i>Fully Paid</strong>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
                                 </tfoot>
                             </table>
                         </div>
@@ -2098,6 +2114,7 @@ $available_packages_by_category = getServicePackagesByCategory();
                         <?php endif; ?>
                         
                         <!-- Balance Due Amount -->
+                        <?php if ($booking['payment_status'] !== 'paid'): ?>
                         <div class="alert alert-info mt-2 mb-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -2116,6 +2133,20 @@ $available_packages_by_category = getServicePackagesByCategory();
                                 <h5 class="mb-0 fw-bold text-danger"><?php echo formatCurrency($balance_due); ?></h5>
                             </div>
                         </div>
+                        <?php else: ?>
+                        <div class="alert alert-success mt-2 mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="d-block fw-semibold mb-1">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Payment Status
+                                    </small>
+                                    <small class="text-muted">All accounts cleared</small>
+                                </div>
+                                <h5 class="mb-0 fw-bold text-success">Fully Paid</h5>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
