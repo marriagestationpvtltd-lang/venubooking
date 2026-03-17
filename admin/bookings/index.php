@@ -198,7 +198,7 @@ $bookings = $stmt->fetchAll();
                                     <?php if ($booking['total_paid'] > 0): ?>
                                         <br>
                                         <small class="text-muted">Paid: <?php echo formatCurrency($booking['total_paid']); ?></small>
-                                        <?php if ($balance_due > 0): ?>
+                                        <?php if ($balance_due > 0 && $booking['payment_status'] !== 'paid'): ?>
                                             <br>
                                             <small class="text-danger">Due: <?php echo formatCurrency($balance_due); ?></small>
                                         <?php endif; ?>
