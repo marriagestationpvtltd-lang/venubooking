@@ -14,6 +14,12 @@ unset($_SESSION['error_message']);
 // Get filter parameter - default to 'active' (new bookings only)
 $status_filter = isset($_GET['status_filter']) ? $_GET['status_filter'] : 'active';
 
+// Whitelist validation - only allow known filter values
+$valid_filters = ['active', 'pending', 'payment_submitted', 'confirmed', 'completed', 'cancelled', 'all'];
+if (!in_array($status_filter, $valid_filters)) {
+    $status_filter = 'active'; // Fall back to default if invalid value provided
+}
+
 // Build query based on filter
 $base_query = "SELECT b.*, 
                     c.full_name, c.phone, c.email,
@@ -341,9 +347,11 @@ $bookings = $stmt->fetchAll();
 </style>
 
 <script>
-// Apply status filter - redirect to same page with filter parameter
+// Apply status filter - redirect with filter parameter while preserving other query params
 function applyStatusFilter(value) {
-    window.location.href = 'index.php?status_filter=' + encodeURIComponent(value);
+    var url = new URL(window.location.href);
+    url.searchParams.set('status_filter', value);
+    window.location.href = url.toString();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
