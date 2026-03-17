@@ -14,13 +14,24 @@ unset($_SESSION['error_message']);
 // Get filter parameter - default to 'active' (new bookings only)
 $status_filter = isset($_GET['status_filter']) ? $_GET['status_filter'] : 'active';
 
+// Filter mapping - maps filter values to their SQL WHERE conditions
+// Using hardcoded values ensures SQL safety (no user input in queries)
+$filter_conditions = [
+    'active' => " WHERE b.booking_status IN ('pending', 'payment_submitted', 'confirmed')",
+    'pending' => " WHERE b.booking_status = 'pending'",
+    'payment_submitted' => " WHERE b.booking_status = 'payment_submitted'",
+    'confirmed' => " WHERE b.booking_status = 'confirmed'",
+    'completed' => " WHERE b.booking_status = 'completed'",
+    'cancelled' => " WHERE b.booking_status = 'cancelled'",
+    'all' => ''  // No filter - show everything
+];
+
 // Whitelist validation - only allow known filter values
-$valid_filters = ['active', 'pending', 'payment_submitted', 'confirmed', 'completed', 'cancelled', 'all'];
-if (!in_array($status_filter, $valid_filters)) {
+if (!array_key_exists($status_filter, $filter_conditions)) {
     $status_filter = 'active'; // Fall back to default if invalid value provided
 }
 
-// Build query based on filter
+// Build query with filter condition (hardcoded values only, no user input)
 $base_query = "SELECT b.*, 
                     c.full_name, c.phone, c.email,
                     h.name as hall_name, 
@@ -29,31 +40,10 @@ $base_query = "SELECT b.*,
                     FROM bookings b
                     INNER JOIN customers c ON b.customer_id = c.id
                     INNER JOIN halls h ON b.hall_id = h.id
-                    INNER JOIN venues v ON h.venue_id = v.id";
+                    INNER JOIN venues v ON h.venue_id = v.id"
+                    . $filter_conditions[$status_filter]
+                    . " ORDER BY b.created_at DESC";
 
-// Apply filter based on selection
-if ($status_filter === 'active') {
-    // Active bookings - pending, payment_submitted, confirmed (excluding completed and cancelled)
-    $base_query .= " WHERE b.booking_status IN ('pending', 'payment_submitted', 'confirmed')";
-} elseif ($status_filter === 'completed') {
-    // Completed bookings only
-    $base_query .= " WHERE b.booking_status = 'completed'";
-} elseif ($status_filter === 'cancelled') {
-    // Cancelled bookings only
-    $base_query .= " WHERE b.booking_status = 'cancelled'";
-} elseif ($status_filter === 'pending') {
-    // Pending bookings only
-    $base_query .= " WHERE b.booking_status = 'pending'";
-} elseif ($status_filter === 'confirmed') {
-    // Confirmed bookings only
-    $base_query .= " WHERE b.booking_status = 'confirmed'";
-} elseif ($status_filter === 'payment_submitted') {
-    // Payment submitted bookings only
-    $base_query .= " WHERE b.booking_status = 'payment_submitted'";
-}
-// 'all' - no filter, show everything
-
-$base_query .= " ORDER BY b.created_at DESC";
 $stmt = $db->query($base_query);
 $bookings = $stmt->fetchAll();
 ?>
