@@ -11,8 +11,11 @@ $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] 
 unset($_SESSION['success_message']);
 unset($_SESSION['error_message']);
 
-// Get all bookings with payment summary
-$stmt = $db->query("SELECT b.*, 
+// Get filter parameter - default to 'active' (new bookings only)
+$status_filter = isset($_GET['status_filter']) ? $_GET['status_filter'] : 'active';
+
+// Build query based on filter
+$base_query = "SELECT b.*, 
                     c.full_name, c.phone, c.email,
                     h.name as hall_name, 
                     v.name as venue_name,
@@ -20,8 +23,32 @@ $stmt = $db->query("SELECT b.*,
                     FROM bookings b
                     INNER JOIN customers c ON b.customer_id = c.id
                     INNER JOIN halls h ON b.hall_id = h.id
-                    INNER JOIN venues v ON h.venue_id = v.id
-                    ORDER BY b.created_at DESC");
+                    INNER JOIN venues v ON h.venue_id = v.id";
+
+// Apply filter based on selection
+if ($status_filter === 'active') {
+    // Active bookings - pending, payment_submitted, confirmed (excluding completed and cancelled)
+    $base_query .= " WHERE b.booking_status IN ('pending', 'payment_submitted', 'confirmed')";
+} elseif ($status_filter === 'completed') {
+    // Completed bookings only
+    $base_query .= " WHERE b.booking_status = 'completed'";
+} elseif ($status_filter === 'cancelled') {
+    // Cancelled bookings only
+    $base_query .= " WHERE b.booking_status = 'cancelled'";
+} elseif ($status_filter === 'pending') {
+    // Pending bookings only
+    $base_query .= " WHERE b.booking_status = 'pending'";
+} elseif ($status_filter === 'confirmed') {
+    // Confirmed bookings only
+    $base_query .= " WHERE b.booking_status = 'confirmed'";
+} elseif ($status_filter === 'payment_submitted') {
+    // Payment submitted bookings only
+    $base_query .= " WHERE b.booking_status = 'payment_submitted'";
+}
+// 'all' - no filter, show everything
+
+$base_query .= " ORDER BY b.created_at DESC";
+$stmt = $db->query($base_query);
 $bookings = $stmt->fetchAll();
 ?>
 
@@ -41,19 +68,58 @@ $bookings = $stmt->fetchAll();
 
 <!-- Enhanced Booking Management Card -->
 <div class="card booking-management-card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-        <div>
-            <h5 class="mb-0"><i class="fas fa-calendar-check text-primary"></i> All Bookings</h5>
-            <small class="text-muted">Manage and track all venue bookings</small>
+    <div class="card-header bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="mb-0"><i class="fas fa-calendar-check text-primary"></i> All Bookings</h5>
+                <small class="text-muted">Manage and track all venue bookings</small>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- Status Filter -->
+                <div class="d-flex align-items-center">
+                    <label for="statusFilter" class="me-2 mb-0 text-muted small fw-bold">
+                        <i class="fas fa-filter"></i> Filter:
+                    </label>
+                    <select id="statusFilter" class="form-select form-select-sm" style="min-width: 160px;" onchange="applyStatusFilter(this.value)">
+                        <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active Bookings</option>
+                        <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending Only</option>
+                        <option value="payment_submitted" <?php echo $status_filter === 'payment_submitted' ? 'selected' : ''; ?>>Payment Submitted</option>
+                        <option value="confirmed" <?php echo $status_filter === 'confirmed' ? 'selected' : ''; ?>>Confirmed Only</option>
+                        <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Completed Only</option>
+                        <option value="cancelled" <?php echo $status_filter === 'cancelled' ? 'selected' : ''; ?>>Cancelled Only</option>
+                        <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Bookings</option>
+                    </select>
+                </div>
+                <a href="calendar.php" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-calendar-alt"></i> Calendar View
+                </a>
+                <a href="add.php" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus"></i> Add Booking
+                </a>
+            </div>
         </div>
-        <div>
-            <a href="calendar.php" class="btn btn-outline-primary me-2">
-                <i class="fas fa-calendar-alt"></i> Calendar View
-            </a>
-            <a href="add.php" class="btn btn-success">
-                <i class="fas fa-plus"></i> Add Booking
+        <!-- Active filter indicator -->
+        <?php if ($status_filter !== 'all'): ?>
+        <div class="mt-2">
+            <span class="badge bg-info">
+                <i class="fas fa-filter"></i> 
+                <?php 
+                $filter_labels = [
+                    'active' => 'Showing: Active Bookings (Pending, Payment Submitted, Confirmed)',
+                    'pending' => 'Showing: Pending Bookings',
+                    'payment_submitted' => 'Showing: Payment Submitted',
+                    'confirmed' => 'Showing: Confirmed Bookings',
+                    'completed' => 'Showing: Completed Bookings',
+                    'cancelled' => 'Showing: Cancelled Bookings'
+                ];
+                echo $filter_labels[$status_filter] ?? 'Filtered';
+                ?>
+            </span>
+            <a href="?status_filter=all" class="btn btn-sm btn-link text-decoration-none">
+                <i class="fas fa-times"></i> Clear Filter
             </a>
         </div>
+        <?php endif; ?>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -275,6 +341,11 @@ $bookings = $stmt->fetchAll();
 </style>
 
 <script>
+// Apply status filter - redirect to same page with filter parameter
+function applyStatusFilter(value) {
+    window.location.href = 'index.php?status_filter=' + encodeURIComponent(value);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
