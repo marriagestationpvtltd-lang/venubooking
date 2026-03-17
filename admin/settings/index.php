@@ -690,6 +690,14 @@ Date changes are subject to availability and must be requested at least 15 days 
                                    value="<?php echo htmlspecialchars($settings['social_linkedin'] ?? ''); ?>"
                                    placeholder="https://linkedin.com/company/yourcompany">
                         </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fab fa-google"></i> Google Review Link</label>
+                            <input type="url" class="form-control" name="setting_google_review_link" 
+                                   value="<?php echo htmlspecialchars($settings['google_review_link'] ?? ''); ?>"
+                                   placeholder="https://g.page/r/your-business-review-link">
+                            <small class="text-muted">Used in WhatsApp thank you message after full payment</small>
+                        </div>
                     </div>
                 </div>
 
