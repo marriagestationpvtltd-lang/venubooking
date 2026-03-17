@@ -833,7 +833,7 @@ if (!empty($booking_confirmation_vendors)) {
 $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 
 // Build thank you WhatsApp message (shown after payment is fully paid)
-$google_review_link = 'https://share.google/5DPUk8I6LAmHHxUGW';
+$google_review_link = getSetting('google_review_link', 'https://share.google/5DPUk8I6LAmHHxUGW');
 $thankyou_text = "🙏 *Thank You for Choosing " . strip_tags($site_name_wa) . "!*\n\n";
 $thankyou_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
 $thankyou_text .= "We sincerely thank you for trusting *" . strip_tags($site_name_wa) . "* to be a part of your special event!\n\n";
@@ -3293,7 +3293,7 @@ $available_packages_by_category = getServicePackagesByCategory();
                         const showThankyou = (statusLower === 'paid');
                         const showConfirmation = !showThankyou && newAdvanceReceived && statusLower === 'partial';
                         const showPaymentRequest = !showThankyou && !showConfirmation;
-                        
+
                         thankyouSection.style.display = showThankyou ? '' : 'none';
                         confirmSection.style.display = showConfirmation ? '' : 'none';
                         requestSection.style.display = showPaymentRequest ? '' : 'none';
