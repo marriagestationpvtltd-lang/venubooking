@@ -174,6 +174,14 @@ if (isset($_POST['action'])) {
         } else {
             $error_message = 'Venue contact phone number not found. Please add a contact phone to the venue.';
         }
+    } elseif ($action === 'send_thankyou_whatsapp') {
+        // Send thank you message with Google review link via WhatsApp (after payment is fully paid)
+        if (!empty($booking['phone'])) {
+            $success_message = 'Opening WhatsApp to send thank you message...';
+            logActivity($current_user['id'], 'Initiated WhatsApp thank you message', 'bookings', $booking_id, "WhatsApp thank you message initiated for booking: {$booking['booking_number']}");
+        } else {
+            $error_message = 'Customer phone number not found. Cannot send WhatsApp message.';
+        }
     } elseif ($action === 'send_booking_confirmation_email') {
         // Send booking confirmation via email (after advance payment received)
         if (!empty($booking['email'])) {
@@ -824,6 +832,27 @@ if (!empty($booking_confirmation_vendors)) {
 }
 $confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
 
+// Build thank you WhatsApp message (shown after payment is fully paid)
+$google_review_link = 'https://share.google/5DPUk8I6LAmHHxUGW';
+$thankyou_text = "🙏 *Thank You for Choosing " . strip_tags($site_name_wa) . "!*\n\n";
+$thankyou_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
+$thankyou_text .= "We sincerely thank you for trusting *" . strip_tags($site_name_wa) . "* to be a part of your special event!\n\n";
+$thankyou_text .= "📋 *Event Details*\n";
+$thankyou_text .= "Event Date: " . convertToNepaliDate($booking['event_date']) . "\n";
+$thankyou_text .= "Venue: " . strip_tags($booking['venue_name']) . "\n";
+$thankyou_text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
+$thankyou_text .= "Payment Status: *Paid* ✅\n\n";
+$thankyou_text .= "We hope you had a wonderful experience with our services! 🎉\n\n";
+$thankyou_text .= "⭐ *We'd love your feedback!*\n";
+$thankyou_text .= "Your review helps us improve and serve you better. Please take a moment to share your experience:\n\n";
+$thankyou_text .= "📝 *Write a Google Review:*\n" . $google_review_link . "\n\n";
+$thankyou_text .= "Thank you once again for choosing us. We look forward to serving you in the future!\n\n";
+$thankyou_text .= "Warm regards,\n*" . strip_tags($site_name_wa) . "*";
+$contact_phone_wa = getSetting('contact_phone', '');
+if (!empty($contact_phone_wa)) {
+    $thankyou_text .= "\n📞 " . strip_tags($contact_phone_wa);
+}
+
 // Build venue provider WhatsApp URL
 $venue_provider_wa_url = buildVenueProviderWhatsAppUrl($booking);
 $clean_venue_phone = preg_replace('/[^0-9]/', '', $booking['venue_contact_phone'] ?? '');
@@ -913,14 +942,41 @@ $available_packages_by_category = getServicePackagesByCategory();
                         </div>
                     </div>
 
-                    <!-- Send Payment Request / Booking Confirmation -->
+                    <!-- Send Payment Request / Booking Confirmation / Thank You -->
                     <div class="col-md-6">
                         <div class="quick-check-item h-100">
                             <?php
-                            // Show "Booking Confirmation" only when advance payment is received AND payment status is not pending
-                            $show_confirmation = ($booking['advance_payment_received'] === 1 && strtolower($booking['payment_status']) !== 'pending');
+                            // Show "Thank You" when payment status is paid (full payment received)
+                            $show_thankyou = (strtolower($booking['payment_status']) === 'paid');
+                            // Show "Booking Confirmation" only when advance payment is received AND payment status is partial (not pending, not paid)
+                            $show_confirmation = ($booking['advance_payment_received'] === 1 && strtolower($booking['payment_status']) === 'partial');
+                            // Show "Payment Request" when payment status is pending or advance payment not yet received
+                            $show_payment_request = (!$show_thankyou && !$show_confirmation);
                             ?>
-                            <!-- Booking Confirmation (shown after advance payment received and payment status is not pending) -->
+                            <!-- Thank You Message (shown after full payment - payment status is paid) -->
+                            <div id="thankyou-section" <?php echo $show_thankyou ? '' : 'style="display:none"'; ?>>
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-heart text-danger me-2"></i>
+                                    <span class="fw-bold small text-uppercase text-muted">Thank You &amp; Review Request</span>
+                                </div>
+                                <div class="d-grid">
+                                    <form method="POST" action="" id="thankyouWhatsappForm">
+                                        <input type="hidden" name="action" value="send_thankyou_whatsapp">
+                                        <button type="submit" class="btn btn-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
+                                            <i class="fab fa-whatsapp me-1"></i> 🙏 Thank You + Google Review
+                                        </button>
+                                    </form>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-star text-warning me-1"></i> Sends thank you message with Google review link
+                                </small>
+                                <?php if (empty($booking['phone'])): ?>
+                                    <small class="text-danger d-block mt-1">
+                                        <i class="fas fa-exclamation-circle me-1"></i> Phone not available
+                                    </small>
+                                <?php endif; ?>
+                            </div>
+                            <!-- Booking Confirmation (shown after advance payment received and payment status is partial) -->
                             <div id="booking-confirmation-section" <?php echo $show_confirmation ? '' : 'style="display:none"'; ?>>
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="fas fa-check-circle text-success me-2"></i>
@@ -955,7 +1011,7 @@ $available_packages_by_category = getServicePackagesByCategory();
                                 <?php endif; ?>
                             </div>
                             <!-- Send Payment Request (shown when payment status is pending or advance payment not yet received) -->
-                            <div id="payment-request-section" <?php echo $show_confirmation ? 'style="display:none"' : ''; ?>>
+                            <div id="payment-request-section" <?php echo $show_payment_request ? '' : 'style="display:none"'; ?>>
                                 <div class="d-flex align-items-center mb-2">
                                     <i class="fas fa-paper-plane text-info me-2"></i>
                                     <span class="fw-bold small text-uppercase text-muted">Send Payment Request</span>
@@ -3125,6 +3181,23 @@ $available_packages_by_category = getServicePackagesByCategory();
         });
     }
 
+    // Handle Thank You WhatsApp form submission (after payment is fully paid)
+    const thankyouWhatsappForm = document.getElementById('thankyouWhatsappForm');
+    if (thankyouWhatsappForm) {
+        thankyouWhatsappForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const phone = <?php echo json_encode($clean_phone); ?>;
+            const message = <?php echo json_encode($thankyou_text); ?>;
+            const whatsappUrl = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+            window.open(whatsappUrl, '_blank');
+
+            setTimeout(function() {
+                thankyouWhatsappForm.submit();
+            }, WHATSAPP_REDIRECT_DELAY);
+        });
+    }
+
     // Handle Venue Provider WhatsApp form submission
     const venueProviderWhatsappForm = document.getElementById('venueProviderWhatsappForm');
     if (venueProviderWhatsappForm) {
@@ -3206,16 +3279,24 @@ $available_packages_by_category = getServicePackagesByCategory();
                     }
 
                     // Update button sections based on new payment status
-                    // Show "Booking Confirmation" only when advance payment is received AND status is not pending
+                    // Show "Thank You" when payment status is paid
+                    // Show "Booking Confirmation" when advance payment is received AND status is partial
+                    // Show "Payment Request" otherwise
                     const newAdvanceReceived = (typeof data.advance_payment_received !== 'undefined')
                         ? (data.advance_payment_received === 1)
                         : <?php echo ($booking['advance_payment_received'] === 1) ? 'true' : 'false'; ?>;
+                    const thankyouSection = document.getElementById('thankyou-section');
                     const confirmSection = document.getElementById('booking-confirmation-section');
                     const requestSection = document.getElementById('payment-request-section');
-                    if (confirmSection && requestSection) {
-                        const showConfirmation = newAdvanceReceived && newStatus.toLowerCase() !== 'pending';
+                    if (thankyouSection && confirmSection && requestSection) {
+                        const statusLower = newStatus.toLowerCase();
+                        const showThankyou = (statusLower === 'paid');
+                        const showConfirmation = !showThankyou && newAdvanceReceived && statusLower === 'partial';
+                        const showPaymentRequest = !showThankyou && !showConfirmation;
+                        
+                        thankyouSection.style.display = showThankyou ? '' : 'none';
                         confirmSection.style.display = showConfirmation ? '' : 'none';
-                        requestSection.style.display = showConfirmation ? 'none' : '';
+                        requestSection.style.display = showPaymentRequest ? '' : 'none';
                     }
 
                     var successMsg = 'Payment status updated successfully.';
