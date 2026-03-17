@@ -16,6 +16,13 @@ $status_filter = isset($_GET['status_filter']) ? $_GET['status_filter'] : 'activ
 
 // Filter mapping - maps filter values to their SQL WHERE conditions
 // Using hardcoded values ensures SQL safety (no user input in queries)
+//
+// Business logic for 'active' bookings:
+// - 'pending': New bookings awaiting payment or confirmation
+// - 'payment_submitted': Bookings where customer has submitted payment (awaiting verification)
+// - 'confirmed': Bookings that are confirmed and upcoming
+// These are considered "active" because they require ongoing attention from staff.
+// 'completed' and 'cancelled' bookings are historical/archived and hidden by default.
 $filter_conditions = [
     'active' => " WHERE b.booking_status IN ('pending', 'payment_submitted', 'confirmed')",
     'pending' => " WHERE b.booking_status = 'pending'",
