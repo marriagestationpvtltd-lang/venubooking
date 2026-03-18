@@ -191,6 +191,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/images/') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-images"></i> Images
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/shared-folders/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'shared-folders') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-folder"></i> Photo Folders
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/shared-photos/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'shared-photos') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-share-alt"></i> Photo Sharing
             </a>

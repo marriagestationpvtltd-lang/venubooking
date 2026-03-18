@@ -535,10 +535,35 @@ CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: shared_folders (for folder-based photo sharing like Google Drive)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS shared_folders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    folder_name VARCHAR(255) NOT NULL COMMENT 'Display name for the folder',
+    description TEXT NULL COMMENT 'Optional description of folder contents',
+    download_token VARCHAR(64) NOT NULL UNIQUE COMMENT 'Unique token for shareable folder link',
+    photo_count INT DEFAULT 0 COMMENT 'Cached count of photos in folder',
+    total_downloads INT DEFAULT 0 COMMENT 'Total download count across all photos',
+    max_downloads INT DEFAULT NULL COMMENT 'Maximum allowed downloads per photo, NULL for unlimited',
+    expires_at DATETIME DEFAULT NULL COMMENT 'Folder expiration date, NULL for never',
+    status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
+    allow_zip_download TINYINT(1) DEFAULT 1 COMMENT 'Allow downloading all photos as ZIP',
+    created_by INT NULL COMMENT 'Admin user who created the folder',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_download_token (download_token),
+    INDEX idx_status (status),
+    INDEX idx_expires_at (expires_at),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- TABLE: shared_photos (for photo sharing feature)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS shared_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
+    folder_id INT NULL COMMENT 'Folder this photo belongs to, NULL for standalone photo',
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_path VARCHAR(255) NOT NULL,
@@ -550,7 +575,9 @@ CREATE TABLE IF NOT EXISTS shared_photos (
     created_by INT NULL COMMENT 'Admin user who uploaded the photo',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (folder_id) REFERENCES shared_folders(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_folder_id (folder_id),
     INDEX idx_download_token (download_token),
     INDEX idx_status (status),
     INDEX idx_expires_at (expires_at),
