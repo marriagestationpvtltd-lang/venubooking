@@ -404,6 +404,53 @@ CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS shared_folders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    folder_name VARCHAR(255) NOT NULL COMMENT 'Display name for the folder',
+    description TEXT NULL COMMENT 'Optional description of folder contents',
+    download_token VARCHAR(64) NOT NULL UNIQUE COMMENT 'Unique token for shareable folder link',
+    photo_count INT DEFAULT 0 COMMENT 'Cached count of photos in folder',
+    total_downloads INT DEFAULT 0 COMMENT 'Total download count across all photos',
+    max_downloads INT DEFAULT NULL COMMENT 'Maximum allowed downloads per photo, NULL for unlimited',
+    expires_at DATETIME DEFAULT NULL COMMENT 'Folder expiration date, NULL for never',
+    status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
+    allow_zip_download TINYINT(1) DEFAULT 1 COMMENT 'Allow downloading all photos as ZIP',
+    created_by INT NULL COMMENT 'Admin user who created the folder',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_download_token (download_token),
+    INDEX idx_status (status),
+    INDEX idx_expires_at (expires_at),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS shared_photos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    folder_id INT NULL COMMENT 'Folder this file belongs to, NULL for standalone file',
+    file_type ENUM('photo', 'video') DEFAULT 'photo' COMMENT 'Type of file: photo or video',
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    image_path VARCHAR(255) NOT NULL COMMENT 'Relative path to the file (photo or video)',
+    file_size BIGINT UNSIGNED DEFAULT NULL COMMENT 'File size in bytes, important for large video files',
+    download_token VARCHAR(64) NOT NULL UNIQUE COMMENT 'Unique token for download link',
+    download_count INT DEFAULT 0 COMMENT 'Number of times this file has been downloaded',
+    max_downloads INT DEFAULT NULL COMMENT 'Maximum allowed downloads, NULL for unlimited',
+    expires_at DATETIME DEFAULT NULL COMMENT 'Expiration date for the download link, NULL for never',
+    status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
+    created_by INT NULL COMMENT 'Admin user who uploaded the file',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (folder_id) REFERENCES shared_folders(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_folder_id (folder_id),
+    INDEX idx_file_type (file_type),
+    INDEX idx_download_token (download_token),
+    INDEX idx_status (status),
+    INDEX idx_expires_at (expires_at),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ============================================================================
 -- 2. ADD MISSING COLUMNS TO EXISTING TABLES
 --    Uses stored procedures + information_schema checks so it is safe to run
@@ -667,6 +714,45 @@ BEGIN
         ALTER TABLE halls ADD COLUMN pano_image VARCHAR(255) DEFAULT NULL
             COMMENT '360° equirectangular panoramic image filename (stored in uploads/)'
             AFTER features;
+    END IF;
+
+    -- ---- shared_photos.folder_id ----------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'shared_photos'
+          AND column_name = 'folder_id'
+    ) THEN
+        ALTER TABLE shared_photos
+            ADD COLUMN folder_id INT NULL
+            COMMENT 'Folder this file belongs to, NULL for standalone file',
+            ADD INDEX idx_folder_id (folder_id),
+            ADD CONSTRAINT fk_shared_photos_folder
+                FOREIGN KEY (folder_id) REFERENCES shared_folders(id) ON DELETE CASCADE;
+    END IF;
+
+    -- ---- shared_photos.file_type ----------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'shared_photos'
+          AND column_name = 'file_type'
+    ) THEN
+        ALTER TABLE shared_photos
+            ADD COLUMN file_type ENUM('photo', 'video') DEFAULT 'photo'
+            COMMENT 'Type of file: photo or video';
+    END IF;
+
+    -- ---- shared_photos.file_size ----------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'shared_photos'
+          AND column_name = 'file_size'
+    ) THEN
+        ALTER TABLE shared_photos
+            ADD COLUMN file_size BIGINT UNSIGNED DEFAULT NULL
+            COMMENT 'File size in bytes, important for large video files';
     END IF;
 
 END$$
