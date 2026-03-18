@@ -188,8 +188,11 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/planner/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/planner/') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-tasks"></i> Planner
             </a>
-            <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'images') ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/images/') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-images"></i> Images
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/shared-photos/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'shared-photos') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-share-alt"></i> Photo Sharing
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/payment-methods/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'payment-methods') ? 'active' : ''; ?>">
                 <i class="fas fa-credit-card"></i> Payment Methods
