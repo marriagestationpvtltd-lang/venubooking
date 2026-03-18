@@ -70,10 +70,13 @@ try {
         // Delete from database
         $delete_stmt = $db->prepare("DELETE FROM site_images WHERE id = ?");
         if ($delete_stmt->execute([$image['id']])) {
-            // Delete physical file
+            // Delete physical file with path validation
             $file_path = UPLOAD_PATH . $image['image_path'];
-            if (file_exists($file_path)) {
-                if (unlink($file_path)) {
+            // Security: Ensure file is within uploads directory (prevent path traversal)
+            $real_upload_path = realpath(UPLOAD_PATH);
+            $real_file_path = realpath($file_path);
+            if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0) {
+                if (file_exists($file_path) && unlink($file_path)) {
                     $deleted_files[] = $image['image_path'];
                 }
             }
@@ -111,6 +114,8 @@ try {
     
 } catch (Exception $e) {
     $db->rollBack();
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    // Log the actual error but don't expose details to client
+    error_log('Bulk delete error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Database error occurred. Please try again.']);
 }
 exit;
