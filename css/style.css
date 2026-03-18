@@ -1594,7 +1594,7 @@ footer a:hover {
 .portfolio-modal-content {
     position: relative;
     z-index: 1;
-    width: min(92vw, 960px);
+    width: min(98vw, 1400px);
     max-height: 95vh;
     display: flex;
     flex-direction: column;
@@ -1627,15 +1627,88 @@ footer a:hover {
     align-items: center;
     justify-content: center;
     min-height: 0;
+    overflow: hidden;
+}
+
+.portfolio-modal-img-container {
+    position: relative;
+    width: 100%;
+    max-width: 98vw;
+    max-height: 90vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: pan-x pan-y pinch-zoom;
+}
+
+.portfolio-modal-img-container:active {
+    cursor: grabbing;
+}
+
+.portfolio-modal-img-container.zoomed {
+    cursor: move;
 }
 
 .portfolio-modal-img {
-    max-width: 100%;
-    max-height: 85vh;
+    max-width: 98vw;
+    max-height: 90vh;
     object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
     user-select: none;
+    transform-origin: center center;
+    transition: transform 0.2s ease;
+}
+
+.portfolio-modal-img.zooming {
+    transition: none;
+}
+
+/* Zoom controls */
+.portfolio-modal-zoom-controls {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+}
+
+.portfolio-zoom-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.portfolio-zoom-btn:hover {
+    background: rgba(76,175,80,0.7);
+}
+
+.portfolio-modal-zoom-hint {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0.8;
 }
 
 .portfolio-modal-nav {
@@ -2069,7 +2142,7 @@ footer a:hover {
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 900px;
+    max-width: min(98vw, 1400px);
     padding: 1rem;
     max-height: 100vh;
     overflow-y: auto;
@@ -2102,17 +2175,89 @@ footer a:hover {
     align-items: center;
     justify-content: center;
     width: 100%;
+    overflow: hidden;
+}
+
+.photo-card-modal-img-container {
+    position: relative;
+    width: 100%;
+    max-width: 98vw;
+    max-height: 90vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: pan-x pan-y pinch-zoom;
+}
+
+.photo-card-modal-img-container:active {
+    cursor: grabbing;
+}
+
+.photo-card-modal-img-container.zoomed {
+    cursor: move;
 }
 
 .photo-card-modal-img {
-    max-width: 95vw;
-    max-height: 85vh;
+    max-width: 98vw;
+    max-height: 90vh;
     object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 12px 48px rgba(0,0,0,0.6);
     user-select: none;
-    pointer-events: none;
     display: block;
+    transform-origin: center center;
+    transition: transform 0.2s ease;
+}
+
+.photo-card-modal-img.zooming {
+    transition: none;
+}
+
+/* Zoom controls */
+.photo-card-modal-zoom-controls {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+}
+
+.photo-card-zoom-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.photo-card-zoom-btn:hover {
+    background: rgba(76,175,80,0.7);
+}
+
+.photo-card-modal-zoom-hint {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0.8;
 }
 
 .photo-card-modal-nav {

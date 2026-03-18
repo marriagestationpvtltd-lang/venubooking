@@ -544,10 +544,25 @@ if (!empty($gallery_cards)):
             <button class="photo-card-modal-nav photo-card-modal-prev" id="photoCardModalPrev" aria-label="Previous photo">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <img id="photoCardModalImg" src="" alt="" class="photo-card-modal-img" draggable="false">
+            <div class="photo-card-modal-img-container" id="photoCardImgContainer">
+                <img id="photoCardModalImg" src="" alt="" class="photo-card-modal-img" draggable="false">
+            </div>
             <button class="photo-card-modal-nav photo-card-modal-next" id="photoCardModalNext" aria-label="Next photo">
                 <i class="fas fa-chevron-right"></i>
             </button>
+            <!-- Zoom controls -->
+            <div class="photo-card-modal-zoom-controls">
+                <button class="photo-card-zoom-btn" id="photoCardZoomIn" aria-label="Zoom in" title="Zoom In">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="photo-card-zoom-btn" id="photoCardZoomOut" aria-label="Zoom out" title="Zoom Out">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="photo-card-zoom-btn" id="photoCardZoomReset" aria-label="Reset zoom" title="Reset Zoom">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+            <div class="photo-card-modal-zoom-hint" id="photoCardZoomHint">Double-click or pinch to zoom</div>
         </div>
 
         <div class="photo-card-modal-footer">
@@ -564,19 +579,195 @@ if (!empty($gallery_cards)):
 </div>
 
 <script>
-// Photo-card slider modal
+// Photo-card slider modal with zoom functionality
 (function() {
     var allCards = <?php echo $gallery_cards_json; ?>;
 
     var modal       = document.getElementById("photoCardModal");
     var modalImg    = document.getElementById("photoCardModalImg");
+    var imgContainer = document.getElementById("photoCardImgContainer");
     var modalTitle  = document.getElementById("photoCardModalTitle");
     var modalDesc   = document.getElementById("photoCardModalDesc");
     var modalCnt    = document.getElementById("photoCardModalCounter");
     var thumbsEl    = document.getElementById("photoCardModalThumbs");
+    var zoomHint    = document.getElementById("photoCardZoomHint");
 
     var cardPhotos  = [];
     var current     = 0;
+
+    // Zoom state
+    var zoomLevel = 1;
+    var minZoom = 1;
+    var maxZoom = 4;
+    var zoomStep = 0.5;
+    var panX = 0, panY = 0;
+    var isDragging = false;
+    var startX = 0, startY = 0;
+    var pinchStartDist = 0;
+    var pinchStartZoom = 1;
+
+    function resetZoom() {
+        zoomLevel = 1;
+        panX = 0;
+        panY = 0;
+        applyTransform();
+        imgContainer.classList.remove("zoomed");
+    }
+
+    function applyTransform() {
+        modalImg.style.transform = "scale(" + zoomLevel + ") translate(" + panX + "px, " + panY + "px)";
+    }
+
+    function zoomIn() {
+        zoomLevel = Math.min(maxZoom, zoomLevel + zoomStep);
+        if (zoomLevel > 1) imgContainer.classList.add("zoomed");
+        applyTransform();
+        hideZoomHint();
+    }
+
+    function zoomOut() {
+        zoomLevel = Math.max(minZoom, zoomLevel - zoomStep);
+        if (zoomLevel <= 1) {
+            resetZoom();
+        } else {
+            applyTransform();
+        }
+    }
+
+    function zoomToPoint(clientX, clientY, newZoom) {
+        var rect = imgContainer.getBoundingClientRect();
+        var centerX = rect.left + rect.width / 2;
+        var centerY = rect.top + rect.height / 2;
+        var offsetX = (clientX - centerX) / zoomLevel;
+        var offsetY = (clientY - centerY) / zoomLevel;
+
+        var oldZoom = zoomLevel;
+        zoomLevel = Math.max(minZoom, Math.min(maxZoom, newZoom));
+
+        if (zoomLevel > 1) {
+            var scaleDiff = zoomLevel / oldZoom;
+            panX = panX - offsetX * (scaleDiff - 1) / zoomLevel;
+            panY = panY - offsetY * (scaleDiff - 1) / zoomLevel;
+            imgContainer.classList.add("zoomed");
+        } else {
+            resetZoom();
+            return;
+        }
+        applyTransform();
+        hideZoomHint();
+    }
+
+    function hideZoomHint() {
+        if (zoomHint) zoomHint.style.display = "none";
+    }
+
+    function showZoomHint() {
+        if (zoomHint) zoomHint.style.display = "block";
+    }
+
+    // Double click/tap to zoom using native dblclick event
+    imgContainer.addEventListener("dblclick", function(e) {
+        e.preventDefault();
+        if (zoomLevel > 1) {
+            resetZoom();
+        } else {
+            zoomToPoint(e.clientX, e.clientY, 2.5);
+        }
+    });
+
+    // Mouse wheel zoom
+    imgContainer.addEventListener("wheel", function(e) {
+        e.preventDefault();
+        var delta = e.deltaY > 0 ? -zoomStep : zoomStep;
+        zoomToPoint(e.clientX, e.clientY, zoomLevel + delta);
+    }, { passive: false });
+
+    // Mouse drag for panning
+    imgContainer.addEventListener("mousedown", function(e) {
+        if (zoomLevel <= 1) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        modalImg.classList.add("zooming");
+        e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", function(e) {
+        if (!isDragging || modal.style.display !== "flex") return;
+        var dx = (e.clientX - startX) / zoomLevel;
+        var dy = (e.clientY - startY) / zoomLevel;
+        panX += dx;
+        panY += dy;
+        startX = e.clientX;
+        startY = e.clientY;
+        applyTransform();
+    });
+
+    document.addEventListener("mouseup", function() {
+        if (modal.style.display !== "flex") return;
+        isDragging = false;
+        modalImg.classList.remove("zooming");
+    });
+
+    // Touch pinch zoom
+    function getPinchDist(touches) {
+        var dx = touches[0].clientX - touches[1].clientX;
+        var dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    imgContainer.addEventListener("touchstart", function(e) {
+        if (e.touches.length === 2) {
+            pinchStartDist = getPinchDist(e.touches);
+            pinchStartZoom = zoomLevel;
+        } else if (e.touches.length === 1 && zoomLevel > 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            modalImg.classList.add("zooming");
+        }
+    }, { passive: true });
+
+    imgContainer.addEventListener("touchmove", function(e) {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            var dist = getPinchDist(e.touches);
+            var scale = dist / pinchStartDist;
+            var newZoom = pinchStartZoom * scale;
+            var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            var cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            zoomToPoint(cx, cy, newZoom);
+        } else if (e.touches.length === 1 && isDragging && zoomLevel > 1) {
+            var dx = (e.touches[0].clientX - startX) / zoomLevel;
+            var dy = (e.touches[0].clientY - startY) / zoomLevel;
+            panX += dx;
+            panY += dy;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            applyTransform();
+        }
+    }, { passive: false });
+
+    imgContainer.addEventListener("touchend", function() {
+        isDragging = false;
+        modalImg.classList.remove("zooming");
+    }, { passive: true });
+
+    // Zoom control buttons
+    document.getElementById("photoCardZoomIn").addEventListener("click", function(e) {
+        e.stopPropagation();
+        zoomIn();
+    });
+
+    document.getElementById("photoCardZoomOut").addEventListener("click", function(e) {
+        e.stopPropagation();
+        zoomOut();
+    });
+
+    document.getElementById("photoCardZoomReset").addEventListener("click", function(e) {
+        e.stopPropagation();
+        resetZoom();
+    });
 
     function buildThumbs(photos) {
         thumbsEl.innerHTML = "";
@@ -588,7 +779,7 @@ if (!empty($gallery_cards)):
             img.dataset.index = idx;
             img.loading       = "lazy";
             img.draggable     = false;
-            img.addEventListener("click", function() { showSlide(idx); });
+            img.addEventListener("click", function() { resetZoom(); showSlide(idx); });
             thumbsEl.appendChild(img);
         });
     }
@@ -602,6 +793,8 @@ if (!empty($gallery_cards)):
         modalTitle.textContent    = photo.title || "";
         modalDesc.textContent     = photo.desc  || "";
         modalCnt.textContent      = (current + 1) + " / " + cardPhotos.length;
+        resetZoom();
+        showZoomHint();
 
         var thumbs = Array.from(thumbsEl.querySelectorAll(".photo-card-modal-thumb"));
         thumbs.forEach(function(t) { t.classList.remove("active"); });
@@ -625,10 +818,11 @@ if (!empty($gallery_cards)):
         modalImg.src = "";
         cardPhotos   = [];
         thumbsEl.innerHTML = "";
+        resetZoom();
     }
 
-    function prevSlide() { showSlide(current - 1); }
-    function nextSlide() { showSlide(current + 1); }
+    function prevSlide() { resetZoom(); showSlide(current - 1); }
+    function nextSlide() { resetZoom(); showSlide(current + 1); }
 
     // Open cards on click / keyboard
     document.querySelectorAll(".photo-card").forEach(function(card) {
@@ -653,12 +847,18 @@ if (!empty($gallery_cards)):
         if (e.key === "Escape")     closeModal();
         if (e.key === "ArrowLeft")  prevSlide();
         if (e.key === "ArrowRight") nextSlide();
+        if (e.key === "+" || e.key === "=") zoomIn();
+        if (e.key === "-") zoomOut();
+        if (e.key === "0") resetZoom();
     });
 
-    // Touch swipe
+    // Touch swipe (only when not zoomed)
     var swipeX = 0;
-    modal.addEventListener("touchstart", function(e) { swipeX = e.touches[0].pageX; }, { passive: true });
-    modal.addEventListener("touchend",   function(e) {
+    modal.addEventListener("touchstart", function(e) {
+        if (zoomLevel <= 1) swipeX = e.touches[0].pageX;
+    }, { passive: true });
+    modal.addEventListener("touchend", function(e) {
+        if (zoomLevel > 1) return;
         var dx = e.changedTouches[0].pageX - swipeX;
         if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
     }, { passive: true });
@@ -756,10 +956,25 @@ if (!empty($work_categories)):
             <button class="portfolio-modal-nav portfolio-modal-prev" id="portfolioModalPrev" aria-label="Previous photo">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <img id="portfolioModalImg" src="" alt="" class="portfolio-modal-img" draggable="false">
+            <div class="portfolio-modal-img-container" id="portfolioImgContainer">
+                <img id="portfolioModalImg" src="" alt="" class="portfolio-modal-img" draggable="false">
+            </div>
             <button class="portfolio-modal-nav portfolio-modal-next" id="portfolioModalNext" aria-label="Next photo">
                 <i class="fas fa-chevron-right"></i>
             </button>
+            <!-- Zoom controls -->
+            <div class="portfolio-modal-zoom-controls">
+                <button class="portfolio-zoom-btn" id="portfolioZoomIn" aria-label="Zoom in" title="Zoom In">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="portfolio-zoom-btn" id="portfolioZoomOut" aria-label="Zoom out" title="Zoom Out">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="portfolio-zoom-btn" id="portfolioZoomReset" aria-label="Reset zoom" title="Reset Zoom">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+            <div class="portfolio-modal-zoom-hint" id="portfolioZoomHint">Double-click or pinch to zoom</div>
         </div>
 
         <div class="portfolio-modal-footer">
@@ -776,21 +991,205 @@ if (!empty($work_categories)):
 </div>
 
 <script>
-// Folder-style Our Work gallery
+// Folder-style Our Work gallery with zoom functionality
 (function() {
     var allCategories = <?php echo $work_categories_json; ?>;
 
     var modal        = document.getElementById("portfolioModal");
     var modalImg     = document.getElementById("portfolioModalImg");
+    var imgContainer = document.getElementById("portfolioImgContainer");
     var modalTitle   = document.getElementById("portfolioModalTitle");
     var modalDesc    = document.getElementById("portfolioModalDesc");
     var modalCounter = document.getElementById("portfolioModalCounter");
     var thumbsEl     = document.getElementById("portfolioModalThumbs");
+    var zoomHint     = document.getElementById("portfolioZoomHint");
 
     var currentPhotos = [];
     var current       = 0;
     var autoTimer     = null;
     var AUTO_INTERVAL = 4000;
+
+    // Zoom state
+    var zoomLevel = 1;
+    var minZoom = 1;
+    var maxZoom = 4;
+    var zoomStep = 0.5;
+    var panX = 0, panY = 0;
+    var isDragging = false;
+    var startX = 0, startY = 0;
+    var pinchStartDist = 0;
+    var pinchStartZoom = 1;
+
+    function resetZoom() {
+        zoomLevel = 1;
+        panX = 0;
+        panY = 0;
+        applyTransform();
+        imgContainer.classList.remove("zoomed");
+    }
+
+    function applyTransform() {
+        modalImg.style.transform = "scale(" + zoomLevel + ") translate(" + panX + "px, " + panY + "px)";
+    }
+
+    function zoomIn() {
+        stopAuto();
+        zoomLevel = Math.min(maxZoom, zoomLevel + zoomStep);
+        if (zoomLevel > 1) imgContainer.classList.add("zoomed");
+        applyTransform();
+        hideZoomHint();
+    }
+
+    function zoomOut() {
+        zoomLevel = Math.max(minZoom, zoomLevel - zoomStep);
+        if (zoomLevel <= 1) {
+            resetZoom();
+            startAuto();
+        } else {
+            applyTransform();
+        }
+    }
+
+    function zoomToPoint(clientX, clientY, newZoom) {
+        var rect = imgContainer.getBoundingClientRect();
+        var centerX = rect.left + rect.width / 2;
+        var centerY = rect.top + rect.height / 2;
+        var offsetX = (clientX - centerX) / zoomLevel;
+        var offsetY = (clientY - centerY) / zoomLevel;
+
+        var oldZoom = zoomLevel;
+        zoomLevel = Math.max(minZoom, Math.min(maxZoom, newZoom));
+
+        if (zoomLevel > 1) {
+            stopAuto();
+            var scaleDiff = zoomLevel / oldZoom;
+            panX = panX - offsetX * (scaleDiff - 1) / zoomLevel;
+            panY = panY - offsetY * (scaleDiff - 1) / zoomLevel;
+            imgContainer.classList.add("zoomed");
+        } else {
+            resetZoom();
+            startAuto();
+            return;
+        }
+        applyTransform();
+        hideZoomHint();
+    }
+
+    function hideZoomHint() {
+        if (zoomHint) zoomHint.style.display = "none";
+    }
+
+    function showZoomHint() {
+        if (zoomHint) zoomHint.style.display = "block";
+    }
+
+    // Double click/tap to zoom using native dblclick event
+    imgContainer.addEventListener("dblclick", function(e) {
+        e.preventDefault();
+        if (zoomLevel > 1) {
+            resetZoom();
+            startAuto();
+        } else {
+            stopAuto();
+            zoomToPoint(e.clientX, e.clientY, 2.5);
+        }
+    });
+
+    // Mouse wheel zoom
+    imgContainer.addEventListener("wheel", function(e) {
+        e.preventDefault();
+        var delta = e.deltaY > 0 ? -zoomStep : zoomStep;
+        zoomToPoint(e.clientX, e.clientY, zoomLevel + delta);
+    }, { passive: false });
+
+    // Mouse drag for panning
+    imgContainer.addEventListener("mousedown", function(e) {
+        if (zoomLevel <= 1) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        modalImg.classList.add("zooming");
+        e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", function(e) {
+        if (!isDragging || !modal.classList.contains("active")) return;
+        var dx = (e.clientX - startX) / zoomLevel;
+        var dy = (e.clientY - startY) / zoomLevel;
+        panX += dx;
+        panY += dy;
+        startX = e.clientX;
+        startY = e.clientY;
+        applyTransform();
+    });
+
+    document.addEventListener("mouseup", function() {
+        if (modal.classList.contains("active")) {
+            isDragging = false;
+            modalImg.classList.remove("zooming");
+        }
+    });
+
+    // Touch pinch zoom
+    function getPinchDist(touches) {
+        var dx = touches[0].clientX - touches[1].clientX;
+        var dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    imgContainer.addEventListener("touchstart", function(e) {
+        if (e.touches.length === 2) {
+            pinchStartDist = getPinchDist(e.touches);
+            pinchStartZoom = zoomLevel;
+        } else if (e.touches.length === 1 && zoomLevel > 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            modalImg.classList.add("zooming");
+        }
+    }, { passive: true });
+
+    imgContainer.addEventListener("touchmove", function(e) {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            var dist = getPinchDist(e.touches);
+            var scale = dist / pinchStartDist;
+            var newZoom = pinchStartZoom * scale;
+            var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            var cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            zoomToPoint(cx, cy, newZoom);
+        } else if (e.touches.length === 1 && isDragging && zoomLevel > 1) {
+            var dx = (e.touches[0].clientX - startX) / zoomLevel;
+            var dy = (e.touches[0].clientY - startY) / zoomLevel;
+            panX += dx;
+            panY += dy;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            applyTransform();
+        }
+    }, { passive: false });
+
+    imgContainer.addEventListener("touchend", function() {
+        isDragging = false;
+        modalImg.classList.remove("zooming");
+    }, { passive: true });
+
+    // Zoom control buttons
+    document.getElementById("portfolioZoomIn").addEventListener("click", function(e) {
+        e.stopPropagation();
+        zoomIn();
+    });
+
+    document.getElementById("portfolioZoomOut").addEventListener("click", function(e) {
+        e.stopPropagation();
+        zoomOut();
+    });
+
+    document.getElementById("portfolioZoomReset").addEventListener("click", function(e) {
+        e.stopPropagation();
+        resetZoom();
+        startAuto();
+    });
 
     function buildThumbs(photos) {
         thumbsEl.innerHTML = "";
@@ -804,6 +1203,7 @@ if (!empty($work_categories)):
             img.draggable      = false;
             img.addEventListener("click", function() {
                 stopAuto();
+                resetZoom();
                 showSlide(idx);
                 startAuto();
             });
@@ -820,6 +1220,8 @@ if (!empty($work_categories)):
         modalTitle.textContent        = photo.title || "";
         modalDesc.textContent         = photo.desc  || "";
         modalCounter.textContent      = (current + 1) + " / " + currentPhotos.length;
+        resetZoom();
+        showZoomHint();
 
         var thumbs = Array.from(thumbsEl.querySelectorAll(".portfolio-modal-thumb"));
         thumbs.forEach(function(t) { t.classList.remove("active"); });
@@ -848,6 +1250,7 @@ if (!empty($work_categories)):
     function closeModal() {
         clearTimeout(closeTimer);
         stopAuto();
+        resetZoom();
         document.body.classList.remove("modal-open");
         modal.classList.add("closing");
         closeTimer = setTimeout(function() {
@@ -859,8 +1262,8 @@ if (!empty($work_categories)):
         }, MODAL_CLOSE_DURATION);
     }
 
-    function prevSlide() { stopAuto(); showSlide(current - 1); startAuto(); }
-    function nextSlide() { stopAuto(); showSlide(current + 1); startAuto(); }
+    function prevSlide() { stopAuto(); resetZoom(); showSlide(current - 1); startAuto(); }
+    function nextSlide() { stopAuto(); resetZoom(); showSlide(current + 1); startAuto(); }
 
     function startAuto() {
         stopAuto();
@@ -1047,17 +1450,27 @@ if (!empty($work_categories)):
         if (e.key === "Escape")     closeModal();
         if (e.key === "ArrowLeft")  prevSlide();
         if (e.key === "ArrowRight") nextSlide();
+        if (e.key === "+" || e.key === "=") zoomIn();
+        if (e.key === "-") zoomOut();
+        if (e.key === "0") { resetZoom(); startAuto(); }
     });
 
     var swipeStartX = 0;
-    modal.addEventListener("touchstart", function(e) { swipeStartX = e.touches[0].pageX; }, { passive: true });
-    modal.addEventListener("touchend",   function(e) {
+    modal.addEventListener("touchstart", function(e) {
+        if (zoomLevel <= 1) swipeStartX = e.touches[0].pageX;
+    }, { passive: true });
+    modal.addEventListener("touchend", function(e) {
+        if (zoomLevel > 1) return;
         var dx = e.changedTouches[0].pageX - swipeStartX;
         if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
     }, { passive: true });
 
-    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseenter", stopAuto);
-    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseleave", startAuto);
+    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseenter", function() {
+        if (zoomLevel <= 1) stopAuto();
+    });
+    modal.querySelector(".portfolio-modal-img-wrap").addEventListener("mouseleave", function() {
+        if (zoomLevel <= 1) startAuto();
+    });
 })();
 </script>
 <?php endif; ?>
