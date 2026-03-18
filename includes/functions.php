@@ -50,6 +50,26 @@ function sanitize($data) {
 }
 
 /**
+ * Format file size in human-readable format
+ * @param int $bytes File size in bytes
+ * @return string Formatted file size (e.g., "1.5 GB", "250 MB")
+ */
+function formatFileSize($bytes) {
+    if ($bytes === null || $bytes === 0) {
+        return '0 B';
+    }
+    
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+    
+    $bytes /= pow(1024, $pow);
+    
+    return round($bytes, 2) . ' ' . $units[$pow];
+}
+
+/**
  * Get value or return default if empty/null
  * Handles missing data gracefully throughout the application
  */

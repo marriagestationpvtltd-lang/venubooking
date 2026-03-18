@@ -322,6 +322,59 @@ $site_logo = getSetting('site_logo');
             background: var(--dark-green);
         }
         
+        /* Video card styles */
+        .photo-card .video-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background: #1a1a2e;
+        }
+        
+        .photo-card video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .photo-card .video-play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .photo-card .video-play-overlay:hover {
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .photo-card .video-play-overlay i {
+            font-size: 3rem;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        
+        .file-type-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            z-index: 10;
+        }
+        
+        .file-size-info {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
         .stats-badge {
             background: #f8f9fa;
             padding: 8px 15px;
@@ -372,7 +425,8 @@ $site_logo = getSetting('site_logo');
             display: flex;
         }
         
-        .lightbox img {
+        .lightbox img,
+        .lightbox video {
             max-width: 90%;
             max-height: 90%;
             border-radius: 8px;
