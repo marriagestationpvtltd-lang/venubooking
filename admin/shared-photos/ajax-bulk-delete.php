@@ -100,8 +100,8 @@ try {
     
     $db->commit();
     
-    // Prepare response message
-    $message = $deleted_count . ' photo' . ($deleted_count > 1 ? 's' : '') . ' permanently deleted';
+    // Prepare response message (use !== 1 for proper pluralization including 0)
+    $message = $deleted_count . ' photo' . ($deleted_count !== 1 ? 's' : '') . ' permanently deleted';
     if ($failed_count > 0) {
         $message .= ', ' . $failed_count . ' failed';
     }

@@ -235,12 +235,19 @@ $download_base_url = BASE_URL . '/download.php?token=';
 $extra_js = <<<'JS'
 <script>
 $(document).ready(function() {
+    // Column indices for DataTable configuration
+    // 0=Checkbox, 1=Preview, 2=Title, 3=Download Link, 4=Downloads, 5=Status, 6=Uploaded By, 7=Created, 8=Actions
+    var COL_CHECKBOX = 0;
+    var COL_DOWNLOAD_LINK = 3;
+    var COL_CREATED = 7;
+    var COL_ACTIONS = 8;
+    
     // Initialize DataTable
     var table = $('#photosTable').DataTable({
-        "order": [[7, "desc"]], // Column 7 = Created date
+        "order": [[COL_CREATED, "desc"]],
         "pageLength": 25,
         "columnDefs": [
-            { "orderable": false, "searchable": false, "targets": [0, 3, 8] }
+            { "orderable": false, "searchable": false, "targets": [COL_CHECKBOX, COL_DOWNLOAD_LINK, COL_ACTIONS] }
         ]
     });
     

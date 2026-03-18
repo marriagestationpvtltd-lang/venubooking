@@ -60,9 +60,13 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
         $mime_type = finfo_file($finfo, $file_path);
         finfo_close($finfo);
         
-        // Generate download filename
+        // Generate download filename (ASCII-safe for cross-platform compatibility)
         $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
-        $download_filename = preg_replace('/[^a-zA-Z0-9_\-\.\s\x{0900}-\x{097F}]/u', '_', $photo['title']) . '.' . $ext;
+        // Transliterate Nepali/Unicode to ASCII and sanitize
+        $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
+        $safe_title = preg_replace('/_+/', '_', $safe_title); // Remove consecutive underscores
+        $safe_title = trim($safe_title, '_');
+        $download_filename = (!empty($safe_title) ? $safe_title : 'photo') . '.' . $ext;
         
         // Send file for download
         header('Content-Type: ' . $mime_type);
