@@ -191,7 +191,7 @@ $extra_js = <<<'JS'
 $(document).ready(function() {
     // Initialize DataTable with checkbox column excluded from sorting
     var table = $('#imagesTable').DataTable({
-        "order": [[7, "desc"]], // Updated column index for Created
+        "order": [[7, "desc"]], // Column 7 = Created date (after checkbox column added)
         "pageLength": 25,
         "columnDefs": [
             { "orderable": false, "searchable": false, "targets": 0 } // Disable sorting on checkbox column
@@ -249,8 +249,9 @@ $(document).ready(function() {
         var csrfToken = $('#csrf_token').val();
         var $btn = $(this);
         
-        // Disable button and show loading state
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Deleting...');
+        // Disable button and show loading state (preserve button structure)
+        $btn.prop('disabled', true);
+        $btn.find('i').removeClass('fa-trash').addClass('fa-spinner fa-spin');
         
         $.ajax({
             url: 'ajax-bulk-delete.php',
@@ -285,8 +286,10 @@ $(document).ready(function() {
                 showAlert('danger', 'An error occurred while deleting images. Please try again.');
             },
             complete: function() {
-                // Re-enable button
-                $btn.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">' + $('.image-checkbox:checked').length + '</span>)');
+                // Re-enable button (keeping original structure, just restoring disabled state)
+                $btn.prop('disabled', false);
+                $btn.find('i').removeClass('fa-spinner fa-spin').addClass('fa-trash');
+                // Update count will be called by success handler if successful
             }
         });
     });
@@ -294,17 +297,17 @@ $(document).ready(function() {
     // Helper function to show alert messages
     function showAlert(type, message) {
         var iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-        var alertHtml = '<div class="alert alert-' + type + ' alert-dismissible fade show">' +
+        var $alert = $('<div class="alert alert-' + type + ' alert-dismissible fade show bulk-delete-alert">' +
             '<i class="fas ' + iconClass + '"></i> ' + message +
             '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
-            '</div>';
+            '</div>');
         
-        // Remove existing alerts and add new one
-        $('.card').first().before(alertHtml);
+        // Insert alert before the card
+        $('.card').first().before($alert);
         
-        // Auto-dismiss after 5 seconds
+        // Auto-dismiss only this specific alert after 5 seconds
         setTimeout(function() {
-            $('.alert').alert('close');
+            $alert.alert('close');
         }, 5000);
     }
     
