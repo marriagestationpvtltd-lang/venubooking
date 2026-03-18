@@ -7,6 +7,9 @@
  */
 
 class ImageUploadHandler {
+    // Video MIME types supported for upload
+    static VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
+
     constructor(options = {}) {
         // Set defaults first, then override with provided options
         const defaults = {
@@ -18,8 +21,10 @@ class ImageUploadHandler {
             maxWidth: 1920,
             maxHeight: 1920,
             quality: 0.85,
-            maxFileSize: 10 * 1024 * 1024, // 10MB before compression
+            maxFileSize: 10 * 1024 * 1024, // 10MB before compression (photos only)
+            maxVideoSize: 8 * 1024 * 1024 * 1024, // 8GB for videos
             allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            allowVideos: true, // Allow video uploads alongside images
             uploadUrl: 'ajax-upload.php',
             onUploadStart: () => {},
             onUploadProgress: () => {},
@@ -32,6 +37,10 @@ class ImageUploadHandler {
         this.files = [];
         this.processedFiles = [];
         this.init();
+    }
+
+    isVideoFile(file) {
+        return ImageUploadHandler.VIDEO_TYPES.includes(file.type);
     }
 
     init() {
@@ -92,11 +101,18 @@ class ImageUploadHandler {
 
     async handleFiles(files) {
         const validFiles = files.filter(file => {
-            if (!this.options.allowedTypes.includes(file.type)) {
-                this.showError(`${file.name}: Invalid file type. Only JPG, PNG, GIF, WebP are allowed.`);
+            const isImage = this.options.allowedTypes.includes(file.type);
+            const isVideo = this.options.allowVideos && this.isVideoFile(file);
+
+            if (!isImage && !isVideo) {
+                this.showError(`${file.name}: Invalid file type. Allowed: JPG, PNG, GIF, WebP (photos) or MP4, MOV, AVI, WebM, MKV (videos).`);
                 return false;
             }
-            if (file.size > this.options.maxFileSize) {
+            if (isVideo && file.size > this.options.maxVideoSize) {
+                this.showError(`${file.name}: Video too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxVideoSize)}.`);
+                return false;
+            }
+            if (isImage && file.size > this.options.maxFileSize) {
                 this.showError(`${file.name}: File too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxFileSize)}.`);
                 return false;
             }
@@ -150,14 +166,21 @@ class ImageUploadHandler {
         });
 
         // Generate thumbnail
-        try {
-            const thumbnail = await this.generateThumbnail(file);
-            const container = preview.querySelector('.preview-image-container');
-            container.innerHTML = `<img src="${thumbnail}" alt="${this.escapeHtml(file.name)}" />`;
-        } catch (error) {
-            console.error('Error generating thumbnail:', error);
-            const container = preview.querySelector('.preview-image-container');
-            container.innerHTML = '<i class="fas fa-image text-muted"></i>';
+        const container = preview.querySelector('.preview-image-container');
+        if (this.isVideoFile(file)) {
+            // Show video icon placeholder for videos
+            container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
+                <i class="fas fa-video" style="font-size:2rem;color:#dc3545;"></i>
+                <small style="margin-top:4px;font-size:0.65rem;color:#888;">VIDEO</small>
+            </div>`;
+        } else {
+            try {
+                const thumbnail = await this.generateThumbnail(file);
+                container.innerHTML = `<img src="${thumbnail}" alt="${this.escapeHtml(file.name)}" />`;
+            } catch (error) {
+                console.error('Error generating thumbnail:', error);
+                container.innerHTML = '<i class="fas fa-image text-muted"></i>';
+            }
         }
     }
 
@@ -312,8 +335,8 @@ class ImageUploadHandler {
         if (this.uploadButton) {
             this.uploadButton.disabled = activeFiles === 0;
             const text = activeFiles > 0 ? 
-                `<i class="fas fa-upload"></i> Upload ${activeFiles} Image${activeFiles > 1 ? 's' : ''}` : 
-                '<i class="fas fa-upload"></i> Upload Image(s)';
+                `<i class="fas fa-upload"></i> Upload ${activeFiles} File${activeFiles > 1 ? 's' : ''}` : 
+                '<i class="fas fa-upload"></i> Upload File(s)';
             this.uploadButton.innerHTML = text;
         }
     }
@@ -323,7 +346,7 @@ class ImageUploadHandler {
 
         const activeFiles = this.files.filter(f => f !== null);
         if (activeFiles.length === 0) {
-            this.showError('Please select at least one image to upload.');
+            this.showError('Please select at least one file to upload.');
             return;
         }
 
@@ -354,22 +377,31 @@ class ImageUploadHandler {
             if (!file) continue;
 
             const preview = this.previewContainer.querySelector(`[data-index="${i}"]`);
+            const isVideo = this.isVideoFile(file);
+
             if (preview) {
                 preview.querySelector('.preview-status .badge').className = 'badge bg-info';
-                preview.querySelector('.preview-status .badge').textContent = 'Compressing...';
+                preview.querySelector('.preview-status .badge').textContent = isVideo ? 'Uploading...' : 'Compressing...';
             }
 
             try {
-                // Compress image
-                const compressedFile = await this.compressImage(file);
-                
-                // Update preview with compressed size
-                if (preview) {
-                    const sizeInfo = preview.querySelector('.preview-size');
-                    if (compressedFile.size < file.size) {
-                        const savings = ((1 - compressedFile.size / file.size) * 100).toFixed(0);
-                        sizeInfo.innerHTML = `${this.formatFileSize(compressedFile.size)} <span class="text-success">(−${savings}%)</span>`;
+                let fileToUpload = file;
+
+                if (!isVideo) {
+                    // Compress image files only
+                    fileToUpload = await this.compressImage(file);
+                    
+                    // Update preview with compressed size
+                    if (preview) {
+                        const sizeInfo = preview.querySelector('.preview-size');
+                        if (fileToUpload.size < file.size) {
+                            const savings = ((1 - fileToUpload.size / file.size) * 100).toFixed(0);
+                            sizeInfo.innerHTML = `${this.formatFileSize(fileToUpload.size)} <span class="text-success">(−${savings}%)</span>`;
+                        }
                     }
+                }
+
+                if (preview) {
                     preview.querySelector('.preview-status .badge').textContent = 'Uploading...';
                     preview.querySelector('.preview-progress').style.display = 'block';
                 }
@@ -377,7 +409,7 @@ class ImageUploadHandler {
                 // Upload file
                 const uploadFormData = new FormData(this.form);
                 uploadFormData.delete('images[]');
-                uploadFormData.append('images[]', compressedFile);
+                uploadFormData.append('images[]', fileToUpload);
                 uploadFormData.append('ajax_upload', '1');
 
                 const result = await this.uploadFile(uploadFormData, preview);
@@ -423,7 +455,7 @@ class ImageUploadHandler {
         this.options.onUploadComplete({ uploadedCount, errorCount, errors });
 
         if (uploadedCount > 0) {
-            this.showSuccess(`${uploadedCount} image${uploadedCount > 1 ? 's' : ''} uploaded successfully!`);
+            this.showSuccess(`${uploadedCount} file${uploadedCount > 1 ? 's' : ''} uploaded successfully!`);
         }
         
         if (errors.length > 0) {

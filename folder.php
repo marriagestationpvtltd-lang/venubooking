@@ -1,11 +1,11 @@
 <?php
 /**
  * Public Folder Download Page
- * Users can view all photos in a shared folder and download them
+ * Users can view all photos and videos in a shared folder and download them
  * Features:
- * - View all photos in a grid
- * - Download individual photos
- * - Download ALL photos as a single ZIP file (one-click download)
+ * - View all photos and videos in a grid
+ * - Download individual photos/videos
+ * - Download ALL files as a single ZIP file (one-click download)
  */
 
 require_once __DIR__ . '/config/database.php';
@@ -22,25 +22,30 @@ $token = isset($_GET['token']) ? trim($_GET['token']) : '';
 if (empty($token)) {
     $error_message = 'Invalid folder link.';
 } else {
-    // Fetch folder by token
-    $stmt = $db->prepare("SELECT * FROM shared_folders WHERE download_token = ?");
-    $stmt->execute([$token]);
-    $folder = $stmt->fetch();
-    
-    if (!$folder) {
-        $error_message = 'Folder not found. The link may be invalid or expired.';
-    } elseif ($folder['status'] === 'inactive' || $folder['status'] === 'expired') {
-        $error_message = 'This folder link is no longer active.';
-    } elseif ($folder['expires_at'] && strtotime($folder['expires_at']) < time()) {
-        $error_message = 'This folder link has expired.';
-        // Update status to expired
-        $update_stmt = $db->prepare("UPDATE shared_folders SET status = 'expired' WHERE id = ?");
-        $update_stmt->execute([$folder['id']]);
-    } else {
-        // Fetch all photos in this folder
-        $photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? AND status = 'active' ORDER BY created_at DESC");
-        $photos_stmt->execute([$folder['id']]);
-        $photos = $photos_stmt->fetchAll();
+    try {
+        // Fetch folder by token
+        $stmt = $db->prepare("SELECT * FROM shared_folders WHERE download_token = ?");
+        $stmt->execute([$token]);
+        $folder = $stmt->fetch();
+        
+        if (!$folder) {
+            $error_message = 'Folder not found. The link may be invalid or expired.';
+        } elseif ($folder['status'] === 'inactive' || $folder['status'] === 'expired') {
+            $error_message = 'This folder link is no longer active.';
+        } elseif ($folder['expires_at'] && strtotime($folder['expires_at']) < time()) {
+            $error_message = 'This folder link has expired.';
+            // Update status to expired
+            $update_stmt = $db->prepare("UPDATE shared_folders SET status = 'expired' WHERE id = ?");
+            $update_stmt->execute([$folder['id']]);
+        } else {
+            // Fetch all photos/videos in this folder
+            $photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? AND status = 'active' ORDER BY created_at DESC");
+            $photos_stmt->execute([$folder['id']]);
+            $photos = $photos_stmt->fetchAll();
+        }
+    } catch (Exception $e) {
+        error_log('Folder page error: ' . $e->getMessage());
+        $error_message = 'Unable to load folder. Please try again later.';
     }
 }
 
@@ -496,8 +501,8 @@ $site_logo = getSetting('site_logo');
                         
                         <div class="stats-badges">
                             <span class="stats-badge">
-                                <i class="fas fa-images text-primary"></i> 
-                                <?php echo count($photos); ?> Photos
+                                <i class="fas fa-photo-video text-primary"></i> 
+                                <?php echo count($photos); ?> File<?php echo count($photos) !== 1 ? 's' : ''; ?>
                             </span>
                             <?php if ($folder['expires_at']): ?>
                                 <span class="stats-badge">
@@ -521,27 +526,40 @@ $site_logo = getSetting('site_logo');
                 </div>
             </div>
             
-            <!-- Photos Grid -->
+            <!-- Files Grid -->
             <?php if (empty($photos)): ?>
                 <div class="text-center py-5">
-                    <i class="fas fa-images fa-4x text-muted mb-3"></i>
-                    <p class="text-muted">No photos in this folder yet.</p>
+                    <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
+                    <p class="text-muted">No files in this folder yet.</p>
                 </div>
             <?php else: ?>
                 <div class="photo-grid">
                     <?php foreach ($photos as $photo): 
-                        $image_url = UPLOAD_URL . $photo['image_path'];
+                        $file_url = UPLOAD_URL . $photo['image_path'];
+                        $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                         $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
                     ?>
                         <div class="photo-card">
                             <?php if (file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
-                                <img src="<?php echo htmlspecialchars($image_url); ?>" 
-                                     alt="<?php echo htmlspecialchars($photo['title']); ?>"
-                                     onclick="openLightbox('<?php echo htmlspecialchars($image_url); ?>')"
-                                     style="cursor: pointer;">
+                                <?php if ($is_video): ?>
+                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url); ?>')" style="cursor: pointer;">
+                                        <video muted preload="metadata">
+                                            <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
+                                        </video>
+                                        <div class="video-play-overlay">
+                                            <i class="fas fa-play-circle"></i>
+                                        </div>
+                                        <span class="badge bg-danger file-type-badge">VIDEO</span>
+                                    </div>
+                                <?php else: ?>
+                                    <img src="<?php echo htmlspecialchars($file_url); ?>" 
+                                         alt="<?php echo htmlspecialchars($photo['title']); ?>"
+                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url); ?>')"
+                                         style="cursor: pointer;">
+                                <?php endif; ?>
                             <?php else: ?>
                                 <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
-                                    <i class="fas fa-image fa-3x"></i>
+                                    <i class="fas fa-<?php echo $is_video ? 'video' : 'image'; ?> fa-3x"></i>
                                 </div>
                             <?php endif; ?>
                             
@@ -569,7 +587,7 @@ $site_logo = getSetting('site_logo');
         
         <div class="footer-text">
             <i class="fas fa-shield-alt me-1"></i>
-            Secure photo sharing by <?php echo htmlspecialchars($site_name); ?>
+            Secure photo &amp; video sharing by <?php echo htmlspecialchars($site_name); ?>
         </div>
     </div>
     
@@ -577,6 +595,14 @@ $site_logo = getSetting('site_logo');
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
         <span class="lightbox-close">&times;</span>
         <img src="" alt="Preview" id="lightbox-image">
+    </div>
+    
+    <!-- Lightbox for video preview -->
+    <div class="lightbox" id="video-lightbox" onclick="closeVideoLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <video id="lightbox-video" controls onclick="event.stopPropagation()">
+            <source src="" id="lightbox-video-src" type="video/mp4">
+        </video>
     </div>
     
     <!-- Bootstrap 5 JS -->
@@ -592,10 +618,34 @@ $site_logo = getSetting('site_logo');
             document.getElementById('lightbox').classList.remove('active');
         }
         
+        function openVideoLightbox(src) {
+            var video = document.getElementById('lightbox-video');
+            var sourceEl = document.getElementById('lightbox-video-src');
+            sourceEl.src = src;
+            // Determine MIME type from file extension
+            var ext = src.split('?')[0].split('.').pop().toLowerCase();
+            var mimeMap = {
+                'mp4': 'video/mp4', 'mov': 'video/quicktime',
+                'avi': 'video/x-msvideo', 'webm': 'video/webm',
+                'mkv': 'video/x-matroska', 'mpg': 'video/mpeg',
+                'mpeg': 'video/mpeg', '3gp': 'video/3gpp'
+            };
+            sourceEl.type = mimeMap[ext] || 'video/mp4';
+            video.load();
+            document.getElementById('video-lightbox').classList.add('active');
+        }
+        
+        function closeVideoLightbox() {
+            var video = document.getElementById('lightbox-video');
+            video.pause();
+            document.getElementById('video-lightbox').classList.remove('active');
+        }
+        
         // Close lightbox with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeLightbox();
+                closeVideoLightbox();
             }
         });
     </script>
