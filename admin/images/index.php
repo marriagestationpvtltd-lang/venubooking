@@ -61,10 +61,18 @@ $images = $stmt->fetchAll();
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4><i class="fas fa-images"></i> Image Management</h4>
-    <a href="add.php" class="btn btn-success">
-        <i class="fas fa-plus"></i> Upload New Image
-    </a>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-danger" id="bulkDeleteBtn" style="display: none;">
+            <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+        </button>
+        <a href="add.php" class="btn btn-success">
+            <i class="fas fa-plus"></i> Upload New Image
+        </a>
+    </div>
 </div>
+
+<!-- Hidden CSRF token for AJAX requests -->
+<input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
 
 <?php if ($success_message): ?>
     <div class="alert alert-success alert-dismissible fade show">
@@ -95,6 +103,9 @@ $images = $stmt->fetchAll();
                 <table class="table table-hover" id="imagesTable">
                     <thead>
                         <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="selectAllCheckbox" title="Select All">
+                            </th>
                             <th>Preview</th>
                             <th>Title</th>
                             <th>Section</th>
@@ -107,7 +118,10 @@ $images = $stmt->fetchAll();
                     </thead>
                     <tbody>
                         <?php foreach ($images as $image): ?>
-                            <tr>
+                            <tr data-image-id="<?php echo $image['id']; ?>">
+                                <td>
+                                    <input type="checkbox" class="form-check-input image-checkbox" value="<?php echo $image['id']; ?>">
+                                </td>
                                 <td>
                                     <?php 
                                     $image_url = UPLOAD_URL . $image['image_path'];
@@ -175,9 +189,136 @@ $images = $stmt->fetchAll();
 $extra_js = <<<'JS'
 <script>
 $(document).ready(function() {
-    $('#imagesTable').DataTable({
-        "order": [[5, "desc"]],
-        "pageLength": 25
+    // Initialize DataTable with checkbox column excluded from sorting
+    var table = $('#imagesTable').DataTable({
+        "order": [[7, "desc"]], // Column 7 = Created date (after checkbox column added)
+        "pageLength": 25,
+        "columnDefs": [
+            { "orderable": false, "searchable": false, "targets": 0 } // Disable sorting on checkbox column
+        ]
+    });
+    
+    // Update selected count and show/hide bulk delete button
+    function updateSelectedCount() {
+        var count = $('.image-checkbox:checked').length;
+        $('#selectedCount').text(count);
+        if (count > 0) {
+            $('#bulkDeleteBtn').show();
+        } else {
+            $('#bulkDeleteBtn').hide();
+        }
+    }
+    
+    // Handle individual checkbox change
+    $(document).on('change', '.image-checkbox', function() {
+        updateSelectedCount();
+        
+        // Update "Select All" checkbox state
+        var allChecked = $('.image-checkbox').length === $('.image-checkbox:checked').length;
+        var someChecked = $('.image-checkbox:checked').length > 0 && !allChecked;
+        
+        $('#selectAllCheckbox').prop('checked', allChecked);
+        $('#selectAllCheckbox').prop('indeterminate', someChecked);
+    });
+    
+    // Handle "Select All" checkbox
+    $('#selectAllCheckbox').on('change', function() {
+        var isChecked = $(this).prop('checked');
+        $('.image-checkbox').prop('checked', isChecked);
+        $(this).prop('indeterminate', false);
+        updateSelectedCount();
+    });
+    
+    // Handle bulk delete button click
+    $('#bulkDeleteBtn').on('click', function() {
+        var selectedIds = [];
+        $('.image-checkbox:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+        
+        if (selectedIds.length === 0) {
+            alert('Please select at least one image to delete.');
+            return;
+        }
+        
+        var confirmMsg = 'Are you sure you want to delete ' + selectedIds.length + ' image(s)?\n\nThis action cannot be undone.';
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+        
+        var csrfToken = $('#csrf_token').val();
+        var $btn = $(this);
+        
+        // Disable button and show loading state (preserve button structure)
+        $btn.prop('disabled', true);
+        $btn.find('i').removeClass('fa-trash').addClass('fa-spinner fa-spin');
+        
+        $.ajax({
+            url: 'ajax-bulk-delete.php',
+            method: 'POST',
+            data: {
+                csrf_token: csrfToken,
+                image_ids: selectedIds.join(',')
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Remove deleted rows from table
+                    if (response.deleted_ids && response.deleted_ids.length > 0) {
+                        response.deleted_ids.forEach(function(id) {
+                            var row = $('tr[data-image-id="' + id + '"]');
+                            table.row(row).remove();
+                        });
+                        table.draw();
+                    }
+                    
+                    // Reset select all checkbox
+                    $('#selectAllCheckbox').prop('checked', false).prop('indeterminate', false);
+                    updateSelectedCount();
+                    
+                    // Show success message
+                    showAlert('success', response.message);
+                } else {
+                    showAlert('danger', response.message || 'Failed to delete images.');
+                }
+            },
+            error: function(xhr, status, error) {
+                showAlert('danger', 'An error occurred while deleting images. Please try again.');
+            },
+            complete: function() {
+                // Re-enable button (keeping original structure, just restoring disabled state)
+                $btn.prop('disabled', false);
+                $btn.find('i').removeClass('fa-spinner fa-spin').addClass('fa-trash');
+                // Update count will be called by success handler if successful
+            }
+        });
+    });
+    
+    // Helper function to show alert messages
+    function showAlert(type, message) {
+        var iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        var $alert = $('<div class="alert alert-' + type + ' alert-dismissible fade show bulk-delete-alert">' +
+            '<i class="fas ' + iconClass + '"></i> ' + message +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+            '</div>');
+        
+        // Insert alert before the card
+        $('.card').first().before($alert);
+        
+        // Auto-dismiss only this specific alert after 5 seconds
+        setTimeout(function() {
+            $alert.alert('close');
+        }, 5000);
+    }
+    
+    // Handle DataTable page change - reset "Select All" checkbox state
+    table.on('draw', function() {
+        updateSelectedCount();
+        var allChecked = $('.image-checkbox').length > 0 && $('.image-checkbox').length === $('.image-checkbox:checked').length;
+        var someChecked = $('.image-checkbox:checked').length > 0 && !allChecked;
+        
+        $('#selectAllCheckbox').prop('checked', allChecked);
+        $('#selectAllCheckbox').prop('indeterminate', someChecked);
     });
 });
 </script>
