@@ -44,6 +44,12 @@ require_once __DIR__ . '/../includes/header.php';
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
 $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
 
+// Check for URL-based success message (from AJAX upload redirect)
+if (isset($_GET['success']) && is_numeric($_GET['success'])) {
+    $count = intval($_GET['success']);
+    $success_message = $count . ' image' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
+}
+
 // Clear session messages after displaying
 unset($_SESSION['success_message']);
 unset($_SESSION['error_message']);
@@ -62,14 +68,14 @@ $images = $stmt->fetchAll();
 
 <?php if ($success_message): ?>
     <div class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
 <?php if ($error_message): ?>
     <div class="alert alert-danger alert-dismissible fade show">
-        <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>

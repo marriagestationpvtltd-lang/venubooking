@@ -1,0 +1,345 @@
+/**
+ * Image Upload Handler Styles
+ * Styles for drag-drop, preview, and upload progress
+ */
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #fafafa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.drop-zone:hover {
+    border-color: #4CAF50;
+    background: #f0fff0;
+}
+
+.drop-zone.drag-over {
+    border-color: #4CAF50;
+    background: #e8f5e9;
+    transform: scale(1.01);
+}
+
+.drop-zone-icon {
+    font-size: 48px;
+    color: #ccc;
+    margin-bottom: 15px;
+    transition: color 0.3s;
+}
+
+.drop-zone:hover .drop-zone-icon,
+.drop-zone.drag-over .drop-zone-icon {
+    color: #4CAF50;
+}
+
+.drop-zone-text {
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.drop-zone-hint {
+    color: #999;
+    font-size: 0.85em;
+}
+
+/* Image Preview Container */
+.image-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin: 20px 0;
+    min-height: 50px;
+}
+
+.image-preview-container:empty {
+    display: none;
+}
+
+/* Individual Preview Item */
+.image-preview-item {
+    position: relative;
+    width: 140px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.image-preview-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.image-preview-item.upload-success {
+    border-color: #4CAF50;
+    background: #f0fff0;
+}
+
+.image-preview-item.upload-error {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+
+.preview-image-container {
+    width: 120px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #f5f5f5;
+    margin-bottom: 8px;
+}
+
+.preview-image-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.preview-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.preview-info {
+    text-align: center;
+}
+
+.preview-name {
+    font-size: 0.75em;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.preview-size {
+    font-size: 0.7em;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.preview-status {
+    font-size: 0.7em;
+}
+
+.preview-status .badge {
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+/* Remove Button */
+.preview-remove {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.preview-remove:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* Progress Bar */
+.preview-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+}
+
+.preview-progress .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.3s ease;
+}
+
+/* Global Upload Loader */
+.upload-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.upload-loader-content {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+.upload-loader-content .spinner-border {
+    width: 60px;
+    height: 60px;
+    border-width: 4px;
+}
+
+.upload-loader-content p {
+    font-size: 1.1em;
+    color: #333;
+}
+
+/* Compression Info Badge */
+.compression-info {
+    position: absolute;
+    bottom: 15px;
+    right: 5px;
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65em;
+    font-weight: 600;
+}
+
+/* Upload Summary */
+.upload-summary {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.upload-summary-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.upload-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.upload-stat i {
+    font-size: 1.2em;
+}
+
+.upload-stat-label {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.upload-stat-value {
+    font-weight: 600;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 576px) {
+    .drop-zone {
+        padding: 30px 15px;
+    }
+    
+    .drop-zone-icon {
+        font-size: 36px;
+    }
+    
+    .image-preview-container {
+        gap: 10px;
+    }
+    
+    .image-preview-item {
+        width: calc(50% - 5px);
+    }
+    
+    .preview-image-container {
+        width: 100%;
+        height: 80px;
+    }
+}
+
+/* Animation for successful upload */
+@keyframes uploadSuccess {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.image-preview-item.upload-success {
+    animation: uploadSuccess 0.5s ease;
+}
+
+/* Section Card Grouping Indicator */
+.card-group-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: #e3f2fd;
+    color: #1976d2;
+    border-radius: 20px;
+    font-size: 0.8em;
+    margin-bottom: 10px;
+}
+
+.card-group-indicator i {
+    font-size: 0.9em;
+}
+
+/* Photos per card counter */
+.photos-per-card-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    border-radius: 8px;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.photos-per-card-info i {
+    color: #4CAF50;
+    font-size: 1.2em;
+}
+
+.photos-per-card-info .count {
+    font-weight: 600;
+    color: #2E7D32;
+}
