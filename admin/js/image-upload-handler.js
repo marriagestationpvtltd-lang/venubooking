@@ -1,6 +1,6 @@
 /**
  * Enhanced Image Upload Handler
- * - Client-side image compression without quality loss
+ * - Client-side image compression with minimal visible quality loss
  * - Multiple file upload with progress indication
  * - Preview before upload
  * - Drag & drop support
@@ -8,24 +8,26 @@
 
 class ImageUploadHandler {
     constructor(options = {}) {
-        this.options = {
-            fileInput: options.fileInput || '#images',
-            dropZone: options.dropZone || '#dropZone',
-            previewContainer: options.previewContainer || '#imagePreviewContainer',
-            uploadButton: options.uploadButton || '#uploadButton',
-            form: options.form || '#uploadForm',
-            maxWidth: options.maxWidth || 1920,
-            maxHeight: options.maxHeight || 1920,
-            quality: options.quality || 0.85,
-            maxFileSize: options.maxFileSize || 10 * 1024 * 1024, // 10MB before compression
-            allowedTypes: options.allowedTypes || ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-            uploadUrl: options.uploadUrl || 'ajax-upload.php',
-            onUploadStart: options.onUploadStart || (() => {}),
-            onUploadProgress: options.onUploadProgress || (() => {}),
-            onUploadComplete: options.onUploadComplete || (() => {}),
-            onUploadError: options.onUploadError || (() => {}),
-            ...options
+        // Set defaults first, then override with provided options
+        const defaults = {
+            fileInput: '#images',
+            dropZone: '#dropZone',
+            previewContainer: '#imagePreviewContainer',
+            uploadButton: '#uploadButton',
+            form: '#uploadForm',
+            maxWidth: 1920,
+            maxHeight: 1920,
+            quality: 0.85,
+            maxFileSize: 10 * 1024 * 1024, // 10MB before compression
+            allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            uploadUrl: 'ajax-upload.php',
+            onUploadStart: () => {},
+            onUploadProgress: () => {},
+            onUploadComplete: () => {},
+            onUploadError: () => {}
         };
+        
+        this.options = { ...defaults, ...options };
 
         this.files = [];
         this.processedFiles = [];
@@ -252,8 +254,14 @@ class ImageUploadHandler {
                     
                     canvas.toBlob((blob) => {
                         if (blob) {
-                            // Create new file with original name
-                            const extension = outputType === 'image/jpeg' ? 'jpg' : file.name.split('.').pop();
+                            // Map output type to file extension
+                            const typeToExt = {
+                                'image/jpeg': 'jpg',
+                                'image/png': 'png',
+                                'image/gif': 'gif',
+                                'image/webp': 'webp'
+                            };
+                            const extension = typeToExt[outputType] || 'jpg';
                             const newName = file.name.replace(/\.[^/.]+$/, '.' + extension);
                             const compressedFile = new File([blob], newName, {
                                 type: outputType,
@@ -371,7 +379,6 @@ class ImageUploadHandler {
                 uploadFormData.delete('images[]');
                 uploadFormData.append('images[]', compressedFile);
                 uploadFormData.append('ajax_upload', '1');
-                uploadFormData.append('file_index', i);
 
                 const result = await this.uploadFile(uploadFormData, preview);
                 

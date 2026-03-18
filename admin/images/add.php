@@ -3,16 +3,11 @@
  * Enhanced Image Upload Page
  * Features:
  * - Multiple file upload with drag & drop
- * - Client-side image compression (reduces file size without quality loss)
+ * - Client-side image compression (reduces file size with minimal visible quality loss)
  * - Real-time preview before upload
  * - Progress indicator during upload
  * - AJAX-based upload for better UX
  */
-
-// Include CSS for image upload handler
-$extra_css = '
-<link rel="stylesheet" href="' . BASE_URL . '/admin/css/image-upload-handler.css">
-';
 
 $page_title = 'Upload New Image';
 require_once __DIR__ . '/../includes/header.php';
@@ -55,6 +50,9 @@ foreach ($sections as $key => $label) {
 }
 ?>
 
+<!-- Include Image Upload Handler CSS -->
+<link rel="stylesheet" href="<?php echo htmlspecialchars(BASE_URL); ?>/admin/css/image-upload-handler.css">
+
 <div class="row">
     <div class="col-md-12">
         <div class="card">
@@ -72,7 +70,7 @@ foreach ($sections as $key => $label) {
                         <div>
                             <strong>Enhanced Upload Features:</strong>
                             <ul class="mb-0 mt-1">
-                                <li><i class="fas fa-compress-alt"></i> <strong>Auto Compression:</strong> Images are automatically compressed without quality loss</li>
+                                <li><i class="fas fa-compress-alt"></i> <strong>Auto Compression:</strong> Images are automatically compressed with minimal visible quality loss</li>
                                 <li><i class="fas fa-images"></i> <strong>Multiple Upload:</strong> Select or drag multiple photos at once</li>
                                 <li><i class="fas fa-eye"></i> <strong>Preview:</strong> See thumbnails before uploading</li>
                                 <li><i class="fas fa-spinner"></i> <strong>Progress:</strong> Real-time upload progress for each file</li>
@@ -281,7 +279,7 @@ foreach ($sections as $key => $label) {
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.85,
-        maxFileSize: 15 * 1024 * 1024, // 15MB before compression
+        maxFileSize: 10 * 1024 * 1024, // 10MB - matches server limit
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {
             console.log('Upload started');

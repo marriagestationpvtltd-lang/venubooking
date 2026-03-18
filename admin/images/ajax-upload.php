@@ -129,14 +129,21 @@ if ($max_card_id > 0) {
     $card_id = 1;
 }
 
-// Generate unique filename
+// Generate unique filename using validated mime type (never use client-provided extension)
 $mime_to_ext = [
     'image/jpeg' => 'jpg',
     'image/png' => 'png',
     'image/gif' => 'gif',
     'image/webp' => 'webp'
 ];
-$extension = $mime_to_ext[$image_info['mime']] ?? pathinfo($file['name'], PATHINFO_EXTENSION);
+
+// Only use extensions from validated mime types
+if (!isset($mime_to_ext[$image_info['mime']])) {
+    echo json_encode(['success' => false, 'message' => 'Unsupported image format detected.']);
+    exit;
+}
+
+$extension = $mime_to_ext[$image_info['mime']];
 $filename = $section . '_' . time() . '_' . uniqid() . '.' . $extension;
 $upload_path = UPLOAD_PATH . $filename;
 
