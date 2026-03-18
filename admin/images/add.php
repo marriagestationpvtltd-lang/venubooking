@@ -1,4 +1,19 @@
 <?php
+/**
+ * Enhanced Image Upload Page
+ * Features:
+ * - Multiple file upload with drag & drop
+ * - Client-side image compression (reduces file size without quality loss)
+ * - Real-time preview before upload
+ * - Progress indicator during upload
+ * - AJAX-based upload for better UX
+ */
+
+// Include CSS for image upload handler
+$extra_css = '
+<link rel="stylesheet" href="' . BASE_URL . '/admin/css/image-upload-handler.css">
+';
+
 $page_title = 'Upload New Image';
 require_once __DIR__ . '/../includes/header.php';
 
@@ -31,129 +46,12 @@ $event_categories = [
     'Other Events',
 ];
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title_base = trim($_POST['title']);
-    $description = trim($_POST['description']);
-    $section = $_POST['section'];
-    $display_order = intval($_POST['display_order']);
-    $status = $_POST['status'];
-    // event_category is only relevant for the work_photos section
-    $event_category = ($section === 'work_photos') ? trim($_POST['event_category'] ?? '') : null;
-    if ($event_category === '') $event_category = null;
-
-    // Validation
-    if (empty($section)) {
-        $error_message = 'Please select a section.';
-    } elseif ($section === 'work_photos' && empty($event_category)) {
-        $error_message = 'Please select or enter an event category for Our Work photos.';
-    } elseif (!isset($_FILES['images']) || (count(array_filter($_FILES['images']['error'], function($e) { return $e !== UPLOAD_ERR_NO_FILE; })) === 0)) {
-        $error_message = 'Please select at least one image to upload.';
-    } else {
-        $files = $_FILES['images'];
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        $max_size = 5 * 1024 * 1024; // 5MB
-        $file_count = count($files['name']);
-        $success_count = 0;
-        $file_errors = [];
-
-        // Create uploads directory if it doesn't exist
-        if (!is_dir(UPLOAD_PATH)) {
-            mkdir(UPLOAD_PATH, 0755, true);
-        }
-
-        // Determine the starting card_id for this batch.
-        // Find the highest existing card_id for this section, then count how many
-        // photos are already in that card to decide whether to continue it or start a new one.
-        $max_card_stmt = $db->prepare(
-            "SELECT COALESCE(MAX(card_id), 0) FROM site_images WHERE section = ?"
-        );
-        $max_card_stmt->execute([$section]);
-        $max_card_id = (int)$max_card_stmt->fetchColumn();
-
-        if ($max_card_id > 0) {
-            $count_stmt = $db->prepare(
-                "SELECT COUNT(*) FROM site_images WHERE section = ? AND card_id = ?"
-            );
-            $count_stmt->execute([$section, $max_card_id]);
-            $current_card_count = (int)$count_stmt->fetchColumn();
-            if ($current_card_count >= 10) {
-                $current_card_id    = $max_card_id + 1;
-                $current_card_count = 0;
-            } else {
-                $current_card_id = $max_card_id;
-            }
-        } else {
-            $current_card_id    = 1;
-            $current_card_count = 0;
-        }
-
-        $sql = "INSERT INTO site_images (title, description, image_path, section, card_id, event_category, display_order, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        $stmt = $db->prepare($sql);
-
-        for ($i = 0; $i < $file_count; $i++) {
-            if ($files['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
-
-            // Determine title for this file
-            $file_title = $title_base ?: pathinfo($files['name'][$i], PATHINFO_FILENAME);
-            if ($file_count > 1 && $title_base) {
-                $file_title = $title_base . ' (' . ($i + 1) . ')';
-            }
-
-            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
-                $file_errors[] = 'Error uploading "' . htmlspecialchars($files['name'][$i]) . '".';
-                continue;
-            }
-            if (!in_array($files['type'][$i], $allowed_types)) {
-                $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.';
-                continue;
-            }
-            if ($files['size'][$i] > $max_size) {
-                $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": File exceeds 5MB limit.';
-                continue;
-            }
-
-            // Start a new card when the current one is full (max 10 photos)
-            if ($current_card_count >= 10) {
-                $current_card_id++;
-                $current_card_count = 0;
-            }
-
-            // Generate unique filename (include index to avoid collisions in same-second batch)
-            $extension = pathinfo($files['name'][$i], PATHINFO_EXTENSION);
-            $filename = $section . '_' . time() . '_' . $i . '_' . uniqid() . '.' . $extension;
-            $upload_path = UPLOAD_PATH . $filename;
-
-            if (move_uploaded_file($files['tmp_name'][$i], $upload_path)) {
-                try {
-                    $result = $stmt->execute([$file_title, $description, $filename, $section, $current_card_id, $event_category, $display_order, $status]);
-                    if ($result) {
-                        $image_id = $db->lastInsertId();
-                        logActivity($current_user['id'], 'Uploaded new image', 'site_images', $image_id, "Uploaded image: $file_title");
-                        $success_count++;
-                        $current_card_count++;
-                    } else {
-                        unlink($upload_path);
-                        $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": Failed to save to database.';
-                    }
-                } catch (Exception $e) {
-                    if (file_exists($upload_path)) unlink($upload_path);
-                    $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": ' . $e->getMessage();
-                }
-            } else {
-                $file_errors[] = '"' . htmlspecialchars($files['name'][$i]) . '": Failed to save file. Check directory permissions.';
-            }
-        }
-
-        if ($success_count > 0) {
-            $success_message = $success_count . ' image' . ($success_count > 1 ? 's' : '') . ' uploaded successfully!';
-            $_POST = [];
-        }
-        if (!empty($file_errors)) {
-            $error_message = implode('<br>', $file_errors);
-        }
-    }
+// Get current card info for selected section (for display purposes)
+$section_card_info = [];
+foreach ($sections as $key => $label) {
+    $stmt = $db->prepare("SELECT COALESCE(MAX(card_id), 0) as max_card, COUNT(*) as total_photos FROM site_images WHERE section = ?");
+    $stmt->execute([$key]);
+    $section_card_info[$key] = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 ?>
 
@@ -161,37 +59,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-upload"></i> Upload New Image</h5>
+                <h5 class="mb-0"><i class="fas fa-upload"></i> Upload New Images</h5>
                 <a href="index.php" class="btn btn-secondary btn-sm">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
             </div>
             <div class="card-body">
-                <?php if ($success_message): ?>
-                    <div class="alert alert-success alert-dismissible fade show">
-                        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
-                        <a href="index.php" class="alert-link">View all images</a> or 
-                        <a href="add.php" class="alert-link">upload another</a>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <!-- Features Info -->
+                <div class="alert alert-success mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-magic fa-2x me-3"></i>
+                        <div>
+                            <strong>Enhanced Upload Features:</strong>
+                            <ul class="mb-0 mt-1">
+                                <li><i class="fas fa-compress-alt"></i> <strong>Auto Compression:</strong> Images are automatically compressed without quality loss</li>
+                                <li><i class="fas fa-images"></i> <strong>Multiple Upload:</strong> Select or drag multiple photos at once</li>
+                                <li><i class="fas fa-eye"></i> <strong>Preview:</strong> See thumbnails before uploading</li>
+                                <li><i class="fas fa-spinner"></i> <strong>Progress:</strong> Real-time upload progress for each file</li>
+                            </ul>
+                        </div>
                     </div>
-                <?php endif; ?>
+                </div>
 
-                <?php if ($error_message): ?>
-                    <div class="alert alert-danger alert-dismissible fade show">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
-
-                <form method="POST" action="" enctype="multipart/form-data">
+                <form id="uploadForm" method="POST" action="ajax-upload.php" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
                                 <label for="title" class="form-label">Image Title</label>
                                 <input type="text" class="form-control" id="title" name="title" 
-                                       value="<?php echo isset($_POST['title']) ? htmlspecialchars($_POST['title']) : ''; ?>" 
+                                       value="" 
                                        placeholder="e.g., Grand Ballroom Banner">
-                                <small class="text-muted">Optional when uploading multiple images — filename is used as title if left blank</small>
+                                <small class="text-muted">Optional — filename is used as title if left blank. Same title will be applied to all uploaded images.</small>
                             </div>
                         </div>
 
@@ -201,14 +99,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <select class="form-select" id="section" name="section" required>
                                     <option value="">Select Section</option>
                                     <?php foreach ($sections as $key => $label): ?>
-                                        <option value="<?php echo $key; ?>" <?php echo (isset($_POST['section']) && $_POST['section'] == $key) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($label); ?>
+                                        <option value="<?php echo $key; ?>" data-photos="<?php echo $section_card_info[$key]['total_photos']; ?>" data-cards="<?php echo $section_card_info[$key]['max_card']; ?>">
+                                            <?php echo htmlspecialchars($label); ?> (<?php echo $section_card_info[$key]['total_photos']; ?> photos)
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <small class="text-muted">Where should this image appear?</small>
+                                <small class="text-muted">Where should these images appear?</small>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Section Info Display -->
+                    <div id="sectionInfo" class="photos-per-card-info" style="display: none;">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Photos are grouped into cards (max 10 per card). Current section has <span id="currentPhotos" class="count">0</span> photos in <span id="currentCards" class="count">0</span> card(s).</span>
                     </div>
 
                     <!-- Event Category field – only shown when section = work_photos -->
@@ -221,8 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <select class="form-select" id="event_category_select" name="_event_category_select">
                                     <option value="">— Choose a category —</option>
                                     <?php foreach ($event_categories as $cat): ?>
-                                        <option value="<?php echo htmlspecialchars($cat); ?>"
-                                            <?php echo (isset($_POST['event_category']) && $_POST['event_category'] === $cat) ? 'selected' : ''; ?>>
+                                        <option value="<?php echo htmlspecialchars($cat); ?>">
                                             <?php echo htmlspecialchars($cat); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -234,34 +137,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                        placeholder="Enter custom category name">
                             </div>
                         </div>
-                        <input type="hidden" id="event_category" name="event_category"
-                               value="<?php echo isset($_POST['event_category']) ? htmlspecialchars($_POST['event_category']) : ''; ?>">
-                        <small class="text-muted">Photos in the same category are displayed together in one folder card.</small>
+                        <input type="hidden" id="event_category" name="event_category" value="">
+                        <small class="text-muted">Photos in the same category are displayed together in one folder card (like menu → sub-menu structure).</small>
                     </div>
 
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" 
-                                  placeholder="Optional description or alt text for the image"><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
-                        <small class="text-muted">Optional: Provide additional details or alt text</small>
+                        <textarea class="form-control" id="description" name="description" rows="2" 
+                                  placeholder="Optional description or alt text for the images"></textarea>
+                        <small class="text-muted">Optional: This description will be applied to all uploaded images</small>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <label for="images" class="form-label">Image Files <span class="text-danger">*</span></label>
-                                <input type="file" class="form-control" id="images" name="images[]" accept="image/*" multiple required>
-                                <small class="text-muted">Supported formats: JPG, PNG, GIF, WebP. Maximum size: 5MB each. Select multiple files at once to bulk upload.</small>
-                            </div>
-                        </div>
-
                         <div class="col-md-2">
                             <div class="mb-3">
                                 <label for="display_order" class="form-label">Display Order</label>
                                 <input type="number" class="form-control" id="display_order" name="display_order" 
-                                       value="<?php echo isset($_POST['display_order']) ? $_POST['display_order'] : '0'; ?>" 
-                                       min="0" placeholder="0">
-                                <small class="text-muted">Lower numbers appear first</small>
+                                       value="0" min="0" placeholder="0">
+                                <small class="text-muted">Lower = first</small>
                             </div>
                         </div>
 
@@ -269,23 +162,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label for="status" class="form-label">Status</label>
                                 <select class="form-select" id="status" name="status">
-                                    <option value="active" <?php echo (!isset($_POST['status']) || $_POST['status'] == 'active') ? 'selected' : ''; ?>>Active</option>
-                                    <option value="inactive" <?php echo (isset($_POST['status']) && $_POST['status'] == 'inactive') ? 'selected' : ''; ?>>Inactive</option>
+                                    <option value="active" selected>Active</option>
+                                    <option value="inactive">Inactive</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Drag & Drop Zone -->
+                    <div class="mb-3">
+                        <label class="form-label">Image Files <span class="text-danger">*</span></label>
+                        
+                        <div id="dropZone" class="drop-zone">
+                            <div class="drop-zone-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div class="drop-zone-text">
+                                <strong>Drag & Drop images here</strong><br>
+                                or click to browse
+                            </div>
+                            <div class="drop-zone-hint">
+                                Supported: JPG, PNG, GIF, WebP • Images auto-compressed for optimal loading
+                            </div>
+                        </div>
+                        
+                        <input type="file" class="form-control d-none" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+                    </div>
+
+                    <!-- Image Preview Container -->
+                    <div id="imagePreviewContainer" class="image-preview-container"></div>
+
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> <strong>Section Guide:</strong>
+                        <i class="fas fa-info-circle"></i> <strong>How it works:</strong>
                         <ul class="mb-0 mt-2">
-                            <li><strong>Banner:</strong> Main hero/banner images on homepage</li>
-                            <li><strong>Venue Gallery:</strong> Images displayed in venue galleries</li>
-                            <li><strong>Hall Gallery:</strong> Images shown in hall detail pages</li>
-                            <li><strong>Package/Menu:</strong> Images for menu packages</li>
-                            <li><strong>Gallery:</strong> General photo gallery section</li>
-                            <li><strong>Our Work (Folder Gallery):</strong> Showcase photos grouped by event category (Wedding, Bratabandha, Engagement, etc.). Each category appears as a folder card on the homepage.</li>
-                            <li><strong>Other sections:</strong> Images for various other parts of the website</li>
+                            <li><strong>Select Section First:</strong> Choose where the images should appear</li>
+                            <li><strong>Add Images:</strong> Drag & drop or click to select multiple images</li>
+                            <li><strong>Auto-Compression:</strong> Large images (>1920px) are automatically resized and compressed without visible quality loss</li>
+                            <li><strong>Card Grouping:</strong> Images are automatically grouped into cards (max 10 per card) within each section, similar to menu/sub-menu structure</li>
+                            <li><strong>Preview & Remove:</strong> You can preview and remove images before uploading</li>
                         </ul>
                     </div>
 
@@ -293,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a href="index.php" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Cancel
                         </a>
-                        <button type="submit" class="btn btn-success">
+                        <button type="submit" id="uploadButton" class="btn btn-success btn-lg" disabled>
                             <i class="fas fa-upload"></i> Upload Image(s)
                         </button>
                     </div>
@@ -303,6 +217,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
+<!-- Include Image Upload Handler JS -->
+<script src="<?php echo BASE_URL; ?>/admin/js/image-upload-handler.js"></script>
+
 <script>
 (function () {
     var sectionSel  = document.getElementById('section');
@@ -311,6 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     var customWrap  = document.getElementById('customCategoryWrap');
     var customInput = document.getElementById('event_category_custom');
     var hiddenInput = document.getElementById('event_category');
+    var sectionInfo = document.getElementById('sectionInfo');
+    var currentPhotos = document.getElementById('currentPhotos');
+    var currentCards = document.getElementById('currentCards');
 
     function toggleCategoryField() {
         if (sectionSel.value === 'work_photos') {
@@ -318,6 +238,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             catField.style.display = 'none';
             hiddenInput.value = '';
+        }
+        
+        // Show section info
+        var selectedOption = sectionSel.options[sectionSel.selectedIndex];
+        if (sectionSel.value && selectedOption) {
+            var photos = selectedOption.getAttribute('data-photos') || '0';
+            var cards = selectedOption.getAttribute('data-cards') || '0';
+            currentPhotos.textContent = photos;
+            currentCards.textContent = cards === '0' ? '0' : cards;
+            sectionInfo.style.display = '';
+        } else {
+            sectionInfo.style.display = 'none';
         }
     }
 
@@ -335,9 +267,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     catSelect.addEventListener('change', syncHidden);
     customInput.addEventListener('input', syncHidden);
 
-    // Run once on page load (in case the form was re-submitted with errors)
+    // Run once on page load
     toggleCategoryField();
     if (catSelect.value) syncHidden();
+
+    // Initialize Enhanced Image Upload Handler
+    var uploadHandler = new ImageUploadHandler({
+        fileInput: '#images',
+        dropZone: '#dropZone',
+        previewContainer: '#imagePreviewContainer',
+        uploadButton: '#uploadButton',
+        form: '#uploadForm',
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.85,
+        maxFileSize: 15 * 1024 * 1024, // 15MB before compression
+        uploadUrl: 'ajax-upload.php',
+        onUploadStart: function() {
+            console.log('Upload started');
+        },
+        onUploadProgress: function(percent) {
+            console.log('Upload progress: ' + percent + '%');
+        },
+        onUploadComplete: function(result) {
+            console.log('Upload complete:', result);
+            if (result.uploadedCount > 0 && result.errorCount === 0) {
+                // Redirect to image list after successful upload
+                setTimeout(function() {
+                    window.location.href = 'index.php?success=' + result.uploadedCount;
+                }, 1500);
+            }
+        },
+        onUploadError: function(error) {
+            console.error('Upload error:', error);
+        }
+    });
 })();
 </script>
 
