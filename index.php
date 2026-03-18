@@ -665,20 +665,14 @@ if (!empty($gallery_cards)):
         if (zoomHint) zoomHint.style.display = "block";
     }
 
-    // Double click/tap to zoom
-    var lastTap = 0;
-    imgContainer.addEventListener("click", function(e) {
-        var now = Date.now();
-        if (now - lastTap < 300) {
-            // Double tap/click
-            e.preventDefault();
-            if (zoomLevel > 1) {
-                resetZoom();
-            } else {
-                zoomToPoint(e.clientX, e.clientY, 2.5);
-            }
+    // Double click/tap to zoom using native dblclick event
+    imgContainer.addEventListener("dblclick", function(e) {
+        e.preventDefault();
+        if (zoomLevel > 1) {
+            resetZoom();
+        } else {
+            zoomToPoint(e.clientX, e.clientY, 2.5);
         }
-        lastTap = now;
     });
 
     // Mouse wheel zoom
@@ -699,7 +693,7 @@ if (!empty($gallery_cards)):
     });
 
     document.addEventListener("mousemove", function(e) {
-        if (!isDragging) return;
+        if (!isDragging || modal.style.display !== "flex") return;
         var dx = (e.clientX - startX) / zoomLevel;
         var dy = (e.clientY - startY) / zoomLevel;
         panX += dx;
@@ -710,6 +704,7 @@ if (!empty($gallery_cards)):
     });
 
     document.addEventListener("mouseup", function() {
+        if (modal.style.display !== "flex") return;
         isDragging = false;
         modalImg.classList.remove("zooming");
     });
@@ -1088,22 +1083,16 @@ if (!empty($work_categories)):
         if (zoomHint) zoomHint.style.display = "block";
     }
 
-    // Double click/tap to zoom
-    var lastTap = 0;
-    imgContainer.addEventListener("click", function(e) {
-        var now = Date.now();
-        if (now - lastTap < 300) {
-            // Double tap/click
-            e.preventDefault();
-            if (zoomLevel > 1) {
-                resetZoom();
-                startAuto();
-            } else {
-                stopAuto();
-                zoomToPoint(e.clientX, e.clientY, 2.5);
-            }
+    // Double click/tap to zoom using native dblclick event
+    imgContainer.addEventListener("dblclick", function(e) {
+        e.preventDefault();
+        if (zoomLevel > 1) {
+            resetZoom();
+            startAuto();
+        } else {
+            stopAuto();
+            zoomToPoint(e.clientX, e.clientY, 2.5);
         }
-        lastTap = now;
     });
 
     // Mouse wheel zoom
