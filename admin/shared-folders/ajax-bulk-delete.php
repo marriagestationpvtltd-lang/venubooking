@@ -50,6 +50,12 @@ if (empty($photo_ids)) {
     exit;
 }
 
+// Limit batch size to prevent database issues
+$max_batch_size = 100;
+if (count($photo_ids) > $max_batch_size) {
+    $photo_ids = array_slice($photo_ids, 0, $max_batch_size);
+}
+
 $current_user = getCurrentUser();
 $db = getDB();
 
@@ -57,7 +63,7 @@ try {
     // Start transaction
     $db->beginTransaction();
     
-    // Fetch photos that belong to this folder
+    // Fetch photos that belong to this folder (batch processing)
     $placeholders = implode(',', array_fill(0, count($photo_ids), '?'));
     $params = array_merge($photo_ids, [$folder_id]);
     $stmt = $db->prepare("SELECT id, image_path, title FROM shared_photos WHERE id IN ($placeholders) AND folder_id = ?");

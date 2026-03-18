@@ -116,8 +116,17 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
             $safe_folder_name = 'photos';
         }
         
-        $zip_filename = $safe_folder_name . '_' . date('Y-m-d') . '.zip';
-        $zip_path = sys_get_temp_dir() . '/' . uniqid('folder_') . '.zip';
+        // Generate unique ID for this download to avoid conflicts
+        $unique_id = substr(uniqid(), -6);
+        $zip_filename = $safe_folder_name . '_' . date('Y-m-d') . '_' . $unique_id . '.zip';
+        $zip_path = sys_get_temp_dir() . '/' . 'folder_' . $unique_id . '.zip';
+        
+        // Register cleanup function to ensure temp file is deleted even on error
+        register_shutdown_function(function() use ($zip_path) {
+            if (file_exists($zip_path)) {
+                @unlink($zip_path);
+            }
+        });
         
         if ($zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
             $added_count = 0;
