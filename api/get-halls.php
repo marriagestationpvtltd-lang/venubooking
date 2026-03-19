@@ -62,8 +62,9 @@ try {
     ]);
     
 } catch (Exception $e) {
+    error_log('get-halls error: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Error loading halls: ' . $e->getMessage()
+        'message' => 'Error loading halls. Please try again.'
     ]);
 }

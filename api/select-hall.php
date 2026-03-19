@@ -33,8 +33,9 @@ try {
     ]);
     
 } catch (Exception $e) {
+    error_log('select-hall error: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Error selecting hall: ' . $e->getMessage()
+        'message' => 'Error selecting hall. Please try again.'
     ]);
 }

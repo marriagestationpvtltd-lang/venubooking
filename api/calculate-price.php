@@ -32,8 +32,9 @@ try {
     ]);
     
 } catch (Exception $e) {
+    error_log('calculate-price error: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Error calculating price: ' . $e->getMessage()
+        'message' => 'Error calculating price. Please try again.'
     ]);
 }

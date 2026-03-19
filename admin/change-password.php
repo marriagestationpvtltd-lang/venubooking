@@ -19,38 +19,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Validation
         if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
             $error = 'All fields are required';
-    } elseif ($new_password !== $confirm_password) {
-        $error = 'New password and confirm password do not match';
-    } elseif (strlen($new_password) < 6) {
-        $error = 'New password must be at least 6 characters long';
-    } else {
-        // Verify current password
-        $db = getDB();
-        $user_id = $_SESSION['admin_user_id'];
-        
-        $stmt = $db->prepare("SELECT password FROM users WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch();
-        
-        if (!$user || !password_verify($current_password, $user['password'])) {
-            $error = 'Current password is incorrect';
+        } elseif ($new_password !== $confirm_password) {
+            $error = 'New password and confirm password do not match';
         } else {
-            // Update password
-            $new_password_hash = hashPassword($new_password);
-            $stmt = $db->prepare("UPDATE users SET password = ? WHERE id = ?");
-            
-            if ($stmt->execute([$new_password_hash, $user_id])) {
-                // Log activity
-                logActivity($user_id, 'Password changed', 'users', $user_id);
-                $success = 'Password changed successfully!';
-                
-                // Clear form
-                $_POST = [];
+            $strength = validatePasswordStrength($new_password);
+            if (!$strength['valid']) {
+                $error = $strength['error'];
             } else {
-                $error = 'Failed to update password. Please try again.';
+                // Verify current password
+                $db = getDB();
+                $user_id = $_SESSION['admin_user_id'];
+
+                $stmt = $db->prepare("SELECT password FROM users WHERE id = ?");
+                $stmt->execute([$user_id]);
+                $user = $stmt->fetch();
+
+                if (!$user || !password_verify($current_password, $user['password'])) {
+                    $error = 'Current password is incorrect';
+                } else {
+                    // Update password
+                    $new_password_hash = hashPassword($new_password);
+                    $stmt = $db->prepare("UPDATE users SET password = ? WHERE id = ?");
+
+                    if ($stmt->execute([$new_password_hash, $user_id])) {
+                        // Log activity
+                        logActivity($user_id, 'Password changed', 'users', $user_id);
+                        $success = 'Password changed successfully!';
+
+                        // Clear form
+                        $_POST = [];
+                    } else {
+                        $error = 'Failed to update password. Please try again.';
+                    }
+                }
             }
         }
-    }
     }
 }
 
@@ -112,12 +115,15 @@ $csrf_token = generateCSRFToken();
                 <label for="new_password" class="form-label">
                     <i class="fas fa-key"></i> New Password *
                 </label>
-                <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6">
+                <input type="password" class="form-control" id="new_password" name="new_password" required minlength="8">
                 <div class="password-requirements">
                     <strong>Password Requirements:</strong>
                     <ul>
-                        <li>Minimum 6 characters</li>
-                        <li>Use a combination of letters, numbers, and special characters for better security</li>
+                        <li>Minimum 8 characters</li>
+                        <li>At least one uppercase letter (A–Z)</li>
+                        <li>At least one lowercase letter (a–z)</li>
+                        <li>At least one number (0–9)</li>
+                        <li>At least one special character (e.g. @, #, !, $)</li>
                     </ul>
                 </div>
             </div>
@@ -126,7 +132,7 @@ $csrf_token = generateCSRFToken();
                 <label for="confirm_password" class="form-label">
                     <i class="fas fa-check-double"></i> Confirm New Password *
                 </label>
-                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6">
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="8">
             </div>
             
             <hr class="my-4">
@@ -149,16 +155,40 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
         const newPassword = document.getElementById('new_password').value;
         const confirmPassword = document.getElementById('confirm_password').value;
-        
+
         if (newPassword !== confirmPassword) {
             e.preventDefault();
             alert('New password and confirm password do not match');
             return false;
         }
-        
-        if (newPassword.length < 6) {
+
+        if (newPassword.length < 8) {
             e.preventDefault();
-            alert('New password must be at least 6 characters long');
+            alert('New password must be at least 8 characters long');
+            return false;
+        }
+
+        if (!/[A-Z]/.test(newPassword)) {
+            e.preventDefault();
+            alert('Password must contain at least one uppercase letter.');
+            return false;
+        }
+
+        if (!/[a-z]/.test(newPassword)) {
+            e.preventDefault();
+            alert('Password must contain at least one lowercase letter.');
+            return false;
+        }
+
+        if (!/[0-9]/.test(newPassword)) {
+            e.preventDefault();
+            alert('Password must contain at least one number.');
+            return false;
+        }
+
+        if (!/[\W_]/.test(newPassword)) {
+            e.preventDefault();
+            alert('Password must contain at least one special character (e.g. @, #, !, $).');
             return false;
         }
     });

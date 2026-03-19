@@ -47,8 +47,9 @@ try {
     ]);
     
 } catch (Exception $e) {
+    error_log('get-images error: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Error fetching images: ' . $e->getMessage()
+        'message' => 'Error fetching images. Please try again.'
     ]);
 }

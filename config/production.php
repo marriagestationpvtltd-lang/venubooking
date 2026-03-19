@@ -22,11 +22,15 @@ ini_set('error_log', $error_log_path);
 // Session security settings
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
+ini_set('session.use_strict_mode', 1);   // Reject unrecognized session IDs
 ini_set('session.cookie_samesite', 'Strict');
 // Automatically enable secure cookie flag when the request is over HTTPS
 if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
     ini_set('session.cookie_secure', '1');
 }
+// Server-side session GC lifetime — 30 minutes of inactivity
+ini_set('session.gc_maxlifetime', 1800);
+ini_set('session.cookie_lifetime', 0); // Session cookie (expires when browser closes)
 
 // Disable unnecessary PHP functions for security
 // NOTE: Add these functions to disable_functions in php.ini for maximum security:

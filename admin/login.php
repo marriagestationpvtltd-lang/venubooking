@@ -10,6 +10,11 @@ if (isLoggedIn()) {
 
 $error = '';
 
+// Show session timeout message if redirected from enforceSessionTimeout()
+if (isset($_GET['timeout']) && $_GET['timeout'] === '1') {
+    $error = 'Your session has expired due to inactivity. Please log in again.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check lockout before processing credentials
     if (isLoginLockedOut()) {
