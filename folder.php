@@ -849,7 +849,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                          class="brand-logo">
                     <div class="brand-text">
                         <p class="brand-name"><?php echo htmlspecialchars($site_name); ?></p>
-                        <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure Photo Sharing</p>
+                        <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -1169,7 +1169,7 @@ $whatsapp_number = getSetting('whatsapp_number');
             <?php endif; ?>
             <div class="footer-security">
                 <i class="fas fa-shield-alt"></i>
-                <span>Secure photo &amp; video sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong></span>
+                <span>Secure file sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong></span>
                 <span>&nbsp;·&nbsp;</span>
                 <i class="fas fa-lock"></i>
                 <span>Your files are private &amp; protected</span>

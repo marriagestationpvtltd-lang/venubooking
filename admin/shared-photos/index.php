@@ -148,6 +148,9 @@ $download_base_url = BASE_URL . '/download.php?token=';
                             $download_url = $download_base_url . urlencode($photo['download_token']);
                             $is_expired = ($photo['expires_at'] && strtotime($photo['expires_at']) < time()) || $photo['status'] === 'expired';
                             $max_reached = ($photo['max_downloads'] && $photo['download_count'] >= $photo['max_downloads']);
+                            $file_type_val = isset($photo['file_type']) ? $photo['file_type'] : 'photo';
+                            $is_image_file = $file_type_val === 'photo';
+                            $is_video_file = $file_type_val === 'video';
                         ?>
                             <tr data-photo-id="<?php echo $photo['id']; ?>">
                                 <td>
@@ -162,8 +165,20 @@ $download_base_url = BASE_URL . '/download.php?token=';
                                     $idx_icon = getFileTypeIcon($idx_ext);
                                     ?>
                                     <?php if ($idx_is_image && file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
-                                        <img src="<?php echo $image_url; ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" 
+                                        <img src="<?php echo htmlspecialchars($image_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                    <?php elseif ($is_video_file): ?>
+                                        <div class="d-flex align-items-center justify-content-center" 
+                                             style="width: 60px; height: 60px; border-radius: 4px; background: #1a1a2e;">
+                                            <i class="fas fa-file-video text-danger fa-2x"></i>
+                                        </div>
+                                    <?php elseif (!$is_image_file): 
+                                    ?>
+                                        <div class="d-flex flex-column align-items-center justify-content-center" 
+                                             style="width: 60px; height: 60px; border-radius: 4px; background: #f8f9fa;">
+                                            <i class="fas <?php echo htmlspecialchars($idx_icon); ?>" style="font-size: 1.5rem;"></i>
+                                            <small style="font-size: 0.55rem; color: #666;"><?php echo htmlspecialchars(strtoupper($idx_ext) ?: 'FILE'); ?></small>
+                                        </div>
                                     <?php else: ?>
                                         <div class="d-flex flex-column align-items-center justify-content-center bg-light" 
                                              style="width: 60px; height: 60px; border-radius: 4px;">
@@ -221,7 +236,7 @@ $download_base_url = BASE_URL . '/download.php?token=';
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a href="?delete=<?php echo $photo['id']; ?>" class="btn btn-outline-danger" 
-                                           onclick="return confirm('के तपाईं यो फोटो स्थायी रूपमा हटाउन चाहनुहुन्छ?\n\nयो कार्य उल्टाउन सकिँदैन।');" 
+                                           onclick="return confirm('के तपाईं यो फाइल स्थायी रूपमा हटाउन चाहनुहुन्छ?\n\nयो कार्य उल्टाउन सकिँदैन।');" 
                                            title="Delete Permanently">
                                             <i class="fas fa-trash"></i>
                                         </a>

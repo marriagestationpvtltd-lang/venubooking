@@ -1,7 +1,7 @@
 <?php
 /**
- * AJAX Shared Photo Upload Handler
- * Handles individual photo uploads for sharing
+ * AJAX Shared File Upload Handler
+ * Handles individual file uploads for sharing — any file type is accepted.
  */
 
 require_once __DIR__ . '/../../config/database.php';
@@ -45,11 +45,11 @@ if (!isset($_FILES['images']) || !isset($_FILES['images']['tmp_name'][0]) || emp
 }
 
 $file = [
-    'name' => $_FILES['images']['name'][0],
-    'type' => $_FILES['images']['type'][0],
+    'name'     => $_FILES['images']['name'][0],
+    'type'     => $_FILES['images']['type'][0],
     'tmp_name' => $_FILES['images']['tmp_name'][0],
-    'error' => $_FILES['images']['error'][0],
-    'size' => $_FILES['images']['size'][0]
+    'error'    => $_FILES['images']['error'][0],
+    'size'     => $_FILES['images']['size'][0]
 ];
 
 // Dangerous extensions that must never be uploaded (server-side executables)
@@ -61,20 +61,18 @@ $blocked_extensions = [
     'htaccess', 'htpasswd',
 ];
 
-// Photo/video MIME types for type-specific validation
-$allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-$max_size = 500 * 1024 * 1024; // 500MB (server php.ini limits apply; chunked upload is not available here)
+$max_size = 500 * 1024 * 1024; // 500MB — applies to all files (no chunked upload in standalone sharing)
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
     $error_messages = [
-        UPLOAD_ERR_INI_SIZE => 'File exceeds server upload limit.',
-        UPLOAD_ERR_FORM_SIZE => 'File exceeds form upload limit.',
-        UPLOAD_ERR_PARTIAL => 'File was only partially uploaded.',
-        UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+        UPLOAD_ERR_INI_SIZE   => 'File exceeds server upload limit.',
+        UPLOAD_ERR_FORM_SIZE  => 'File exceeds form upload limit.',
+        UPLOAD_ERR_PARTIAL    => 'File was only partially uploaded.',
+        UPLOAD_ERR_NO_FILE    => 'No file was uploaded.',
         UPLOAD_ERR_NO_TMP_DIR => 'Server missing temporary folder.',
         UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
-        UPLOAD_ERR_EXTENSION => 'File upload stopped by extension.'
+        UPLOAD_ERR_EXTENSION  => 'File upload stopped by extension.'
     ];
     $error_message = $error_messages[$file['error']] ?? 'Unknown upload error.';
     echo json_encode(['success' => false, 'message' => $error_message]);
@@ -94,10 +92,19 @@ if ($file['size'] > $max_size) {
     exit;
 }
 
-// Determine file type and handle accordingly
-$is_photo = in_array($file['type'], $allowed_photo_types);
+// Determine file type category using finfo for reliable MIME detection
+$photo_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$video_mime_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
+
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$detected_mime = finfo_file($finfo, $file['tmp_name']);
+finfo_close($finfo);
+
+$is_photo = in_array($detected_mime, $photo_mime_types);
+$is_video = in_array($detected_mime, $video_mime_types);
 $image_info = null;
 
+// For images, validate actual image content
 if ($is_photo) {
     $image_info = getimagesize($file['tmp_name']);
     if ($image_info === false) {
@@ -114,18 +121,32 @@ if (!is_dir(UPLOAD_PATH)) {
     }
 }
 
-// Generate unique filename using validated type
+// Generate unique filename, preserving the meaningful extension
 if ($is_photo && $image_info) {
     $mime_to_ext = [
         'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/gif' => 'gif',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
         'image/webp' => 'webp'
     ];
     $extension = $mime_to_ext[$image_info['mime']] ?? ($original_ext !== '' ? $original_ext : 'jpg');
+    $file_type = 'photo';
+} elseif ($is_video) {
+    $video_mime_to_ext = [
+        'video/mp4'         => 'mp4',
+        'video/quicktime'   => 'mov',
+        'video/x-msvideo'   => 'avi',
+        'video/webm'        => 'webm',
+        'video/x-matroska'  => 'mkv',
+        'video/mpeg'        => 'mpg',
+        'video/3gpp'        => '3gp'
+    ];
+    $extension = $video_mime_to_ext[$detected_mime] ?? ($original_ext !== '' ? $original_ext : 'mp4');
+    $file_type = 'video';
 } else {
-    // Use the original extension (already validated against blacklist)
+    // Any other file type — use original extension (already validated against blacklist)
     $extension = $original_ext !== '' ? $original_ext : 'bin';
+    $file_type = 'file';
 }
 
 $filename = 'shared_' . time() . '_' . uniqid() . '.' . $extension;
@@ -162,33 +183,34 @@ try {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)";
     $stmt = $db->prepare($sql);
     $result = $stmt->execute([
-        $db_file_type,
-        $title, 
-        $description, 
+        $file_type,
+        $title,
+        $description,
         $filename,
         $file['size'],
-        $download_token, 
-        $max_downloads, 
-        $expires_at, 
+        $download_token,
+        $max_downloads,
+        $expires_at,
         $current_user['id']
     ]);
     
     if ($result) {
-        $photo_id = $db->lastInsertId();
+        $file_id = $db->lastInsertId();
         $download_url = BASE_URL . '/download.php?token=' . urlencode($download_token);
         
-        logActivity($current_user['id'], 'Uploaded shared file', 'shared_photos', $photo_id, "Uploaded file for sharing: $title");
+        logActivity($current_user['id'], 'Uploaded shared file', 'shared_photos', $file_id, "Uploaded file for sharing: $title");
         
         echo json_encode([
             'success' => true,
             'message' => 'File uploaded successfully! Download link generated.',
             'image' => [
-                'id' => $photo_id,
-                'title' => $title,
-                'filename' => $filename,
+                'id'             => $file_id,
+                'title'          => $title,
+                'filename'       => $filename,
+                'file_type'      => $file_type,
                 'download_token' => $download_token,
-                'download_url' => $download_url,
-                'url' => UPLOAD_URL . $filename
+                'download_url'   => $download_url,
+                'url'            => UPLOAD_URL . $filename
             ]
         ]);
     } else {
@@ -203,6 +225,6 @@ try {
     if (file_exists($upload_path)) {
         unlink($upload_path);
     }
-    error_log('Shared photo upload error: ' . $e->getMessage());
+    error_log('Shared file upload error: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred. Please try again.']);
 }

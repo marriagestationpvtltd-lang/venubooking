@@ -4,7 +4,7 @@
 -- Add file_type column to distinguish photos from videos
 -- Also add file_size column to track large file sizes
 ALTER TABLE shared_photos 
-ADD COLUMN file_type ENUM('photo', 'video') DEFAULT 'photo' COMMENT 'Type of file: photo or video' AFTER folder_id,
+ADD COLUMN file_type ENUM('photo', 'video', 'file') DEFAULT 'photo' COMMENT 'Type of file: photo, video, or any other file' AFTER folder_id,
 ADD COLUMN file_size BIGINT UNSIGNED DEFAULT NULL COMMENT 'File size in bytes, important for large video files' AFTER image_path;
 
 -- Stored procedure to safely add columns if they don't exist
@@ -20,7 +20,7 @@ BEGIN
         AND COLUMN_NAME = 'file_type'
     ) THEN
         ALTER TABLE shared_photos 
-        ADD COLUMN file_type ENUM('photo', 'video') DEFAULT 'photo' COMMENT 'Type of file: photo or video' AFTER folder_id;
+        ADD COLUMN file_type ENUM('photo', 'video', 'file') DEFAULT 'photo' COMMENT 'Type of file: photo, video, or any other file' AFTER folder_id;
     END IF;
     
     -- Check if file_size column exists

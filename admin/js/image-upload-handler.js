@@ -4,8 +4,9 @@
  * - Multiple file upload with progress indication
  * - Preview before upload
  * - Drag & drop support
- * - Chunked upload for videos (up to 50 GB) using 5 MB slices
+ * - Chunked upload for videos and large files (up to 50 GB) using 5 MB slices
  * - Non-intrusive floating progress bar (does NOT block the page)
+ * - Supports any file type: photos, videos, documents, archives, etc.
  */
 
 class ImageUploadHandler {
@@ -26,14 +27,16 @@ class ImageUploadHandler {
             maxWidth: 1920,
             maxHeight: 1920,
             quality: 0.85,
-            maxFileSize: 50 * 1024 * 1024,           // 50 MB for photos
+            maxFileSize: 50 * 1024 * 1024,           // 50 MB for photos/general files
             maxVideoSize: 50 * 1024 * 1024 * 1024,   // 50 GB for videos
+            maxOtherFileSize: 50 * 1024 * 1024 * 1024, // 50 GB for any other file
             allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             allowVideos: true, // Allow video uploads alongside images
             allowAllFiles: false, // When true, accept any file type (not just images/videos)
             skipCompression: false, // When true, upload images without any compression (preserves original quality)
             uploadUrl: 'ajax-upload.php',
             chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
+            disableChunkedUpload: false, // When true, all uploads use direct POST (max = maxFileSize/maxOtherFileSize)
             onUploadStart: () => {},
             onUploadProgress: () => {},
             onUploadComplete: () => {},
@@ -50,6 +53,45 @@ class ImageUploadHandler {
 
     isVideoFile(file) {
         return ImageUploadHandler.VIDEO_TYPES.includes(file.type);
+    }
+
+    isImageFile(file) {
+        return this.options.allowedTypes.includes(file.type);
+    }
+
+    /**
+     * Returns a Font Awesome icon class and label for a generic file based on extension.
+     */
+    getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const icons = {
+            // Archives
+            zip: { icon: 'fas fa-file-archive', color: '#e67e22', label: 'ZIP' },
+            rar: { icon: 'fas fa-file-archive', color: '#e67e22', label: 'RAR' },
+            '7z':  { icon: 'fas fa-file-archive', color: '#e67e22', label: '7Z' },
+            tar: { icon: 'fas fa-file-archive', color: '#e67e22', label: 'TAR' },
+            gz:  { icon: 'fas fa-file-archive', color: '#e67e22', label: 'GZ' },
+            // Documents
+            pdf: { icon: 'fas fa-file-pdf', color: '#e74c3c', label: 'PDF' },
+            doc: { icon: 'fas fa-file-word', color: '#2980b9', label: 'DOC' },
+            docx: { icon: 'fas fa-file-word', color: '#2980b9', label: 'DOCX' },
+            xls: { icon: 'fas fa-file-excel', color: '#27ae60', label: 'XLS' },
+            xlsx: { icon: 'fas fa-file-excel', color: '#27ae60', label: 'XLSX' },
+            ppt: { icon: 'fas fa-file-powerpoint', color: '#e67e22', label: 'PPT' },
+            pptx: { icon: 'fas fa-file-powerpoint', color: '#e67e22', label: 'PPTX' },
+            // Text
+            txt: { icon: 'fas fa-file-alt', color: '#7f8c8d', label: 'TXT' },
+            csv: { icon: 'fas fa-file-csv', color: '#27ae60', label: 'CSV' },
+            // Audio
+            mp3: { icon: 'fas fa-file-audio', color: '#8e44ad', label: 'MP3' },
+            wav: { icon: 'fas fa-file-audio', color: '#8e44ad', label: 'WAV' },
+            flac: { icon: 'fas fa-file-audio', color: '#8e44ad', label: 'FLAC' },
+            // Code
+            html: { icon: 'fas fa-file-code', color: '#e74c3c', label: 'HTML' },
+            css: { icon: 'fas fa-file-code', color: '#2980b9', label: 'CSS' },
+            js: { icon: 'fas fa-file-code', color: '#f1c40f', label: 'JS' },
+        };
+        return icons[ext] || { icon: 'fas fa-file', color: '#95a5a6', label: ext.toUpperCase() || 'FILE' };
     }
 
     init() {
@@ -126,6 +168,11 @@ class ImageUploadHandler {
                 this.showError(`${file.name}: Image too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxFileSize)}.`);
                 return false;
             }
+            // For other file types when allowAllFiles is true, apply maxOtherFileSize
+            if (this.options.allowAllFiles && !isImage && !isVideo && file.size > this.options.maxOtherFileSize) {
+                this.showError(`${file.name}: File too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxOtherFileSize)}.`);
+                return false;
+            }
             return true;
         });
 
@@ -184,7 +231,7 @@ class ImageUploadHandler {
                 <i class="fas fa-video" style="font-size:2rem;color:#dc3545;"></i>
                 <small style="margin-top:4px;font-size:0.65rem;color:#888;">VIDEO</small>
             </div>`;
-        } else if (!isImage) {
+        } else if (!this.isImageFile(file)) {
             // Show generic file icon for non-image, non-video files
             const ext = file.name.split('.').pop().toLowerCase();
             const iconMap = {pdf:'fa-file-pdf text-danger',doc:'fa-file-word text-primary',docx:'fa-file-word text-primary',xls:'fa-file-excel text-success',xlsx:'fa-file-excel text-success',ppt:'fa-file-powerpoint text-warning',pptx:'fa-file-powerpoint text-warning',zip:'fa-file-archive text-secondary',rar:'fa-file-archive text-secondary','7z':'fa-file-archive text-secondary',tar:'fa-file-archive text-secondary',gz:'fa-file-archive text-secondary',mp3:'fa-file-audio text-info',wav:'fa-file-audio text-info',txt:'fa-file-alt text-muted',csv:'fa-file-csv text-success'};
@@ -201,6 +248,13 @@ class ImageUploadHandler {
                 console.error('Error generating thumbnail:', error);
                 container.innerHTML = '<i class="fas fa-image text-muted"></i>';
             }
+        } else {
+            // Generic file - show appropriate icon
+            const fileInfo = this.getFileIcon(file.name);
+            container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
+                <i class="${fileInfo.icon}" style="font-size:2rem;color:${fileInfo.color};"></i>
+                <small style="margin-top:4px;font-size:0.65rem;color:#888;">${fileInfo.label}</small>
+            </div>`;
         }
     }
 
@@ -405,10 +459,15 @@ class ImageUploadHandler {
 
             const preview = this.previewContainer.querySelector(`[data-index="${i}"]`);
             const isVideo = this.isVideoFile(file);
+            const isImage = this.isImageFile(file);
+            // Use chunked upload for videos and large non-image files (> 5 MB chunk size),
+            // unless disableChunkedUpload is set (e.g. standalone sharing pages without a chunk endpoint)
+            const useChunked = !this.options.disableChunkedUpload &&
+                (isVideo || (!isImage && file.size > ImageUploadHandler.CHUNK_SIZE));
 
             if (preview) {
                 preview.querySelector('.preview-status .badge').className = 'badge bg-info';
-                preview.querySelector('.preview-status .badge').textContent = isVideo ? 'Uploading...' : 'Compressing...';
+                preview.querySelector('.preview-status .badge').textContent = useChunked ? 'Uploading...' : 'Compressing...';
             }
 
             // Update floating progress label
@@ -446,9 +505,8 @@ class ImageUploadHandler {
                     replaceExistingId = dupCheck.existing_id;
                 }
 
-                const isImage = this.options.allowedTypes.includes(file.type);
-                if (!isVideo && isImage && !this.options.skipCompression) {
-                    // Compress image files only (skipped when skipCompression is true or file is not an image)
+                if (!useChunked && !this.options.skipCompression && isImage) {
+                    // Compress image files only (skipped when skipCompression is true)
                     fileToUpload = await this.compressImage(file);
                     
                     // Update preview with compressed size
@@ -468,15 +526,15 @@ class ImageUploadHandler {
 
                 let result;
 
-                if (isVideo) {
-                    // Always use chunked upload for videos
+                if (useChunked) {
+                    // Always use chunked upload for videos and large non-image files
                     result = await this.uploadFileChunked(file, formData, preview, (pct) => {
                         const base = Math.round((uploadedCount / activeFiles.length) * 100);
                         const slice = Math.round(pct / activeFiles.length);
                         this.updateFloatingProgress(base + slice, this.truncateFilename(file.name, 30));
                     }, replaceExistingId);
                 } else {
-                    // Direct upload for photos (≤ 50 MB after compression)
+                    // Direct upload for photos and small files
                     const uploadFormData = new FormData(this.form);
                     uploadFormData.delete('images[]');
                     uploadFormData.append('images[]', fileToUpload);

@@ -1,8 +1,8 @@
 <?php
 /**
- * AJAX Upload Handler for Folder Photos and Videos
- * Handles photo uploads (up to 20MB) and video uploads (up to 8GB)
- * Supports bulk uploads for both photos and videos
+ * AJAX Upload Handler for Folder Files
+ * Handles uploads of any file type: photos, videos, documents, archives, etc.
+ * Supports bulk uploads for all file types
  */
 
 require_once __DIR__ . '/../../config/database.php';
@@ -102,15 +102,20 @@ $blocked_extensions = [
     'htaccess', 'htpasswd',
 ];
 
-// Allowed MIME types for photos (used for image-specific validation)
-$allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-$allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
+// Allowed MIME types for photos and videos (used for determining display type)
+$photo_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$video_mime_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
 
-$max_file_size = 50 * 1024 * 1024 * 1024; // 50GB for any file
+$max_file_size = 50 * 1024 * 1024; // 50MB for general files
+$max_video_size = 50 * 1024 * 1024 * 1024; // 50GB for videos
 
-// Determine file type by MIME
-$is_photo = in_array($file['type'], $allowed_photo_types);
-$is_video = in_array($file['type'], $allowed_video_types);
+// Determine file type category using finfo for reliable detection
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$detected_mime = finfo_file($finfo, $file['tmp_name']);
+finfo_close($finfo);
+
+$is_photo = in_array($detected_mime, $photo_mime_types);
+$is_video = in_array($detected_mime, $video_mime_types);
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -132,12 +137,6 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
 $original_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 if (in_array($original_ext, $blocked_extensions)) {
     echo json_encode(['success' => false, 'message' => 'This file type is not allowed for security reasons.']);
-    exit;
-}
-
-// Validate file size
-if ($file['size'] > $max_file_size) {
-    echo json_encode(['success' => false, 'message' => 'File exceeds 50GB limit.']);
     exit;
 }
 
@@ -175,6 +174,14 @@ if ($is_video) {
     }
 }
 
+// For other files, validate size
+if (!$is_photo && !$is_video) {
+    if ($file['size'] > $max_file_size) {
+        echo json_encode(['success' => false, 'message' => 'File exceeds 50MB limit. Large files are automatically uploaded in chunks — please use the upload area on the folder page.']);
+        exit;
+    }
+}
+
 // Create folder-specific upload directory
 $folder_upload_dir = UPLOAD_PATH . 'folders/' . $folder_id . '/';
 if (!is_dir($folder_upload_dir)) {
@@ -185,6 +192,8 @@ if (!is_dir($folder_upload_dir)) {
 }
 
 // Generate unique filename
+$file_type = $is_photo ? 'photo' : ($is_video ? 'video' : 'file');
+
 if ($is_photo) {
     $file_type = 'photo';
     $mime_to_ext = [
@@ -196,7 +205,6 @@ if ($is_photo) {
     $extension = $mime_to_ext[$image_info['mime']] ?? 'jpg';
     $filename = 'photo_' . time() . '_' . uniqid() . '.' . $extension;
 } elseif ($is_video) {
-    $file_type = 'video';
     $video_mime_to_ext = [
         'video/mp4' => 'mp4',
         'video/quicktime' => 'mov',
@@ -206,10 +214,9 @@ if ($is_photo) {
         'video/mpeg' => 'mpg',
         'video/3gpp' => '3gp'
     ];
-    $extension = $video_mime_to_ext[$file['type']] ?? 'mp4';
+    $extension = $video_mime_to_ext[$detected_mime] ?? 'mp4';
     $filename = 'video_' . time() . '_' . uniqid() . '.' . $extension;
 } else {
-    $file_type = 'file';
     // Use original extension (already validated against blacklist above)
     $extension = $original_ext !== '' ? $original_ext : 'bin';
     $filename = 'file_' . time() . '_' . uniqid() . '.' . $extension;

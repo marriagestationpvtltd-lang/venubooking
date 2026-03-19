@@ -4,7 +4,7 @@
  * Admin can upload photos for sharing with users
  */
 
-$page_title = 'Upload Photo for Sharing';
+$page_title = 'Upload File for Sharing';
 require_once __DIR__ . '/../includes/header.php';
 
 $db = getDB();
@@ -19,7 +19,7 @@ $error_message = '';
     <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-upload"></i> Upload Photo for Sharing</h5>
+                <h5 class="mb-0"><i class="fas fa-upload"></i> Upload File for Sharing</h5>
                 <a href="index.php" class="btn btn-secondary btn-sm">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
@@ -100,7 +100,7 @@ $error_message = '';
                                 or click to browse
                             </div>
                             <div class="drop-zone-hint">
-                                कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै • Max size: 50GB
+                                कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै • Max size: 500MB
                             </div>
                         </div>
                         
@@ -139,8 +139,11 @@ $error_message = '';
         maxWidth: 1920,
         maxHeight: 1920,
         skipCompression: true, // Deliver original quality for shared files
-        maxFileSize: 50 * 1024 * 1024 * 1024, // 50GB
         allowAllFiles: true, // Allow any file type
+        disableChunkedUpload: true, // Standalone sharing: direct upload only; 500MB server limit applies
+        maxFileSize: 500 * 1024 * 1024,       // 500 MB for images
+        maxVideoSize: 500 * 1024 * 1024,      // 500 MB for videos (direct upload only)
+        maxOtherFileSize: 500 * 1024 * 1024,  // 500 MB for any other file
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {
             console.log('Upload started');

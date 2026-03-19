@@ -23,7 +23,7 @@ if (empty($token)) {
     $photo = $stmt->fetch();
     
     if (!$photo) {
-        $error_message = 'Photo not found. The link may be invalid or expired.';
+        $error_message = 'File not found. The link may be invalid or expired.';
     } elseif ($photo['status'] === 'inactive' || $photo['status'] === 'expired') {
         $error_message = 'This download link is no longer active.';
     } elseif ($photo['expires_at'] && strtotime($photo['expires_at']) < time()) {
@@ -32,12 +32,12 @@ if (empty($token)) {
         $update_stmt = $db->prepare("UPDATE shared_photos SET status = 'expired' WHERE id = ?");
         $update_stmt->execute([$photo['id']]);
     } elseif ($photo['max_downloads'] && $photo['download_count'] >= $photo['max_downloads']) {
-        $error_message = 'Maximum download limit reached for this photo.';
+        $error_message = 'Maximum download limit reached for this file.';
     } else {
-        // Valid photo - check if file exists
+        // Valid file - check if file exists
         $file_path = UPLOAD_PATH . $photo['image_path'];
         if (!file_exists($file_path)) {
-            $error_message = 'Photo file not found on server.';
+            $error_message = 'File not found on server.';
         }
     }
 }
@@ -381,9 +381,8 @@ $whatsapp_number = getSetting('whatsapp_number');
                 </div>
                 <?php else: ?>
                 <div class="photo-preview">
-                    <i class="fas <?php echo $file_icon_class; ?>" style="font-size:5rem;margin:20px 0;display:block;"></i>
+                    <i class="fas <?php echo htmlspecialchars($file_icon_class); ?>" style="font-size:5rem;margin:20px 0;display:block;"></i>
                     <div class="text-muted" style="font-size:0.85rem;">
-                        <i class="fas fa-file"></i>
                         <?php echo strtoupper(htmlspecialchars($file_ext)) ?: 'FILE'; ?> File
                         <?php if (!empty($photo['file_size'])): ?>
                             &bull; <?php echo htmlspecialchars(formatFileSize($photo['file_size'])); ?>
