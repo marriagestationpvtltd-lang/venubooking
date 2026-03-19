@@ -49,6 +49,9 @@ if (empty($token)) {
     }
 }
 
+// Determine if photos should be visible (user must click the folder first)
+$show_photos = !$error_message && isset($_GET['open']) && $_GET['open'] === '1';
+
 // Handle individual photo download
 if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['download_photo'])) {
     $photo_id = intval($_GET['download_photo']);
@@ -545,6 +548,75 @@ $site_logo = getSetting('site_logo');
                 height: 150px;
             }
         }
+
+        /* ── Folder closed state ── */
+        .open-folder-btn {
+            background: #ffc107;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            color: #333;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(255, 193, 7, 0.35);
+        }
+
+        .open-folder-btn:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 193, 7, 0.45);
+            color: #333;
+        }
+
+        .folder-click-card {
+            display: block;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 60px 30px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .folder-click-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 18px 55px rgba(0,0,0,0.15);
+            color: #333;
+        }
+
+        .folder-click-card .folder-big-icon {
+            font-size: 6rem;
+            color: #ffc107;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .folder-click-card .folder-click-label {
+            font-size: 1rem;
+            color: #888;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .open-folder-btn {
+                width: 100%;
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+
+            .folder-click-card {
+                padding: 40px 20px;
+            }
+
+            .folder-click-card .folder-big-icon {
+                font-size: 4rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -588,8 +660,14 @@ $site_logo = getSetting('site_logo');
                         </div>
                     </div>
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                        <?php if ($folder['allow_zip_download'] && count($photos) > 0): ?>
-                            <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
+                        <?php if (!$show_photos): ?>
+                            <a href="?token=<?php echo urlencode($token); ?>&open=1"
+                               class="btn open-folder-btn">
+                                <i class="fas fa-folder-open me-2"></i>
+                                Open Folder
+                            </a>
+                        <?php elseif ($folder['allow_zip_download'] && count($photos) > 0): ?>
+                            <a href="?token=<?php echo urlencode($token); ?>&open=1&download_all=1"
                                class="btn btn-success download-all-btn"
                                onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
                                 <i class="fas fa-download me-2"></i> 
@@ -603,68 +681,82 @@ $site_logo = getSetting('site_logo');
                 </div>
             </div>
             
-            <!-- Files Grid -->
-            <?php if (empty($photos)): ?>
-                <div class="text-center py-5">
-                    <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
-                    <p class="text-muted">No files in this folder yet.</p>
-                </div>
+            <?php if (!$show_photos): ?>
+                <!-- Folder closed state: show a large clickable folder icon -->
+                <a href="?token=<?php echo urlencode($token); ?>&open=1" class="folder-click-card">
+                    <i class="fas fa-folder folder-big-icon"></i>
+                    <div class="folder-title mb-0" style="font-size:1.3rem;">
+                        <?php echo htmlspecialchars($folder['folder_name']); ?>
+                    </div>
+                    <p class="folder-click-label">
+                        <i class="fas fa-mouse-pointer me-1"></i>
+                        Click to view <?php echo count($photos); ?> file<?php echo count($photos) !== 1 ? 's' : ''; ?>
+                    </p>
+                </a>
             <?php else: ?>
-                <div class="photo-grid">
-                    <?php foreach ($photos as $photo): 
-                        $file_url = UPLOAD_URL . $photo['image_path'];
-                        $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
-                        $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
-                        // Use thumbnail for grid preview if available; fall back to original
-                        $thumb_url = (!empty($photo['thumbnail_path']) && file_exists(UPLOAD_PATH . $photo['thumbnail_path']))
-                            ? UPLOAD_URL . $photo['thumbnail_path']
-                            : $file_url;
-                    ?>
-                        <div class="photo-card">
-                            <?php if (file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
-                                <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url); ?>')" style="cursor: pointer;">
-                                        <video muted preload="metadata">
-                                            <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
-                                        </video>
-                                        <div class="video-play-overlay">
-                                            <i class="fas fa-play-circle"></i>
+                <!-- Files Grid -->
+                <?php if (empty($photos)): ?>
+                    <div class="text-center py-5">
+                        <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
+                        <p class="text-muted">No files in this folder yet.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="photo-grid">
+                        <?php foreach ($photos as $photo): 
+                            $file_url = UPLOAD_URL . $photo['image_path'];
+                            $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                            $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
+                            // Use thumbnail for grid preview if available; fall back to original
+                            $thumb_url = (!empty($photo['thumbnail_path']) && file_exists(UPLOAD_PATH . $photo['thumbnail_path']))
+                                ? UPLOAD_URL . $photo['thumbnail_path']
+                                : $file_url;
+                        ?>
+                            <div class="photo-card">
+                                <?php if (file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
+                                    <?php if ($is_video): ?>
+                                        <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url); ?>')" style="cursor: pointer;">
+                                            <video muted preload="metadata">
+                                                <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
+                                            </video>
+                                            <div class="video-play-overlay">
+                                                <i class="fas fa-play-circle"></i>
+                                            </div>
+                                            <span class="badge bg-danger file-type-badge">VIDEO</span>
                                         </div>
-                                        <span class="badge bg-danger file-type-badge">VIDEO</span>
+                                    <?php else: ?>
+                                        <img src="<?php echo htmlspecialchars($thumb_url); ?>" 
+                                             alt="<?php echo htmlspecialchars($photo['title']); ?>"
+                                             onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>')"
+                                             loading="lazy"
+                                             style="cursor: pointer;">
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="fas fa-<?php echo $is_video ? 'video' : 'image'; ?> fa-3x"></i>
                                     </div>
-                                <?php else: ?>
-                                    <img src="<?php echo htmlspecialchars($thumb_url); ?>" 
-                                         alt="<?php echo htmlspecialchars($photo['title']); ?>"
-                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>')"
-                                         loading="lazy"
-                                         style="cursor: pointer;">
                                 <?php endif; ?>
-                            <?php else: ?>
-                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
-                                    <i class="fas fa-<?php echo $is_video ? 'video' : 'image'; ?> fa-3x"></i>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <div class="photo-info">
-                                <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
-                                    <?php echo htmlspecialchars($photo['title']); ?>
-                                </div>
                                 
-                                <?php if ($can_download): ?>
-                                    <a href="?token=<?php echo urlencode($token); ?>&download_photo=<?php echo $photo['id']; ?>"
-                                       class="btn download-btn"
-                                       onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
-                                        <i class="fas fa-download me-1"></i> Download
-                                    </a>
-                                <?php else: ?>
-                                    <button class="btn btn-secondary w-100" disabled>
-                                        <i class="fas fa-ban me-1"></i> Limit Reached
-                                    </button>
-                                <?php endif; ?>
+                                <div class="photo-info">
+                                    <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
+                                        <?php echo htmlspecialchars($photo['title']); ?>
+                                    </div>
+                                    
+                                    <?php if ($can_download): ?>
+                                        <a href="?token=<?php echo urlencode($token); ?>&open=1&download_photo=<?php echo $photo['id']; ?>"
+                                           class="btn download-btn"
+                                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-secondary w-100" disabled>
+                                            <i class="fas fa-ban me-1"></i> Limit Reached
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         <?php endif; ?>
         
