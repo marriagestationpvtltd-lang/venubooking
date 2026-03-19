@@ -204,6 +204,9 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
 // Get site settings
 $site_name = getSetting('site_name') ?: 'Photo Folder';
 $site_logo = getSetting('site_logo');
+$contact_phone = getSetting('contact_phone');
+$contact_email = getSetting('contact_email');
+$whatsapp_number = getSetting('whatsapp_number');
 ?>
 <!DOCTYPE html>
 <html lang="ne">
@@ -545,6 +548,110 @@ $site_logo = getSetting('site_logo');
                 height: 150px;
             }
         }
+
+        /* ── Company Brand Bar ── */
+        .folder-brand-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .folder-brand-bar .brand-logo {
+            height: 48px;
+            max-width: 150px;
+            object-fit: contain;
+        }
+        .brand-text .brand-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #333;
+            line-height: 1.2;
+            margin: 0;
+        }
+        .brand-text .brand-tagline {
+            font-size: 0.76rem;
+            color: #888;
+            margin: 2px 0 0;
+        }
+
+        /* ── Security Panel ── */
+        .security-panel {
+            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+            border: 1px solid #c8e6c9;
+            border-radius: 12px;
+            padding: 14px 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .security-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.82rem;
+            color: #2E7D32;
+            font-weight: 500;
+        }
+        .security-item i {
+            font-size: 1rem;
+            color: #4CAF50;
+        }
+        .security-note {
+            margin-left: auto;
+            font-size: 0.76rem;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .security-note i {
+            color: #aaa;
+        }
+
+        /* ── Enhanced Footer ── */
+        .footer-text {
+            text-align: center;
+            padding: 30px 20px;
+            color: #999;
+            font-size: 0.85rem;
+        }
+        .footer-contact {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 12px;
+        }
+        .footer-contact a {
+            color: #666;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .footer-contact a:hover {
+            color: #4CAF50;
+        }
+        .footer-security {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            color: #aaa;
+            font-size: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 576px) {
+            .security-note { display: none; }
+            .folder-brand-bar { padding-bottom: 15px; margin-bottom: 15px; }
+        }
     </style>
 </head>
 <body>
@@ -563,6 +670,17 @@ $site_logo = getSetting('site_logo');
         <?php else: ?>
             <!-- Folder Header -->
             <div class="folder-header">
+                <?php if ($site_logo && file_exists(UPLOAD_PATH . $site_logo)): ?>
+                <div class="folder-brand-bar">
+                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($site_logo); ?>"
+                         alt="<?php echo htmlspecialchars($site_name); ?>"
+                         class="brand-logo">
+                    <div class="brand-text">
+                        <p class="brand-name"><?php echo htmlspecialchars($site_name); ?></p>
+                        <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure Photo Sharing</p>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <h1 class="folder-title">
@@ -602,7 +720,27 @@ $site_logo = getSetting('site_logo');
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Security Assurance Panel -->
+            <div class="security-panel">
+                <div class="security-item">
+                    <i class="fas fa-lock"></i> Private &amp; Secure Link
+                </div>
+                <div class="security-item">
+                    <i class="fas fa-shield-alt"></i> Encrypted Transfer
+                </div>
+                <div class="security-item">
+                    <i class="fas fa-user-shield"></i> Access-Controlled
+                </div>
+                <div class="security-item">
+                    <i class="fas fa-camera"></i> Original Quality Files
+                </div>
+                <div class="security-note">
+                    <i class="fas fa-info-circle"></i>
+                    Only people with this link can view &amp; download these files
+                </div>
+            </div>
+
             <!-- Files Grid -->
             <?php if (empty($photos)): ?>
                 <div class="text-center py-5">
@@ -659,8 +797,32 @@ $site_logo = getSetting('site_logo');
         <?php endif; ?>
         
         <div class="footer-text">
-            <i class="fas fa-shield-alt me-1"></i>
-            Secure photo &amp; video sharing by <?php echo htmlspecialchars($site_name); ?>
+            <?php if ($contact_phone || $contact_email || $whatsapp_number): ?>
+            <div class="footer-contact">
+                <?php if ($contact_phone): ?>
+                <a href="tel:<?php echo htmlspecialchars($contact_phone); ?>">
+                    <i class="fas fa-phone"></i> <?php echo htmlspecialchars($contact_phone); ?>
+                </a>
+                <?php endif; ?>
+                <?php if ($contact_email): ?>
+                <a href="mailto:<?php echo htmlspecialchars($contact_email); ?>">
+                    <i class="fas fa-envelope"></i> <?php echo htmlspecialchars($contact_email); ?>
+                </a>
+                <?php endif; ?>
+                <?php if ($whatsapp_number): ?>
+                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp_number); ?>" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+            <div class="footer-security">
+                <i class="fas fa-shield-alt"></i>
+                <span>Secure photo &amp; video sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong></span>
+                <span>&nbsp;·&nbsp;</span>
+                <i class="fas fa-lock"></i>
+                <span>Your files are private &amp; protected</span>
+            </div>
         </div>
     </div>
     

@@ -85,6 +85,9 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
 // Get site settings
 $site_name = getSetting('site_name') ?: 'Photo Download';
 $site_logo = getSetting('site_logo');
+$contact_phone = getSetting('contact_phone');
+$contact_email = getSetting('contact_email');
+$whatsapp_number = getSetting('whatsapp_number');
 ?>
 <!DOCTYPE html>
 <html lang="ne">
@@ -286,6 +289,61 @@ $site_logo = getSetting('site_logo');
             0%   { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+
+        /* ── Enhanced Card Header ── */
+        .card-header .company-tagline {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            margin: 4px 0 0;
+        }
+
+        /* ── Security Trust Badges ── */
+        .security-trust-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .trust-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f0fdf0;
+            border: 1px solid #c8e6c9;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.78rem;
+            color: #2E7D32;
+            font-weight: 500;
+        }
+        .trust-badge i {
+            color: #4CAF50;
+            font-size: 0.85rem;
+        }
+
+        /* ── Enhanced Footer ── */
+        .footer-contact-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 10px;
+        }
+        .footer-contact-row a {
+            color: #666;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.82rem;
+            transition: color 0.2s;
+        }
+        .footer-contact-row a:hover {
+            color: #4CAF50;
+        }
     </style>
 </head>
 <body>
@@ -294,7 +352,8 @@ $site_logo = getSetting('site_logo');
             <?php if ($site_logo && file_exists(UPLOAD_PATH . $site_logo)): ?>
                 <img src="<?php echo UPLOAD_URL . htmlspecialchars($site_logo); ?>" alt="Logo" style="height: 40px; margin-bottom: 10px;">
             <?php endif; ?>
-            <h1><i class="fas fa-download me-2"></i> Photo Download</h1>
+            <h1><i class="fas fa-download me-2"></i> <?php echo htmlspecialchars($site_name); ?></h1>
+            <p class="company-tagline"><i class="fas fa-shield-alt me-1"></i> Secure Photo Sharing</p>
         </div>
         
         <div class="card-body text-center">
@@ -328,6 +387,14 @@ $site_logo = getSetting('site_logo');
                    onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
                     <i class="fas fa-download me-2"></i> Download Photo
                 </a>
+
+                <!-- Security Trust Badges -->
+                <div class="security-trust-row">
+                    <span class="trust-badge"><i class="fas fa-lock"></i> Private Link</span>
+                    <span class="trust-badge"><i class="fas fa-shield-alt"></i> Secure Transfer</span>
+                    <span class="trust-badge"><i class="fas fa-user-shield"></i> Protected</span>
+                    <span class="trust-badge"><i class="fas fa-camera"></i> Original Quality</span>
+                </div>
                 
                 <div class="meta-info">
                     <div class="row">
@@ -353,8 +420,31 @@ $site_logo = getSetting('site_logo');
         </div>
         
         <div class="footer-text">
-            <i class="fas fa-shield-alt me-1"></i>
-            Secure photo sharing by <?php echo htmlspecialchars($site_name); ?>
+            <?php if ($contact_phone || $contact_email || $whatsapp_number): ?>
+            <div class="footer-contact-row">
+                <?php if ($contact_phone): ?>
+                <a href="tel:<?php echo htmlspecialchars($contact_phone); ?>">
+                    <i class="fas fa-phone"></i> <?php echo htmlspecialchars($contact_phone); ?>
+                </a>
+                <?php endif; ?>
+                <?php if ($contact_email): ?>
+                <a href="mailto:<?php echo htmlspecialchars($contact_email); ?>">
+                    <i class="fas fa-envelope"></i> <?php echo htmlspecialchars($contact_email); ?>
+                </a>
+                <?php endif; ?>
+                <?php if ($whatsapp_number): ?>
+                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp_number); ?>" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+            <div>
+                <i class="fas fa-shield-alt me-1"></i>
+                Secure photo sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong>
+                &nbsp;·&nbsp;
+                <i class="fas fa-lock me-1"></i>Your files are private &amp; protected
+            </div>
         </div>
     </div>
     
