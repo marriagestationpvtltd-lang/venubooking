@@ -334,14 +334,15 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
 <!-- Upload Section -->
 <div class="card mb-4">
     <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload Photos & Videos to this Folder</h5>
+        <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload Files to this Folder</h5>
     </div>
     <div class="card-body">
         <div class="alert alert-info mb-3">
             <i class="fas fa-info-circle"></i> <strong>Bulk Upload:</strong> 
-            तपाईं एकैपटकमा धेरै फोटो र भिडियो अपलोड गर्न सक्नुहुन्छ।<br>
+            तपाईं एकैपटकमा जुनसुकै प्रकारका फाइलहरु अपलोड गर्न सक्नुहुन्छ।<br>
             <i class="fas fa-image"></i> फोटो: JPG, PNG, GIF, WebP (५० MB सम्म)<br>
-            <i class="fas fa-video"></i> भिडियो: MP4, MOV, AVI, WebM, MKV (५० GB सम्म) — ठूलो भिडियो chunk गरेर background मा अपलोड हुन्छ
+            <i class="fas fa-video"></i> भिडियो: MP4, MOV, AVI, WebM, MKV (५० GB सम्म) — ठूलो भिडियो chunk गरेर background मा अपलोड हुन्छ<br>
+            <i class="fas fa-file-archive"></i> अन्य फाइलहरु: ZIP, RAR, PDF, Word, Excel र अन्य सबै प्रकार (५० GB सम्म)
         </div>
         
         <form id="uploadForm" method="POST" action="ajax-upload.php" enctype="multipart/form-data">
@@ -354,15 +355,15 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                     <i class="fas fa-cloud-upload-alt"></i>
                 </div>
                 <div class="drop-zone-text">
-                    <strong>Drag & Drop photos or videos here</strong><br>
+                    <strong>Drag & Drop any files here</strong><br>
                     or click to browse
                 </div>
                 <div class="drop-zone-hint">
-                    Photos: JPG, PNG, GIF, WebP (max 50MB) • Videos: MP4, MOV, AVI, WebM, MKV (max 50GB)
+                    Photos, Videos, ZIP, PDF, Documents and any other file (max 50GB)
                 </div>
             </div>
             
-            <input type="file" class="form-control d-none" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/webm,video/x-matroska" multiple>
+            <input type="file" class="form-control d-none" id="images" name="images[]" accept="*/*" multiple>
             
             <!-- Image Preview Container -->
             <div id="imagePreviewContainer" class="image-preview-container"></div>
@@ -392,13 +393,20 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
             <div class="text-center py-5">
                 <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
                 <p class="text-muted">No files in this folder yet.</p>
-                <p class="text-muted">Use the upload area above to add photos and videos.</p>
+                <p class="text-muted">Use the upload area above to add files.</p>
             </div>
         <?php else: ?>
             <div class="photo-grid">
                 <?php foreach ($photos as $photo): 
                     $file_url = UPLOAD_URL . $photo['image_path'];
-                    $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                    $file_type_val = isset($photo['file_type']) ? $photo['file_type'] : 'photo';
+                    $is_video = $file_type_val === 'video';
+                    $is_photo_file = $file_type_val === 'photo';
+                    $is_other = $file_type_val === 'file';
+                    $file_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                    $file_icon = getFileTypeIcon($photo['image_path']);
+                    $file_label = $file_icon[2];
+                    $delete_label = $is_video ? 'video' : ($is_photo_file ? 'photo' : 'file');
                 ?>
                     <div class="photo-item" data-photo-id="<?php echo $photo['id']; ?>">
                         <input type="checkbox" class="form-check-input photo-checkbox" value="<?php echo $photo['id']; ?>">
@@ -413,14 +421,19 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                                 </div>
                                 <span class="badge bg-danger video-badge">VIDEO</span>
                             </div>
-                        <?php else: ?>
+                        <?php elseif ($is_photo_file): ?>
                             <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy">
+                        <?php else: ?>
+                            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#f8f9fa;">
+                                <i class="<?php echo htmlspecialchars($file_icon[0]); ?>" style="font-size:2.5rem;color:<?php echo htmlspecialchars($file_icon[1]); ?>;"></i>
+                                <span class="badge bg-secondary mt-2" style="font-size:0.65rem;"><?php echo htmlspecialchars($file_label); ?></span>
+                            </div>
                         <?php endif; ?>
                         
                         <a href="?id=<?php echo $folder_id; ?>&delete_photo=<?php echo $photo['id']; ?>" 
                            class="delete-btn"
-                           onclick="return confirm('Delete this <?php echo $is_video ? 'video' : 'photo'; ?>?');"
-                           title="Delete <?php echo $is_video ? 'Video' : 'Photo'; ?>">
+                           onclick="return confirm('Delete this <?php echo $delete_label; ?>?');"
+                           title="Delete <?php echo ucfirst($delete_label); ?>">
                             <i class="fas fa-times"></i>
                         </a>
                         
@@ -428,8 +441,8 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                             <small><?php echo htmlspecialchars(substr($photo['title'], 0, 20)); ?><?php echo strlen($photo['title']) > 20 ? '...' : ''; ?></small>
                             <br>
                             <small>
-                                <?php if ($is_video && isset($photo['file_size'])): ?>
-                                    <i class="fas fa-file-video"></i> <?php echo formatFileSize($photo['file_size']); ?>
+                                <?php if (isset($photo['file_size']) && $photo['file_size']): ?>
+                                    <i class="fas fa-hdd"></i> <?php echo formatFileSize($photo['file_size']); ?>
                                 <?php endif; ?>
                                 <i class="fas fa-download"></i> <?php echo $photo['download_count']; ?>
                             </small>
@@ -457,8 +470,10 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         maxHeight: 1920,
         quality: 0.90,
         skipCompression: true,          // Deliver original quality for shared folder photos
-        maxFileSize: 50 * 1024 * 1024,          // 50 MB per photo
+        allowAllFiles: true,            // Accept any file type (photos, videos, ZIP, PDF, etc.)
+        maxFileSize: 50 * 1024 * 1024,          // 50 MB per photo/small file
         maxVideoSize: 50 * 1024 * 1024 * 1024,  // 50 GB per video
+        maxOtherFileSize: 50 * 1024 * 1024 * 1024, // 50 GB per other file
         uploadUrl: 'ajax-upload.php',
         chunkUploadUrl: 'ajax-chunk-upload.php',
         onUploadStart: function() {

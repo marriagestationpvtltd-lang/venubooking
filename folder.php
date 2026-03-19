@@ -677,7 +677,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                          class="brand-logo">
                     <div class="brand-text">
                         <p class="brand-name"><?php echo htmlspecialchars($site_name); ?></p>
-                        <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure Photo Sharing</p>
+                        <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -751,8 +751,13 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <div class="photo-grid">
                     <?php foreach ($photos as $photo): 
                         $file_url = UPLOAD_URL . $photo['image_path'];
-                        $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                        $file_type_val = isset($photo['file_type']) ? $photo['file_type'] : 'photo';
+                        $is_video = $file_type_val === 'video';
+                        $is_photo_file = $file_type_val === 'photo';
+                        $is_other = $file_type_val === 'file';
                         $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
+                        $file_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                        $file_icon = getFileTypeIcon($photo['image_path']);
                     ?>
                         <div class="photo-card">
                             <?php if ($is_video): ?>
@@ -765,12 +770,20 @@ $whatsapp_number = getSetting('whatsapp_number');
                                     </div>
                                     <span class="badge bg-danger file-type-badge">VIDEO</span>
                                 </div>
-                            <?php else: ?>
+                            <?php elseif ($is_photo_file): ?>
                                 <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 
                                      alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                      onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
                                      loading="lazy"
                                      style="cursor: pointer;">
+                            <?php else: ?>
+                                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;background:#f8f9fa;position:relative;">
+                                    <i class="<?php echo htmlspecialchars($file_icon[0]); ?>" style="font-size:4rem;color:<?php echo htmlspecialchars($file_icon[1]); ?>;"></i>
+                                    <span class="badge bg-secondary mt-2"><?php echo htmlspecialchars($file_icon[2]); ?></span>
+                                    <?php if (isset($photo['file_size']) && $photo['file_size']): ?>
+                                        <small class="text-muted mt-1" style="font-size:0.75rem;"><?php echo formatFileSize($photo['file_size']); ?></small>
+                                    <?php endif; ?>
+                                </div>
                             <?php endif; ?>
                             
                             <div class="photo-info">
@@ -818,7 +831,7 @@ $whatsapp_number = getSetting('whatsapp_number');
             <?php endif; ?>
             <div class="footer-security">
                 <i class="fas fa-shield-alt"></i>
-                <span>Secure photo &amp; video sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong></span>
+                <span>Secure file sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong></span>
                 <span>&nbsp;·&nbsp;</span>
                 <i class="fas fa-lock"></i>
                 <span>Your files are private &amp; protected</span>

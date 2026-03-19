@@ -1,8 +1,8 @@
 <?php
 /**
- * Chunked Upload Handler for Large Videos and Photos
+ * Chunked Upload Handler for Any File Type
  * Handles uploads in 5 MB chunks, then assembles the full file.
- * Supports videos up to 50 GB and photos up to 50 MB.
+ * Supports videos up to 50 GB, photos up to 50 MB, and any other file type up to 50 GB.
  */
 
 require_once __DIR__ . '/../../config/database.php';
@@ -75,17 +75,13 @@ if (!isset($_FILES['chunk']) || $_FILES['chunk']['error'] !== UPLOAD_ERR_OK) {
 }
 
 // Determine file type from extension
-$allowed_photo_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-$allowed_video_ext = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp'];
+$photo_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+$video_ext = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp'];
 
 $original_ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
-$is_photo = in_array($original_ext, $allowed_photo_ext);
-$is_video = in_array($original_ext, $allowed_video_ext);
-
-if (!$is_photo && !$is_video) {
-    echo json_encode(['success' => false, 'message' => 'Invalid file type. Allowed: JPG, PNG, GIF, WebP (photos) or MP4, MOV, AVI, WebM, MKV (videos).']);
-    exit;
-}
+$is_photo = in_array($original_ext, $photo_ext);
+$is_video = in_array($original_ext, $video_ext);
+// $is_other covers any other extension (zip, pdf, docx, rar, etc.)
 
 // ---------------------------------------------------------------
 // Save this chunk to a temp directory
@@ -134,9 +130,11 @@ if (!is_dir($folder_upload_dir)) {
     }
 }
 
-$file_type_label = $is_photo ? 'photo' : 'video';
-$prefix          = $is_photo ? 'photo_' : 'video_';
-$filename        = $prefix . time() . '_' . uniqid() . '.' . $original_ext;
+$file_type_label = $is_photo ? 'photo' : ($is_video ? 'video' : 'file');
+$prefix          = $is_photo ? 'photo_' : ($is_video ? 'video_' : 'file_');
+// Sanitize extension for non-photo/non-video files
+$safe_ext        = preg_replace('/[^a-z0-9]/', '', $original_ext) ?: 'bin';
+$filename        = $prefix . time() . '_' . uniqid() . '.' . $safe_ext;
 $relative_path   = 'folders/' . $folder_id . '/' . $filename;
 $output_path     = UPLOAD_PATH . $relative_path;
 
@@ -241,6 +239,16 @@ if ($is_video) {
     }
 }
 
+// For other file types, only validate maximum size (50 GB)
+if (!$is_photo && !$is_video) {
+    $max_other_size = 50 * 1024 * 1024 * 1024; // 50 GB
+    if ($total_size > $max_other_size) {
+        unlink($output_path);
+        echo json_encode(['success' => false, 'message' => 'File exceeds 50 GB limit.']);
+        exit;
+    }
+}
+
 // ---------------------------------------------------------------
 // Persist to database
 // ---------------------------------------------------------------
@@ -249,9 +257,10 @@ $thumbnail_relative_path = null;
 
 $download_token = bin2hex(random_bytes(32));
 $title_raw      = pathinfo($original_name, PATHINFO_FILENAME);
+$default_label  = $file_type_label === 'photo' ? 'Photo' : ($file_type_label === 'video' ? 'Video' : 'File');
 $title          = $title_raw !== ''
     ? $title_raw
-    : ($file_type_label === 'photo' ? 'Photo' : 'Video') . ' ' . date('Y-m-d H:i:s');
+    : $default_label . ' ' . date('Y-m-d H:i:s');
 
 // If replacing an existing file, remove its record and physical file
 $replace_existing_id = 0;
