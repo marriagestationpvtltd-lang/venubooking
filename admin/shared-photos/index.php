@@ -49,7 +49,7 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     exit;
 }
 
-$page_title = 'फोटो सेयर व्यवस्थापन (Photo Sharing)';
+$page_title = 'फाइल सेयर व्यवस्थापन (File Sharing)';
 require_once __DIR__ . '/../includes/header.php';
 
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
@@ -77,13 +77,13 @@ $download_base_url = BASE_URL . '/download.php?token=';
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="fas fa-share-alt"></i> फोटो सेयर व्यवस्थापन</h4>
+    <h4><i class="fas fa-share-alt"></i> फाइल सेयर व्यवस्थापन</h4>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-danger" id="bulkDeleteBtn" style="display: none;">
             <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
         </button>
         <a href="add.php" class="btn btn-success">
-            <i class="fas fa-plus"></i> Upload New Photo
+            <i class="fas fa-plus"></i> Upload New File
         </a>
     </div>
 </div>
@@ -108,10 +108,10 @@ $download_base_url = BASE_URL . '/download.php?token=';
 <div class="alert alert-info">
     <i class="fas fa-info-circle"></i> <strong>कसरी प्रयोग गर्ने:</strong>
     <ul class="mb-0 mt-2">
-        <li><strong>फोटो अपलोड:</strong> "Upload New Photo" बटन क्लिक गरेर फोटो अपलोड गर्नुहोस्</li>
+        <li><strong>फाइल अपलोड:</strong> "Upload New File" बटन क्लिक गरेर जुनसुकै फाइल (फोटो, भिडियो, ZIP, PDF आदि) अपलोड गर्नुहोस्</li>
         <li><strong>लिङ्क सेयर:</strong> "Copy Link" बटन क्लिक गरेर डाउनलोड लिङ्क कपी गर्नुहोस् र युजरलाई पठाउनुहोस्</li>
-        <li><strong>युजर डाउनलोड:</strong> युजरले उक्त लिङ्कबाट आफ्नो फोटो डाउनलोड गर्न सक्छन्</li>
-        <li><strong>फोटो डिलिट:</strong> युजरले डाउनलोड गरिसकेपछि "Delete" बटन क्लिक गरेर फोटो पूर्ण रूपमा हटाउनुहोस्</li>
+        <li><strong>युजर डाउनलोड:</strong> युजरले उक्त लिङ्कबाट आफ्नो फाइल डाउनलोड गर्न सक्छन्</li>
+        <li><strong>फाइल डिलिट:</strong> युजरले डाउनलोड गरिसकेपछि "Delete" बटन क्लिक गरेर फाइल पूर्ण रूपमा हटाउनुहोस्</li>
     </ul>
 </div>
 
@@ -120,9 +120,9 @@ $download_base_url = BASE_URL . '/download.php?token=';
         <?php if (empty($photos)): ?>
             <div class="text-center py-5">
                 <i class="fas fa-share-alt fa-4x text-muted mb-3"></i>
-                <p class="text-muted">No shared photos yet.</p>
+                <p class="text-muted">No shared files yet.</p>
                 <a href="add.php" class="btn btn-success">
-                    <i class="fas fa-plus"></i> Upload Your First Photo
+                    <i class="fas fa-plus"></i> Upload Your First File
                 </a>
             </div>
         <?php else: ?>
@@ -148,6 +148,9 @@ $download_base_url = BASE_URL . '/download.php?token=';
                             $download_url = $download_base_url . urlencode($photo['download_token']);
                             $is_expired = ($photo['expires_at'] && strtotime($photo['expires_at']) < time()) || $photo['status'] === 'expired';
                             $max_reached = ($photo['max_downloads'] && $photo['download_count'] >= $photo['max_downloads']);
+                            $file_type_val = isset($photo['file_type']) ? $photo['file_type'] : 'photo';
+                            $is_image_file = $file_type_val === 'photo';
+                            $is_video_file = $file_type_val === 'video';
                         ?>
                             <tr data-photo-id="<?php echo $photo['id']; ?>">
                                 <td>
@@ -155,11 +158,25 @@ $download_base_url = BASE_URL . '/download.php?token=';
                                 </td>
                                 <td>
                                     <?php 
-                                    $image_url = UPLOAD_URL . $photo['image_path'];
-                                    if (file_exists(UPLOAD_PATH . $photo['image_path'])): 
+                                    $file_exists = file_exists(UPLOAD_PATH . $photo['image_path']);
+                                    if ($is_image_file && $file_exists): 
+                                        $image_url = UPLOAD_URL . $photo['image_path'];
                                     ?>
-                                        <img src="<?php echo $image_url; ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" 
+                                        <img src="<?php echo htmlspecialchars($image_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                    <?php elseif ($is_video_file): ?>
+                                        <div class="d-flex align-items-center justify-content-center" 
+                                             style="width: 60px; height: 60px; border-radius: 4px; background: #1a1a2e;">
+                                            <i class="fas fa-file-video text-danger fa-2x"></i>
+                                        </div>
+                                    <?php elseif (!$is_image_file): 
+                                        $icon_info = getFileTypeIcon($photo['image_path']);
+                                    ?>
+                                        <div class="d-flex flex-column align-items-center justify-content-center" 
+                                             style="width: 60px; height: 60px; border-radius: 4px; background: #f8f9fa;">
+                                            <i class="<?php echo htmlspecialchars($icon_info[0]); ?>" style="font-size: 1.5rem; color: <?php echo htmlspecialchars($icon_info[1]); ?>;"></i>
+                                            <small style="font-size: 0.55rem; color: #666;"><?php echo htmlspecialchars($icon_info[2]); ?></small>
+                                        </div>
                                     <?php else: ?>
                                         <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
                                              style="width: 60px; height: 60px; border-radius: 4px;">
@@ -216,7 +233,7 @@ $download_base_url = BASE_URL . '/download.php?token=';
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a href="?delete=<?php echo $photo['id']; ?>" class="btn btn-outline-danger" 
-                                           onclick="return confirm('के तपाईं यो फोटो स्थायी रूपमा हटाउन चाहनुहुन्छ?\n\nयो कार्य उल्टाउन सकिँदैन।');" 
+                                           onclick="return confirm('के तपाईं यो फाइल स्थायी रूपमा हटाउन चाहनुहुन्छ?\n\nयो कार्य उल्टाउन सकिँदैन।');" 
                                            title="Delete Permanently">
                                             <i class="fas fa-trash"></i>
                                         </a>

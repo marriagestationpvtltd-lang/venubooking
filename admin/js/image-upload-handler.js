@@ -36,6 +36,7 @@ class ImageUploadHandler {
             skipCompression: false, // When true, upload images without any compression (preserves original quality)
             uploadUrl: 'ajax-upload.php',
             chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
+            disableChunkedUpload: false, // When true, all uploads use direct POST (max = maxFileSize/maxOtherFileSize)
             onUploadStart: () => {},
             onUploadProgress: () => {},
             onUploadComplete: () => {},
@@ -453,8 +454,10 @@ class ImageUploadHandler {
             const preview = this.previewContainer.querySelector(`[data-index="${i}"]`);
             const isVideo = this.isVideoFile(file);
             const isImage = this.isImageFile(file);
-            // Use chunked upload for videos and large non-image files (> 5 MB chunk size)
-            const useChunked = isVideo || (!isImage && file.size > ImageUploadHandler.CHUNK_SIZE);
+            // Use chunked upload for videos and large non-image files (> 5 MB chunk size),
+            // unless disableChunkedUpload is set (e.g. standalone sharing pages without a chunk endpoint)
+            const useChunked = !this.options.disableChunkedUpload &&
+                (isVideo || (!isImage && file.size > ImageUploadHandler.CHUNK_SIZE));
 
             if (preview) {
                 preview.querySelector('.preview-status .badge').className = 'badge bg-info';

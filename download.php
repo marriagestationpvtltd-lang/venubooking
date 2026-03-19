@@ -23,7 +23,7 @@ if (empty($token)) {
     $photo = $stmt->fetch();
     
     if (!$photo) {
-        $error_message = 'Photo not found. The link may be invalid or expired.';
+        $error_message = 'File not found. The link may be invalid or expired.';
     } elseif ($photo['status'] === 'inactive' || $photo['status'] === 'expired') {
         $error_message = 'This download link is no longer active.';
     } elseif ($photo['expires_at'] && strtotime($photo['expires_at']) < time()) {
@@ -32,12 +32,12 @@ if (empty($token)) {
         $update_stmt = $db->prepare("UPDATE shared_photos SET status = 'expired' WHERE id = ?");
         $update_stmt->execute([$photo['id']]);
     } elseif ($photo['max_downloads'] && $photo['download_count'] >= $photo['max_downloads']) {
-        $error_message = 'Maximum download limit reached for this photo.';
+        $error_message = 'Maximum download limit reached for this file.';
     } else {
-        // Valid photo - check if file exists
+        // Valid file - check if file exists
         $file_path = UPLOAD_PATH . $photo['image_path'];
         if (!file_exists($file_path)) {
-            $error_message = 'Photo file not found on server.';
+            $error_message = 'File not found on server.';
         }
     }
 }
@@ -94,7 +94,7 @@ $whatsapp_number = getSetting('whatsapp_number');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download Photo - <?php echo htmlspecialchars($site_name); ?></title>
+    <title>Download File - <?php echo htmlspecialchars($site_name); ?></title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -367,10 +367,28 @@ $whatsapp_number = getSetting('whatsapp_number');
                     <small>If you believe this is an error, please contact the administrator.</small>
                 </p>
             <?php else: ?>
+                <?php 
+                    $dl_file_type = isset($photo['file_type']) ? $photo['file_type'] : 'photo';
+                    $dl_is_image = $dl_file_type === 'photo';
+                    $dl_is_video = $dl_file_type === 'video';
+                ?>
+                <?php if ($dl_is_image): ?>
                 <div class="photo-preview">
                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo['image_path']); ?>" 
                          alt="<?php echo htmlspecialchars($photo['title']); ?>">
                 </div>
+                <?php elseif ($dl_is_video): ?>
+                <div class="photo-preview">
+                    <div style="font-size:5rem; color:#e74c3c;"><i class="fas fa-file-video"></i></div>
+                </div>
+                <?php else:
+                    $dl_icon = getFileTypeIcon($photo['image_path']);
+                ?>
+                <div class="photo-preview">
+                    <div style="font-size:5rem; color:<?php echo htmlspecialchars($dl_icon[1]); ?>;"><i class="<?php echo htmlspecialchars($dl_icon[0]); ?>"></i></div>
+                    <div style="font-size:0.85rem; color:#888; margin-top:8px;"><?php echo htmlspecialchars($dl_icon[2]); ?> File</div>
+                </div>
+                <?php endif; ?>
                 
                 <div class="photo-title">
                     <?php echo htmlspecialchars($photo['title']); ?>
@@ -385,7 +403,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <a href="?token=<?php echo urlencode($token); ?>&download=1"
                    class="btn btn-success download-btn"
                    onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
-                    <i class="fas fa-download me-2"></i> Download Photo
+                    <i class="fas fa-download me-2"></i> Download File
                 </a>
 
                 <!-- Security Trust Badges -->
@@ -441,7 +459,7 @@ $whatsapp_number = getSetting('whatsapp_number');
             <?php endif; ?>
             <div>
                 <i class="fas fa-shield-alt me-1"></i>
-                Secure photo sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong>
+                Secure file sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong>
                 &nbsp;·&nbsp;
                 <i class="fas fa-lock me-1"></i>Your files are private &amp; protected
             </div>
