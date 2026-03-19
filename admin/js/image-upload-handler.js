@@ -37,6 +37,7 @@ class ImageUploadHandler {
             uploadUrl: 'ajax-upload.php',
             chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
             disableChunkedUpload: false, // When true, all uploads use direct POST (max = maxFileSize/maxOtherFileSize)
+            autoUpload: false, // When true, upload starts immediately after file selection without clicking the Upload button
             onUploadStart: () => {},
             onUploadProgress: () => {},
             onUploadComplete: () => {},
@@ -185,6 +186,10 @@ class ImageUploadHandler {
         }
 
         this.updateUploadButton();
+
+        if (this.options.autoUpload && validFiles.length > 0) {
+            this.handleFormSubmit({ preventDefault: () => {} });
+        }
     }
 
     async addPreview(file, index) {

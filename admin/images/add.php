@@ -280,6 +280,7 @@ foreach ($sections as $key => $label) {
         maxHeight: 1920,
         quality: 0.85,
         maxFileSize: 10 * 1024 * 1024, // 10MB - matches server limit
+        autoUpload: true, // Start upload immediately after file selection
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {
             console.log('Upload started');
