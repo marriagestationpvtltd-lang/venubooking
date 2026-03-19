@@ -372,6 +372,9 @@ class ImageUploadHandler {
 
         this.options.onUploadStart();
 
+        // Record upload start time for ETA calculation
+        this._uploadStartTime = Date.now();
+
         // Show non-intrusive floating progress bar
         this.showFloatingProgress(0, '');
 
@@ -752,6 +755,7 @@ class ImageUploadHandler {
                     <span class="ufp-percent">0%</span>
                 </div>
                 <div class="ufp-filename"></div>
+                <div class="ufp-eta"></div>
                 <div class="ufp-bar-track">
                     <div class="ufp-bar-fill"></div>
                 </div>
@@ -770,6 +774,38 @@ class ImageUploadHandler {
         if (filename) {
             bar.querySelector('.ufp-filename').textContent = filename;
         }
+
+        // Calculate and display ETA
+        const etaEl = bar.querySelector('.ufp-eta');
+        if (etaEl) {
+            if (this._uploadStartTime && percent > 1 && percent < 100) {
+                const elapsed = (Date.now() - this._uploadStartTime) / 1000;
+                if (elapsed > 0.5) {
+                    const totalEst = elapsed * (100 / percent);
+                    const remaining = Math.max(0, Math.ceil(totalEst - elapsed));
+                    etaEl.textContent = this._formatEta(remaining);
+                } else {
+                    etaEl.textContent = 'Estimating…';
+                }
+            } else if (percent >= 100) {
+                etaEl.textContent = 'Complete!';
+            } else {
+                etaEl.textContent = '';
+            }
+        }
+    }
+
+    /** Format seconds into a human-readable ETA string */
+    _formatEta(seconds) {
+        if (seconds < 5)  return 'Almost done…';
+        if (seconds < 60) return '~' + seconds + ' sec remaining';
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        if (mins < 60) return '~' + mins + ' min' + (secs > 0 ? ' ' + secs + ' sec' : '') + ' remaining';
+        const hours = Math.floor(mins / 60);
+        const remMins = mins % 60;
+        if (hours < 24) return '~' + hours + ' hr' + (remMins > 0 ? ' ' + remMins + ' min' : '') + ' remaining';
+        return 'Estimating…';
     }
 
     hideFloatingProgress() {
