@@ -679,7 +679,8 @@ Date changes are subject to availability and must be requested at least 15 days 
 ('smtp_port', '587', 'number'),
 ('smtp_username', '', 'text'),
 ('smtp_password', '', 'password'),
-('smtp_encryption', 'tls', 'text');
+('smtp_encryption', 'tls', 'text'),
+('google_review_link', '', 'url');
 
 -- Insert placeholder payment methods (INACTIVE by default)
 -- IMPORTANT: Update these details in Admin Panel → Payment Methods before activating!
@@ -724,6 +725,89 @@ INSERT IGNORE INTO vendor_types (slug, label, display_order) VALUES
 ('transport', 'Transportation', 8),
 ('security', 'Security Service', 9),
 ('other', 'Other', 10);
+
+-- ============================================================================
+-- TRIGGERS
+-- ============================================================================
+
+-- Trigger: Keep booking_status and advance_payment_received in sync with payment_status.
+-- Logic:
+--   payment_status = 'pending'           → booking_status = 'pending',   advance_payment_received = 0
+--   payment_status = 'partial' or 'paid' → booking_status = 'confirmed', advance_payment_received = 1
+--   payment_status = 'cancelled'         → no automatic change
+DROP TRIGGER IF EXISTS trg_bookings_payment_status_sync;
+
+DELIMITER $$
+CREATE TRIGGER trg_bookings_payment_status_sync
+BEFORE UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    IF NEW.payment_status <> OLD.payment_status THEN
+        CASE NEW.payment_status
+            WHEN 'pending' THEN
+                SET NEW.booking_status          = 'pending';
+                SET NEW.advance_payment_received = 0;
+            WHEN 'partial' THEN
+                SET NEW.booking_status          = 'confirmed';
+                SET NEW.advance_payment_received = 1;
+            WHEN 'paid' THEN
+                SET NEW.booking_status          = 'confirmed';
+                SET NEW.advance_payment_received = 1;
+            ELSE
+                BEGIN END; -- 'cancelled' or any future status: leave as-is
+        END CASE;
+    END IF;
+END$$
+DELIMITER ;
+
+-- Triggers: Keep shared_folders.photo_count accurate when photos are added/removed/moved.
+DROP TRIGGER IF EXISTS trg_shared_photos_insert;
+DROP TRIGGER IF EXISTS trg_shared_photos_delete;
+DROP TRIGGER IF EXISTS trg_shared_photos_update;
+
+DELIMITER $$
+CREATE TRIGGER trg_shared_photos_insert
+AFTER INSERT ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF NEW.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_delete
+AFTER DELETE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_update
+AFTER UPDATE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL AND (NEW.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+    IF NEW.folder_id IS NOT NULL AND (OLD.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+DELIMITER ;
 
 -- ============================================================================
 -- INSTALLATION COMPLETE
