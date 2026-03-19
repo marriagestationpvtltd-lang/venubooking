@@ -177,6 +177,14 @@ if (!$assembly_success) {
     exit;
 }
 
+// Verify the assembled file is actually present and non-empty on disk before
+// proceeding with validation and the database insert.
+if (!file_exists($output_path) || filesize($output_path) === 0) {
+    @unlink($output_path);
+    echo json_encode(['success' => false, 'message' => 'Assembled file is missing or empty. Please check server disk space and permissions.']);
+    exit;
+}
+
 // ---------------------------------------------------------------
 // Validate assembled file
 // ---------------------------------------------------------------
