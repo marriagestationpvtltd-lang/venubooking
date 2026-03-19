@@ -63,8 +63,8 @@ $file = [
 $allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 $allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
 
-$max_photo_size = 20 * 1024 * 1024; // 20MB for photos
-$max_video_size = 8 * 1024 * 1024 * 1024; // 8GB for videos
+$max_photo_size = 50 * 1024 * 1024; // 50MB for photos
+$max_video_size = 50 * 1024 * 1024 * 1024; // 50GB for videos
 
 // Determine file type
 $is_photo = in_array($file['type'], $allowed_photo_types);
@@ -102,7 +102,7 @@ if ($is_photo) {
     
     // Validate photo size
     if ($file['size'] > $max_photo_size) {
-        echo json_encode(['success' => false, 'message' => 'Photo exceeds 20MB limit.']);
+        echo json_encode(['success' => false, 'message' => 'Photo exceeds 50MB limit.']);
         exit;
     }
 }
@@ -111,7 +111,7 @@ if ($is_photo) {
 if ($is_video) {
     // Validate video size
     if ($file['size'] > $max_video_size) {
-        echo json_encode(['success' => false, 'message' => 'Video exceeds 8GB limit.']);
+        echo json_encode(['success' => false, 'message' => 'Video exceeds 50GB limit.']);
         exit;
     }
     

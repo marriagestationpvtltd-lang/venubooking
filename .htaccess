@@ -76,6 +76,22 @@ Options +FollowSymLinks
     php_flag display_errors Off
     php_flag display_startup_errors Off
     php_flag log_errors On
+    # Allow uploads up to 55 MB (covers the 50 MB photo limit with some headroom)
+    php_value upload_max_filesize 55M
+    php_value post_max_size 60M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag expose_php Off
+    php_flag display_errors Off
+    php_flag display_startup_errors Off
+    php_flag log_errors On
+    php_value upload_max_filesize 55M
+    php_value post_max_size 60M
+    php_value max_execution_time 300
+    php_value max_input_time 300
 </IfModule>
 
 # ============================================================================

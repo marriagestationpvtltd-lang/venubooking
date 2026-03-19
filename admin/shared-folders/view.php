@@ -331,12 +331,13 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         <div class="alert alert-info mb-3">
             <i class="fas fa-info-circle"></i> <strong>Bulk Upload:</strong> 
             तपाईं एकैपटकमा धेरै फोटो र भिडियो अपलोड गर्न सक्नुहुन्छ।<br>
-            <i class="fas fa-image"></i> फोटो: JPG, PNG, GIF, WebP (२० MB सम्म)<br>
-            <i class="fas fa-video"></i> भिडियो: MP4, MOV, AVI, WebM, MKV (८ GB सम्म)
+            <i class="fas fa-image"></i> फोटो: JPG, PNG, GIF, WebP (५० MB सम्म)<br>
+            <i class="fas fa-video"></i> भिडियो: MP4, MOV, AVI, WebM, MKV (५० GB सम्म) — ठूलो भिडियो chunk गरेर background मा अपलोड हुन्छ
         </div>
         
         <form id="uploadForm" method="POST" action="ajax-upload.php" enctype="multipart/form-data">
             <input type="hidden" name="folder_id" value="<?php echo $folder_id; ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
             
             <!-- Drag & Drop Zone -->
             <div id="dropZone" class="drop-zone">
@@ -348,7 +349,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                     or click to browse
                 </div>
                 <div class="drop-zone-hint">
-                    Photos: JPG, PNG, GIF, WebP (max 20MB) • Videos: MP4, MOV, AVI, WebM, MKV (max 8GB)
+                    Photos: JPG, PNG, GIF, WebP (max 50MB) • Videos: MP4, MOV, AVI, WebM, MKV (max 50GB)
                 </div>
             </div>
             
@@ -453,8 +454,10 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.90,
-        maxFileSize: 20 * 1024 * 1024, // 20MB per file for large photos
+        maxFileSize: 50 * 1024 * 1024,          // 50 MB per photo
+        maxVideoSize: 50 * 1024 * 1024 * 1024,  // 50 GB per video
         uploadUrl: 'ajax-upload.php',
+        chunkUploadUrl: 'ajax-chunk-upload.php',
         onUploadStart: function() {
             console.log('Upload started');
         },
