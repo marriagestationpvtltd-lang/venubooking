@@ -253,6 +253,12 @@ $title          = $title_raw !== ''
     ? $title_raw
     : ($file_type_label === 'photo' ? 'Photo' : 'Video') . ' ' . date('Y-m-d H:i:s');
 
+// Get optional sub-folder/album name
+$subfolder_name = isset($_POST['subfolder_name']) ? trim($_POST['subfolder_name']) : null;
+if ($subfolder_name === '') {
+    $subfolder_name = null;
+}
+
 // If replacing an existing file, remove its record and physical file
 $replace_existing_id = 0;
 $old_image_path = null;
@@ -272,11 +278,12 @@ if ($replace_existing_id) {
 
 try {
     $sql = "INSERT INTO shared_photos
-                (folder_id, file_type, title, description, image_path, file_size, thumbnail_path, download_token, status, created_by)
-            VALUES (?, ?, ?, '', ?, ?, ?, ?, 'active', ?)";
+                (folder_id, subfolder_name, file_type, title, description, image_path, file_size, thumbnail_path, download_token, status, created_by)
+            VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, 'active', ?)";
     $stmt   = $db->prepare($sql);
     $result = $stmt->execute([
         $folder_id,
+        $subfolder_name,
         $file_type_label,
         $title,
         $relative_path,

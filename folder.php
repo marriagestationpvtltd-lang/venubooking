@@ -16,6 +16,13 @@ $error_message = '';
 $folder = null;
 $photos = [];
 
+// Sub-folder/album navigation: current album selected by user (null = top-level view)
+$current_album = isset($_GET['album']) ? trim($_GET['album']) : null;
+// Empty string is treated as "no album selected" (top-level view)
+if ($current_album === '') {
+    $current_album = null;
+}
+
 // Get download token from URL
 $token = isset($_GET['token']) ? trim($_GET['token']) : '';
 
@@ -38,8 +45,8 @@ if (empty($token)) {
             $update_stmt = $db->prepare("UPDATE shared_folders SET status = 'expired' WHERE id = ?");
             $update_stmt->execute([$folder['id']]);
         } else {
-            // Fetch all photos/videos in this folder
-            $photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? AND status = 'active' ORDER BY created_at DESC");
+            // Fetch all active photos in this folder
+            $photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? AND status = 'active' ORDER BY COALESCE(subfolder_name,'') ASC, created_at DESC");
             $photos_stmt->execute([$folder['id']]);
             $photos = $photos_stmt->fetchAll();
         }
@@ -48,6 +55,33 @@ if (empty($token)) {
         $error_message = 'Unable to load folder. Please try again later.';
     }
 }
+
+// Determine if this folder uses sub-folder organisation
+$has_subfolders = false;
+$subfolders = []; // [ name => [ photos ] ]
+if (!$error_message && $folder) {
+    foreach ($photos as $photo) {
+        $sf = (isset($photo['subfolder_name']) && $photo['subfolder_name'] !== null && $photo['subfolder_name'] !== '')
+            ? $photo['subfolder_name'] : null;
+        if ($sf !== null) {
+            $has_subfolders = true;
+        }
+        $key = $sf ?? '';
+        $subfolders[$key][] = $photo;
+    }
+    ksort($subfolders);
+}
+
+// Photos shown in the current view (depends on mode)
+$visible_photos = [];
+if ($has_subfolders && $current_album !== null) {
+    // Drill-down view: show only photos in the selected album
+    $visible_photos = $subfolders[$current_album] ?? [];
+} elseif (!$has_subfolders) {
+    // Flat view (no sub-folders at all): show all photos
+    $visible_photos = $photos;
+}
+// If $has_subfolders && $current_album === null → top-level subfolder card view (no $visible_photos needed)
 
 // Handle individual photo download
 if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['download_photo'])) {
@@ -107,7 +141,11 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
 
 // Handle Download All as ZIP
 if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] === '1' && $folder['allow_zip_download']) {
-    if (empty($photos)) {
+    // When inside an album, only ZIP photos from that album; otherwise ZIP everything
+    $photos_to_zip = ($has_subfolders && $current_album !== null)
+        ? $visible_photos
+        : $photos;
+    if (empty($photos_to_zip)) {
         $error_message = 'No photos to download.';
     } else {
         // Create ZIP file
@@ -137,7 +175,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
             $added_count = 0;
             $file_counter = [];
             
-            foreach ($photos as $photo) {
+            foreach ($photos_to_zip as $photo) {
                 $file_path = UPLOAD_PATH . $photo['image_path'];
                 
                 // Security check
@@ -213,7 +251,17 @@ $whatsapp_number = getSetting('whatsapp_number');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $folder ? htmlspecialchars($folder['folder_name']) : 'Folder'; ?> - <?php echo htmlspecialchars($site_name); ?></title>
+    <title><?php
+        if ($folder) {
+            echo htmlspecialchars($folder['folder_name']);
+            if ($has_subfolders && $current_album !== null) {
+                echo ' › ' . htmlspecialchars($current_album === '' ? 'General' : $current_album);
+            }
+        } else {
+            echo 'Folder';
+        }
+        echo ' - ' . htmlspecialchars($site_name);
+    ?></title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -652,6 +700,130 @@ $whatsapp_number = getSetting('whatsapp_number');
             .security-note { display: none; }
             .folder-brand-bar { padding-bottom: 15px; margin-bottom: 15px; }
         }
+
+        /* ── Sub-folder / Album Grid ── */
+        .subfolder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .subfolder-card {
+            background: white;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .subfolder-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            color: inherit;
+        }
+
+        .subfolder-card .subfolder-thumb {
+            position: relative;
+            height: 160px;
+            background: linear-gradient(135deg, #fff9c4 0%, #fff3e0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .subfolder-card .subfolder-thumb .folder-icon {
+            font-size: 5rem;
+            color: #ffc107;
+            filter: drop-shadow(0 4px 8px rgba(255,193,7,0.3));
+        }
+
+        .subfolder-card .subfolder-thumb .thumb-preview {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            opacity: 0.55;
+        }
+
+        .subfolder-card .subfolder-thumb .thumb-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .subfolder-card .subfolder-thumb .folder-icon-overlay {
+            position: absolute;
+            font-size: 3.5rem;
+            color: #ffc107;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+        }
+
+        .subfolder-card .subfolder-info {
+            padding: 14px 16px;
+        }
+
+        .subfolder-card .subfolder-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .subfolder-card .subfolder-count {
+            font-size: 0.82rem;
+            color: #888;
+        }
+
+        .breadcrumb-nav {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb-nav a {
+            color: var(--primary-green);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb-nav a:hover { text-decoration: underline; }
+
+        .breadcrumb-nav .separator { color: #bbb; }
+
+        .album-download-btn {
+            background: var(--primary-green);
+            border: none;
+            padding: 10px 24px;
+            font-size: 1rem;
+            border-radius: 50px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .album-download-btn:hover {
+            background: var(--dark-green);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 576px) {
+            .subfolder-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 14px;
+            }
+            .subfolder-card .subfolder-thumb { height: 120px; }
+        }
     </style>
 </head>
 <body>
@@ -684,19 +856,37 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <h1 class="folder-title">
-                            <i class="fas fa-folder-open"></i> 
-                            <?php echo htmlspecialchars($folder['folder_name']); ?>
+                            <?php if ($has_subfolders && $current_album !== null): ?>
+                                <i class="fas fa-folder-open"></i>
+                                <?php echo htmlspecialchars($current_album === '' ? 'General' : $current_album); ?>
+                            <?php else: ?>
+                                <i class="fas fa-folder-open"></i>
+                                <?php echo htmlspecialchars($folder['folder_name']); ?>
+                            <?php endif; ?>
                         </h1>
                         
-                        <?php if ($folder['description']): ?>
-                            <p class="folder-description"><?php echo nl2br(htmlspecialchars($folder['description'])); ?></p>
+                        <?php if (!$has_subfolders || $current_album === null): ?>
+                            <?php if ($folder['description']): ?>
+                                <p class="folder-description"><?php echo nl2br(htmlspecialchars($folder['description'])); ?></p>
+                            <?php endif; ?>
                         <?php endif; ?>
                         
                         <div class="stats-badges">
-                            <span class="stats-badge">
-                                <i class="fas fa-photo-video text-primary"></i> 
-                                <?php echo count($photos); ?> File<?php echo count($photos) !== 1 ? 's' : ''; ?>
-                            </span>
+                            <?php if ($has_subfolders && $current_album === null): ?>
+                                <span class="stats-badge">
+                                    <i class="fas fa-folder text-warning"></i>
+                                    <?php echo count($subfolders); ?> Album<?php echo count($subfolders) !== 1 ? 's' : ''; ?>
+                                </span>
+                                <span class="stats-badge">
+                                    <i class="fas fa-photo-video text-primary"></i>
+                                    <?php echo count($photos); ?> File<?php echo count($photos) !== 1 ? 's' : ''; ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="stats-badge">
+                                    <i class="fas fa-photo-video text-primary"></i> 
+                                    <?php echo count($visible_photos); ?> File<?php echo count($visible_photos) !== 1 ? 's' : ''; ?>
+                                </span>
+                            <?php endif; ?>
                             <?php if ($folder['expires_at']): ?>
                                 <span class="stats-badge">
                                     <i class="fas fa-clock text-warning"></i> 
@@ -706,16 +896,41 @@ $whatsapp_number = getSetting('whatsapp_number');
                         </div>
                     </div>
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                        <?php if ($folder['allow_zip_download'] && count($photos) > 0): ?>
-                            <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
-                               class="btn btn-success download-all-btn"
-                               onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
-                                <i class="fas fa-download me-2"></i> 
-                                Download All (<?php echo count($photos); ?>)
-                            </a>
-                            <p class="text-muted mt-2 mb-0">
-                                <small><i class="fas fa-file-archive"></i> Downloads as ZIP file in one folder</small>
-                            </p>
+                        <?php if ($folder['allow_zip_download']): ?>
+                            <?php if ($has_subfolders && $current_album === null && count($photos) > 0): ?>
+                                <!-- Top-level: offer download of all photos -->
+                                <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
+                                   class="btn btn-success download-all-btn"
+                                   onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download All (<?php echo count($photos); ?>)
+                                </a>
+                                <p class="text-muted mt-2 mb-0">
+                                    <small><i class="fas fa-file-archive"></i> Downloads as ZIP file in one folder</small>
+                                </p>
+                            <?php elseif (!$has_subfolders && count($photos) > 0): ?>
+                                <!-- Flat view -->
+                                <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
+                                   class="btn btn-success download-all-btn"
+                                   onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
+                                    <i class="fas fa-download me-2"></i> 
+                                    Download All (<?php echo count($photos); ?>)
+                                </a>
+                                <p class="text-muted mt-2 mb-0">
+                                    <small><i class="fas fa-file-archive"></i> Downloads as ZIP file in one folder</small>
+                                </p>
+                            <?php elseif ($has_subfolders && $current_album !== null && count($visible_photos) > 0): ?>
+                                <!-- Album view: download only this album -->
+                                <a href="?token=<?php echo urlencode($token); ?>&album=<?php echo urlencode($current_album); ?>&download_all=1"
+                                   class="btn btn-success album-download-btn"
+                                   onclick="return startDownload(this.href, <?php echo json_encode(($current_album === '' ? 'General' : $current_album) . '.zip'); ?>)">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download Album (<?php echo count($visible_photos); ?>)
+                                </a>
+                                <p class="text-muted mt-2 mb-0">
+                                    <small><i class="fas fa-file-archive"></i> Downloads album as ZIP</small>
+                                </p>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -741,67 +956,194 @@ $whatsapp_number = getSetting('whatsapp_number');
                 </div>
             </div>
 
-            <!-- Files Grid -->
-            <?php if (empty($photos)): ?>
-                <div class="text-center py-5">
-                    <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
-                    <p class="text-muted">No files in this folder yet.</p>
-                </div>
-            <?php else: ?>
-                <div class="photo-grid">
-                    <?php foreach ($photos as $photo): 
-                        $file_url = UPLOAD_URL . $photo['image_path'];
-                        $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
-                        $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
-                        $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
-                        $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
-                        $pf_icon = getFileTypeIcon($pf_ext);
-                    ?>
-                        <div class="photo-card">
-                            <?php if ($is_video): ?>
-                                <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url); ?>')" style="cursor: pointer;">
-                                    <video muted preload="metadata">
-                                        <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
-                                    </video>
-                                    <div class="video-play-overlay">
-                                        <i class="fas fa-play-circle"></i>
+            <?php if ($has_subfolders && $current_album !== null): ?>
+            <!-- Breadcrumb navigation when inside an album -->
+            <div class="breadcrumb-nav">
+                <a href="?token=<?php echo urlencode($token); ?>">
+                    <i class="fas fa-folder"></i> <?php echo htmlspecialchars($folder['folder_name']); ?>
+                </a>
+                <span class="separator"><i class="fas fa-chevron-right" style="font-size:0.75rem;"></i></span>
+                <span>
+                    <i class="fas fa-folder-open text-warning"></i>
+                    <?php echo htmlspecialchars($current_album === '' ? 'General' : $current_album); ?>
+                </span>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($has_subfolders && $current_album === null): ?>
+                <!-- ── Sub-folder / Album Cards View ── -->
+                <?php if (empty($subfolders)): ?>
+                    <div class="text-center py-5">
+                        <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+                        <p class="text-muted">No albums in this folder yet.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="subfolder-grid">
+                        <?php foreach ($subfolders as $sf_name => $sf_photos):
+                            $display_name = ($sf_name === '') ? 'General' : $sf_name;
+                            $album_url = '?token=' . urlencode($token) . '&album=' . urlencode($sf_name);
+                            // Use first few images as preview thumbnails
+                            $thumb_photos = array_filter($sf_photos, function($p) {
+                                return (!isset($p['file_type']) || $p['file_type'] === 'photo');
+                            });
+                            $thumb_photos = array_values($thumb_photos);
+                        ?>
+                            <a href="<?php echo htmlspecialchars($album_url, ENT_QUOTES, 'UTF-8'); ?>" class="subfolder-card">
+                                <div class="subfolder-thumb">
+                                    <?php if (!empty($thumb_photos)): ?>
+                                        <div class="thumb-preview">
+                                            <?php foreach (array_slice($thumb_photos, 0, 4) as $tp): ?>
+                                                <img src="<?php echo htmlspecialchars(UPLOAD_URL . $tp['image_path'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                     alt=""
+                                                     loading="lazy">
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <i class="fas fa-folder folder-icon-overlay"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-folder folder-icon"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="subfolder-info">
+                                    <div class="subfolder-name" title="<?php echo htmlspecialchars($display_name); ?>">
+                                        <?php echo htmlspecialchars($display_name); ?>
                                     </div>
-                                    <span class="badge bg-danger file-type-badge">VIDEO</span>
+                                    <div class="subfolder-count">
+                                        <i class="fas fa-photo-video"></i>
+                                        <?php echo count($sf_photos); ?> file<?php echo count($sf_photos) !== 1 ? 's' : ''; ?>
+                                    </div>
                                 </div>
-                            <?php elseif ($is_generic): ?>
-                                <div class="video-container d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
-                                    <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;"></i>
-                                    <small class="mt-2 text-muted text-uppercase" style="font-size:0.8rem;"><?php echo htmlspecialchars($pf_ext ?: 'FILE'); ?></small>
-                                    <span class="badge bg-secondary file-type-badge">FILE</span>
-                                </div>
-                            <?php else: ?>
-                                <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 
-                                     alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                     onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
-                                     loading="lazy"
-                                     style="cursor: pointer;">
-                            <?php endif; ?>
-                            
-                            <div class="photo-info">
-                                <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
-                                    <?php echo htmlspecialchars($photo['title']); ?>
-                                </div>
-                                
-                                <?php if ($can_download): ?>
-                                    <a href="?token=<?php echo urlencode($token); ?>&download_photo=<?php echo $photo['id']; ?>"
-                                       class="btn download-btn"
-                                       onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
-                                        <i class="fas fa-download me-1"></i> Download
-                                    </a>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+            <?php elseif ($has_subfolders && $current_album !== null): ?>
+                <!-- ── Album Drill-Down: Photos in Selected Album ── -->
+                <?php if (empty($visible_photos)): ?>
+                    <div class="text-center py-5">
+                        <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
+                        <p class="text-muted">No files in this album.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="photo-grid">
+                        <?php foreach ($visible_photos as $photo): 
+                            $file_url = UPLOAD_URL . $photo['image_path'];
+                            $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                            $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
+                            $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
+                            $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                            $pf_icon = getFileTypeIcon($pf_ext);
+                        ?>
+                            <div class="photo-card">
+                                <?php if ($is_video): ?>
+                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')" style="cursor: pointer;">
+                                        <video muted preload="metadata">
+                                            <source src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>#t=0.5" type="video/mp4">
+                                        </video>
+                                        <div class="video-play-overlay">
+                                            <i class="fas fa-play-circle"></i>
+                                        </div>
+                                        <span class="badge bg-danger file-type-badge">VIDEO</span>
+                                    </div>
+                                <?php elseif ($is_generic): ?>
+                                    <div class="video-container d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
+                                        <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;"></i>
+                                        <small class="mt-2 text-muted text-uppercase" style="font-size:0.8rem;"><?php echo htmlspecialchars($pf_ext ?: 'FILE'); ?></small>
+                                        <span class="badge bg-secondary file-type-badge">FILE</span>
+                                    </div>
                                 <?php else: ?>
-                                    <button class="btn btn-secondary w-100" disabled>
-                                        <i class="fas fa-ban me-1"></i> Limit Reached
-                                    </button>
+                                    <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                         alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
+                                         loading="lazy"
+                                         style="cursor: pointer;">
                                 <?php endif; ?>
+                                
+                                <div class="photo-info">
+                                    <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
+                                        <?php echo htmlspecialchars($photo['title']); ?>
+                                    </div>
+                                    
+                                    <?php if ($can_download): ?>
+                                        <a href="?token=<?php echo urlencode($token); ?>&download_photo=<?php echo $photo['id']; ?>"
+                                           class="btn download-btn"
+                                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-secondary w-100" disabled>
+                                            <i class="fas fa-ban me-1"></i> Limit Reached
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+            <?php else: ?>
+                <!-- ── Flat View (no sub-folders): show all photos ── -->
+                <?php if (empty($photos)): ?>
+                    <div class="text-center py-5">
+                        <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
+                        <p class="text-muted">No files in this folder yet.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="photo-grid">
+                        <?php foreach ($photos as $photo): 
+                            $file_url = UPLOAD_URL . $photo['image_path'];
+                            $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                            $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
+                            $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
+                            $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                            $pf_icon = getFileTypeIcon($pf_ext);
+                        ?>
+                            <div class="photo-card">
+                                <?php if ($is_video): ?>
+                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')" style="cursor: pointer;">
+                                        <video muted preload="metadata">
+                                            <source src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>#t=0.5" type="video/mp4">
+                                        </video>
+                                        <div class="video-play-overlay">
+                                            <i class="fas fa-play-circle"></i>
+                                        </div>
+                                        <span class="badge bg-danger file-type-badge">VIDEO</span>
+                                    </div>
+                                <?php elseif ($is_generic): ?>
+                                    <div class="video-container d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
+                                        <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;"></i>
+                                        <small class="mt-2 text-muted text-uppercase" style="font-size:0.8rem;"><?php echo htmlspecialchars($pf_ext ?: 'FILE'); ?></small>
+                                        <span class="badge bg-secondary file-type-badge">FILE</span>
+                                    </div>
+                                <?php else: ?>
+                                    <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 
+                                         alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
+                                         loading="lazy"
+                                         style="cursor: pointer;">
+                                <?php endif; ?>
+                                
+                                <div class="photo-info">
+                                    <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
+                                        <?php echo htmlspecialchars($photo['title']); ?>
+                                    </div>
+                                    
+                                    <?php if ($can_download): ?>
+                                        <a href="?token=<?php echo urlencode($token); ?>&download_photo=<?php echo $photo['id']; ?>"
+                                           class="btn download-btn"
+                                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-secondary w-100" disabled>
+                                            <i class="fas fa-ban me-1"></i> Limit Reached
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         <?php endif; ?>
         

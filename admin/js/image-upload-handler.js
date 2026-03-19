@@ -603,6 +603,7 @@ class ImageUploadHandler {
         const uploadId    = this._generateUploadId();
         const csrfToken   = baseFormData.get('csrf_token') || document.getElementById('csrf_token')?.value || '';
         const folderId    = baseFormData.get('folder_id')  || document.getElementById('folder_id')?.value  || '';
+        const subfolderName = baseFormData.get('subfolder_name') || document.getElementById('subfolderNameInput')?.value || '';
 
         for (let i = 0; i < totalChunks; i++) {
             const start = i * chunkSize;
@@ -617,6 +618,9 @@ class ImageUploadHandler {
             fd.append('total_chunks', totalChunks);
             fd.append('original_name', file.name);
             fd.append('chunk',        chunk, file.name);
+            if (subfolderName) {
+                fd.append('subfolder_name', subfolderName);
+            }
             if (replaceExistingId) {
                 fd.append('replace_existing', '1');
                 fd.append('existing_id', replaceExistingId);
