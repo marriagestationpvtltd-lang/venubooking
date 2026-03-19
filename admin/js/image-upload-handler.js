@@ -233,12 +233,10 @@ class ImageUploadHandler {
             </div>`;
         } else if (!this.isImageFile(file)) {
             // Show generic file icon for non-image, non-video files
-            const ext = file.name.split('.').pop().toLowerCase();
-            const iconMap = {pdf:'fa-file-pdf text-danger',doc:'fa-file-word text-primary',docx:'fa-file-word text-primary',xls:'fa-file-excel text-success',xlsx:'fa-file-excel text-success',ppt:'fa-file-powerpoint text-warning',pptx:'fa-file-powerpoint text-warning',zip:'fa-file-archive text-secondary',rar:'fa-file-archive text-secondary','7z':'fa-file-archive text-secondary',tar:'fa-file-archive text-secondary',gz:'fa-file-archive text-secondary',mp3:'fa-file-audio text-info',wav:'fa-file-audio text-info',txt:'fa-file-alt text-muted',csv:'fa-file-csv text-success'};
-            const iconClass = iconMap[ext] || 'fa-file text-secondary';
+            const fileInfo = this.getFileIcon(file.name);
             container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
-                <i class="fas ${iconClass}" style="font-size:2rem;"></i>
-                <small style="margin-top:4px;font-size:0.65rem;color:#888;text-transform:uppercase;">${this.escapeHtml(ext) || 'FILE'}</small>
+                <i class="${fileInfo.icon}" style="font-size:2rem;color:${fileInfo.color};"></i>
+                <small style="margin-top:4px;font-size:0.65rem;color:#888;">${fileInfo.label}</small>
             </div>`;
         } else {
             try {
@@ -248,13 +246,6 @@ class ImageUploadHandler {
                 console.error('Error generating thumbnail:', error);
                 container.innerHTML = '<i class="fas fa-image text-muted"></i>';
             }
-        } else {
-            // Generic file - show appropriate icon
-            const fileInfo = this.getFileIcon(file.name);
-            container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
-                <i class="${fileInfo.icon}" style="font-size:2rem;color:${fileInfo.color};"></i>
-                <small style="margin-top:4px;font-size:0.65rem;color:#888;">${fileInfo.label}</small>
-            </div>`;
         }
     }
 
