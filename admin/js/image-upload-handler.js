@@ -248,13 +248,6 @@ class ImageUploadHandler {
                 console.error('Error generating thumbnail:', error);
                 container.innerHTML = '<i class="fas fa-image text-muted"></i>';
             }
-        } else {
-            // Generic file - show appropriate icon
-            const fileInfo = this.getFileIcon(file.name);
-            container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
-                <i class="${fileInfo.icon}" style="font-size:2rem;color:${fileInfo.color};"></i>
-                <small style="margin-top:4px;font-size:0.65rem;color:#888;">${fileInfo.label}</small>
-            </div>`;
         }
     }
 
