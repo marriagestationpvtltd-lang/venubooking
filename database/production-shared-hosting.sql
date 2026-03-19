@@ -589,6 +589,49 @@ CREATE TABLE IF NOT EXISTS shared_photos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- PLANNER SYSTEM TABLES
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS event_plans (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    event_date DATE DEFAULT NULL,
+    customer_id INT DEFAULT NULL,
+    total_budget DECIMAL(12,2) DEFAULT 0,
+    description TEXT,
+    status ENUM('planning', 'in_progress', 'completed', 'cancelled') DEFAULT 'planning',
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_status (status),
+    INDEX idx_event_date (event_date),
+    INDEX idx_customer_id (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS plan_tasks (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    plan_id INT NOT NULL,
+    task_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'General',
+    description TEXT,
+    due_date DATE DEFAULT NULL,
+    estimated_cost DECIMAL(10,2) DEFAULT 0,
+    actual_cost DECIMAL(10,2) DEFAULT 0,
+    status ENUM('pending', 'in_progress', 'completed') DEFAULT 'pending',
+    priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (plan_id) REFERENCES event_plans(id) ON DELETE CASCADE,
+    INDEX idx_plan_id (plan_id),
+    INDEX idx_status (status),
+    INDEX idx_due_date (due_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- INSERT DEFAULT DATA
 -- ============================================================================
 
@@ -674,7 +717,8 @@ Date changes are subject to availability and must be requested at least 15 days 
 ('smtp_port', '587', 'number'),
 ('smtp_username', '', 'text'),
 ('smtp_password', '', 'password'),
-('smtp_encryption', 'tls', 'text');
+('smtp_encryption', 'tls', 'text'),
+('google_review_link', '', 'url');
 
 -- Insert Venues
 INSERT IGNORE INTO venues (name, location, address, description, image, contact_phone, contact_email) VALUES
@@ -1050,6 +1094,89 @@ SELECT '' as '';
 SELECT '============================================' as '';
 SELECT 'SETUP COMPLETE - System Ready to Use!' as 'Final Status';
 SELECT '============================================' as '';
+
+-- ============================================================================
+-- TRIGGERS
+-- ============================================================================
+
+-- Trigger: Keep booking_status and advance_payment_received in sync with payment_status.
+-- Logic:
+--   payment_status = 'pending'           → booking_status = 'pending',   advance_payment_received = 0
+--   payment_status = 'partial' or 'paid' → booking_status = 'confirmed', advance_payment_received = 1
+--   payment_status = 'cancelled'         → no automatic change
+DROP TRIGGER IF EXISTS trg_bookings_payment_status_sync;
+
+DELIMITER $$
+CREATE TRIGGER trg_bookings_payment_status_sync
+BEFORE UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    IF NEW.payment_status <> OLD.payment_status THEN
+        CASE NEW.payment_status
+            WHEN 'pending' THEN
+                SET NEW.booking_status          = 'pending';
+                SET NEW.advance_payment_received = 0;
+            WHEN 'partial' THEN
+                SET NEW.booking_status          = 'confirmed';
+                SET NEW.advance_payment_received = 1;
+            WHEN 'paid' THEN
+                SET NEW.booking_status          = 'confirmed';
+                SET NEW.advance_payment_received = 1;
+            ELSE
+                BEGIN END; -- 'cancelled' or any future status: leave as-is
+        END CASE;
+    END IF;
+END$$
+DELIMITER ;
+
+-- Triggers: Keep shared_folders.photo_count accurate when photos are added/removed/moved.
+DROP TRIGGER IF EXISTS trg_shared_photos_insert;
+DROP TRIGGER IF EXISTS trg_shared_photos_delete;
+DROP TRIGGER IF EXISTS trg_shared_photos_update;
+
+DELIMITER $$
+CREATE TRIGGER trg_shared_photos_insert
+AFTER INSERT ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF NEW.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_delete
+AFTER DELETE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_update
+AFTER UPDATE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL AND (NEW.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+    IF NEW.folder_id IS NOT NULL AND (OLD.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+DELIMITER ;
 
 -- ============================================================================
 -- SCHEMA UPGRADES: Add any missing columns to existing tables
