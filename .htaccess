@@ -61,8 +61,16 @@ Options +FollowSymLinks
     # Permissions Policy (disable unnecessary browser features)
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 
-    # Strict-Transport-Security (HSTS) - uncomment once HTTPS is fully configured
-    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    # Strict-Transport-Security (HSTS) — enforces HTTPS for 1 year
+    # Only enable once HTTPS is fully configured on the server
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+    # Content Security Policy
+    # Allows same-origin scripts/styles plus the CDNs used by the application.
+    # TODO: Remove 'unsafe-inline' from script-src and style-src by migrating
+    # inline scripts/styles to external files or using nonce-based CSP. Keeping
+    # 'unsafe-inline' for now to avoid breaking existing functionality.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob:; font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
 </IfModule>
 
 # ============================================================================

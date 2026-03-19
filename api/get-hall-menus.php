@@ -64,9 +64,10 @@ try {
     ]);
     
 } catch (Exception $e) {
+    error_log('get-hall-menus error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Error fetching menus: ' . $e->getMessage()
+        'message' => 'Error fetching menus. Please try again.'
     ]);
 }
