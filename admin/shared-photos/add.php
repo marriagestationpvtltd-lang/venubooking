@@ -138,7 +138,7 @@ $error_message = '';
         form: '#uploadForm',
         maxWidth: 1920,
         maxHeight: 1920,
-        quality: 0.90, // Higher quality for shared photos
+        skipCompression: true, // Deliver original quality for shared photos
         maxFileSize: 10 * 1024 * 1024, // 10MB
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {
