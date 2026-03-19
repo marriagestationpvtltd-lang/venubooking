@@ -528,6 +528,7 @@ CREATE TABLE IF NOT EXISTS shared_photos (
     description TEXT,
     image_path VARCHAR(255) NOT NULL COMMENT 'Relative path to the file (photo or video)',
     file_size BIGINT UNSIGNED DEFAULT NULL COMMENT 'File size in bytes, important for large video files',
+    thumbnail_path VARCHAR(255) DEFAULT NULL COMMENT 'Relative path to auto-generated preview thumbnail, NULL if not generated',
     download_token VARCHAR(64) NOT NULL UNIQUE COMMENT 'Unique token for download link',
     download_count INT DEFAULT 0 COMMENT 'Number of times this file has been downloaded',
     max_downloads INT DEFAULT NULL COMMENT 'Maximum allowed downloads, NULL for unlimited',

@@ -244,6 +244,18 @@ if ($is_video) {
 // ---------------------------------------------------------------
 // Persist to database
 // ---------------------------------------------------------------
+
+// Generate preview thumbnail for photo uploads (for fast grid display in folder.php)
+$thumbnail_relative_path = null;
+if ($is_photo) {
+    $thumb_filename = 'thumb_' . pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
+    $thumb_relative = 'folders/' . $folder_id . '/' . $thumb_filename;
+    $thumb_path     = UPLOAD_PATH . $thumb_relative;
+    if (generateSharedFolderThumbnail($output_path, $thumb_path)) {
+        $thumbnail_relative_path = $thumb_relative;
+    }
+}
+
 $download_token = bin2hex(random_bytes(32));
 $title_raw      = pathinfo($original_name, PATHINFO_FILENAME);
 $title          = $title_raw !== ''
@@ -257,7 +269,7 @@ if (isset($_POST['replace_existing']) && $_POST['replace_existing'] === '1') {
     $replace_existing_id = intval($_POST['existing_id'] ?? 0);
 }
 if ($replace_existing_id) {
-    $old_stmt = $db->prepare("SELECT id, image_path FROM shared_photos WHERE id = ? AND folder_id = ?");
+    $old_stmt = $db->prepare("SELECT id, image_path, thumbnail_path FROM shared_photos WHERE id = ? AND folder_id = ?");
     $old_stmt->execute([$replace_existing_id, $folder_id]);
     $old_photo = $old_stmt->fetch();
     if ($old_photo) {
@@ -269,8 +281,8 @@ if ($replace_existing_id) {
 
 try {
     $sql = "INSERT INTO shared_photos
-                (folder_id, file_type, title, description, image_path, file_size, download_token, status, created_by)
-            VALUES (?, ?, ?, '', ?, ?, ?, 'active', ?)";
+                (folder_id, file_type, title, description, image_path, file_size, thumbnail_path, download_token, status, created_by)
+            VALUES (?, ?, ?, '', ?, ?, ?, ?, 'active', ?)";
     $stmt   = $db->prepare($sql);
     $result = $stmt->execute([
         $folder_id,
@@ -278,6 +290,7 @@ try {
         $title,
         $relative_path,
         $total_size,
+        $thumbnail_relative_path,
         $download_token,
         $current_user['id'],
     ]);
@@ -293,6 +306,14 @@ try {
             if ($real_old_path && $real_upload_base && strpos($real_old_path, $real_upload_base . DIRECTORY_SEPARATOR) === 0) {
                 if (file_exists($old_file_path)) {
                     @unlink($old_file_path);
+                }
+            }
+            // Delete old thumbnail if it exists
+            if (!empty($old_photo['thumbnail_path'])) {
+                $old_thumb_path = UPLOAD_PATH . $old_photo['thumbnail_path'];
+                $real_old_thumb = realpath($old_thumb_path);
+                if ($real_old_thumb && $real_upload_base && strpos($real_old_thumb, $real_upload_base . DIRECTORY_SEPARATOR) === 0) {
+                    @unlink($old_thumb_path);
                 }
             }
         }

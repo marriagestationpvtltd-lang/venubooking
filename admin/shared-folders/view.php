@@ -37,7 +37,7 @@ if (!$folder) {
 if (isset($_GET['delete_photo']) && is_numeric($_GET['delete_photo'])) {
     $photo_id = intval($_GET['delete_photo']);
     
-    $photo_stmt = $db->prepare("SELECT image_path, title FROM shared_photos WHERE id = ? AND folder_id = ?");
+    $photo_stmt = $db->prepare("SELECT image_path, thumbnail_path, title FROM shared_photos WHERE id = ? AND folder_id = ?");
     $photo_stmt->execute([$photo_id, $folder_id]);
     $photo = $photo_stmt->fetch();
     
@@ -52,6 +52,15 @@ if (isset($_GET['delete_photo']) && is_numeric($_GET['delete_photo'])) {
             if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0) {
                 if (file_exists($file_path)) {
                     unlink($file_path);
+                }
+            }
+
+            // Delete thumbnail if it exists
+            if (!empty($photo['thumbnail_path'])) {
+                $thumb_file_path = UPLOAD_PATH . $photo['thumbnail_path'];
+                $real_thumb_path = realpath($thumb_file_path);
+                if ($real_thumb_path && $real_upload_path && strpos($real_thumb_path, $real_upload_path) === 0) {
+                    @unlink($thumb_file_path);
                 }
             }
             
@@ -391,6 +400,10 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                     $file_url = UPLOAD_URL . $photo['image_path'];
                     $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                     $file_exists = file_exists(UPLOAD_PATH . $photo['image_path']);
+                    // Use thumbnail for grid preview if available; fall back to original
+                    $thumb_url = (!empty($photo['thumbnail_path']) && file_exists(UPLOAD_PATH . $photo['thumbnail_path']))
+                        ? UPLOAD_URL . $photo['thumbnail_path']
+                        : $file_url;
                 ?>
                     <div class="photo-item" data-photo-id="<?php echo $photo['id']; ?>">
                         <input type="checkbox" class="form-check-input photo-checkbox" value="<?php echo $photo['id']; ?>">
@@ -407,7 +420,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                                     <span class="badge bg-danger video-badge">VIDEO</span>
                                 </div>
                             <?php else: ?>
-                                <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>">
+                                <img src="<?php echo htmlspecialchars($thumb_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy">
                             <?php endif; ?>
                         <?php else: ?>
                             <div class="bg-secondary text-white d-flex align-items-center justify-content-center h-100">
