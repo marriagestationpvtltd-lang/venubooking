@@ -227,16 +227,7 @@ if (!move_uploaded_file($file['tmp_name'], $upload_path)) {
     exit;
 }
 
-// Generate preview thumbnail for photo uploads (for fast grid display in folder.php)
 $thumbnail_relative_path = null;
-if ($is_photo) {
-    $thumb_filename = 'thumb_' . pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
-    $thumb_relative = 'folders/' . $folder_id . '/' . $thumb_filename;
-    $thumb_path     = UPLOAD_PATH . $thumb_relative;
-    if (generateSharedFolderThumbnail($upload_path, $thumb_path)) {
-        $thumbnail_relative_path = $thumb_relative;
-    }
-}
 
 // If replacing an existing file, delete the old physical file and database record
 $replace_existing_id = 0;

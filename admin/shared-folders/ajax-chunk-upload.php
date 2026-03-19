@@ -245,16 +245,7 @@ if ($is_video) {
 // Persist to database
 // ---------------------------------------------------------------
 
-// Generate preview thumbnail for photo uploads (for fast grid display in folder.php)
 $thumbnail_relative_path = null;
-if ($is_photo) {
-    $thumb_filename = 'thumb_' . pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
-    $thumb_relative = 'folders/' . $folder_id . '/' . $thumb_filename;
-    $thumb_path     = UPLOAD_PATH . $thumb_relative;
-    if (generateSharedFolderThumbnail($output_path, $thumb_path)) {
-        $thumbnail_relative_path = $thumb_relative;
-    }
-}
 
 $download_token = bin2hex(random_bytes(32));
 $title_raw      = pathinfo($original_name, PATHINFO_FILENAME);

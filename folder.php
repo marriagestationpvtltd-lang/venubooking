@@ -615,34 +615,24 @@ $site_logo = getSetting('site_logo');
                         $file_url = UPLOAD_URL . $photo['image_path'];
                         $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                         $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
-                        // Use thumbnail for grid preview if available; fall back to original
-                        $thumb_url = (!empty($photo['thumbnail_path']) && file_exists(UPLOAD_PATH . $photo['thumbnail_path']))
-                            ? UPLOAD_URL . $photo['thumbnail_path']
-                            : $file_url;
                     ?>
                         <div class="photo-card">
-                            <?php if (file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
-                                <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url); ?>')" style="cursor: pointer;">
-                                        <video muted preload="metadata">
-                                            <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
-                                        </video>
-                                        <div class="video-play-overlay">
-                                            <i class="fas fa-play-circle"></i>
-                                        </div>
-                                        <span class="badge bg-danger file-type-badge">VIDEO</span>
+                            <?php if ($is_video): ?>
+                                <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url); ?>')" style="cursor: pointer;">
+                                    <video muted preload="metadata">
+                                        <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
+                                    </video>
+                                    <div class="video-play-overlay">
+                                        <i class="fas fa-play-circle"></i>
                                     </div>
-                                <?php else: ?>
-                                    <img src="<?php echo htmlspecialchars($thumb_url); ?>" 
-                                         alt="<?php echo htmlspecialchars($photo['title']); ?>"
-                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>')"
-                                         loading="lazy"
-                                         style="cursor: pointer;">
-                                <?php endif; ?>
-                            <?php else: ?>
-                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
-                                    <i class="fas fa-<?php echo $is_video ? 'video' : 'image'; ?> fa-3x"></i>
+                                    <span class="badge bg-danger file-type-badge">VIDEO</span>
                                 </div>
+                            <?php else: ?>
+                                <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 
+                                     alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
+                                     loading="lazy"
+                                     style="cursor: pointer;">
                             <?php endif; ?>
                             
                             <div class="photo-info">
