@@ -248,7 +248,16 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+.ufp-eta {
+    font-size: 0.72rem;
+    color: #4CAF50;
+    font-weight: 500;
+    text-align: right;
+    min-height: 14px;
+    margin-bottom: 6px;
 }
 
 .ufp-bar-track {

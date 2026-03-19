@@ -211,6 +211,81 @@ $site_logo = getSetting('site_logo');
             font-size: 0.85rem;
             border-top: 1px solid #eee;
         }
+
+        /* ── Download Progress Overlay ── */
+        #downloadProgressOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        #downloadProgressOverlay.dl-active {
+            display: flex;
+        }
+        .dl-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 35px 30px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: dlFadeIn 0.3s ease;
+        }
+        @keyframes dlFadeIn {
+            from { opacity:0; transform:scale(0.9); }
+            to   { opacity:1; transform:scale(1);   }
+        }
+        .dl-icon {
+            font-size: 3rem;
+            color: var(--primary-green);
+            margin-bottom: 15px;
+        }
+        .dl-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        .dl-filename {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 18px;
+            word-break: break-all;
+        }
+        .dl-bar-wrap {
+            height: 12px;
+            background: #e8f5e9;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .dl-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+        .dl-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        .dl-size-info {
+            font-size: 0.78rem;
+            color: #aaa;
+        }
+        @keyframes dlIndeterminate {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
     </style>
 </head>
 <body>
@@ -248,7 +323,9 @@ $site_logo = getSetting('site_logo');
                     </div>
                 <?php endif; ?>
                 
-                <a href="?token=<?php echo urlencode($token); ?>&download=1" class="btn btn-success download-btn">
+                <a href="?token=<?php echo urlencode($token); ?>&download=1"
+                   class="btn btn-success download-btn"
+                   onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
                     <i class="fas fa-download me-2"></i> Download Photo
                 </a>
                 
@@ -283,5 +360,158 @@ $site_logo = getSetting('site_logo');
     
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+
+    <!-- Download Progress Overlay -->
+    <div id="downloadProgressOverlay">
+        <div class="dl-card">
+            <div class="dl-icon"><i class="fas fa-download" id="dlIcon"></i></div>
+            <div class="dl-title" id="dlTitle">Preparing Download…</div>
+            <div class="dl-filename" id="dlFilename"></div>
+            <div class="dl-bar-wrap">
+                <div class="dl-bar-fill" id="dlBar"></div>
+            </div>
+            <div class="dl-stats">
+                <span id="dlPercent">0%</span>
+                <span id="dlEta">Calculating…</span>
+                <span id="dlSpeed"></span>
+            </div>
+            <div class="dl-size-info" id="dlSizeInfo"></div>
+        </div>
+    </div>
+
+    <script>
+    function startDownload(url, defaultName) {
+        var overlay  = document.getElementById('downloadProgressOverlay');
+        var dlBar    = document.getElementById('dlBar');
+        var dlPct    = document.getElementById('dlPercent');
+        var dlEta    = document.getElementById('dlEta');
+        var dlSpd    = document.getElementById('dlSpeed');
+        var dlTitle  = document.getElementById('dlTitle');
+        var dlFile   = document.getElementById('dlFilename');
+        var dlSize   = document.getElementById('dlSizeInfo');
+        var dlIcon   = document.getElementById('dlIcon');
+
+        // Reset UI
+        dlBar.style.width   = '0%';
+        dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+        dlBar.style.backgroundSize = '';
+        dlBar.style.animation = '';
+        dlPct.textContent   = '0%';
+        dlEta.textContent   = 'Calculating…';
+        dlSpd.textContent   = '';
+        dlTitle.textContent = 'Preparing Download…';
+        dlFile.textContent  = defaultName || '';
+        dlSize.textContent  = '';
+        dlIcon.className    = 'fas fa-spinner fa-spin';
+
+        overlay.classList.add('dl-active');
+
+        var startTime = Date.now();
+
+        fetch(url)
+            .then(function(res) {
+                if (!res.ok) throw new Error('Server error ' + res.status);
+
+                var contentLength = res.headers.get('Content-Length');
+                var total = contentLength ? parseInt(contentLength, 10) : 0;
+
+                // Try to get filename from Content-Disposition header
+                var cd = res.headers.get('Content-Disposition');
+                var filename = defaultName || 'download';
+                if (cd) {
+                    var m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (m && m[1]) filename = m[1].replace(/['"]/g, '').trim();
+                }
+                dlFile.textContent = filename;
+
+                if (total > 0) {
+                    dlIcon.className    = 'fas fa-download';
+                    dlTitle.textContent = 'Downloading…';
+                    dlSize.textContent  = 'Total: ' + fmtBytes(total);
+                } else {
+                    // No Content-Length — show indeterminate bar
+                    dlIcon.className          = 'fas fa-spinner fa-spin';
+                    dlTitle.textContent       = 'Downloading…';
+                    dlEta.textContent         = '';
+                    dlBar.style.width         = '100%';
+                    dlBar.style.background    = 'linear-gradient(90deg,#4CAF50,#8BC34A,#4CAF50)';
+                    dlBar.style.backgroundSize = '200% 100%';
+                    dlBar.style.animation     = 'dlIndeterminate 1.5s linear infinite';
+                }
+
+                var reader = res.body.getReader();
+                var chunks = [];
+                var received = 0;
+
+                function pump() {
+                    return reader.read().then(function(r) {
+                        if (r.done) return { chunks: chunks, filename: filename };
+                        chunks.push(r.value);
+                        received += r.value.length;
+
+                        if (total > 0) {
+                            var elapsed = (Date.now() - startTime) / 1000;
+                            var pct     = Math.min(99, Math.round((received / total) * 100));
+                            var speed   = received / Math.max(elapsed, 0.1);
+                            var rem     = Math.ceil((total - received) / speed);
+
+                            dlBar.style.width   = pct + '%';
+                            dlPct.textContent   = pct + '%';
+                            dlSpd.textContent   = fmtBytes(speed) + '/s';
+                            dlEta.textContent   = rem > 0 ? fmtEta(rem) : 'Almost done…';
+                        } else {
+                            dlPct.textContent = fmtBytes(received);
+                        }
+                        return pump();
+                    });
+                }
+
+                return pump();
+            })
+            .then(function(result) {
+                var blob    = new Blob(result.chunks);
+                var blobUrl = URL.createObjectURL(blob);
+                var a       = document.createElement('a');
+                a.href      = blobUrl;
+                a.download  = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 200);
+
+                dlBar.style.width   = '100%';
+                dlBar.style.animation = '';
+                dlPct.textContent   = '100%';
+                dlEta.textContent   = 'Complete!';
+                dlSpd.textContent   = '';
+                dlTitle.textContent = 'Download Complete!';
+                dlIcon.className    = 'fas fa-check-circle';
+
+                setTimeout(function() { overlay.classList.remove('dl-active'); }, 2500);
+            })
+            .catch(function(err) {
+                console.error('Download error:', err);
+                overlay.classList.remove('dl-active');
+                // Fall back to direct navigation
+                window.location.href = url;
+            });
+
+        return false; // Prevent default link navigation
+    }
+
+    function fmtBytes(b) {
+        if (b < 1024)           return Math.round(b) + ' B';
+        if (b < 1048576)        return (b / 1024).toFixed(1) + ' KB';
+        if (b < 1073741824)     return (b / 1048576).toFixed(1) + ' MB';
+        return (b / 1073741824).toFixed(2) + ' GB';
+    }
+
+        function fmtEta(s) {
+            if (s < 5)   return 'Almost done…';
+            if (s < 60)  return '~' + s + ' sec';
+            var m = Math.floor(s / 60), r = s % 60;
+            if (m < 60)  return '~' + m + ' min' + (r ? ' ' + r + ' sec' : '');
+            var h = Math.floor(m / 60), rm = m % 60;
+            if (h < 24)  return '~' + h + ' hr' + (rm ? ' ' + rm + ' min' : '');
+            return 'Calculating…';
+        }
