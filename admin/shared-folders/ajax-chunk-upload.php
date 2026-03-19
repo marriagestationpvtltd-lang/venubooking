@@ -128,7 +128,7 @@ if ($received < $total_chunks) {
 // ---------------------------------------------------------------
 $folder_upload_dir = UPLOAD_PATH . 'folders/' . $folder_id . '/';
 if (!is_dir($folder_upload_dir)) {
-    if (!mkdir($folder_upload_dir, 0750, true)) {
+    if (!mkdir($folder_upload_dir, 0755, true)) {
         echo json_encode(['success' => false, 'message' => 'Failed to create upload directory.']);
         exit;
     }

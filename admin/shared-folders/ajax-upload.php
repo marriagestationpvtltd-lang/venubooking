@@ -182,11 +182,10 @@ if ($is_video) {
     }
 }
 
-// Create folder-specific upload directory with secure permissions
+// Create folder-specific upload directory
 $folder_upload_dir = UPLOAD_PATH . 'folders/' . $folder_id . '/';
 if (!is_dir($folder_upload_dir)) {
-    // Use 0750 for better security on shared hosting
-    if (!mkdir($folder_upload_dir, 0750, true)) {
+    if (!mkdir($folder_upload_dir, 0755, true)) {
         echo json_encode(['success' => false, 'message' => 'Failed to create upload directory.']);
         exit;
     }
