@@ -4,11 +4,16 @@
  * - Multiple file upload with progress indication
  * - Preview before upload
  * - Drag & drop support
+ * - Chunked upload for videos (up to 50 GB) using 5 MB slices
+ * - Non-intrusive floating progress bar (does NOT block the page)
  */
 
 class ImageUploadHandler {
     // Video MIME types supported for upload
     static VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
+
+    // Chunk size for large-file uploads: 5 MB
+    static CHUNK_SIZE = 5 * 1024 * 1024;
 
     constructor(options = {}) {
         // Set defaults first, then override with provided options
@@ -21,11 +26,12 @@ class ImageUploadHandler {
             maxWidth: 1920,
             maxHeight: 1920,
             quality: 0.85,
-            maxFileSize: 10 * 1024 * 1024, // 10MB before compression (photos only)
-            maxVideoSize: 8 * 1024 * 1024 * 1024, // 8GB for videos
+            maxFileSize: 50 * 1024 * 1024,           // 50 MB for photos
+            maxVideoSize: 50 * 1024 * 1024 * 1024,   // 50 GB for videos
             allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             allowVideos: true, // Allow video uploads alongside images
             uploadUrl: 'ajax-upload.php',
+            chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
             onUploadStart: () => {},
             onUploadProgress: () => {},
             onUploadComplete: () => {},
@@ -364,14 +370,14 @@ class ImageUploadHandler {
 
         this.options.onUploadStart();
 
-        // Show global loader
-        this.showGlobalLoader();
+        // Show non-intrusive floating progress bar
+        this.showFloatingProgress(0, '');
 
         let uploadedCount = 0;
         let errorCount = 0;
         const errors = [];
 
-        // Process and compress each file, then upload
+        // Process and upload each file
         for (let i = 0; i < this.files.length; i++) {
             const file = this.files[i];
             if (!file) continue;
@@ -383,6 +389,10 @@ class ImageUploadHandler {
                 preview.querySelector('.preview-status .badge').className = 'badge bg-info';
                 preview.querySelector('.preview-status .badge').textContent = isVideo ? 'Uploading...' : 'Compressing...';
             }
+
+            // Update floating progress label
+            const overallPct = Math.round((uploadedCount / activeFiles.length) * 100);
+            this.updateFloatingProgress(overallPct, this.truncateFilename(file.name, 30));
 
             try {
                 let fileToUpload = file;
@@ -406,13 +416,28 @@ class ImageUploadHandler {
                     preview.querySelector('.preview-progress').style.display = 'block';
                 }
 
-                // Upload file
-                const uploadFormData = new FormData(this.form);
-                uploadFormData.delete('images[]');
-                uploadFormData.append('images[]', fileToUpload);
-                uploadFormData.append('ajax_upload', '1');
+                let result;
 
-                const result = await this.uploadFile(uploadFormData, preview);
+                if (isVideo) {
+                    // Always use chunked upload for videos
+                    result = await this.uploadFileChunked(file, formData, preview, (pct) => {
+                        const base = Math.round((uploadedCount / activeFiles.length) * 100);
+                        const slice = Math.round(pct / activeFiles.length);
+                        this.updateFloatingProgress(base + slice, this.truncateFilename(file.name, 30));
+                    });
+                } else {
+                    // Direct upload for photos (≤ 50 MB after compression)
+                    const uploadFormData = new FormData(this.form);
+                    uploadFormData.delete('images[]');
+                    uploadFormData.append('images[]', fileToUpload);
+                    uploadFormData.append('ajax_upload', '1');
+
+                    result = await this.uploadFile(uploadFormData, preview, (pct) => {
+                        const base = Math.round((uploadedCount / activeFiles.length) * 100);
+                        const slice = Math.round(pct / activeFiles.length);
+                        this.updateFloatingProgress(base + slice, this.truncateFilename(file.name, 30));
+                    });
+                }
                 
                 if (result.success) {
                     uploadedCount++;
@@ -442,8 +467,9 @@ class ImageUploadHandler {
             }
         }
 
-        // Hide global loader
-        this.hideGlobalLoader();
+        // Complete and hide floating progress
+        this.updateFloatingProgress(100, 'Done!');
+        setTimeout(() => this.hideFloatingProgress(), 2000);
 
         // Re-enable upload button
         if (this.uploadButton) {
@@ -470,7 +496,7 @@ class ImageUploadHandler {
         }
     }
 
-    uploadFile(formData, preview) {
+    uploadFile(formData, preview, onProgress) {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             
@@ -479,9 +505,12 @@ class ImageUploadHandler {
                     const percent = Math.round((e.loaded / e.total) * 100);
                     if (preview) {
                         const progressBar = preview.querySelector('.progress-bar');
-                        progressBar.style.width = percent + '%';
-                        progressBar.setAttribute('aria-valuenow', percent);
+                        if (progressBar) {
+                            progressBar.style.width = percent + '%';
+                            progressBar.setAttribute('aria-valuenow', percent);
+                        }
                     }
+                    if (typeof onProgress === 'function') onProgress(percent);
                     this.options.onUploadProgress(percent);
                 }
             });
@@ -504,6 +533,89 @@ class ImageUploadHandler {
         });
     }
 
+    /**
+     * Upload a file in 5 MB chunks to ajax-chunk-upload.php.
+     * Reports per-chunk progress via onProgress(0-100).
+     */
+    async uploadFileChunked(file, baseFormData, preview, onProgress) {
+        const chunkSize   = ImageUploadHandler.CHUNK_SIZE;
+        const totalChunks = Math.ceil(file.size / chunkSize);
+        const uploadId    = this._generateUploadId();
+        const csrfToken   = baseFormData.get('csrf_token') || document.getElementById('csrf_token')?.value || '';
+        const folderId    = baseFormData.get('folder_id')  || document.getElementById('folder_id')?.value  || '';
+
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * chunkSize;
+            const end   = Math.min(start + chunkSize, file.size);
+            const chunk = file.slice(start, end);
+
+            const fd = new FormData();
+            fd.append('csrf_token',   csrfToken);
+            fd.append('folder_id',    folderId);
+            fd.append('upload_id',    uploadId);
+            fd.append('chunk_index',  i);
+            fd.append('total_chunks', totalChunks);
+            fd.append('original_name', file.name);
+            fd.append('chunk',        chunk, file.name);
+
+            const result = await this._uploadChunk(fd, preview, i, totalChunks, onProgress);
+
+            if (!result.success) {
+                return result; // Propagate error
+            }
+
+            if (result.complete) {
+                return result; // Final response
+            }
+        }
+
+        // Should not reach here; last chunk triggers assembly
+        return { success: false, message: 'Unexpected upload state.' };
+    }
+
+    _uploadChunk(formData, preview, chunkIndex, totalChunks, onProgress) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    // Per-file percent: completed chunks + this chunk's progress
+                    const chunkFraction = e.loaded / e.total;
+                    const percent = Math.round(((chunkIndex + chunkFraction) / totalChunks) * 100);
+
+                    if (preview) {
+                        const progressBar = preview.querySelector('.progress-bar');
+                        if (progressBar) {
+                            progressBar.style.width = percent + '%';
+                            progressBar.setAttribute('aria-valuenow', percent);
+                        }
+                    }
+                    if (typeof onProgress === 'function') onProgress(percent);
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                try {
+                    resolve(JSON.parse(xhr.responseText));
+                } catch (e) {
+                    reject(new Error('Invalid server response'));
+                }
+            });
+
+            xhr.addEventListener('error', () => reject(new Error('Network error during chunk upload')));
+
+            xhr.open('POST', this.options.chunkUploadUrl);
+            xhr.send(formData);
+        });
+    }
+
+    /** Generate a hex-encoded random upload ID (32 hex chars, URL-safe) */
+    _generateUploadId() {
+        const arr = new Uint8Array(16);
+        crypto.getRandomValues(arr);
+        return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     clearFiles() {
         this.files = [];
         this.processedFiles = [];
@@ -516,32 +628,57 @@ class ImageUploadHandler {
         this.updateUploadButton();
     }
 
-    showGlobalLoader() {
-        let loader = document.getElementById('uploadLoader');
-        if (!loader) {
-            loader = document.createElement('div');
-            loader.id = 'uploadLoader';
-            loader.className = 'upload-loader';
-            loader.innerHTML = `
-                <div class="upload-loader-content">
-                    <div class="spinner-border text-success mb-3" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mb-0">Compressing and uploading images...</p>
-                    <p class="text-muted small">Please wait, do not close this page</p>
+    /**
+     * Show a non-intrusive floating progress bar at the bottom of the screen.
+     * Does NOT block or dim the page.
+     */
+    showFloatingProgress(percent, filename) {
+        let bar = document.getElementById('uploadFloatingProgress');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'uploadFloatingProgress';
+            bar.className = 'upload-floating-progress';
+            bar.innerHTML = `
+                <div class="ufp-header">
+                    <span class="ufp-icon"><i class="fas fa-cloud-upload-alt"></i></span>
+                    <span class="ufp-title">Uploading…</span>
+                    <span class="ufp-percent">0%</span>
+                </div>
+                <div class="ufp-filename"></div>
+                <div class="ufp-bar-track">
+                    <div class="ufp-bar-fill"></div>
                 </div>
             `;
-            document.body.appendChild(loader);
+            document.body.appendChild(bar);
         }
-        loader.style.display = 'flex';
+        bar.style.display = 'block';
+        this.updateFloatingProgress(percent, filename);
     }
 
-    hideGlobalLoader() {
-        const loader = document.getElementById('uploadLoader');
-        if (loader) {
-            loader.style.display = 'none';
+    updateFloatingProgress(percent, filename) {
+        const bar = document.getElementById('uploadFloatingProgress');
+        if (!bar) return;
+        bar.querySelector('.ufp-percent').textContent = percent + '%';
+        bar.querySelector('.ufp-bar-fill').style.width = percent + '%';
+        if (filename) {
+            bar.querySelector('.ufp-filename').textContent = filename;
         }
     }
+
+    hideFloatingProgress() {
+        const bar = document.getElementById('uploadFloatingProgress');
+        if (bar) {
+            bar.classList.add('ufp-hide');
+            setTimeout(() => {
+                bar.style.display = 'none';
+                bar.classList.remove('ufp-hide');
+            }, 400);
+        }
+    }
+
+    // Keep legacy aliases so any external callers don't break
+    showGlobalLoader() { this.showFloatingProgress(0, ''); }
+    hideGlobalLoader() { this.hideFloatingProgress(); }
 
     showSuccess(message) {
         if (typeof Swal !== 'undefined') {
