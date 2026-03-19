@@ -250,6 +250,23 @@ $title          = $title_raw !== ''
     ? $title_raw
     : ($file_type_label === 'photo' ? 'Photo' : 'Video') . ' ' . date('Y-m-d H:i:s');
 
+// If replacing an existing file, remove its record and physical file
+$replace_existing_id = 0;
+$old_image_path = null;
+if (isset($_POST['replace_existing']) && $_POST['replace_existing'] === '1') {
+    $replace_existing_id = intval($_POST['existing_id'] ?? 0);
+}
+if ($replace_existing_id) {
+    $old_stmt = $db->prepare("SELECT id, image_path FROM shared_photos WHERE id = ? AND folder_id = ?");
+    $old_stmt->execute([$replace_existing_id, $folder_id]);
+    $old_photo = $old_stmt->fetch();
+    if ($old_photo) {
+        $old_image_path = $old_photo['image_path'];
+        $del_stmt = $db->prepare("DELETE FROM shared_photos WHERE id = ?");
+        $del_stmt->execute([$replace_existing_id]);
+    }
+}
+
 try {
     $sql = "INSERT INTO shared_photos
                 (folder_id, file_type, title, description, image_path, file_size, download_token, status, created_by)
@@ -267,18 +284,32 @@ try {
 
     if ($result) {
         $file_id = $db->lastInsertId();
+
+        // Delete old physical file now that the new record is committed
+        if ($old_image_path) {
+            $old_file_path = UPLOAD_PATH . $old_image_path;
+            $real_upload_base = realpath(UPLOAD_PATH);
+            $real_old_path    = realpath($old_file_path);
+            if ($real_old_path && $real_upload_base && strpos($real_old_path, $real_upload_base . DIRECTORY_SEPARATOR) === 0) {
+                if (file_exists($old_file_path)) {
+                    @unlink($old_file_path);
+                }
+            }
+        }
+
+        $action_word = ($replace_existing_id && $old_image_path) ? 'replaced' : 'uploaded';
         logActivity(
             $current_user['id'],
-            'Chunked upload ' . $file_type_label . ' to folder',
+            'Chunked ' . $action_word . ' ' . $file_type_label . ' in folder',
             'shared_photos',
             $file_id,
-            'Uploaded to folder: ' . $folder['folder_name']
+            ucfirst($action_word) . ' in folder: ' . $folder['folder_name']
         );
 
         echo json_encode([
             'success'  => true,
             'complete' => true,
-            'message'  => ucfirst($file_type_label) . ' uploaded successfully!',
+            'message'  => ucfirst($file_type_label) . ' ' . $action_word . ' successfully!',
             'image'    => [
                 'id'        => $file_id,
                 'title'     => $title,

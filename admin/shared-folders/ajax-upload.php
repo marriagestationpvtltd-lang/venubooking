@@ -21,6 +21,40 @@ if (!isLoggedIn()) {
 $current_user = getCurrentUser();
 $db = getDB();
 
+// Handle duplicate check request (lightweight pre-upload check)
+if (isset($_POST['ajax_check_duplicate'])) {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        echo json_encode(['exists' => false]);
+        exit;
+    }
+
+    $check_folder_id = intval($_POST['folder_id'] ?? 0);
+    $check_filename  = trim($_POST['filename'] ?? '');
+
+    if ($check_folder_id && $check_filename !== '') {
+        $title_to_check = pathinfo($check_filename, PATHINFO_FILENAME);
+
+        $fstmt = $db->prepare("SELECT id FROM shared_folders WHERE id = ?");
+        $fstmt->execute([$check_folder_id]);
+        if ($fstmt->fetch()) {
+            $dup_stmt = $db->prepare("SELECT id, title FROM shared_photos WHERE folder_id = ? AND title = ?");
+            $dup_stmt->execute([$check_folder_id, $title_to_check]);
+            $existing = $dup_stmt->fetch();
+            if ($existing) {
+                echo json_encode([
+                    'exists'         => true,
+                    'existing_id'    => $existing['id'],
+                    'existing_title' => $existing['title'],
+                ]);
+                exit;
+            }
+        }
+    }
+
+    echo json_encode(['exists' => false]);
+    exit;
+}
+
 // Check if this is an AJAX upload request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['ajax_upload'])) {
     echo json_encode(['success' => false, 'message' => 'Invalid request.']);
@@ -193,6 +227,23 @@ if (!move_uploaded_file($file['tmp_name'], $upload_path)) {
     exit;
 }
 
+// If replacing an existing file, delete the old physical file and database record
+$replace_existing_id = 0;
+$old_image_path = null;
+if (isset($_POST['replace_existing']) && $_POST['replace_existing'] === '1') {
+    $replace_existing_id = intval($_POST['existing_id'] ?? 0);
+}
+if ($replace_existing_id) {
+    $old_stmt = $db->prepare("SELECT id, image_path FROM shared_photos WHERE id = ? AND folder_id = ?");
+    $old_stmt->execute([$replace_existing_id, $folder_id]);
+    $old_photo = $old_stmt->fetch();
+    if ($old_photo) {
+        $old_image_path = $old_photo['image_path'];
+        $del_stmt = $db->prepare("DELETE FROM shared_photos WHERE id = ?");
+        $del_stmt->execute([$replace_existing_id]);
+    }
+}
+
 // Generate unique download token
 $download_token = bin2hex(random_bytes(32));
 
@@ -217,12 +268,25 @@ try {
     
     if ($result) {
         $file_id = $db->lastInsertId();
-        
-        logActivity($current_user['id'], 'Uploaded ' . $file_type . ' to folder', 'shared_photos', $file_id, "Uploaded to folder: " . $folder['folder_name']);
+
+        // Delete old physical file now that the new record is committed
+        if ($old_image_path) {
+            $old_file_path = UPLOAD_PATH . $old_image_path;
+            $real_upload_path = realpath(UPLOAD_PATH);
+            $real_old_path    = realpath($old_file_path);
+            if ($real_old_path && $real_upload_path && strpos($real_old_path, $real_upload_path . DIRECTORY_SEPARATOR) === 0) {
+                if (file_exists($old_file_path)) {
+                    @unlink($old_file_path);
+                }
+            }
+        }
+
+        $action_word = ($replace_existing_id && $old_image_path) ? 'replaced' : 'uploaded';
+        logActivity($current_user['id'], ucfirst($action_word) . ' ' . $file_type . ' in folder', 'shared_photos', $file_id, ucfirst($action_word) . " in folder: " . $folder['folder_name']);
         
         echo json_encode([
             'success' => true,
-            'message' => ucfirst($file_type) . ' uploaded successfully!',
+            'message' => ucfirst($file_type) . ' ' . $action_word . ' successfully!',
             'image' => [
                 'id' => $file_id,
                 'title' => $title,

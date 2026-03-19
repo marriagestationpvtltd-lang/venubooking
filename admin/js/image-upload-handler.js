@@ -42,6 +42,7 @@ class ImageUploadHandler {
 
         this.files = [];
         this.processedFiles = [];
+        this._duplicateDecision = null; // Tracks "replace all" / "skip all" choice for the current batch
         this.init();
     }
 
@@ -375,7 +376,11 @@ class ImageUploadHandler {
 
         let uploadedCount = 0;
         let errorCount = 0;
+        let skipCount = 0;
         const errors = [];
+
+        // Reset per-batch duplicate decision
+        this._duplicateDecision = null;
 
         // Process and upload each file
         for (let i = 0; i < this.files.length; i++) {
@@ -396,6 +401,34 @@ class ImageUploadHandler {
 
             try {
                 let fileToUpload = file;
+
+                // Pre-check for duplicate before doing any compression or upload work
+                const dupFormData = new FormData(this.form);
+                const dupCheck = await this.checkDuplicate(file.name, dupFormData);
+                let replaceExistingId = 0;
+
+                if (dupCheck.exists) {
+                    let decision = this._duplicateDecision;
+
+                    if (decision !== 'replace_all' && decision !== 'skip_all') {
+                        // No global decision yet — ask the user
+                        decision = await this.showDuplicateDialog(file.name);
+                        if (decision === 'replace_all') this._duplicateDecision = 'replace_all';
+                        else if (decision === 'skip_all') this._duplicateDecision = 'skip_all';
+                    }
+
+                    if (decision === 'skip' || decision === 'skip_all') {
+                        skipCount++;
+                        if (preview) {
+                            preview.querySelector('.preview-status .badge').className = 'badge bg-secondary';
+                            preview.querySelector('.preview-status .badge').textContent = 'Skipped';
+                        }
+                        continue; // Move to next file
+                    }
+
+                    // Replace: remember the ID of the file to overwrite
+                    replaceExistingId = dupCheck.existing_id;
+                }
 
                 if (!isVideo) {
                     // Compress image files only
@@ -424,13 +457,17 @@ class ImageUploadHandler {
                         const base = Math.round((uploadedCount / activeFiles.length) * 100);
                         const slice = Math.round(pct / activeFiles.length);
                         this.updateFloatingProgress(base + slice, this.truncateFilename(file.name, 30));
-                    });
+                    }, replaceExistingId);
                 } else {
                     // Direct upload for photos (≤ 50 MB after compression)
                     const uploadFormData = new FormData(this.form);
                     uploadFormData.delete('images[]');
                     uploadFormData.append('images[]', fileToUpload);
                     uploadFormData.append('ajax_upload', '1');
+                    if (replaceExistingId) {
+                        uploadFormData.append('replace_existing', '1');
+                        uploadFormData.append('existing_id', replaceExistingId);
+                    }
 
                     result = await this.uploadFile(uploadFormData, preview, (pct) => {
                         const base = Math.round((uploadedCount / activeFiles.length) * 100);
@@ -478,10 +515,16 @@ class ImageUploadHandler {
         }
 
         // Show results
-        this.options.onUploadComplete({ uploadedCount, errorCount, errors });
+        this.options.onUploadComplete({ uploadedCount, errorCount, skipCount, errors });
 
         if (uploadedCount > 0) {
-            this.showSuccess(`${uploadedCount} file${uploadedCount > 1 ? 's' : ''} uploaded successfully!`);
+            let successMsg = `${uploadedCount} file${uploadedCount > 1 ? 's' : ''} uploaded successfully!`;
+            if (skipCount > 0) {
+                successMsg += ` (${skipCount} skipped)`;
+            }
+            this.showSuccess(successMsg);
+        } else if (skipCount > 0 && errorCount === 0) {
+            this.showSuccess(`${skipCount} file${skipCount > 1 ? 's' : ''} skipped.`);
         }
         
         if (errors.length > 0) {
@@ -537,7 +580,7 @@ class ImageUploadHandler {
      * Upload a file in 5 MB chunks to ajax-chunk-upload.php.
      * Reports per-chunk progress via onProgress(0-100).
      */
-    async uploadFileChunked(file, baseFormData, preview, onProgress) {
+    async uploadFileChunked(file, baseFormData, preview, onProgress, replaceExistingId = 0) {
         const chunkSize   = ImageUploadHandler.CHUNK_SIZE;
         const totalChunks = Math.ceil(file.size / chunkSize);
         const uploadId    = this._generateUploadId();
@@ -557,6 +600,10 @@ class ImageUploadHandler {
             fd.append('total_chunks', totalChunks);
             fd.append('original_name', file.name);
             fd.append('chunk',        chunk, file.name);
+            if (replaceExistingId) {
+                fd.append('replace_existing', '1');
+                fd.append('existing_id', replaceExistingId);
+            }
 
             const result = await this._uploadChunk(fd, preview, i, totalChunks, onProgress);
 
@@ -614,6 +661,65 @@ class ImageUploadHandler {
         const arr = new Uint8Array(16);
         crypto.getRandomValues(arr);
         return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    /**
+     * Ask the server whether a file with the same title already exists in this folder.
+     * Returns { exists, existing_id, existing_title } or { exists: false } on error.
+     */
+    checkDuplicate(filename, formData) {
+        return new Promise((resolve) => {
+            const fd = new FormData();
+            fd.append('ajax_check_duplicate', '1');
+            fd.append('folder_id', formData.get('folder_id') || document.getElementById('folder_id')?.value || '');
+            fd.append('filename', filename);
+            fd.append('csrf_token', formData.get('csrf_token') || document.getElementById('csrf_token')?.value || '');
+
+            const xhr = new XMLHttpRequest();
+            xhr.addEventListener('load', () => {
+                try { resolve(JSON.parse(xhr.responseText)); }
+                catch (e) { resolve({ exists: false }); }
+            });
+            xhr.addEventListener('error', () => resolve({ exists: false }));
+            xhr.open('POST', this.options.uploadUrl);
+            xhr.send(fd);
+        });
+    }
+
+    /**
+     * Show a SweetAlert2 dialog asking the user what to do with a duplicate file.
+     * Returns one of: 'replace', 'skip', 'replace_all', 'skip_all'.
+     */
+    async showDuplicateDialog(filename) {
+        if (typeof Swal === 'undefined') {
+            const replace = confirm(
+                `A file named "${filename}" already exists in this folder.\n\nClick OK to Replace it, or Cancel to Skip it.`
+            );
+            return replace ? 'replace' : 'skip';
+        }
+
+        const { value: action } = await Swal.fire({
+            title: 'Duplicate File Found',
+            html: `<p>The file <strong>${this.escapeHtml(filename)}</strong> already exists in this folder.</p>
+                   <p class="text-muted small mb-0">Choose what to do with this file:</p>`,
+            icon: 'warning',
+            input: 'radio',
+            inputOptions: {
+                replace:     'Replace this file',
+                skip:        'Skip this file',
+                replace_all: 'Replace all duplicates',
+                skip_all:    'Skip all duplicates',
+            },
+            inputValue: 'replace',
+            confirmButtonText: 'Continue',
+            confirmButtonColor: '#4CAF50',
+            allowOutsideClick: false,
+            inputValidator: (value) => {
+                if (!value) return 'Please select an option.';
+            },
+        });
+
+        return action || 'skip';
     }
 
     clearFiles() {
