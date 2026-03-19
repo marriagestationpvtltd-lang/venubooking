@@ -533,7 +533,7 @@ CREATE TABLE IF NOT EXISTS shared_folders (
 CREATE TABLE IF NOT EXISTS shared_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     folder_id INT NULL COMMENT 'Folder this file belongs to, NULL for standalone file',
-    file_type ENUM('photo', 'video') DEFAULT 'photo' COMMENT 'Type of file: photo or video',
+    file_type ENUM('photo', 'video', 'file') DEFAULT 'photo' COMMENT 'Type of file: photo, video, or generic file',
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_path VARCHAR(255) NOT NULL COMMENT 'Relative path to the file (photo or video)',

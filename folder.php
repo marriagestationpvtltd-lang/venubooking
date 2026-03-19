@@ -752,7 +752,10 @@ $whatsapp_number = getSetting('whatsapp_number');
                     <?php foreach ($photos as $photo): 
                         $file_url = UPLOAD_URL . $photo['image_path'];
                         $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                        $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
                         $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
+                        $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                        $pf_icon = getFileTypeIcon($pf_ext);
                     ?>
                         <div class="photo-card">
                             <?php if ($is_video): ?>
@@ -764,6 +767,12 @@ $whatsapp_number = getSetting('whatsapp_number');
                                         <i class="fas fa-play-circle"></i>
                                     </div>
                                     <span class="badge bg-danger file-type-badge">VIDEO</span>
+                                </div>
+                            <?php elseif ($is_generic): ?>
+                                <div class="video-container d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
+                                    <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;"></i>
+                                    <small class="mt-2 text-muted text-uppercase" style="font-size:0.8rem;"><?php echo htmlspecialchars($pf_ext ?: 'FILE'); ?></small>
+                                    <span class="badge bg-secondary file-type-badge">FILE</span>
                                 </div>
                             <?php else: ?>
                                 <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 

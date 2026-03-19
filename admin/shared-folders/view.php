@@ -85,7 +85,7 @@ if (isset($_GET['success'])) {
         $success_message = 'Folder created successfully! Now upload photos below.';
     } elseif (is_numeric($_GET['success'])) {
         $count = intval($_GET['success']);
-        $success_message = $count . ' photo' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
+        $success_message = $count . ' file' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
     }
 }
 
@@ -334,14 +334,14 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
 <!-- Upload Section -->
 <div class="card mb-4">
     <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload Photos & Videos to this Folder</h5>
+        <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload Files to this Folder</h5>
     </div>
     <div class="card-body">
         <div class="alert alert-info mb-3">
             <i class="fas fa-info-circle"></i> <strong>Bulk Upload:</strong> 
-            तपाईं एकैपटकमा धेरै फोटो र भिडियो अपलोड गर्न सक्नुहुन्छ।<br>
-            <i class="fas fa-image"></i> फोटो: JPG, PNG, GIF, WebP (५० MB सम्म)<br>
-            <i class="fas fa-video"></i> भिडियो: MP4, MOV, AVI, WebM, MKV (५० GB सम्म) — ठूलो भिडियो chunk गरेर background मा अपलोड हुन्छ
+            तपाईं एकैपटकमा धेरै फाइलहरु अपलोड गर्न सक्नुहुन्छ।<br>
+            <i class="fas fa-file"></i> कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै (५० GB सम्म)<br>
+            <i class="fas fa-video"></i> ठूलो भिडियो/फाइल chunk गरेर background मा अपलोड हुन्छ
         </div>
         
         <form id="uploadForm" method="POST" action="ajax-upload.php" enctype="multipart/form-data">
@@ -354,15 +354,15 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                     <i class="fas fa-cloud-upload-alt"></i>
                 </div>
                 <div class="drop-zone-text">
-                    <strong>Drag & Drop photos or videos here</strong><br>
+                    <strong>Drag & Drop files here</strong><br>
                     or click to browse
                 </div>
                 <div class="drop-zone-hint">
-                    Photos: JPG, PNG, GIF, WebP (max 50MB) • Videos: MP4, MOV, AVI, WebM, MKV (max 50GB)
+                    कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै • Max size: 50GB
                 </div>
             </div>
             
-            <input type="file" class="form-control d-none" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/webm,video/x-matroska" multiple>
+            <input type="file" class="form-control d-none" id="images" name="images[]" accept="*/*" multiple>
             
             <!-- Image Preview Container -->
             <div id="imagePreviewContainer" class="image-preview-container"></div>
@@ -392,13 +392,16 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
             <div class="text-center py-5">
                 <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
                 <p class="text-muted">No files in this folder yet.</p>
-                <p class="text-muted">Use the upload area above to add photos and videos.</p>
+                <p class="text-muted">Use the upload area above to add files.</p>
             </div>
         <?php else: ?>
             <div class="photo-grid">
                 <?php foreach ($photos as $photo): 
                     $file_url = UPLOAD_URL . $photo['image_path'];
                     $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                    $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
+                    $ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                    $icon_class = getFileTypeIcon($ext);
                 ?>
                     <div class="photo-item" data-photo-id="<?php echo $photo['id']; ?>">
                         <input type="checkbox" class="form-check-input photo-checkbox" value="<?php echo $photo['id']; ?>">
@@ -413,13 +416,19 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                                 </div>
                                 <span class="badge bg-danger video-badge">VIDEO</span>
                             </div>
+                        <?php elseif ($is_generic): ?>
+                            <div class="video-thumbnail d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
+                                <i class="fas <?php echo $icon_class; ?>" style="font-size:3rem;"></i>
+                                <small class="mt-2 text-muted text-uppercase" style="font-size:0.7rem;"><?php echo htmlspecialchars($ext ?: 'FILE'); ?></small>
+                                <span class="badge bg-secondary video-badge">FILE</span>
+                            </div>
                         <?php else: ?>
                             <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy">
                         <?php endif; ?>
                         
                         <a href="?id=<?php echo $folder_id; ?>&delete_photo=<?php echo $photo['id']; ?>" 
                            class="delete-btn"
-                           onclick="return confirm('Delete this <?php echo $is_video ? 'video' : 'photo'; ?>?');"
+                           onclick="return confirm('Delete this file?');"
                            title="Delete <?php echo $is_video ? 'Video' : 'Photo'; ?>">
                             <i class="fas fa-times"></i>
                         </a>
@@ -456,9 +465,10 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.90,
-        skipCompression: true,          // Deliver original quality for shared folder photos
-        maxFileSize: 50 * 1024 * 1024,          // 50 MB per photo
+        skipCompression: true,          // Deliver original quality for shared folder files
+        maxFileSize: 50 * 1024 * 1024 * 1024,   // 50 GB per file
         maxVideoSize: 50 * 1024 * 1024 * 1024,  // 50 GB per video
+        allowAllFiles: true,                     // Allow any file type
         uploadUrl: 'ajax-upload.php',
         chunkUploadUrl: 'ajax-chunk-upload.php',
         onUploadStart: function() {
@@ -533,7 +543,7 @@ $(document).ready(function() {
         
         if (selectedIds.length === 0) return;
         
-        if (!confirm('Delete ' + selectedIds.length + ' selected photo(s)?')) return;
+        if (!confirm('Delete ' + selectedIds.length + ' selected file(s)?')) return;
         
         var $btn = $(this);
         $btn.prop('disabled', true).find('i').removeClass('fa-trash').addClass('fa-spinner fa-spin');

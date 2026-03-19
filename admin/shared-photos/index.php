@@ -49,7 +49,7 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     exit;
 }
 
-$page_title = 'फोटो सेयर व्यवस्थापन (Photo Sharing)';
+$page_title = 'फाइल सेयर व्यवस्थापन (File Sharing)';
 require_once __DIR__ . '/../includes/header.php';
 
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
@@ -58,7 +58,7 @@ $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] 
 // Check for URL-based success message (from upload redirect)
 if (isset($_GET['success']) && is_numeric($_GET['success'])) {
     $count = intval($_GET['success']);
-    $success_message = $count . ' photo' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
+    $success_message = $count . ' file' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
 }
 
 // Clear session messages after displaying
@@ -77,13 +77,13 @@ $download_base_url = BASE_URL . '/download.php?token=';
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="fas fa-share-alt"></i> फोटो सेयर व्यवस्थापन</h4>
+    <h4><i class="fas fa-share-alt"></i> फाइल सेयर व्यवस्थापन</h4>
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-danger" id="bulkDeleteBtn" style="display: none;">
             <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
         </button>
         <a href="add.php" class="btn btn-success">
-            <i class="fas fa-plus"></i> Upload New Photo
+            <i class="fas fa-plus"></i> Upload New File
         </a>
     </div>
 </div>
@@ -108,10 +108,10 @@ $download_base_url = BASE_URL . '/download.php?token=';
 <div class="alert alert-info">
     <i class="fas fa-info-circle"></i> <strong>कसरी प्रयोग गर्ने:</strong>
     <ul class="mb-0 mt-2">
-        <li><strong>फोटो अपलोड:</strong> "Upload New Photo" बटन क्लिक गरेर फोटो अपलोड गर्नुहोस्</li>
+        <li><strong>फाइल अपलोड:</strong> "Upload New File" बटन क्लिक गरेर कुनै पनि फाइल (फोटो, भिडियो, ZIP, PDF, आदि) अपलोड गर्नुहोस्</li>
         <li><strong>लिङ्क सेयर:</strong> "Copy Link" बटन क्लिक गरेर डाउनलोड लिङ्क कपी गर्नुहोस् र युजरलाई पठाउनुहोस्</li>
-        <li><strong>युजर डाउनलोड:</strong> युजरले उक्त लिङ्कबाट आफ्नो फोटो डाउनलोड गर्न सक्छन्</li>
-        <li><strong>फोटो डिलिट:</strong> युजरले डाउनलोड गरिसकेपछि "Delete" बटन क्लिक गरेर फोटो पूर्ण रूपमा हटाउनुहोस्</li>
+        <li><strong>युजर डाउनलोड:</strong> युजरले उक्त लिङ्कबाट फाइल डाउनलोड गर्न सक्छन्</li>
+        <li><strong>फाइल डिलिट:</strong> युजरले डाउनलोड गरिसकेपछि "Delete" बटन क्लिक गरेर फाइल पूर्ण रूपमा हटाउनुहोस्</li>
     </ul>
 </div>
 
@@ -120,9 +120,9 @@ $download_base_url = BASE_URL . '/download.php?token=';
         <?php if (empty($photos)): ?>
             <div class="text-center py-5">
                 <i class="fas fa-share-alt fa-4x text-muted mb-3"></i>
-                <p class="text-muted">No shared photos yet.</p>
+                <p class="text-muted">No shared files yet.</p>
                 <a href="add.php" class="btn btn-success">
-                    <i class="fas fa-plus"></i> Upload Your First Photo
+                    <i class="fas fa-plus"></i> Upload Your First File
                 </a>
             </div>
         <?php else: ?>
@@ -156,14 +156,19 @@ $download_base_url = BASE_URL . '/download.php?token=';
                                 <td>
                                     <?php 
                                     $image_url = UPLOAD_URL . $photo['image_path'];
-                                    if (file_exists(UPLOAD_PATH . $photo['image_path'])): 
+                                    $idx_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                                    $idx_photo_exts = ['jpg','jpeg','png','gif','webp'];
+                                    $idx_is_image = in_array($idx_ext, $idx_photo_exts);
+                                    $idx_icon = getFileTypeIcon($idx_ext);
                                     ?>
+                                    <?php if ($idx_is_image && file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
                                         <img src="<?php echo $image_url; ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                                     <?php else: ?>
-                                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
+                                        <div class="d-flex flex-column align-items-center justify-content-center bg-light" 
                                              style="width: 60px; height: 60px; border-radius: 4px;">
-                                            <i class="fas fa-image"></i>
+                                            <i class="fas <?php echo $idx_icon; ?>" style="font-size:1.4rem;"></i>
+                                            <small class="text-muted text-uppercase" style="font-size:0.55rem;"><?php echo htmlspecialchars($idx_ext ?: 'FILE'); ?></small>
                                         </div>
                                     <?php endif; ?>
                                 </td>
