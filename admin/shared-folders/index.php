@@ -23,14 +23,14 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     
     if ($folder) {
         // Get all photos in this folder to delete their files
-        $photos_stmt = $db->prepare("SELECT image_path FROM shared_photos WHERE folder_id = ?");
+        $photos_stmt = $db->prepare("SELECT image_path, thumbnail_path FROM shared_photos WHERE folder_id = ?");
         $photos_stmt->execute([$id]);
         $photos = $photos_stmt->fetchAll();
         
         // Delete folder (cascade will delete photos from DB)
         $delete_stmt = $db->prepare("DELETE FROM shared_folders WHERE id = ?");
         if ($delete_stmt->execute([$id])) {
-            // Delete physical files
+            // Delete physical files and thumbnails
             $real_upload_path = realpath(UPLOAD_PATH);
             foreach ($photos as $photo) {
                 $file_path = UPLOAD_PATH . $photo['image_path'];
@@ -39,6 +39,15 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
                 if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0) {
                     if (file_exists($file_path)) {
                         unlink($file_path);
+                    }
+                }
+
+                // Delete thumbnail if it exists
+                if (!empty($photo['thumbnail_path'])) {
+                    $thumb_file_path = UPLOAD_PATH . $photo['thumbnail_path'];
+                    $real_thumb_path = realpath($thumb_file_path);
+                    if ($real_thumb_path && $real_upload_path && strpos($real_thumb_path, $real_upload_path) === 0) {
+                        @unlink($thumb_file_path);
                     }
                 }
             }

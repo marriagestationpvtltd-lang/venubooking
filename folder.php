@@ -615,6 +615,10 @@ $site_logo = getSetting('site_logo');
                         $file_url = UPLOAD_URL . $photo['image_path'];
                         $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                         $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
+                        // Use thumbnail for grid preview if available; fall back to original
+                        $thumb_url = (!empty($photo['thumbnail_path']) && file_exists(UPLOAD_PATH . $photo['thumbnail_path']))
+                            ? UPLOAD_URL . $photo['thumbnail_path']
+                            : $file_url;
                     ?>
                         <div class="photo-card">
                             <?php if (file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
@@ -629,9 +633,10 @@ $site_logo = getSetting('site_logo');
                                         <span class="badge bg-danger file-type-badge">VIDEO</span>
                                     </div>
                                 <?php else: ?>
-                                    <img src="<?php echo htmlspecialchars($file_url); ?>" 
+                                    <img src="<?php echo htmlspecialchars($thumb_url); ?>" 
                                          alt="<?php echo htmlspecialchars($photo['title']); ?>"
-                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url); ?>')"
+                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>')"
+                                         loading="lazy"
                                          style="cursor: pointer;">
                                 <?php endif; ?>
                             <?php else: ?>

@@ -66,7 +66,7 @@ try {
     // Fetch photos that belong to this folder (batch processing)
     $placeholders = implode(',', array_fill(0, count($photo_ids), '?'));
     $params = array_merge($photo_ids, [$folder_id]);
-    $stmt = $db->prepare("SELECT id, image_path, title FROM shared_photos WHERE id IN ($placeholders) AND folder_id = ?");
+    $stmt = $db->prepare("SELECT id, image_path, thumbnail_path, title FROM shared_photos WHERE id IN ($placeholders) AND folder_id = ?");
     $stmt->execute($params);
     $photos = $stmt->fetchAll();
     
@@ -92,6 +92,15 @@ try {
             if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0) {
                 if (file_exists($file_path)) {
                     unlink($file_path);
+                }
+            }
+
+            // Delete thumbnail if it exists
+            if (!empty($photo['thumbnail_path'])) {
+                $thumb_path = UPLOAD_PATH . $photo['thumbnail_path'];
+                $real_thumb_path = realpath($thumb_path);
+                if ($real_thumb_path && $real_upload_path && strpos($real_thumb_path, $real_upload_path) === 0) {
+                    @unlink($thumb_path);
                 }
             }
             

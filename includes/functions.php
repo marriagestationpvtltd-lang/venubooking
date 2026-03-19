@@ -3556,3 +3556,99 @@ function sendVendorAssignmentEmail($vendor_name, $vendor_email, $booking) {
     $subject = 'Vendor Assignment - ' . $booking['booking_number'] . ' (' . convertToNepaliDate($booking['event_date']) . ')';
     return sendEmail($vendor_email, $subject, $html, $vendor_name);
 }
+
+/**
+ * Generate a JPEG preview thumbnail for a shared-folder image.
+ *
+ * The original file is never modified; the thumbnail is written to
+ * $target_path (JPEG, max $max_size × $max_size, quality 85).
+ *
+ * Returns true on success, false if the thumbnail could not be created
+ * (e.g. GD extension missing, animated GIF, unsupported format).
+ * Callers should fall back to showing the original image when false is returned.
+ *
+ * @param  string $source_path  Absolute path to the original image file.
+ * @param  string $target_path  Absolute path where the thumbnail should be saved.
+ * @param  int    $max_size     Maximum width and height in pixels (default 800).
+ * @return bool
+ */
+function generateSharedFolderThumbnail(string $source_path, string $target_path, int $max_size = 800): bool
+{
+    // Require GD
+    if (!function_exists('imagecreatefromjpeg')) {
+        return false;
+    }
+
+    $image_info = getimagesize($source_path);
+    if (!$image_info) {
+        error_log("generateSharedFolderThumbnail: getimagesize failed for {$source_path}");
+        return false;
+    }
+
+    $mime   = $image_info['mime'];
+    $orig_w = (int)$image_info[0];
+    $orig_h = (int)$image_info[1];
+
+    // Skip animated GIFs – GD only captures the first frame
+    if ($mime === 'image/gif') {
+        return false;
+    }
+
+    // Load source image
+    switch ($mime) {
+        case 'image/jpeg':
+            $src = @imagecreatefromjpeg($source_path);
+            break;
+        case 'image/png':
+            $src = @imagecreatefrompng($source_path);
+            break;
+        case 'image/webp':
+            $src = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($source_path) : false;
+            break;
+        default:
+            return false;
+    }
+
+    if (!$src) {
+        return false;
+    }
+
+    // Calculate thumbnail dimensions (maintain aspect ratio)
+    if ($orig_w > $orig_h) {
+        $new_w = min($orig_w, $max_size);
+        $new_h = (int)round($orig_h * $new_w / $orig_w);
+    } else {
+        $new_h = min($orig_h, $max_size);
+        $new_w = (int)round($orig_w * $new_h / $orig_h);
+    }
+
+    // Ensure at least 1×1
+    $new_w = max(1, $new_w);
+    $new_h = max(1, $new_h);
+
+    $thumb = imagecreatetruecolor($new_w, $new_h);
+    if (!$thumb) {
+        imagedestroy($src);
+        return false;
+    }
+
+    // Fill with white background (handles PNG transparency when converting to JPEG)
+    $white = imagecolorallocate($thumb, 255, 255, 255);
+    imagefill($thumb, 0, 0, $white);
+
+    imagecopyresampled($thumb, $src, 0, 0, 0, 0, $new_w, $new_h, $orig_w, $orig_h);
+    imagedestroy($src);
+
+    // Ensure the target directory exists
+    $target_dir = dirname($target_path);
+    if (!is_dir($target_dir) && !mkdir($target_dir, 0750, true)) {
+        imagedestroy($thumb);
+        error_log("generateSharedFolderThumbnail: failed to create directory {$target_dir}");
+        return false;
+    }
+
+    $result = imagejpeg($thumb, $target_path, 85);
+    imagedestroy($thumb);
+
+    return $result;
+}
