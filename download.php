@@ -370,14 +370,31 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <?php
                     $file_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
                     $photo_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $video_exts = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogv'];
                     $is_downloadable_image = in_array($file_ext, $photo_exts);
+                    $is_video_file = in_array($file_ext, $video_exts);
                     $file_icon_class = getFileTypeIcon($file_ext);
+                    $file_url = UPLOAD_URL . $photo['image_path'];
+                    $video_mime_map = [
+                        'mp4' => 'video/mp4', 'mov' => 'video/quicktime', 'm4v' => 'video/mp4',
+                        'webm' => 'video/webm', 'ogg' => 'video/ogg', 'ogv' => 'video/ogg',
+                        'avi' => 'video/x-msvideo', 'mkv' => 'video/x-matroska',
+                        'mpg' => 'video/mpeg', 'mpeg' => 'video/mpeg', '3gp' => 'video/3gpp'
+                    ];
+                    $video_mime = isset($video_mime_map[$file_ext]) ? $video_mime_map[$file_ext] : 'video/mp4';
                 ?>
 
                 <?php if ($is_downloadable_image): ?>
                 <div class="photo-preview">
-                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo['image_path']); ?>" 
+                    <img src="<?php echo htmlspecialchars($file_url); ?>" 
                          alt="<?php echo htmlspecialchars($photo['title']); ?>">
+                </div>
+                <?php elseif ($is_video_file): ?>
+                <div class="photo-preview">
+                    <video controls style="max-width:100%;max-height:400px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+                        <source src="<?php echo htmlspecialchars($file_url); ?>" type="<?php echo htmlspecialchars($video_mime); ?>">
+                        Your browser does not support the video tag.
+                    </video>
                 </div>
                 <?php else: ?>
                 <div class="photo-preview">

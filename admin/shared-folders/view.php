@@ -145,13 +145,11 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
     position: relative;
     width: 100%;
     height: 100%;
-    background: #1a1a2e;
-}
-
-.video-thumbnail video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
 }
 
 .video-play-icon {
@@ -159,11 +157,16 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: white;
+    color: rgba(255,255,255,0.85);
     font-size: 2.5rem;
-    opacity: 0.9;
     text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     pointer-events: none;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.video-thumbnail:hover .video-play-icon {
+    transform: translate(-50%, -50%) scale(1.15);
+    color: #fff;
 }
 
 .video-badge {
@@ -173,6 +176,53 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
     font-size: 0.65rem;
     padding: 2px 6px;
 }
+
+/* Photo item clickable */
+.photo-item img {
+    cursor: pointer;
+}
+.photo-item img:hover {
+    opacity: 0.9;
+}
+
+/* Admin lightbox */
+.admin-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+.admin-lightbox.active {
+    display: flex;
+}
+.admin-lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+    object-fit: contain;
+}
+.admin-lightbox video {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+    outline: none;
+}
+.admin-lightbox-close {
+    position: absolute;
+    top: 18px;
+    right: 28px;
+    color: white;
+    font-size: 2.2rem;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 10000;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+.admin-lightbox-close:hover { opacity: 1; }
 
 .photo-item .photo-overlay {
     position: absolute;
@@ -458,10 +508,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                             <input type="checkbox" class="form-check-input photo-checkbox" value="<?php echo $photo['id']; ?>">
                             
                             <?php if ($is_video): ?>
-                                <div class="video-thumbnail">
-                                    <video muted preload="metadata" style="width:100%; height:100%; object-fit:cover;">
-                                        <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
-                                    </video>
+                                <div class="video-thumbnail" onclick="adminOpenVideo('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')" title="Click to play video">
                                     <div class="video-play-icon">
                                         <i class="fas fa-play-circle"></i>
                                     </div>
@@ -469,12 +516,14 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                                 </div>
                             <?php elseif ($is_generic): ?>
                                 <div class="video-thumbnail d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
-                                    <i class="fas <?php echo $icon_class; ?>" style="font-size:3rem;"></i>
+                                    <i class="fas <?php echo $icon_class; ?>" style="font-size:3rem;color:#888;"></i>
                                     <small class="mt-2 text-muted text-uppercase" style="font-size:0.7rem;"><?php echo htmlspecialchars($ext ?: 'FILE'); ?></small>
                                     <span class="badge bg-secondary video-badge">FILE</span>
                                 </div>
                             <?php else: ?>
-                                <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy">
+                                <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy"
+                                     onclick="adminOpenImage('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
+                                     title="Click to preview">
                             <?php endif; ?>
                             
                             <a href="?id=<?php echo $folder_id; ?>&delete_photo=<?php echo $photo['id']; ?>" 
@@ -639,6 +688,59 @@ $(document).ready(function() {
             '</div>');
         $('.card').first().before($alert);
         setTimeout(function() { $alert.alert('close'); }, 5000);
+    }
+});
+</script>
+
+<!-- Admin Image Lightbox -->
+<div class="admin-lightbox" id="adminImageLightbox" onclick="adminCloseLightbox()">
+    <span class="admin-lightbox-close" onclick="adminCloseLightbox()">&times;</span>
+    <img src="" alt="Preview" id="adminLightboxImage" onclick="event.stopPropagation()">
+</div>
+
+<!-- Admin Video Lightbox -->
+<div class="admin-lightbox" id="adminVideoLightbox" onclick="adminCloseVideo()">
+    <span class="admin-lightbox-close" onclick="adminCloseVideo()">&times;</span>
+    <video id="adminLightboxVideo" controls onclick="event.stopPropagation()">
+        <source src="" id="adminLightboxVideoSrc" type="video/mp4">
+    </video>
+</div>
+
+<script>
+function adminOpenImage(src) {
+    document.getElementById('adminLightboxImage').src = src;
+    document.getElementById('adminImageLightbox').classList.add('active');
+}
+function adminCloseLightbox() {
+    document.getElementById('adminLightboxImage').src = '';
+    document.getElementById('adminImageLightbox').classList.remove('active');
+}
+function adminOpenVideo(src) {
+    var video = document.getElementById('adminLightboxVideo');
+    var sourceEl = document.getElementById('adminLightboxVideoSrc');
+    var ext = src.split('?')[0].split('.').pop().toLowerCase();
+    var mimeMap = {
+        'mp4': 'video/mp4', 'mov': 'video/quicktime', 'm4v': 'video/mp4',
+        'webm': 'video/webm', 'ogg': 'video/ogg', 'ogv': 'video/ogg',
+        'avi': 'video/x-msvideo', 'mkv': 'video/x-matroska',
+        'mpg': 'video/mpeg', 'mpeg': 'video/mpeg', '3gp': 'video/3gpp'
+    };
+    video.pause();
+    sourceEl.src = src;
+    sourceEl.type = mimeMap[ext] || 'video/mp4';
+    video.load();
+    document.getElementById('adminVideoLightbox').classList.add('active');
+}
+function adminCloseVideo() {
+    var video = document.getElementById('adminLightboxVideo');
+    video.pause();
+    video.currentTime = 0;
+    document.getElementById('adminVideoLightbox').classList.remove('active');
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        adminCloseLightbox();
+        adminCloseVideo();
     }
 });
 </script>

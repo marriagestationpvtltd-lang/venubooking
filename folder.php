@@ -383,13 +383,11 @@ $whatsapp_number = getSetting('whatsapp_number');
             position: relative;
             width: 100%;
             height: 200px;
-            background: #1a1a2e;
-        }
-        
-        .photo-card video {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
         
         .photo-card .video-play-overlay {
@@ -401,19 +399,23 @@ $whatsapp_number = getSetting('whatsapp_number');
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.3);
-            cursor: pointer;
             transition: background 0.3s;
         }
         
-        .photo-card .video-play-overlay:hover {
-            background: rgba(0,0,0,0.5);
+        .photo-card .video-container:hover .video-play-overlay {
+            background: rgba(255,255,255,0.08);
         }
         
         .photo-card .video-play-overlay i {
-            font-size: 3rem;
-            color: white;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            font-size: 3.5rem;
+            color: rgba(255,255,255,0.85);
+            text-shadow: 0 2px 16px rgba(0,0,0,0.6);
+            transition: transform 0.2s, color 0.2s;
+        }
+        
+        .photo-card .video-container:hover .video-play-overlay i {
+            transform: scale(1.1);
+            color: #fff;
         }
         
         .file-type-badge {
@@ -1036,10 +1038,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                         ?>
                             <div class="photo-card">
                                 <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')" style="cursor: pointer;">
-                                        <video muted preload="metadata">
-                                            <source src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>#t=0.5" type="video/mp4">
-                                        </video>
+                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')">
                                         <div class="video-play-overlay">
                                             <i class="fas fa-play-circle"></i>
                                         </div>
@@ -1047,7 +1046,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                                     </div>
                                 <?php elseif ($is_generic): ?>
                                     <div class="video-container d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
-                                        <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;"></i>
+                                        <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;color:#888;"></i>
                                         <small class="mt-2 text-muted text-uppercase" style="font-size:0.8rem;"><?php echo htmlspecialchars($pf_ext ?: 'FILE'); ?></small>
                                         <span class="badge bg-secondary file-type-badge">FILE</span>
                                     </div>
@@ -1100,10 +1099,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                         ?>
                             <div class="photo-card">
                                 <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')" style="cursor: pointer;">
-                                        <video muted preload="metadata">
-                                            <source src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>#t=0.5" type="video/mp4">
-                                        </video>
+                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')">
                                         <div class="video-play-overlay">
                                             <i class="fas fa-play-circle"></i>
                                         </div>
@@ -1111,7 +1107,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                                     </div>
                                 <?php elseif ($is_generic): ?>
                                     <div class="video-container d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
-                                        <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;"></i>
+                                        <i class="fas <?php echo $pf_icon; ?>" style="font-size:4rem;color:#888;"></i>
                                         <small class="mt-2 text-muted text-uppercase" style="font-size:0.8rem;"><?php echo htmlspecialchars($pf_ext ?: 'FILE'); ?></small>
                                         <span class="badge bg-secondary file-type-badge">FILE</span>
                                     </div>
@@ -1225,15 +1221,16 @@ $whatsapp_number = getSetting('whatsapp_number');
         function openVideoLightbox(src) {
             var video = document.getElementById('lightbox-video');
             var sourceEl = document.getElementById('lightbox-video-src');
-            sourceEl.src = src;
             // Determine MIME type from file extension
             var ext = src.split('?')[0].split('.').pop().toLowerCase();
             var mimeMap = {
-                'mp4': 'video/mp4', 'mov': 'video/quicktime',
-                'avi': 'video/x-msvideo', 'webm': 'video/webm',
-                'mkv': 'video/x-matroska', 'mpg': 'video/mpeg',
-                'mpeg': 'video/mpeg', '3gp': 'video/3gpp'
+                'mp4': 'video/mp4', 'mov': 'video/quicktime', 'm4v': 'video/mp4',
+                'webm': 'video/webm', 'ogg': 'video/ogg', 'ogv': 'video/ogg',
+                'avi': 'video/x-msvideo', 'mkv': 'video/x-matroska',
+                'mpg': 'video/mpeg', 'mpeg': 'video/mpeg', '3gp': 'video/3gpp'
             };
+            video.pause();
+            sourceEl.src = src;
             sourceEl.type = mimeMap[ext] || 'video/mp4';
             video.load();
             document.getElementById('video-lightbox').classList.add('active');
@@ -1242,6 +1239,7 @@ $whatsapp_number = getSetting('whatsapp_number');
         function closeVideoLightbox() {
             var video = document.getElementById('lightbox-video');
             video.pause();
+            video.currentTime = 0;
             document.getElementById('video-lightbox').classList.remove('active');
         }
         
