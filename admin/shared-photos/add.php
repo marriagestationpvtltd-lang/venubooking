@@ -4,7 +4,7 @@
  * Admin can upload photos for sharing with users
  */
 
-$page_title = 'Upload Photo for Sharing';
+$page_title = 'Upload File for Sharing';
 require_once __DIR__ . '/../includes/header.php';
 
 $db = getDB();
@@ -19,7 +19,7 @@ $error_message = '';
     <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-upload"></i> Upload Photo for Sharing</h5>
+                <h5 class="mb-0"><i class="fas fa-upload"></i> Upload File for Sharing</h5>
                 <a href="index.php" class="btn btn-secondary btn-sm">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
@@ -30,12 +30,12 @@ $error_message = '';
                     <div class="d-flex align-items-center">
                         <i class="fas fa-share-alt fa-2x me-3"></i>
                         <div>
-                            <strong>फोटो सेयर गर्ने तरिका:</strong>
+                            <strong>फाइल सेयर गर्ने तरिका:</strong>
                             <ul class="mb-0 mt-1">
-                                <li><i class="fas fa-upload"></i> <strong>अपलोड:</strong> फोटो अपलोड गर्नुहोस्</li>
+                                <li><i class="fas fa-upload"></i> <strong>अपलोड:</strong> फाइल अपलोड गर्नुहोस् (फोटो, भिडियो, ZIP, PDF, Word, etc.)</li>
                                 <li><i class="fas fa-link"></i> <strong>लिङ्क:</strong> स्वचालित रूपमा डाउनलोड लिङ्क जेनेरेट हुनेछ</li>
                                 <li><i class="fas fa-share"></i> <strong>सेयर:</strong> उक्त लिङ्क युजरलाई दिनुहोस्</li>
-                                <li><i class="fas fa-download"></i> <strong>डाउनलोड:</strong> युजरले लिङ्कबाट फोटो डाउनलोड गर्न सक्छन्</li>
+                                <li><i class="fas fa-download"></i> <strong>डाउनलोड:</strong> युजरले लिङ्कबाट फाइल डाउनलोड गर्न सक्छन्</li>
                             </ul>
                         </div>
                     </div>
@@ -45,11 +45,11 @@ $error_message = '';
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
-                                <label for="title" class="form-label">Photo Title <span class="text-danger">*</span></label>
+                                <label for="title" class="form-label">File Title <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="title" name="title" 
                                        value="" required
-                                       placeholder="e.g., विवाह फोटो - राम र सीता">
-                                <small class="text-muted">युजरलाई फोटो पहिचान गर्न सजिलो हुने नाम दिनुहोस्</small>
+                                       placeholder="e.g., विवाह फोटो - राम र सीता, Contract.pdf">
+                                <small class="text-muted">युजरलाई फाइल पहिचान गर्न सजिलो हुने नाम दिनुहोस्</small>
                             </div>
                         </div>
 
@@ -89,22 +89,22 @@ $error_message = '';
 
                     <!-- Drag & Drop Zone -->
                     <div class="mb-3">
-                        <label class="form-label">Photo File <span class="text-danger">*</span></label>
+                        <label class="form-label">File <span class="text-danger">*</span></label>
                         
                         <div id="dropZone" class="drop-zone">
                             <div class="drop-zone-icon">
                                 <i class="fas fa-cloud-upload-alt"></i>
                             </div>
                             <div class="drop-zone-text">
-                                <strong>Drag & Drop photo here</strong><br>
+                                <strong>Drag & Drop file here</strong><br>
                                 or click to browse
                             </div>
                             <div class="drop-zone-hint">
-                                Supported: JPG, PNG, GIF, WebP • Max size: 10MB
+                                Any file type supported • Max size: 2GB
                             </div>
                         </div>
                         
-                        <input type="file" class="form-control d-none" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+                        <input type="file" class="form-control d-none" id="images" name="images[]" accept="*/*" multiple>
                     </div>
 
                     <!-- Image Preview Container -->
@@ -116,8 +116,7 @@ $error_message = '';
                         </a>
                         <button type="submit" id="uploadButton" class="btn btn-success btn-lg" disabled>
                             <i class="fas fa-upload"></i> Upload & Generate Link
-                        </button>
-                    </div>
+                        </button>                    </div>
                 </form>
             </div>
         </div>
@@ -139,7 +138,7 @@ $error_message = '';
         maxWidth: 1920,
         maxHeight: 1920,
         skipCompression: true, // Deliver original quality for shared photos
-        maxFileSize: 10 * 1024 * 1024, // 10MB
+        maxFileSize: 2 * 1024 * 1024 * 1024, // 2GB
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {
             console.log('Upload started');

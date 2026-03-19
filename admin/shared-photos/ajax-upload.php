@@ -1,7 +1,7 @@
 <?php
 /**
- * AJAX Shared Photo Upload Handler
- * Handles individual photo uploads for sharing
+ * AJAX Shared File Upload Handler
+ * Handles individual file uploads for sharing (photos, videos, ZIPs, PDFs, etc.)
  */
 
 require_once __DIR__ . '/../../config/database.php';
@@ -53,8 +53,25 @@ $file = [
 ];
 
 // Allowed types
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-$max_size = 10 * 1024 * 1024; // 10MB
+$allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
+
+// Dangerous extensions that must never be uploaded
+$blocked_extensions = [
+    'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar',
+    'asp', 'aspx', 'ashx', 'asmx',
+    'jsp', 'jspx',
+    'cgi', 'pl', 'py', 'rb',
+    'sh', 'bash', 'bat', 'cmd', 'ps1',
+    'exe', 'dll', 'com', 'msi', 'vbs', 'js', 'jar',
+    'htaccess', 'htpasswd',
+];
+
+$max_size = 2 * 1024 * 1024 * 1024; // 2GB for any file type
+
+$file_ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+$is_photo  = in_array($file['type'], $allowed_photo_types);
+$is_video  = in_array($file['type'], $allowed_video_types);
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -72,23 +89,25 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-// Validate file type
-if (!in_array($file['type'], $allowed_types)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.']);
-    exit;
-}
-
-// Validate actual image content
-$image_info = getimagesize($file['tmp_name']);
-if ($image_info === false) {
-    echo json_encode(['success' => false, 'message' => 'Invalid image file.']);
+// Validate file type — block dangerous extensions regardless of MIME type
+if (in_array($file_ext, $blocked_extensions)) {
+    echo json_encode(['success' => false, 'message' => 'This file type is not allowed for security reasons.']);
     exit;
 }
 
 // Validate file size
 if ($file['size'] > $max_size) {
-    echo json_encode(['success' => false, 'message' => 'File exceeds 10MB limit.']);
+    echo json_encode(['success' => false, 'message' => 'File exceeds 2GB limit.']);
     exit;
+}
+
+// For photos, validate actual image content
+if ($is_photo) {
+    $image_info = getimagesize($file['tmp_name']);
+    if ($image_info === false) {
+        echo json_encode(['success' => false, 'message' => 'Invalid image file.']);
+        exit;
+    }
 }
 
 // Create uploads directory if it doesn't exist
@@ -99,20 +118,23 @@ if (!is_dir(UPLOAD_PATH)) {
     }
 }
 
-// Generate unique filename using validated mime type
-$mime_to_ext = [
-    'image/jpeg' => 'jpg',
-    'image/png' => 'png',
-    'image/gif' => 'gif',
-    'image/webp' => 'webp'
-];
-
-if (!isset($mime_to_ext[$image_info['mime']])) {
-    echo json_encode(['success' => false, 'message' => 'Unsupported image format detected.']);
-    exit;
+// Generate unique filename
+if ($is_photo && isset($image_info)) {
+    $mime_to_ext = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/gif'  => 'gif',
+        'image/webp' => 'webp',
+    ];
+    if (!isset($mime_to_ext[$image_info['mime']])) {
+        echo json_encode(['success' => false, 'message' => 'Unsupported image format detected.']);
+        exit;
+    }
+    $extension = $mime_to_ext[$image_info['mime']];
+} else {
+    $extension = $file_ext ?: 'bin';
 }
 
-$extension = $mime_to_ext[$image_info['mime']];
 $filename = 'shared_' . time() . '_' . uniqid() . '.' . $extension;
 $upload_path = UPLOAD_PATH . $filename;
 
@@ -150,11 +172,11 @@ try {
         $photo_id = $db->lastInsertId();
         $download_url = BASE_URL . '/download.php?token=' . urlencode($download_token);
         
-        logActivity($current_user['id'], 'Uploaded shared photo', 'shared_photos', $photo_id, "Uploaded photo for sharing: $title");
+        logActivity($current_user['id'], 'Uploaded shared file', 'shared_photos', $photo_id, "Uploaded file for sharing: $title");
         
         echo json_encode([
             'success' => true,
-            'message' => 'Photo uploaded successfully! Download link generated.',
+            'message' => 'File uploaded successfully! Download link generated.',
             'image' => [
                 'id' => $photo_id,
                 'title' => $title,

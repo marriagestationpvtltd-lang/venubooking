@@ -1,8 +1,8 @@
 <?php
 /**
- * AJAX Upload Handler for Folder Photos and Videos
- * Handles photo uploads (up to 20MB) and video uploads (up to 8GB)
- * Supports bulk uploads for both photos and videos
+ * AJAX Upload Handler for Folder Files
+ * Handles photo, video, and any other file uploads
+ * Supports bulk uploads for photos, videos, and generic files (ZIP, PDF, etc.)
  */
 
 require_once __DIR__ . '/../../config/database.php';
@@ -97,12 +97,26 @@ $file = [
 $allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 $allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
 
+// Dangerous extensions that must never be uploaded (executables / server-side scripts)
+$blocked_extensions = [
+    'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar',
+    'asp', 'aspx', 'ashx', 'asmx',
+    'jsp', 'jspx',
+    'cgi', 'pl', 'py', 'rb',
+    'sh', 'bash', 'bat', 'cmd', 'ps1',
+    'exe', 'dll', 'com', 'msi', 'vbs', 'js', 'jar',
+    'htaccess', 'htpasswd',
+];
+
 $max_photo_size = 50 * 1024 * 1024; // 50MB for photos
 $max_video_size = 50 * 1024 * 1024 * 1024; // 50GB for videos
+$max_file_size  = 2 * 1024 * 1024 * 1024;  // 2GB for generic files
 
 // Determine file type
+$file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 $is_photo = in_array($file['type'], $allowed_photo_types);
 $is_video = in_array($file['type'], $allowed_video_types);
+$is_generic_file = !$is_photo && !$is_video;
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -120,9 +134,9 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-// Validate file type
-if (!$is_photo && !$is_video) {
-    echo json_encode(['success' => false, 'message' => 'Invalid file type. Allowed: JPG, PNG, GIF, WebP (photos) or MP4, MOV, AVI, WebM, MKV (videos).']);
+// Validate file type — block dangerous extensions regardless of MIME type
+if (in_array($file_ext, $blocked_extensions)) {
+    echo json_encode(['success' => false, 'message' => 'This file type is not allowed for security reasons.']);
     exit;
 }
 
@@ -182,6 +196,14 @@ if ($is_video) {
     }
 }
 
+// For generic files, validate size
+if ($is_generic_file) {
+    if ($file['size'] > $max_file_size) {
+        echo json_encode(['success' => false, 'message' => 'File exceeds 2GB limit.']);
+        exit;
+    }
+}
+
 // Create folder-specific upload directory with secure permissions
 $folder_upload_dir = UPLOAD_PATH . 'folders/' . $folder_id . '/';
 if (!is_dir($folder_upload_dir)) {
@@ -193,7 +215,7 @@ if (!is_dir($folder_upload_dir)) {
 }
 
 // Generate unique filename
-$file_type = $is_photo ? 'photo' : 'video';
+$file_type = $is_photo ? 'photo' : ($is_video ? 'video' : 'file');
 
 if ($is_photo) {
     $mime_to_ext = [
@@ -216,6 +238,10 @@ if ($is_photo) {
     ];
     $extension = $video_mime_to_ext[$file['type']] ?? 'mp4';
     $filename = 'video_' . time() . '_' . uniqid() . '.' . $extension;
+} else {
+    // Generic file — preserve original extension (already validated against blocklist)
+    $extension = $file_ext ?: 'bin';
+    $filename = 'file_' . time() . '_' . uniqid() . '.' . $extension;
 }
 
 $relative_path = 'folders/' . $folder_id . '/' . $filename;
@@ -260,7 +286,8 @@ $download_token = bin2hex(random_bytes(32));
 
 // Generate title from original filename
 $original_name = pathinfo($file['name'], PATHINFO_FILENAME);
-$title = !empty($original_name) ? $original_name : ($is_photo ? 'Photo' : 'Video') . ' ' . date('Y-m-d H:i:s');
+$type_label = $is_photo ? 'Photo' : ($is_video ? 'Video' : 'File');
+$title = !empty($original_name) ? $original_name : $type_label . ' ' . date('Y-m-d H:i:s');
 
 // Insert into database
 try {

@@ -61,7 +61,7 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
     if ($photo) {
         // Check max downloads if set
         if ($folder['max_downloads'] && $photo['download_count'] >= $folder['max_downloads']) {
-            $error_message = 'Maximum download limit reached for this photo.';
+            $error_message = 'Maximum download limit reached for this file.';
         } else {
             $file_path = UPLOAD_PATH . $photo['image_path'];
             
@@ -87,7 +87,7 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                 $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
                 $safe_title = preg_replace('/_+/', '_', $safe_title);
                 $safe_title = trim($safe_title, '_');
-                $download_filename = (!empty($safe_title) ? $safe_title : 'photo') . '.' . $ext;
+                $download_filename = (!empty($safe_title) ? $safe_title : 'file') . '.' . $ext;
                 
                 // Send file for download
                 header('Content-Type: ' . $mime_type);
@@ -108,7 +108,7 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
 // Handle Download All as ZIP
 if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] === '1' && $folder['allow_zip_download']) {
     if (empty($photos)) {
-        $error_message = 'No photos to download.';
+        $error_message = 'No files to download.';
     } else {
         // Create ZIP file
         $zip = new ZipArchive();
@@ -118,7 +118,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
         $safe_folder_name = preg_replace('/_+/', '_', $safe_folder_name);
         $safe_folder_name = trim($safe_folder_name, '_');
         if (empty($safe_folder_name)) {
-            $safe_folder_name = 'photos';
+            $safe_folder_name = 'files';
         }
         
         // Generate unique ID for this download to avoid conflicts
@@ -151,7 +151,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                     $safe_title = preg_replace('/_+/', '_', $safe_title);
                     $safe_title = trim($safe_title, '_');
                     if (empty($safe_title)) {
-                        $safe_title = 'photo';
+                        $safe_title = 'file';
                     }
                     
                     // Handle duplicate filenames by adding counter
@@ -614,11 +614,13 @@ $site_logo = getSetting('site_logo');
                     <?php foreach ($photos as $photo): 
                         $file_url = UPLOAD_URL . $photo['image_path'];
                         $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                        $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
                         $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
                         // Use thumbnail for grid preview if available; fall back to original
                         $thumb_url = (!empty($photo['thumbnail_path']) && file_exists(UPLOAD_PATH . $photo['thumbnail_path']))
                             ? UPLOAD_URL . $photo['thumbnail_path']
                             : $file_url;
+                        $file_icon = $is_video ? 'video' : ($is_generic ? 'file-alt' : 'image');
                     ?>
                         <div class="photo-card">
                             <?php if (file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
@@ -632,6 +634,11 @@ $site_logo = getSetting('site_logo');
                                         </div>
                                         <span class="badge bg-danger file-type-badge">VIDEO</span>
                                     </div>
+                                <?php elseif ($is_generic): ?>
+                                    <div class="d-flex flex-column align-items-center justify-content-center" style="height: 200px; background: #f8f9fa;">
+                                        <i class="fas fa-file-alt fa-4x text-secondary mb-2"></i>
+                                        <span class="badge bg-secondary"><?php echo strtoupper(pathinfo($photo['image_path'], PATHINFO_EXTENSION)); ?></span>
+                                    </div>
                                 <?php else: ?>
                                     <img src="<?php echo htmlspecialchars($thumb_url); ?>" 
                                          alt="<?php echo htmlspecialchars($photo['title']); ?>"
@@ -641,7 +648,7 @@ $site_logo = getSetting('site_logo');
                                 <?php endif; ?>
                             <?php else: ?>
                                 <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
-                                    <i class="fas fa-<?php echo $is_video ? 'video' : 'image'; ?> fa-3x"></i>
+                                    <i class="fas fa-<?php echo $file_icon; ?> fa-3x"></i>
                                 </div>
                             <?php endif; ?>
                             
@@ -670,7 +677,7 @@ $site_logo = getSetting('site_logo');
         
         <div class="footer-text">
             <i class="fas fa-shield-alt me-1"></i>
-            Secure photo &amp; video sharing by <?php echo htmlspecialchars($site_name); ?>
+            Secure file sharing by <?php echo htmlspecialchars($site_name); ?>
         </div>
     </div>
     

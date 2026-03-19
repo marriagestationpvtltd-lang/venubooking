@@ -66,7 +66,7 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
         $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
         $safe_title = preg_replace('/_+/', '_', $safe_title); // Remove consecutive underscores
         $safe_title = trim($safe_title, '_');
-        $download_filename = (!empty($safe_title) ? $safe_title : 'photo') . '.' . $ext;
+        $download_filename = (!empty($safe_title) ? $safe_title : 'file') . '.' . $ext;
         
         // Send file for download
         header('Content-Type: ' . $mime_type);
