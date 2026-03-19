@@ -30,6 +30,7 @@ class ImageUploadHandler {
             maxVideoSize: 50 * 1024 * 1024 * 1024,   // 50 GB for videos
             allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             allowVideos: true, // Allow video uploads alongside images
+            allowAllFiles: false, // When true, accept any file type (not just images/videos)
             skipCompression: false, // When true, upload images without any compression (preserves original quality)
             uploadUrl: 'ajax-upload.php',
             chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
@@ -111,8 +112,9 @@ class ImageUploadHandler {
         const validFiles = files.filter(file => {
             const isImage = this.options.allowedTypes.includes(file.type);
             const isVideo = this.options.allowVideos && this.isVideoFile(file);
+            const isAllowed = this.options.allowAllFiles || isImage || isVideo;
 
-            if (!isImage && !isVideo) {
+            if (!isAllowed) {
                 this.showError(`${file.name}: Invalid file type. Allowed: JPG, PNG, GIF, WebP (photos) or MP4, MOV, AVI, WebM, MKV (videos).`);
                 return false;
             }
@@ -121,7 +123,7 @@ class ImageUploadHandler {
                 return false;
             }
             if (isImage && file.size > this.options.maxFileSize) {
-                this.showError(`${file.name}: File too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxFileSize)}.`);
+                this.showError(`${file.name}: Image too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxFileSize)}.`);
                 return false;
             }
             return true;
@@ -175,11 +177,21 @@ class ImageUploadHandler {
 
         // Generate thumbnail
         const container = preview.querySelector('.preview-image-container');
+        const isImage = this.options.allowedTypes.includes(file.type);
         if (this.isVideoFile(file)) {
             // Show video icon placeholder for videos
             container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
                 <i class="fas fa-video" style="font-size:2rem;color:#dc3545;"></i>
                 <small style="margin-top:4px;font-size:0.65rem;color:#888;">VIDEO</small>
+            </div>`;
+        } else if (!isImage) {
+            // Show generic file icon for non-image, non-video files
+            const ext = file.name.split('.').pop().toLowerCase();
+            const iconMap = {pdf:'fa-file-pdf text-danger',doc:'fa-file-word text-primary',docx:'fa-file-word text-primary',xls:'fa-file-excel text-success',xlsx:'fa-file-excel text-success',ppt:'fa-file-powerpoint text-warning',pptx:'fa-file-powerpoint text-warning',zip:'fa-file-archive text-secondary',rar:'fa-file-archive text-secondary','7z':'fa-file-archive text-secondary',tar:'fa-file-archive text-secondary',gz:'fa-file-archive text-secondary',mp3:'fa-file-audio text-info',wav:'fa-file-audio text-info',txt:'fa-file-alt text-muted',csv:'fa-file-csv text-success'};
+            const iconClass = iconMap[ext] || 'fa-file text-secondary';
+            container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
+                <i class="fas ${iconClass}" style="font-size:2rem;"></i>
+                <small style="margin-top:4px;font-size:0.65rem;color:#888;text-transform:uppercase;">${this.escapeHtml(ext) || 'FILE'}</small>
             </div>`;
         } else {
             try {
@@ -434,8 +446,9 @@ class ImageUploadHandler {
                     replaceExistingId = dupCheck.existing_id;
                 }
 
-                if (!isVideo && !this.options.skipCompression) {
-                    // Compress image files only (skipped when skipCompression is true)
+                const isImage = this.options.allowedTypes.includes(file.type);
+                if (!isVideo && isImage && !this.options.skipCompression) {
+                    // Compress image files only (skipped when skipCompression is true or file is not an image)
                     fileToUpload = await this.compressImage(file);
                     
                     // Update preview with compressed size

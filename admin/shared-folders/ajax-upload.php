@@ -93,21 +93,29 @@ $file = [
     'size' => $_FILES[$files_key]['size'][0]
 ];
 
-// Allowed types for photos and videos
+// Dangerous extensions that must never be uploaded (server-side executables)
+$blocked_extensions = [
+    'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar',
+    'asp', 'aspx', 'cfm', 'cgi', 'pl', 'py', 'rb',
+    'sh', 'bash', 'bat', 'cmd', 'ps1', 'vbs',
+    'exe', 'dll', 'com', 'scr',
+    'htaccess', 'htpasswd',
+];
+
+// Allowed MIME types for photos (used for image-specific validation)
 $allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 $allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
 
-$max_photo_size = 50 * 1024 * 1024; // 50MB for photos
-$max_video_size = 50 * 1024 * 1024 * 1024; // 50GB for videos
+$max_file_size = 50 * 1024 * 1024 * 1024; // 50GB for any file
 
-// Determine file type
+// Determine file type by MIME
 $is_photo = in_array($file['type'], $allowed_photo_types);
 $is_video = in_array($file['type'], $allowed_video_types);
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
     $error_messages = [
-        UPLOAD_ERR_INI_SIZE => 'File exceeds server upload limit. For large videos, contact server administrator to increase upload_max_filesize and post_max_size in php.ini.',
+        UPLOAD_ERR_INI_SIZE => 'File exceeds server upload limit. Contact server administrator to increase upload_max_filesize and post_max_size in php.ini.',
         UPLOAD_ERR_FORM_SIZE => 'File exceeds form upload limit.',
         UPLOAD_ERR_PARTIAL => 'File was only partially uploaded.',
         UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
@@ -120,9 +128,16 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-// Validate file type
-if (!$is_photo && !$is_video) {
-    echo json_encode(['success' => false, 'message' => 'Invalid file type. Allowed: JPG, PNG, GIF, WebP (photos) or MP4, MOV, AVI, WebM, MKV (videos).']);
+// Validate extension against blacklist
+$original_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+if (in_array($original_ext, $blocked_extensions)) {
+    echo json_encode(['success' => false, 'message' => 'This file type is not allowed for security reasons.']);
+    exit;
+}
+
+// Validate file size
+if ($file['size'] > $max_file_size) {
+    echo json_encode(['success' => false, 'message' => 'File exceeds 50GB limit.']);
     exit;
 }
 
@@ -130,54 +145,32 @@ if (!$is_photo && !$is_video) {
 if ($is_photo) {
     $image_info = getimagesize($file['tmp_name']);
     if ($image_info === false) {
-        echo json_encode(['success' => false, 'message' => 'Invalid image file.']);
-        exit;
-    }
-    
-    // Validate photo size
-    if ($file['size'] > $max_photo_size) {
-        echo json_encode(['success' => false, 'message' => 'Photo exceeds 50MB limit.']);
-        exit;
+        // Treat as generic file if getimagesize fails despite photo MIME type
+        $is_photo = false;
     }
 }
 
-// For videos, validate actual video content using file signature
+// For videos, validate actual video content using file signatures
 if ($is_video) {
-    // Validate video size
-    if ($file['size'] > $max_video_size) {
-        echo json_encode(['success' => false, 'message' => 'Video exceeds 50GB limit.']);
-        exit;
-    }
-    
-    // Basic video file validation - check file signatures
     $handle = fopen($file['tmp_name'], 'rb');
     if ($handle) {
         $header = fread($handle, 12);
         fclose($handle);
-        
+
         $valid_video = false;
-        
-        // Check for common video file signatures
-        // MP4/MOV: starts with 'ftyp' at offset 4
         if (strlen($header) >= 8 && substr($header, 4, 4) === 'ftyp') {
             $valid_video = true;
-        }
-        // AVI: starts with 'RIFF' and 'AVI '
-        elseif (strlen($header) >= 12 && substr($header, 0, 4) === 'RIFF' && substr($header, 8, 4) === 'AVI ') {
+        } elseif (strlen($header) >= 12 && substr($header, 0, 4) === 'RIFF' && substr($header, 8, 4) === 'AVI ') {
+            $valid_video = true;
+        } elseif (strlen($header) >= 4 && substr($header, 0, 4) === "\x1a\x45\xdf\xa3") {
+            $valid_video = true;
+        } elseif (strlen($header) >= 4 && (substr($header, 0, 4) === "\x00\x00\x01\xba" || substr($header, 0, 4) === "\x00\x00\x01\xb3")) {
             $valid_video = true;
         }
-        // WebM/MKV: starts with EBML signature (0x1A 0x45 0xDF 0xA3)
-        elseif (strlen($header) >= 4 && substr($header, 0, 4) === "\x1a\x45\xdf\xa3") {
-            $valid_video = true;
-        }
-        // MPEG: starts with 0x00 0x00 0x01 0xBA or 0x00 0x00 0x01 0xB3
-        elseif (strlen($header) >= 4 && (substr($header, 0, 4) === "\x00\x00\x01\xba" || substr($header, 0, 4) === "\x00\x00\x01\xb3")) {
-            $valid_video = true;
-        }
-        
+
         if (!$valid_video) {
-            echo json_encode(['success' => false, 'message' => 'Invalid video file. The file does not appear to be a valid video.']);
-            exit;
+            // Treat as generic file if signature check fails
+            $is_video = false;
         }
     }
 }
@@ -192,9 +185,8 @@ if (!is_dir($folder_upload_dir)) {
 }
 
 // Generate unique filename
-$file_type = $is_photo ? 'photo' : 'video';
-
 if ($is_photo) {
+    $file_type = 'photo';
     $mime_to_ext = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -203,7 +195,8 @@ if ($is_photo) {
     ];
     $extension = $mime_to_ext[$image_info['mime']] ?? 'jpg';
     $filename = 'photo_' . time() . '_' . uniqid() . '.' . $extension;
-} else {
+} elseif ($is_video) {
+    $file_type = 'video';
     $video_mime_to_ext = [
         'video/mp4' => 'mp4',
         'video/quicktime' => 'mov',
@@ -215,6 +208,11 @@ if ($is_photo) {
     ];
     $extension = $video_mime_to_ext[$file['type']] ?? 'mp4';
     $filename = 'video_' . time() . '_' . uniqid() . '.' . $extension;
+} else {
+    $file_type = 'file';
+    // Use original extension (already validated against blacklist above)
+    $extension = $original_ext !== '' ? $original_ext : 'bin';
+    $filename = 'file_' . time() . '_' . uniqid() . '.' . $extension;
 }
 
 $relative_path = 'folders/' . $folder_id . '/' . $filename;
@@ -250,7 +248,7 @@ $download_token = bin2hex(random_bytes(32));
 
 // Generate title from original filename
 $original_name = pathinfo($file['name'], PATHINFO_FILENAME);
-$title = !empty($original_name) ? $original_name : ($is_photo ? 'Photo' : 'Video') . ' ' . date('Y-m-d H:i:s');
+$title = !empty($original_name) ? $original_name : ucfirst($file_type) . ' ' . date('Y-m-d H:i:s');
 
 // Insert into database
 try {

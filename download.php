@@ -94,7 +94,7 @@ $whatsapp_number = getSetting('whatsapp_number');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download Photo - <?php echo htmlspecialchars($site_name); ?></title>
+    <title>Download File - <?php echo htmlspecialchars($site_name); ?></title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -353,7 +353,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <img src="<?php echo UPLOAD_URL . htmlspecialchars($site_logo); ?>" alt="Logo" style="height: 40px; margin-bottom: 10px;">
             <?php endif; ?>
             <h1><i class="fas fa-download me-2"></i> <?php echo htmlspecialchars($site_name); ?></h1>
-            <p class="company-tagline"><i class="fas fa-shield-alt me-1"></i> Secure Photo Sharing</p>
+            <p class="company-tagline"><i class="fas fa-shield-alt me-1"></i> Secure File Sharing</p>
         </div>
         
         <div class="card-body text-center">
@@ -367,10 +367,30 @@ $whatsapp_number = getSetting('whatsapp_number');
                     <small>If you believe this is an error, please contact the administrator.</small>
                 </p>
             <?php else: ?>
+                <?php
+                    $file_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                    $photo_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $is_downloadable_image = in_array($file_ext, $photo_exts);
+                    $file_icon_class = getFileTypeIcon($file_ext);
+                ?>
+
+                <?php if ($is_downloadable_image): ?>
                 <div class="photo-preview">
                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo['image_path']); ?>" 
                          alt="<?php echo htmlspecialchars($photo['title']); ?>">
                 </div>
+                <?php else: ?>
+                <div class="photo-preview">
+                    <i class="fas <?php echo $file_icon_class; ?>" style="font-size:5rem;margin:20px 0;display:block;"></i>
+                    <div class="text-muted" style="font-size:0.85rem;">
+                        <i class="fas fa-file"></i>
+                        <?php echo strtoupper(htmlspecialchars($file_ext)) ?: 'FILE'; ?> File
+                        <?php if (!empty($photo['file_size'])): ?>
+                            &bull; <?php echo htmlspecialchars(formatFileSize($photo['file_size'])); ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
                 
                 <div class="photo-title">
                     <?php echo htmlspecialchars($photo['title']); ?>
@@ -385,7 +405,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <a href="?token=<?php echo urlencode($token); ?>&download=1"
                    class="btn btn-success download-btn"
                    onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
-                    <i class="fas fa-download me-2"></i> Download Photo
+                    <i class="fas fa-download me-2"></i> Download File
                 </a>
 
                 <!-- Security Trust Badges -->
@@ -393,7 +413,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                     <span class="trust-badge"><i class="fas fa-lock"></i> Private Link</span>
                     <span class="trust-badge"><i class="fas fa-shield-alt"></i> Secure Transfer</span>
                     <span class="trust-badge"><i class="fas fa-user-shield"></i> Protected</span>
-                    <span class="trust-badge"><i class="fas fa-camera"></i> Original Quality</span>
+                    <span class="trust-badge"><i class="fas fa-file-check"></i> Original Quality</span>
                 </div>
                 
                 <div class="meta-info">
@@ -441,7 +461,7 @@ $whatsapp_number = getSetting('whatsapp_number');
             <?php endif; ?>
             <div>
                 <i class="fas fa-shield-alt me-1"></i>
-                Secure photo sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong>
+                Secure file sharing by <strong><?php echo htmlspecialchars($site_name); ?></strong>
                 &nbsp;·&nbsp;
                 <i class="fas fa-lock me-1"></i>Your files are private &amp; protected
             </div>

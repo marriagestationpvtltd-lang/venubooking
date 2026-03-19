@@ -70,9 +70,41 @@ function formatFileSize($bytes) {
 }
 
 /**
- * Get value or return default if empty/null
- * Handles missing data gracefully throughout the application
+ * Get a Font Awesome icon class for a file based on its extension.
+ * Returns a string like "fa-file-pdf text-danger" suitable for use in:
+ *   <i class="fas <?= getFileTypeIcon($ext) ?>"></i>
+ *
+ * @param string $ext  Lowercase file extension (e.g. 'pdf', 'zip')
+ * @return string      Icon class string
  */
+function getFileTypeIcon($ext) {
+    $map = [
+        'pdf'  => 'fa-file-pdf text-danger',
+        'doc'  => 'fa-file-word text-primary',
+        'docx' => 'fa-file-word text-primary',
+        'xls'  => 'fa-file-excel text-success',
+        'xlsx' => 'fa-file-excel text-success',
+        'ppt'  => 'fa-file-powerpoint text-warning',
+        'pptx' => 'fa-file-powerpoint text-warning',
+        'zip'  => 'fa-file-archive text-secondary',
+        'rar'  => 'fa-file-archive text-secondary',
+        '7z'   => 'fa-file-archive text-secondary',
+        'tar'  => 'fa-file-archive text-secondary',
+        'gz'   => 'fa-file-archive text-secondary',
+        'mp4'  => 'fa-file-video text-info',
+        'mov'  => 'fa-file-video text-info',
+        'avi'  => 'fa-file-video text-info',
+        'webm' => 'fa-file-video text-info',
+        'mkv'  => 'fa-file-video text-info',
+        'mp3'  => 'fa-file-audio text-info',
+        'wav'  => 'fa-file-audio text-info',
+        'txt'  => 'fa-file-alt text-muted',
+        'csv'  => 'fa-file-csv text-success',
+    ];
+    return isset($map[$ext]) ? $map[$ext] : 'fa-file text-secondary';
+}
+
+
 function getValueOrDefault($value, $default = 'N/A') {
     // Check for null or empty string
     if (is_null($value) || $value === '') {

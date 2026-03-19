@@ -34,7 +34,7 @@ $max_downloads = !empty($_POST['max_downloads']) ? intval($_POST['max_downloads'
 
 // Validation
 if (empty($title)) {
-    echo json_encode(['success' => false, 'message' => 'Please enter a title for the photo.']);
+    echo json_encode(['success' => false, 'message' => 'Please enter a title for the file.']);
     exit;
 }
 
@@ -52,9 +52,18 @@ $file = [
     'size' => $_FILES['images']['size'][0]
 ];
 
-// Allowed types
-$allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-$max_size = 10 * 1024 * 1024; // 10MB
+// Dangerous extensions that must never be uploaded (server-side executables)
+$blocked_extensions = [
+    'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar',
+    'asp', 'aspx', 'cfm', 'cgi', 'pl', 'py', 'rb',
+    'sh', 'bash', 'bat', 'cmd', 'ps1', 'vbs',
+    'exe', 'dll', 'com', 'scr',
+    'htaccess', 'htpasswd',
+];
+
+// Photo/video MIME types for type-specific validation
+$allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$max_size = 500 * 1024 * 1024; // 500MB (server php.ini limits apply; chunked upload is not available here)
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -72,23 +81,29 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
-// Validate file type
-if (!in_array($file['type'], $allowed_types)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.']);
-    exit;
-}
-
-// Validate actual image content
-$image_info = getimagesize($file['tmp_name']);
-if ($image_info === false) {
-    echo json_encode(['success' => false, 'message' => 'Invalid image file.']);
+// Validate extension against blacklist
+$original_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+if (in_array($original_ext, $blocked_extensions)) {
+    echo json_encode(['success' => false, 'message' => 'This file type is not allowed for security reasons.']);
     exit;
 }
 
 // Validate file size
 if ($file['size'] > $max_size) {
-    echo json_encode(['success' => false, 'message' => 'File exceeds 10MB limit.']);
+    echo json_encode(['success' => false, 'message' => 'File exceeds 500MB limit.']);
     exit;
+}
+
+// Determine file type and handle accordingly
+$is_photo = in_array($file['type'], $allowed_photo_types);
+$image_info = null;
+
+if ($is_photo) {
+    $image_info = getimagesize($file['tmp_name']);
+    if ($image_info === false) {
+        // Treat as generic file if actual content is not a valid image
+        $is_photo = false;
+    }
 }
 
 // Create uploads directory if it doesn't exist
@@ -99,20 +114,20 @@ if (!is_dir(UPLOAD_PATH)) {
     }
 }
 
-// Generate unique filename using validated mime type
-$mime_to_ext = [
-    'image/jpeg' => 'jpg',
-    'image/png' => 'png',
-    'image/gif' => 'gif',
-    'image/webp' => 'webp'
-];
-
-if (!isset($mime_to_ext[$image_info['mime']])) {
-    echo json_encode(['success' => false, 'message' => 'Unsupported image format detected.']);
-    exit;
+// Generate unique filename using validated type
+if ($is_photo && $image_info) {
+    $mime_to_ext = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp'
+    ];
+    $extension = $mime_to_ext[$image_info['mime']] ?? ($original_ext !== '' ? $original_ext : 'jpg');
+} else {
+    // Use the original extension (already validated against blacklist)
+    $extension = $original_ext !== '' ? $original_ext : 'bin';
 }
 
-$extension = $mime_to_ext[$image_info['mime']];
 $filename = 'shared_' . time() . '_' . uniqid() . '.' . $extension;
 $upload_path = UPLOAD_PATH . $filename;
 
@@ -131,15 +146,27 @@ if ($expires_in > 0) {
     $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_in} days"));
 }
 
+// Determine file type for database
+$allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
+if ($is_photo) {
+    $db_file_type = 'photo';
+} elseif (in_array($file['type'], $allowed_video_types)) {
+    $db_file_type = 'video';
+} else {
+    $db_file_type = 'file';
+}
+
 // Insert into database
 try {
-    $sql = "INSERT INTO shared_photos (title, description, image_path, download_token, max_downloads, expires_at, status, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?, 'active', ?)";
+    $sql = "INSERT INTO shared_photos (file_type, title, description, image_path, file_size, download_token, max_downloads, expires_at, status, created_by) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)";
     $stmt = $db->prepare($sql);
     $result = $stmt->execute([
+        $db_file_type,
         $title, 
         $description, 
-        $filename, 
+        $filename,
+        $file['size'],
         $download_token, 
         $max_downloads, 
         $expires_at, 
@@ -150,11 +177,11 @@ try {
         $photo_id = $db->lastInsertId();
         $download_url = BASE_URL . '/download.php?token=' . urlencode($download_token);
         
-        logActivity($current_user['id'], 'Uploaded shared photo', 'shared_photos', $photo_id, "Uploaded photo for sharing: $title");
+        logActivity($current_user['id'], 'Uploaded shared file', 'shared_photos', $photo_id, "Uploaded file for sharing: $title");
         
         echo json_encode([
             'success' => true,
-            'message' => 'Photo uploaded successfully! Download link generated.',
+            'message' => 'File uploaded successfully! Download link generated.',
             'image' => [
                 'id' => $photo_id,
                 'title' => $title,
