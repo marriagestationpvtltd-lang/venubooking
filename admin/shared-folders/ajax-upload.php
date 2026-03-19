@@ -61,6 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['ajax_upload'])) {
     exit;
 }
 
+// Verify CSRF token
+if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+    echo json_encode(['success' => false, 'message' => 'Invalid CSRF token.']);
+    exit;
+}
+
 // Get folder ID
 $folder_id = intval($_POST['folder_id'] ?? 0);
 if (!$folder_id) {

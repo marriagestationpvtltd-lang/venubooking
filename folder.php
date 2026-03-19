@@ -49,6 +49,23 @@ if (empty($token)) {
             $photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? AND status = 'active' ORDER BY COALESCE(subfolder_name,'') ASC, created_at DESC");
             $photos_stmt->execute([$folder['id']]);
             $photos = $photos_stmt->fetchAll();
+
+            // Filter out records whose physical files are missing from disk.
+            // This prevents broken-image 404 errors on the public folder page when a
+            // file has been removed from storage but its database record still exists.
+            $real_upload_base = realpath(UPLOAD_PATH);
+            if ($real_upload_base !== false) {
+                $photos = array_values(array_filter($photos, function ($photo) use ($real_upload_base) {
+                    if (empty($photo['image_path'])) {
+                        return false;
+                    }
+                    $abs_path = UPLOAD_PATH . $photo['image_path'];
+                    $real_path = realpath($abs_path);
+                    return $real_path !== false
+                        && strpos($real_path, $real_upload_base . DIRECTORY_SEPARATOR) === 0
+                        && file_exists($abs_path);
+                }));
+            }
         }
     } catch (Exception $e) {
         error_log('Folder page error: ' . $e->getMessage());
@@ -997,7 +1014,8 @@ $whatsapp_number = getSetting('whatsapp_number');
                                             <?php foreach (array_slice($thumb_photos, 0, 4) as $tp): ?>
                                                 <img src="<?php echo htmlspecialchars(UPLOAD_URL . $tp['image_path'], ENT_QUOTES, 'UTF-8'); ?>"
                                                      alt=""
-                                                     loading="lazy">
+                                                     loading="lazy"
+                                                     onerror="this.style.display='none'">
                                             <?php endforeach; ?>
                                         </div>
                                         <i class="fas fa-folder folder-icon-overlay"></i>
@@ -1055,6 +1073,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                          onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
                                          loading="lazy"
+                                         onerror="this.closest('.photo-card').style.display='none'"
                                          style="cursor: pointer;">
                                 <?php endif; ?>
                                 
@@ -1116,6 +1135,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                          onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
                                          loading="lazy"
+                                         onerror="this.closest('.photo-card').style.display='none'"
                                          style="cursor: pointer;">
                                 <?php endif; ?>
                                 
