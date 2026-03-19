@@ -250,13 +250,20 @@ $download_token = bin2hex(random_bytes(32));
 $original_name = pathinfo($file['name'], PATHINFO_FILENAME);
 $title = !empty($original_name) ? $original_name : ucfirst($file_type) . ' ' . date('Y-m-d H:i:s');
 
+// Get optional sub-folder/album name
+$subfolder_name = isset($_POST['subfolder_name']) ? trim($_POST['subfolder_name']) : null;
+if ($subfolder_name === '') {
+    $subfolder_name = null;
+}
+
 // Insert into database
 try {
-    $sql = "INSERT INTO shared_photos (folder_id, file_type, title, description, image_path, file_size, thumbnail_path, download_token, status, created_by) 
-            VALUES (?, ?, ?, '', ?, ?, ?, ?, 'active', ?)";
+    $sql = "INSERT INTO shared_photos (folder_id, subfolder_name, file_type, title, description, image_path, file_size, thumbnail_path, download_token, status, created_by) 
+            VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, 'active', ?)";
     $stmt = $db->prepare($sql);
     $result = $stmt->execute([
         $folder_id,
+        $subfolder_name,
         $file_type,
         $title, 
         $relative_path, 
