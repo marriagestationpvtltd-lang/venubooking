@@ -70,48 +70,41 @@ function formatFileSize($bytes) {
 }
 
 /**
- * Returns a Font Awesome icon class, color, and label for a file based on its extension.
- * Used for displaying non-image/non-video files in the shared folders system.
+ * Get a Font Awesome icon class for a file based on its extension.
+ * Returns a string like "fa-file-pdf text-danger" suitable for use in:
+ *   <i class="fas <?= getFileTypeIcon($ext) ?>"></i>
  *
- * @param string $filename The filename (with extension)
- * @return array [icon_class, color, label]
+ * @param string $ext  Lowercase file extension (e.g. 'pdf', 'zip')
+ * @return string      Icon class string
  */
-function getFileTypeIcon($filename) {
-    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+function getFileTypeIcon($ext) {
     $map = [
-        // Archives
-        'zip'  => ['fas fa-file-archive', '#e67e22', 'ZIP'],
-        'rar'  => ['fas fa-file-archive', '#e67e22', 'RAR'],
-        '7z'   => ['fas fa-file-archive', '#e67e22', '7Z'],
-        'tar'  => ['fas fa-file-archive', '#e67e22', 'TAR'],
-        'gz'   => ['fas fa-file-archive', '#e67e22', 'GZ'],
-        // Documents
-        'pdf'  => ['fas fa-file-pdf', '#e74c3c', 'PDF'],
-        'doc'  => ['fas fa-file-word', '#2980b9', 'DOC'],
-        'docx' => ['fas fa-file-word', '#2980b9', 'DOCX'],
-        'xls'  => ['fas fa-file-excel', '#27ae60', 'XLS'],
-        'xlsx' => ['fas fa-file-excel', '#27ae60', 'XLSX'],
-        'ppt'  => ['fas fa-file-powerpoint', '#e67e22', 'PPT'],
-        'pptx' => ['fas fa-file-powerpoint', '#e67e22', 'PPTX'],
-        // Text
-        'txt'  => ['fas fa-file-alt', '#7f8c8d', 'TXT'],
-        'csv'  => ['fas fa-file-csv', '#27ae60', 'CSV'],
-        // Audio
-        'mp3'  => ['fas fa-file-audio', '#8e44ad', 'MP3'],
-        'wav'  => ['fas fa-file-audio', '#8e44ad', 'WAV'],
-        'flac' => ['fas fa-file-audio', '#8e44ad', 'FLAC'],
-        // Code
-        'html' => ['fas fa-file-code', '#e74c3c', 'HTML'],
-        'css'  => ['fas fa-file-code', '#2980b9', 'CSS'],
-        'js'   => ['fas fa-file-code', '#f1c40f', 'JS'],
+        'pdf'  => 'fa-file-pdf text-danger',
+        'doc'  => 'fa-file-word text-primary',
+        'docx' => 'fa-file-word text-primary',
+        'xls'  => 'fa-file-excel text-success',
+        'xlsx' => 'fa-file-excel text-success',
+        'ppt'  => 'fa-file-powerpoint text-warning',
+        'pptx' => 'fa-file-powerpoint text-warning',
+        'zip'  => 'fa-file-archive text-secondary',
+        'rar'  => 'fa-file-archive text-secondary',
+        '7z'   => 'fa-file-archive text-secondary',
+        'tar'  => 'fa-file-archive text-secondary',
+        'gz'   => 'fa-file-archive text-secondary',
+        'mp4'  => 'fa-file-video text-info',
+        'mov'  => 'fa-file-video text-info',
+        'avi'  => 'fa-file-video text-info',
+        'webm' => 'fa-file-video text-info',
+        'mkv'  => 'fa-file-video text-info',
+        'mp3'  => 'fa-file-audio text-info',
+        'wav'  => 'fa-file-audio text-info',
+        'txt'  => 'fa-file-alt text-muted',
+        'csv'  => 'fa-file-csv text-success',
     ];
-    return $map[$ext] ?? ['fas fa-file', '#95a5a6', strtoupper($ext) ?: 'FILE'];
+    return isset($map[$ext]) ? $map[$ext] : 'fa-file text-secondary';
 }
 
-/**
- * Get value or return default if empty/null
- * Handles missing data gracefully throughout the application
- */
+
 function getValueOrDefault($value, $default = 'N/A') {
     // Check for null or empty string
     if (is_null($value) || $value === '') {

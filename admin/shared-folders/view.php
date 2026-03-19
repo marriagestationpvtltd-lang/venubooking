@@ -85,17 +85,25 @@ if (isset($_GET['success'])) {
         $success_message = 'Folder created successfully! Now upload photos below.';
     } elseif (is_numeric($_GET['success'])) {
         $count = intval($_GET['success']);
-        $success_message = $count . ' photo' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
+        $success_message = $count . ' file' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
     }
 }
 
 unset($_SESSION['success_message']);
 unset($_SESSION['error_message']);
 
-// Fetch photos in this folder
-$photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? ORDER BY created_at DESC");
+// Fetch photos in this folder, ordered by subfolder_name then created_at
+$photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? ORDER BY COALESCE(subfolder_name,'') ASC, created_at DESC");
 $photos_stmt->execute([$folder_id]);
 $photos = $photos_stmt->fetchAll();
+
+// Group photos by subfolder_name for admin display
+$photos_by_subfolder = [];
+foreach ($photos as $photo) {
+    $sf = ($photo['subfolder_name'] !== null && $photo['subfolder_name'] !== '') ? $photo['subfolder_name'] : '';
+    $photos_by_subfolder[$sf][] = $photo;
+}
+ksort($photos_by_subfolder);
 
 // Generate folder URL
 $folder_url = BASE_URL . '/folder.php?token=' . urlencode($folder['download_token']);
@@ -339,15 +347,43 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
     <div class="card-body">
         <div class="alert alert-info mb-3">
             <i class="fas fa-info-circle"></i> <strong>Bulk Upload:</strong> 
-            तपाईं एकैपटकमा जुनसुकै प्रकारका फाइलहरु अपलोड गर्न सक्नुहुन्छ।<br>
-            <i class="fas fa-image"></i> फोटो: JPG, PNG, GIF, WebP (५० MB सम्म)<br>
-            <i class="fas fa-video"></i> भिडियो: MP4, MOV, AVI, WebM, MKV (५० GB सम्म) — ठूलो भिडियो chunk गरेर background मा अपलोड हुन्छ<br>
-            <i class="fas fa-file-archive"></i> अन्य फाइलहरु: ZIP, RAR, PDF, Word, Excel र अन्य सबै प्रकार (५० GB सम्म)
+            तपाईं एकैपटकमा धेरै फाइलहरु अपलोड गर्न सक्नुहुन्छ।<br>
+            <i class="fas fa-file"></i> कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै (५० GB सम्म)<br>
+            <i class="fas fa-video"></i> ठूलो भिडियो/फाइल chunk गरेर background मा अपलोड हुन्छ
         </div>
         
         <form id="uploadForm" method="POST" action="ajax-upload.php" enctype="multipart/form-data">
             <input type="hidden" name="folder_id" value="<?php echo $folder_id; ?>">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
+            
+            <!-- Sub-folder/Album Name -->
+            <div class="mb-3">
+                <label for="subfolderNameInput" class="form-label fw-semibold">
+                    <i class="fas fa-folder-plus text-warning"></i> Album / Sub-folder Name
+                    <small class="text-muted fw-normal ms-1">(optional – groups photos into albums)</small>
+                </label>
+                <?php
+                // Collect existing subfolder names for datalist
+                $sf_stmt = $db->prepare("SELECT DISTINCT subfolder_name FROM shared_photos WHERE folder_id = ? AND subfolder_name IS NOT NULL AND subfolder_name <> '' ORDER BY subfolder_name ASC");
+                $sf_stmt->execute([$folder_id]);
+                $existing_subfolders = $sf_stmt->fetchAll(PDO::FETCH_COLUMN);
+                ?>
+                <input type="text" class="form-control" id="subfolderNameInput" name="subfolder_name"
+                       placeholder="e.g. Ceremony, Reception, Getting Ready…"
+                       list="subfolderSuggestions" autocomplete="off"
+                       value="">
+                <?php if (!empty($existing_subfolders)): ?>
+                <datalist id="subfolderSuggestions">
+                    <?php foreach ($existing_subfolders as $sf): ?>
+                    <option value="<?php echo htmlspecialchars($sf, ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php endforeach; ?>
+                </datalist>
+                <?php endif; ?>
+                <div class="form-text">
+                    <i class="fas fa-info-circle"></i> 
+                    फोटोहरू एउटै एल्बममा राख्न एउटै नाम टाइप गर्नुहोस्। उदाहरण: "Ceremony" टाइप गरेर Ceremony एल्बममा फोटो थप्नुहोस्।
+                </div>
+            </div>
             
             <!-- Drag & Drop Zone -->
             <div id="dropZone" class="drop-zone">
@@ -355,11 +391,11 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                     <i class="fas fa-cloud-upload-alt"></i>
                 </div>
                 <div class="drop-zone-text">
-                    <strong>Drag & Drop any files here</strong><br>
+                    <strong>Drag & Drop files here</strong><br>
                     or click to browse
                 </div>
                 <div class="drop-zone-hint">
-                    Photos, Videos, ZIP, PDF, Documents and any other file (max 50GB)
+                    कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै • Max size: 50GB
                 </div>
             </div>
             
@@ -396,60 +432,72 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                 <p class="text-muted">Use the upload area above to add files.</p>
             </div>
         <?php else: ?>
-            <div class="photo-grid">
-                <?php foreach ($photos as $photo): 
-                    $file_url = UPLOAD_URL . $photo['image_path'];
-                    $file_type_val = isset($photo['file_type']) ? $photo['file_type'] : 'photo';
-                    $is_video = $file_type_val === 'video';
-                    $is_photo_file = $file_type_val === 'photo';
-                    $is_other = $file_type_val === 'file';
-                    $file_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
-                    $file_icon = getFileTypeIcon($photo['image_path']);
-                    $file_label = $file_icon[2];
-                    $delete_label = $is_video ? 'video' : ($is_photo_file ? 'photo' : 'file');
-                ?>
-                    <div class="photo-item" data-photo-id="<?php echo $photo['id']; ?>">
-                        <input type="checkbox" class="form-check-input photo-checkbox" value="<?php echo $photo['id']; ?>">
-                        
-                        <?php if ($is_video): ?>
-                            <div class="video-thumbnail">
-                                <video muted preload="metadata" style="width:100%; height:100%; object-fit:cover;">
-                                    <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
-                                </video>
-                                <div class="video-play-icon">
-                                    <i class="fas fa-play-circle"></i>
-                                </div>
-                                <span class="badge bg-danger video-badge">VIDEO</span>
-                            </div>
-                        <?php elseif ($is_photo_file): ?>
-                            <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy">
-                        <?php else: ?>
-                            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#f8f9fa;">
-                                <i class="<?php echo htmlspecialchars($file_icon[0]); ?>" style="font-size:2.5rem;color:<?php echo htmlspecialchars($file_icon[1]); ?>;"></i>
-                                <span class="badge bg-secondary mt-2" style="font-size:0.65rem;"><?php echo htmlspecialchars($file_label); ?></span>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <a href="?id=<?php echo $folder_id; ?>&delete_photo=<?php echo $photo['id']; ?>" 
-                           class="delete-btn"
-                           onclick="return confirm('Delete this <?php echo $delete_label; ?>?');"
-                           title="Delete <?php echo ucfirst($delete_label); ?>">
-                            <i class="fas fa-times"></i>
-                        </a>
-                        
-                        <div class="photo-overlay">
-                            <small><?php echo htmlspecialchars(substr($photo['title'], 0, 20)); ?><?php echo strlen($photo['title']) > 20 ? '...' : ''; ?></small>
-                            <br>
-                            <small>
-                                <?php if (isset($photo['file_size']) && $photo['file_size']): ?>
-                                    <i class="fas fa-hdd"></i> <?php echo formatFileSize($photo['file_size']); ?>
-                                <?php endif; ?>
-                                <i class="fas fa-download"></i> <?php echo $photo['download_count']; ?>
-                            </small>
-                        </div>
+            <?php foreach ($photos_by_subfolder as $sf_name => $sf_photos): ?>
+                <?php if ($sf_name !== ''): ?>
+                    <div class="d-flex align-items-center gap-2 mt-3 mb-2">
+                        <i class="fas fa-folder-open text-warning"></i>
+                        <strong><?php echo htmlspecialchars($sf_name); ?></strong>
+                        <span class="badge bg-secondary"><?php echo count($sf_photos); ?></span>
                     </div>
-                <?php endforeach; ?>
-            </div>
+                <?php elseif (count($photos_by_subfolder) > 1): ?>
+                    <div class="d-flex align-items-center gap-2 mt-3 mb-2">
+                        <i class="fas fa-folder text-muted"></i>
+                        <strong class="text-muted">Uncategorized</strong>
+                        <span class="badge bg-secondary"><?php echo count($sf_photos); ?></span>
+                    </div>
+                <?php endif; ?>
+                <div class="photo-grid">
+                    <?php foreach ($sf_photos as $photo): 
+                        $file_url = UPLOAD_URL . $photo['image_path'];
+                        $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
+                        $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
+                        $ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                        $icon_class = getFileTypeIcon($ext);
+                    ?>
+                        <div class="photo-item" data-photo-id="<?php echo $photo['id']; ?>">
+                            <input type="checkbox" class="form-check-input photo-checkbox" value="<?php echo $photo['id']; ?>">
+                            
+                            <?php if ($is_video): ?>
+                                <div class="video-thumbnail">
+                                    <video muted preload="metadata" style="width:100%; height:100%; object-fit:cover;">
+                                        <source src="<?php echo htmlspecialchars($file_url); ?>#t=0.5" type="video/mp4">
+                                    </video>
+                                    <div class="video-play-icon">
+                                        <i class="fas fa-play-circle"></i>
+                                    </div>
+                                    <span class="badge bg-danger video-badge">VIDEO</span>
+                                </div>
+                            <?php elseif ($is_generic): ?>
+                                <div class="video-thumbnail d-flex flex-column align-items-center justify-content-center" style="background:#f8f9fa;">
+                                    <i class="fas <?php echo $icon_class; ?>" style="font-size:3rem;"></i>
+                                    <small class="mt-2 text-muted text-uppercase" style="font-size:0.7rem;"><?php echo htmlspecialchars($ext ?: 'FILE'); ?></small>
+                                    <span class="badge bg-secondary video-badge">FILE</span>
+                                </div>
+                            <?php else: ?>
+                                <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy">
+                            <?php endif; ?>
+                            
+                            <a href="?id=<?php echo $folder_id; ?>&delete_photo=<?php echo $photo['id']; ?>" 
+                               class="delete-btn"
+                               onclick="return confirm('Delete this file?');"
+                               title="Delete <?php echo $is_video ? 'Video' : 'Photo'; ?>">
+                                <i class="fas fa-times"></i>
+                            </a>
+                            
+                            <div class="photo-overlay">
+                                <small><?php echo htmlspecialchars(substr($photo['title'], 0, 20)); ?><?php echo strlen($photo['title']) > 20 ? '...' : ''; ?></small>
+                                <br>
+                                <small>
+                                    <?php if ($is_video && isset($photo['file_size'])): ?>
+                                        <i class="fas fa-file-video"></i> <?php echo formatFileSize($photo['file_size']); ?>
+                                    <?php endif; ?>
+                                    <i class="fas fa-download"></i> <?php echo $photo['download_count']; ?>
+                                </small>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endforeach; ?>
         <?php endif; ?>
     </div>
 </div>
@@ -469,11 +517,10 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.90,
-        skipCompression: true,          // Deliver original quality for shared folder photos
-        allowAllFiles: true,            // Accept any file type (photos, videos, ZIP, PDF, etc.)
-        maxFileSize: 50 * 1024 * 1024,          // 50 MB per photo/small file
+        skipCompression: true,          // Deliver original quality for shared folder files
+        maxFileSize: 50 * 1024 * 1024 * 1024,   // 50 GB per file
         maxVideoSize: 50 * 1024 * 1024 * 1024,  // 50 GB per video
-        maxOtherFileSize: 50 * 1024 * 1024 * 1024, // 50 GB per other file
+        allowAllFiles: true,                     // Allow any file type
         uploadUrl: 'ajax-upload.php',
         chunkUploadUrl: 'ajax-chunk-upload.php',
         onUploadStart: function() {
@@ -548,7 +595,7 @@ $(document).ready(function() {
         
         if (selectedIds.length === 0) return;
         
-        if (!confirm('Delete ' + selectedIds.length + ' selected photo(s)?')) return;
+        if (!confirm('Delete ' + selectedIds.length + ' selected file(s)?')) return;
         
         var $btn = $(this);
         $btn.prop('disabled', true).find('i').removeClass('fa-trash').addClass('fa-spinner fa-spin');

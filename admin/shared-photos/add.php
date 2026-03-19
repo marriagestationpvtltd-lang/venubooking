@@ -32,7 +32,7 @@ $error_message = '';
                         <div>
                             <strong>फाइल सेयर गर्ने तरिका:</strong>
                             <ul class="mb-0 mt-1">
-                                <li><i class="fas fa-upload"></i> <strong>अपलोड:</strong> फाइल अपलोड गर्नुहोस् (फोटो, भिडियो, ZIP, PDF, Word, Excel आदि)</li>
+                                <li><i class="fas fa-upload"></i> <strong>अपलोड:</strong> फोटो, भिडियो, ZIP, PDF वा कुनै पनि फाइल अपलोड गर्नुहोस्</li>
                                 <li><i class="fas fa-link"></i> <strong>लिङ्क:</strong> स्वचालित रूपमा डाउनलोड लिङ्क जेनेरेट हुनेछ</li>
                                 <li><i class="fas fa-share"></i> <strong>सेयर:</strong> उक्त लिङ्क युजरलाई दिनुहोस्</li>
                                 <li><i class="fas fa-download"></i> <strong>डाउनलोड:</strong> युजरले लिङ्कबाट फाइल डाउनलोड गर्न सक्छन्</li>
@@ -48,7 +48,7 @@ $error_message = '';
                                 <label for="title" class="form-label">File Title <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="title" name="title" 
                                        value="" required
-                                       placeholder="e.g., विवाह फोटो - राम र सीता">
+                                       placeholder="e.g., विवाह फोटो - राम र सीता, Contract.pdf">
                                 <small class="text-muted">युजरलाई फाइल पहिचान गर्न सजिलो हुने नाम दिनुहोस्</small>
                             </div>
                         </div>
@@ -96,11 +96,11 @@ $error_message = '';
                                 <i class="fas fa-cloud-upload-alt"></i>
                             </div>
                             <div class="drop-zone-text">
-                                <strong>Drag & Drop any file here</strong><br>
+                                <strong>Drag & Drop file here</strong><br>
                                 or click to browse
                             </div>
                             <div class="drop-zone-hint">
-                                Photos, Videos, ZIP, PDF, Word, Excel and any other file • Max size: 50MB
+                                कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै • Max size: 500MB
                             </div>
                         </div>
                         
@@ -139,11 +139,11 @@ $error_message = '';
         maxWidth: 1920,
         maxHeight: 1920,
         skipCompression: true, // Deliver original quality for shared files
-        allowAllFiles: true,   // Accept any file type
-        disableChunkedUpload: true, // Standalone sharing uses direct upload; 50 MB server limit applies
-        maxFileSize: 50 * 1024 * 1024,       // 50 MB for images
-        maxVideoSize: 50 * 1024 * 1024,      // 50 MB for videos (direct upload only)
-        maxOtherFileSize: 50 * 1024 * 1024,  // 50 MB for any other file
+        allowAllFiles: true, // Allow any file type
+        disableChunkedUpload: true, // Standalone sharing: direct upload only; 500MB server limit applies
+        maxFileSize: 500 * 1024 * 1024,       // 500 MB for images
+        maxVideoSize: 500 * 1024 * 1024,      // 500 MB for videos (direct upload only)
+        maxOtherFileSize: 500 * 1024 * 1024,  // 500 MB for any other file
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {
             console.log('Upload started');

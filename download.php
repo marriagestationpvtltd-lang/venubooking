@@ -353,7 +353,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <img src="<?php echo UPLOAD_URL . htmlspecialchars($site_logo); ?>" alt="Logo" style="height: 40px; margin-bottom: 10px;">
             <?php endif; ?>
             <h1><i class="fas fa-download me-2"></i> <?php echo htmlspecialchars($site_name); ?></h1>
-            <p class="company-tagline"><i class="fas fa-shield-alt me-1"></i> Secure Photo Sharing</p>
+            <p class="company-tagline"><i class="fas fa-shield-alt me-1"></i> Secure File Sharing</p>
         </div>
         
         <div class="card-body text-center">
@@ -367,26 +367,27 @@ $whatsapp_number = getSetting('whatsapp_number');
                     <small>If you believe this is an error, please contact the administrator.</small>
                 </p>
             <?php else: ?>
-                <?php 
-                    $dl_file_type = isset($photo['file_type']) ? $photo['file_type'] : 'photo';
-                    $dl_is_image = $dl_file_type === 'photo';
-                    $dl_is_video = $dl_file_type === 'video';
+                <?php
+                    $file_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                    $photo_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $is_downloadable_image = in_array($file_ext, $photo_exts);
+                    $file_icon_class = getFileTypeIcon($file_ext);
                 ?>
-                <?php if ($dl_is_image): ?>
+
+                <?php if ($is_downloadable_image): ?>
                 <div class="photo-preview">
                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo['image_path']); ?>" 
                          alt="<?php echo htmlspecialchars($photo['title']); ?>">
                 </div>
-                <?php elseif ($dl_is_video): ?>
+                <?php else: ?>
                 <div class="photo-preview">
-                    <div style="font-size:5rem; color:#e74c3c;"><i class="fas fa-file-video"></i></div>
-                </div>
-                <?php else:
-                    $dl_icon = getFileTypeIcon($photo['image_path']);
-                ?>
-                <div class="photo-preview">
-                    <div style="font-size:5rem; color:<?php echo htmlspecialchars($dl_icon[1]); ?>;"><i class="<?php echo htmlspecialchars($dl_icon[0]); ?>"></i></div>
-                    <div style="font-size:0.85rem; color:#888; margin-top:8px;"><?php echo htmlspecialchars($dl_icon[2]); ?> File</div>
+                    <i class="fas <?php echo htmlspecialchars($file_icon_class); ?>" style="font-size:5rem;margin:20px 0;display:block;"></i>
+                    <div class="text-muted" style="font-size:0.85rem;">
+                        <?php echo strtoupper(htmlspecialchars($file_ext)) ?: 'FILE'; ?> File
+                        <?php if (!empty($photo['file_size'])): ?>
+                            &bull; <?php echo htmlspecialchars(formatFileSize($photo['file_size'])); ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <?php endif; ?>
                 
@@ -411,7 +412,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                     <span class="trust-badge"><i class="fas fa-lock"></i> Private Link</span>
                     <span class="trust-badge"><i class="fas fa-shield-alt"></i> Secure Transfer</span>
                     <span class="trust-badge"><i class="fas fa-user-shield"></i> Protected</span>
-                    <span class="trust-badge"><i class="fas fa-camera"></i> Original Quality</span>
+                    <span class="trust-badge"><i class="fas fa-file-check"></i> Original Quality</span>
                 </div>
                 
                 <div class="meta-info">

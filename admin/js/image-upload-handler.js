@@ -32,7 +32,7 @@ class ImageUploadHandler {
             maxOtherFileSize: 50 * 1024 * 1024 * 1024, // 50 GB for any other file
             allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             allowVideos: true, // Allow video uploads alongside images
-            allowAllFiles: false, // When true, accept any file type (overrides allowedTypes)
+            allowAllFiles: false, // When true, accept any file type (not just images/videos)
             skipCompression: false, // When true, upload images without any compression (preserves original quality)
             uploadUrl: 'ajax-upload.php',
             chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
@@ -157,19 +157,15 @@ class ImageUploadHandler {
             const isAllowed = this.options.allowAllFiles || isImage || isVideo;
 
             if (!isAllowed) {
-                if (this.options.allowAllFiles) {
-                    this.showError(`${file.name}: File could not be added.`);
-                } else {
-                    this.showError(`${file.name}: Invalid file type. Allowed: JPG, PNG, GIF, WebP (photos) or MP4, MOV, AVI, WebM, MKV (videos).`);
-                }
+                this.showError(`${file.name}: Invalid file type. Allowed: JPG, PNG, GIF, WebP (photos) or MP4, MOV, AVI, WebM, MKV (videos).`);
                 return false;
             }
             if (isVideo && file.size > this.options.maxVideoSize) {
                 this.showError(`${file.name}: Video too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxVideoSize)}.`);
                 return false;
             }
-            if (isImage && !isVideo && file.size > this.options.maxFileSize) {
-                this.showError(`${file.name}: File too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxFileSize)}.`);
+            if (isImage && file.size > this.options.maxFileSize) {
+                this.showError(`${file.name}: Image too large (${this.formatFileSize(file.size)}). Maximum is ${this.formatFileSize(this.options.maxFileSize)}.`);
                 return false;
             }
             // For other file types when allowAllFiles is true, apply maxOtherFileSize
@@ -228,13 +224,23 @@ class ImageUploadHandler {
 
         // Generate thumbnail
         const container = preview.querySelector('.preview-image-container');
+        const isImage = this.options.allowedTypes.includes(file.type);
         if (this.isVideoFile(file)) {
             // Show video icon placeholder for videos
             container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
                 <i class="fas fa-video" style="font-size:2rem;color:#dc3545;"></i>
                 <small style="margin-top:4px;font-size:0.65rem;color:#888;">VIDEO</small>
             </div>`;
-        } else if (this.isImageFile(file)) {
+        } else if (!this.isImageFile(file)) {
+            // Show generic file icon for non-image, non-video files
+            const ext = file.name.split('.').pop().toLowerCase();
+            const iconMap = {pdf:'fa-file-pdf text-danger',doc:'fa-file-word text-primary',docx:'fa-file-word text-primary',xls:'fa-file-excel text-success',xlsx:'fa-file-excel text-success',ppt:'fa-file-powerpoint text-warning',pptx:'fa-file-powerpoint text-warning',zip:'fa-file-archive text-secondary',rar:'fa-file-archive text-secondary','7z':'fa-file-archive text-secondary',tar:'fa-file-archive text-secondary',gz:'fa-file-archive text-secondary',mp3:'fa-file-audio text-info',wav:'fa-file-audio text-info',txt:'fa-file-alt text-muted',csv:'fa-file-csv text-success'};
+            const iconClass = iconMap[ext] || 'fa-file text-secondary';
+            container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
+                <i class="fas ${iconClass}" style="font-size:2rem;"></i>
+                <small style="margin-top:4px;font-size:0.65rem;color:#888;text-transform:uppercase;">${this.escapeHtml(ext) || 'FILE'}</small>
+            </div>`;
+        } else {
             try {
                 const thumbnail = await this.generateThumbnail(file);
                 container.innerHTML = `<img src="${thumbnail}" alt="${this.escapeHtml(file.name)}" />`;
@@ -655,6 +661,7 @@ class ImageUploadHandler {
         const uploadId    = this._generateUploadId();
         const csrfToken   = baseFormData.get('csrf_token') || document.getElementById('csrf_token')?.value || '';
         const folderId    = baseFormData.get('folder_id')  || document.getElementById('folder_id')?.value  || '';
+        const subfolderName = baseFormData.get('subfolder_name') || document.getElementById('subfolderNameInput')?.value || '';
 
         for (let i = 0; i < totalChunks; i++) {
             const start = i * chunkSize;
@@ -669,6 +676,9 @@ class ImageUploadHandler {
             fd.append('total_chunks', totalChunks);
             fd.append('original_name', file.name);
             fd.append('chunk',        chunk, file.name);
+            if (subfolderName) {
+                fd.append('subfolder_name', subfolderName);
+            }
             if (replaceExistingId) {
                 fd.append('replace_existing', '1');
                 fd.append('existing_id', replaceExistingId);

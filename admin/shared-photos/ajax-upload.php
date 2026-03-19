@@ -52,7 +52,16 @@ $file = [
     'size'     => $_FILES['images']['size'][0]
 ];
 
-$max_size       = 50 * 1024 * 1024; // 50 MB — applies to all files (no chunked upload in standalone sharing)
+// Dangerous extensions that must never be uploaded (server-side executables)
+$blocked_extensions = [
+    'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar',
+    'asp', 'aspx', 'cfm', 'cgi', 'pl', 'py', 'rb',
+    'sh', 'bash', 'bat', 'cmd', 'ps1', 'vbs',
+    'exe', 'dll', 'com', 'scr',
+    'htaccess', 'htpasswd',
+];
+
+$max_size = 500 * 1024 * 1024; // 500MB — applies to all files (no chunked upload in standalone sharing)
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -70,9 +79,16 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
+// Validate extension against blacklist
+$original_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+if (in_array($original_ext, $blocked_extensions)) {
+    echo json_encode(['success' => false, 'message' => 'This file type is not allowed for security reasons.']);
+    exit;
+}
+
 // Validate file size
 if ($file['size'] > $max_size) {
-    echo json_encode(['success' => false, 'message' => 'File exceeds 50MB limit.']);
+    echo json_encode(['success' => false, 'message' => 'File exceeds 500MB limit.']);
     exit;
 }
 
@@ -86,13 +102,14 @@ finfo_close($finfo);
 
 $is_photo = in_array($detected_mime, $photo_mime_types);
 $is_video = in_array($detected_mime, $video_mime_types);
+$image_info = null;
 
 // For images, validate actual image content
 if ($is_photo) {
     $image_info = getimagesize($file['tmp_name']);
     if ($image_info === false) {
-        echo json_encode(['success' => false, 'message' => 'Invalid image file.']);
-        exit;
+        // Treat as generic file if actual content is not a valid image
+        $is_photo = false;
     }
 }
 
@@ -105,14 +122,14 @@ if (!is_dir(UPLOAD_PATH)) {
 }
 
 // Generate unique filename, preserving the meaningful extension
-if ($is_photo) {
+if ($is_photo && $image_info) {
     $mime_to_ext = [
         'image/jpeg' => 'jpg',
         'image/png'  => 'png',
         'image/gif'  => 'gif',
         'image/webp' => 'webp'
     ];
-    $extension = $mime_to_ext[$image_info['mime']] ?? 'jpg';
+    $extension = $mime_to_ext[$image_info['mime']] ?? ($original_ext !== '' ? $original_ext : 'jpg');
     $file_type = 'photo';
 } elseif ($is_video) {
     $video_mime_to_ext = [
@@ -124,12 +141,11 @@ if ($is_photo) {
         'video/mpeg'        => 'mpg',
         'video/3gpp'        => '3gp'
     ];
-    $extension = $video_mime_to_ext[$detected_mime] ?? 'mp4';
+    $extension = $video_mime_to_ext[$detected_mime] ?? ($original_ext !== '' ? $original_ext : 'mp4');
     $file_type = 'video';
 } else {
-    // Any other file type — preserve original extension
-    $original_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $extension = preg_replace('/[^a-z0-9]/', '', $original_ext) ?: 'bin';
+    // Any other file type — use original extension (already validated against blacklist)
+    $extension = $original_ext !== '' ? $original_ext : 'bin';
     $file_type = 'file';
 }
 
@@ -151,17 +167,27 @@ if ($expires_in > 0) {
     $expires_at = date('Y-m-d H:i:s', strtotime("+{$expires_in} days"));
 }
 
+// Determine file type for database
+$allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/3gpp'];
+if ($is_photo) {
+    $db_file_type = 'photo';
+} elseif (in_array($file['type'], $allowed_video_types)) {
+    $db_file_type = 'video';
+} else {
+    $db_file_type = 'file';
+}
+
 // Insert into database
 try {
-    $sql = "INSERT INTO shared_photos (file_type, file_size, title, description, image_path, download_token, max_downloads, expires_at, status, created_by) 
+    $sql = "INSERT INTO shared_photos (file_type, title, description, image_path, file_size, download_token, max_downloads, expires_at, status, created_by) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)";
     $stmt = $db->prepare($sql);
     $result = $stmt->execute([
         $file_type,
-        $file['size'],
         $title,
         $description,
         $filename,
+        $file['size'],
         $download_token,
         $max_downloads,
         $expires_at,

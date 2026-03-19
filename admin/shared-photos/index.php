@@ -58,7 +58,7 @@ $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] 
 // Check for URL-based success message (from upload redirect)
 if (isset($_GET['success']) && is_numeric($_GET['success'])) {
     $count = intval($_GET['success']);
-    $success_message = $count . ' photo' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
+    $success_message = $count . ' file' . ($count > 1 ? 's' : '') . ' uploaded successfully!';
 }
 
 // Clear session messages after displaying
@@ -108,9 +108,9 @@ $download_base_url = BASE_URL . '/download.php?token=';
 <div class="alert alert-info">
     <i class="fas fa-info-circle"></i> <strong>कसरी प्रयोग गर्ने:</strong>
     <ul class="mb-0 mt-2">
-        <li><strong>फाइल अपलोड:</strong> "Upload New File" बटन क्लिक गरेर जुनसुकै फाइल (फोटो, भिडियो, ZIP, PDF आदि) अपलोड गर्नुहोस्</li>
+        <li><strong>फाइल अपलोड:</strong> "Upload New File" बटन क्लिक गरेर कुनै पनि फाइल (फोटो, भिडियो, ZIP, PDF, आदि) अपलोड गर्नुहोस्</li>
         <li><strong>लिङ्क सेयर:</strong> "Copy Link" बटन क्लिक गरेर डाउनलोड लिङ्क कपी गर्नुहोस् र युजरलाई पठाउनुहोस्</li>
-        <li><strong>युजर डाउनलोड:</strong> युजरले उक्त लिङ्कबाट आफ्नो फाइल डाउनलोड गर्न सक्छन्</li>
+        <li><strong>युजर डाउनलोड:</strong> युजरले उक्त लिङ्कबाट फाइल डाउनलोड गर्न सक्छन्</li>
         <li><strong>फाइल डिलिट:</strong> युजरले डाउनलोड गरिसकेपछि "Delete" बटन क्लिक गरेर फाइल पूर्ण रूपमा हटाउनुहोस्</li>
     </ul>
 </div>
@@ -158,10 +158,13 @@ $download_base_url = BASE_URL . '/download.php?token=';
                                 </td>
                                 <td>
                                     <?php 
-                                    $file_exists = file_exists(UPLOAD_PATH . $photo['image_path']);
-                                    if ($is_image_file && $file_exists): 
-                                        $image_url = UPLOAD_URL . $photo['image_path'];
+                                    $image_url = UPLOAD_URL . $photo['image_path'];
+                                    $idx_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                                    $idx_photo_exts = ['jpg','jpeg','png','gif','webp'];
+                                    $idx_is_image = in_array($idx_ext, $idx_photo_exts);
+                                    $idx_icon = getFileTypeIcon($idx_ext);
                                     ?>
+                                    <?php if ($idx_is_image && file_exists(UPLOAD_PATH . $photo['image_path'])): ?>
                                         <img src="<?php echo htmlspecialchars($image_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                                     <?php elseif ($is_video_file): ?>
@@ -170,17 +173,17 @@ $download_base_url = BASE_URL . '/download.php?token=';
                                             <i class="fas fa-file-video text-danger fa-2x"></i>
                                         </div>
                                     <?php elseif (!$is_image_file): 
-                                        $icon_info = getFileTypeIcon($photo['image_path']);
                                     ?>
                                         <div class="d-flex flex-column align-items-center justify-content-center" 
                                              style="width: 60px; height: 60px; border-radius: 4px; background: #f8f9fa;">
-                                            <i class="<?php echo htmlspecialchars($icon_info[0]); ?>" style="font-size: 1.5rem; color: <?php echo htmlspecialchars($icon_info[1]); ?>;"></i>
-                                            <small style="font-size: 0.55rem; color: #666;"><?php echo htmlspecialchars($icon_info[2]); ?></small>
+                                            <i class="fas <?php echo htmlspecialchars($idx_icon); ?>" style="font-size: 1.5rem;"></i>
+                                            <small style="font-size: 0.55rem; color: #666;"><?php echo htmlspecialchars(strtoupper($idx_ext) ?: 'FILE'); ?></small>
                                         </div>
                                     <?php else: ?>
-                                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
+                                        <div class="d-flex flex-column align-items-center justify-content-center bg-light" 
                                              style="width: 60px; height: 60px; border-radius: 4px;">
-                                            <i class="fas fa-image"></i>
+                                            <i class="fas <?php echo $idx_icon; ?>" style="font-size:1.4rem;"></i>
+                                            <small class="text-muted text-uppercase" style="font-size:0.55rem;"><?php echo htmlspecialchars($idx_ext ?: 'FILE'); ?></small>
                                         </div>
                                     <?php endif; ?>
                                 </td>

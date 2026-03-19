@@ -564,7 +564,8 @@ CREATE TABLE IF NOT EXISTS shared_folders (
 CREATE TABLE IF NOT EXISTS shared_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     folder_id INT NULL COMMENT 'Folder this file belongs to, NULL for standalone file',
-    file_type ENUM('photo', 'video', 'file') DEFAULT 'photo' COMMENT 'Type of file: photo, video, or any other file',
+    subfolder_name VARCHAR(255) NULL DEFAULT NULL COMMENT 'Album/sub-folder name for grouping photos within a shared folder',
+    file_type ENUM('photo', 'video', 'file') DEFAULT 'photo' COMMENT 'Type of file: photo, video, or generic file',
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_path VARCHAR(255) NOT NULL COMMENT 'Relative path to the file (photo or video)',
@@ -581,6 +582,7 @@ CREATE TABLE IF NOT EXISTS shared_photos (
     FOREIGN KEY (folder_id) REFERENCES shared_folders(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_folder_id (folder_id),
+    INDEX idx_subfolder_name (subfolder_name),
     INDEX idx_file_type (file_type),
     INDEX idx_download_token (download_token),
     INDEX idx_status (status),
