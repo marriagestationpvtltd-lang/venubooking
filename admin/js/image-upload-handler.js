@@ -30,6 +30,7 @@ class ImageUploadHandler {
             maxVideoSize: 50 * 1024 * 1024 * 1024,   // 50 GB for videos
             allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             allowVideos: true, // Allow video uploads alongside images
+            skipCompression: false, // When true, upload images without any compression (preserves original quality)
             uploadUrl: 'ajax-upload.php',
             chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
             onUploadStart: () => {},
@@ -430,8 +431,8 @@ class ImageUploadHandler {
                     replaceExistingId = dupCheck.existing_id;
                 }
 
-                if (!isVideo) {
-                    // Compress image files only
+                if (!isVideo && !this.options.skipCompression) {
+                    // Compress image files only (skipped when skipCompression is true)
                     fileToUpload = await this.compressImage(file);
                     
                     // Update preview with compressed size
