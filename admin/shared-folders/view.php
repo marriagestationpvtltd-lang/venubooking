@@ -454,6 +454,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.90,
+        skipCompression: true,          // Deliver original quality for shared folder photos
         maxFileSize: 50 * 1024 * 1024,          // 50 MB per photo
         maxVideoSize: 50 * 1024 * 1024 * 1024,  // 50 GB per video
         uploadUrl: 'ajax-upload.php',
