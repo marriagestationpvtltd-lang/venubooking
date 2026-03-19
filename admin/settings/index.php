@@ -698,6 +698,14 @@ Date changes are subject to availability and must be requested at least 15 days 
                                    placeholder="https://g.page/r/your-business-review-link">
                             <small class="text-muted">Used in WhatsApp thank you message after full payment</small>
                         </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><i class="fas fa-chart-line"></i> Google Analytics Measurement ID</label>
+                            <input type="text" class="form-control" name="setting_google_analytics_id" 
+                                   value="<?php echo htmlspecialchars($settings['google_analytics_id'] ?? ''); ?>"
+                                   placeholder="G-XXXXXXXXXX">
+                            <small class="text-muted">Your GA4 Measurement ID (e.g. G-03XW3FWG7L). Leave blank to disable tracking.</small>
+                        </div>
                     </div>
                 </div>
 
