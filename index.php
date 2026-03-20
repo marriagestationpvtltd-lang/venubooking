@@ -172,7 +172,7 @@ $categories_with_packages = array_filter($service_categories, function($cat) {
         <p class="text-center section-subtitle mb-4">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
         <?php foreach ($categories_with_packages as $cat): ?>
-        <!-- Category: <?php echo htmlspecialchars($cat['name']); ?> -->
+        <!-- Category: <?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?> -->
         <div class="service-category-block" id="serviceCategory<?php echo (int)$cat['id']; ?>">
             <h3 class="service-category-title">
                 <span class="category-label"><?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?></span>
