@@ -810,21 +810,22 @@ Date changes are subject to availability and must be requested at least 15 days 
                     
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> Upload banner advertisements that will be displayed on the public folder/photo sharing page (folder.php). 
-                        <strong>Banner A</strong> appears on the left side and <strong>Banner B</strong> appears on the right side of the page.
-                        Recommended size: 300×600px (vertical banner).
+                        <strong>Banner A</strong> appears on the left side and <strong>Banner B</strong> appears on the right side of the page on desktop.
+                        <br><br>
+                        <i class="fas fa-mobile-alt"></i> <strong>Mobile Friendly:</strong> On mobile and tablet devices, banners are displayed at the bottom of the page for better user experience.
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-4">
                             <div class="card">
                                 <div class="card-header bg-primary text-white">
-                                    <i class="fas fa-image"></i> Banner A (Left Side)
+                                    <i class="fas fa-image"></i> Banner A (Left Side / First on Mobile)
                                 </div>
                                 <div class="card-body">
                                     <div class="mb-3">
                                         <label class="form-label">Banner Image</label>
                                         <input type="file" class="form-control" name="setting_folder_banner_a" accept="image/*">
-                                        <div class="form-text">Upload image for Banner A (displayed on left side)</div>
+                                        <div class="form-text">Upload image for Banner A (displayed on left side on desktop)</div>
                                     </div>
                                     <?php if (!empty($settings['folder_banner_a'])): ?>
                                         <div class="image-preview mb-3">
@@ -854,13 +855,13 @@ Date changes are subject to availability and must be requested at least 15 days 
                         <div class="col-md-6 mb-4">
                             <div class="card">
                                 <div class="card-header bg-success text-white">
-                                    <i class="fas fa-image"></i> Banner B (Right Side)
+                                    <i class="fas fa-image"></i> Banner B (Right Side / Second on Mobile)
                                 </div>
                                 <div class="card-body">
                                     <div class="mb-3">
                                         <label class="form-label">Banner Image</label>
                                         <input type="file" class="form-control" name="setting_folder_banner_b" accept="image/*">
-                                        <div class="form-text">Upload image for Banner B (displayed on right side)</div>
+                                        <div class="form-text">Upload image for Banner B (displayed on right side on desktop)</div>
                                     </div>
                                     <?php if (!empty($settings['folder_banner_b'])): ?>
                                         <div class="image-preview mb-3">
@@ -892,7 +893,9 @@ Date changes are subject to availability and must be requested at least 15 days 
                         <i class="fas fa-lightbulb"></i> <strong>Tips:</strong>
                         <ul class="mb-0 mt-2">
                             <li>Use high-quality images optimized for web (JPG, PNG, or WebP)</li>
-                            <li>Banners are displayed on desktop view. On mobile devices, they are hidden to save space.</li>
+                            <li><strong>Desktop:</strong> Banners appear as sidebars (left & right) - Recommended size: 300×600px (vertical)</li>
+                            <li><strong>Mobile/Tablet:</strong> Banners appear at the bottom of the page - horizontal images also work well</li>
+                            <li>On tablets, both banners appear side by side at the bottom. On mobile phones, they stack vertically.</li>
                             <li>Leave the link empty if you don't want the banner to be clickable.</li>
                         </ul>
                     </div>
