@@ -14,8 +14,8 @@
 # Allow images and videos to be displayed inline (for preview functionality)
 # while forcing other file types to download as attachments
 <IfModule mod_headers.c>
-    # Default: force download for all files with extensions
-    <FilesMatch "\..+$">
+    # Default: force download for all files with valid extensions (at least one character after dot)
+    <FilesMatch "\.[^.]+$">
         Header set Content-Disposition "attachment"
     </FilesMatch>
     
