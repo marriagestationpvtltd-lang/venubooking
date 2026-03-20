@@ -570,6 +570,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         maxFileSize: 50 * 1024 * 1024 * 1024,   // 50 GB per file
         maxVideoSize: 50 * 1024 * 1024 * 1024,  // 50 GB per video
         allowAllFiles: true,                     // Allow any file type
+        autoUpload: true,                        // Start upload immediately after file selection
         uploadUrl: 'ajax-upload.php',
         chunkUploadUrl: 'ajax-chunk-upload.php',
         onUploadStart: function() {
