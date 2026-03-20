@@ -18,5 +18,5 @@ require_once __DIR__ . '/../../includes/auth.php';
 requireLogin();
 
 // Redirect to the folder-based photo sharing page
-header('Location: ' . BASE_URL . '/admin/shared-folders/index.php');
+header('Location: ../shared-folders/index.php');
 exit;
