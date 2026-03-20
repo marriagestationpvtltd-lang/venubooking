@@ -37,10 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Log activity
                 logActivity($current_user['id'], 'Added new service', 'additional_services', $service_id, "Added service: $name");
                 
-                $success_message = 'Service added successfully!';
-                
-                // Clear form
-                $_POST = [];
+                // Redirect to the service view page so admin can immediately configure
+                // sub-services and design photos to enable the visual selection flow.
+                $_SESSION['success_message'] = 'Service added successfully! You can now add sub-services and design photos below to enable the visual design selection flow for customers.';
+                header('Location: view.php?id=' . $service_id);
+                exit;
             } else {
                 $error_message = 'Failed to add service. Please try again.';
             }
