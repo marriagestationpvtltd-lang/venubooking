@@ -159,148 +159,161 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 </section>
 
 <?php if (!empty($service_categories)): ?>
+<?php
+// Filter out categories without packages for the filter bar
+$categories_with_packages = array_filter($service_categories, function($cat) {
+    return !empty($cat['packages']);
+});
+?>
 <!-- Service Packages Section -->
 <section class="service-packages-section">
     <div class="container">
         <h2 class="text-center section-title mb-1">हाम्रा सेवा प्याकेजहरू</h2>
         <p class="text-center section-subtitle mb-4">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
-        <?php foreach ($service_categories as $cat): ?>
-            <?php if (empty($cat['packages'])) continue; ?>
-            <div class="service-category-block">
-                <h3 class="service-category-title">
-                    <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
-                </h3>
-                <div class="pkg-slider-wrapper">
-                    <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                <div class="pkg-slider-track" data-pkg-slider>
-                    <?php foreach ($cat['packages'] as $pkg):
-                        $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
-                    ?>
-                        <div class="pkg-slider-card">
-                            <div class="package-card card h-100">
-                                <?php if (!empty($pkg['photos'])): ?>
-                                    <?php if (count($pkg['photos']) > 1): ?>
-                                        <div id="<?php echo $pkg_carousel_id; ?>" class="carousel slide package-photo-carousel" data-bs-ride="carousel">
-                                            <div class="carousel-inner">
-                                                <?php foreach ($pkg['photos'] as $pi => $photo_path): ?>
-                                                    <div class="carousel-item <?php echo $pi === 0 ? 'active' : ''; ?>">
-                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path, ENT_QUOTES, 'UTF-8'); ?>"
-                                                             class="d-block w-100 package-carousel-img"
-                                                             loading="lazy"
-                                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            </div>
-                                            <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="prev" aria-label="Previous photo">
-                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                <span class="visually-hidden">Previous</span>
-                                            </button>
-                                            <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="next" aria-label="Next photo">
-                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                <span class="visually-hidden">Next</span>
-                                            </button>
+        <?php if (count($categories_with_packages) > 1): ?>
+        <!-- Service Category Filter Buttons -->
+        <div class="service-category-filter-bar text-center mb-4" id="serviceCategoryFilterBar">
+            <button class="service-category-filter-btn active" data-filter="all">All</button>
+            <?php foreach ($categories_with_packages as $cat): ?>
+                <button class="service-category-filter-btn"
+                        data-filter="<?php echo (int)$cat['id']; ?>">
+                    <?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <div class="pkg-slider-wrapper">
+            <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="pkg-slider-track" data-pkg-slider>
+            <?php foreach ($categories_with_packages as $cat): ?>
+                <?php foreach ($cat['packages'] as $pkg):
+                    $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
+                ?>
+                    <div class="pkg-slider-card" data-service-category="<?php echo (int)$cat['id']; ?>">
+                        <div class="package-card card h-100">
+                            <?php if (!empty($pkg['photos'])): ?>
+                                <?php if (count($pkg['photos']) > 1): ?>
+                                    <div id="<?php echo $pkg_carousel_id; ?>" class="carousel slide package-photo-carousel" data-bs-ride="carousel">
+                                        <div class="carousel-inner">
+                                            <?php foreach ($pkg['photos'] as $pi => $photo_path): ?>
+                                                <div class="carousel-item <?php echo $pi === 0 ? 'active' : ''; ?>">
+                                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo_path, ENT_QUOTES, 'UTF-8'); ?>"
+                                                         class="d-block w-100 package-carousel-img"
+                                                         loading="lazy"
+                                                         alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
+                                                </div>
+                                            <?php endforeach; ?>
                                         </div>
-                                    <?php else: ?>
-                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0], ENT_QUOTES, 'UTF-8'); ?>"
-                                             class="card-img-top package-carousel-img"
-                                             loading="lazy"
-                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                                <div class="card-body d-flex flex-column p-3">
-                                    <h5 class="package-name text-center mb-2">
-                                        <?php echo htmlspecialchars($pkg['name']); ?>
-                                    </h5>
-                                    <div class="text-center mb-2">
-                                        <div class="package-price d-inline-block">
-                                            <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
-                                        </div>
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="prev" aria-label="Previous photo">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Previous</span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $pkg_carousel_id; ?>" data-bs-slide="next" aria-label="Next photo">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Next</span>
+                                        </button>
                                     </div>
-                                    <?php if (!empty($pkg['features'])):
-                                        $max_visible = 3;
-                                        $total_features = count($pkg['features']);
-                                        $remaining = $total_features - $max_visible;
-                                        $visible_features = array_slice($pkg['features'], 0, $max_visible);
-                                        $hidden_features = array_slice($pkg['features'], $max_visible);
-                                        $feat_collapse_id = 'pkgFeatures' . (int)$pkg['id'];
-                                    ?>
-                                        <ul class="package-features list-unstyled mb-2">
-                                            <?php foreach ($visible_features as $feat): ?>
+                                <?php else: ?>
+                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0], ENT_QUOTES, 'UTF-8'); ?>"
+                                         class="card-img-top package-carousel-img"
+                                         loading="lazy"
+                                         alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            <div class="card-body d-flex flex-column p-3">
+                                <h5 class="package-name text-center mb-2">
+                                    <?php echo htmlspecialchars($pkg['name']); ?>
+                                </h5>
+                                <div class="text-center mb-2">
+                                    <div class="package-price d-inline-block">
+                                        <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
+                                    </div>
+                                </div>
+                                <?php if (!empty($pkg['features'])):
+                                    $max_visible = 3;
+                                    $total_features = count($pkg['features']);
+                                    $remaining = $total_features - $max_visible;
+                                    $visible_features = array_slice($pkg['features'], 0, $max_visible);
+                                    $hidden_features = array_slice($pkg['features'], $max_visible);
+                                    $feat_collapse_id = 'pkgFeatures' . (int)$pkg['id'];
+                                ?>
+                                    <ul class="package-features list-unstyled mb-2">
+                                        <?php foreach ($visible_features as $feat): ?>
+                                            <li class="feature-item">
+                                                <span class="feat-check">&#10003;</span>
+                                                <?php echo htmlspecialchars($feat); ?>
+                                            </li>
+                                        <?php endforeach; ?>
+                                        <?php if ($remaining > 0): ?>
+                                            <li class="feature-item feature-more-toggle collapsed" data-bs-toggle="collapse" data-bs-target="#<?php echo $feat_collapse_id; ?>" role="button" aria-expanded="false" aria-controls="<?php echo $feat_collapse_id; ?>">
+                                                <span class="feat-more-icon"><i class="fas fa-plus-circle"></i></span>
+                                                <span class="more-text">+<?php echo $remaining; ?> थप सुविधाहरू</span>
+                                            </li>
+                                        <?php endif; ?>
+                                    </ul>
+                                    <?php if ($remaining > 0): ?>
+                                    <div class="collapse" id="<?php echo $feat_collapse_id; ?>">
+                                        <ul class="package-features package-features-hidden list-unstyled mb-2">
+                                            <?php foreach ($hidden_features as $feat): ?>
                                                 <li class="feature-item">
                                                     <span class="feat-check">&#10003;</span>
                                                     <?php echo htmlspecialchars($feat); ?>
                                                 </li>
                                             <?php endforeach; ?>
-                                            <?php if ($remaining > 0): ?>
-                                                <li class="feature-item feature-more-toggle collapsed" data-bs-toggle="collapse" data-bs-target="#<?php echo $feat_collapse_id; ?>" role="button" aria-expanded="false" aria-controls="<?php echo $feat_collapse_id; ?>">
-                                                    <span class="feat-more-icon"><i class="fas fa-plus-circle"></i></span>
-                                                    <span class="more-text">+<?php echo $remaining; ?> थप सुविधाहरू</span>
-                                                </li>
-                                            <?php endif; ?>
                                         </ul>
-                                        <?php if ($remaining > 0): ?>
-                                        <div class="collapse" id="<?php echo $feat_collapse_id; ?>">
-                                            <ul class="package-features package-features-hidden list-unstyled mb-2">
-                                                <?php foreach ($hidden_features as $feat): ?>
-                                                    <li class="feature-item">
-                                                        <span class="feat-check">&#10003;</span>
-                                                        <?php echo htmlspecialchars($feat); ?>
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        </div>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                    <?php
-                                    // Build WhatsApp message with package details
-                                    $wa_pkg_name  = strip_tags($pkg['name']);
-                                    $wa_pkg_price = strip_tags(formatCurrency($pkg['price']));
-                                    $wa_pkg_msg   = "Hello, I would like to know more about this package:\n\nPackage: {$wa_pkg_name}\nPrice: {$wa_pkg_price}";
-                                    if (!empty($pkg['features'])) {
-                                        $wa_pkg_msg .= "\n\nFeatures:";
-                                        foreach ($pkg['features'] as $feat) {
-                                            $wa_pkg_msg .= "\n- " . strip_tags($feat);
-                                        }
-                                    }
-                                    if (!empty($pkg['description'])) {
-                                        $wa_pkg_msg .= "\n\nDescription:\n" . strip_tags($pkg['description']);
-                                    }
-                                    $wa_pkg_msg .= "\n\nPlease provide me with more details.";
-                                    $pkg_wa_url = '';
-                                    if (!empty($clean_office_whatsapp)) {
-                                        $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
-                                    }
-                                    ?>
-                                    <div class="mt-auto pt-2">
-                                        <?php if (!empty($pkg_wa_url)): ?>
-                                            <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                               target="_blank" rel="noopener noreferrer"
-                                               class="btn pkg-wa-btn w-100">
-                                                <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                            </a>
-                                        <?php else: ?>
-                                            <button class="btn pkg-wa-btn w-100" disabled>
-                                                <i class="fab fa-whatsapp me-1"></i> Contact Us
-                                            </button>
-                                        <?php endif; ?>
                                     </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <?php
+                                // Build WhatsApp message with package details
+                                $wa_pkg_name  = strip_tags($pkg['name']);
+                                $wa_pkg_price = strip_tags(formatCurrency($pkg['price']));
+                                $wa_pkg_msg   = "Hello, I would like to know more about this package:\n\nPackage: {$wa_pkg_name}\nPrice: {$wa_pkg_price}";
+                                if (!empty($pkg['features'])) {
+                                    $wa_pkg_msg .= "\n\nFeatures:";
+                                    foreach ($pkg['features'] as $feat) {
+                                        $wa_pkg_msg .= "\n- " . strip_tags($feat);
+                                    }
+                                }
+                                if (!empty($pkg['description'])) {
+                                    $wa_pkg_msg .= "\n\nDescription:\n" . strip_tags($pkg['description']);
+                                }
+                                $wa_pkg_msg .= "\n\nPlease provide me with more details.";
+                                $pkg_wa_url = '';
+                                if (!empty($clean_office_whatsapp)) {
+                                    $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
+                                }
+                                ?>
+                                <div class="mt-auto pt-2">
+                                    <?php if (!empty($pkg_wa_url)): ?>
+                                        <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                           target="_blank" rel="noopener noreferrer"
+                                           class="btn pkg-wa-btn w-100">
+                                            <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn pkg-wa-btn w-100" disabled>
+                                            <i class="fab fa-whatsapp me-1"></i> Contact Us
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-                    <button class="pkg-slider-nav pkg-slider-next" type="button" aria-label="Next packages">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-                <p class="text-center pkg-swipe-hint d-md-none mt-2 mb-0">
-                    <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
-                </p>
+                    </div>
+                <?php endforeach; ?>
+            <?php endforeach; ?>
             </div>
-        <?php endforeach; ?>
+            <button class="pkg-slider-nav pkg-slider-next" type="button" aria-label="Next packages">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        <p class="text-center pkg-swipe-hint d-md-none mt-2 mb-0">
+            <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
+        </p>
     </div>
 </section>
 <?php endif; ?>
@@ -2173,23 +2186,50 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 </style>
 <script>
-// ── Auto-scroll for package category sliders ──
+// ── Auto-scroll for package category sliders with filtering support ──
 (function() {
     var speed = 0.5; // pixels per frame
     var dragSensitivity = 1.5;
 
-    document.querySelectorAll("[data-pkg-slider]").forEach(function(track) {
-        // Only enable auto-scroll when content overflows the wrapper
-        if (track.scrollWidth <= track.clientWidth) return;
+    var filterBar = document.getElementById(\'serviceCategoryFilterBar\');
+    var track = document.querySelector(\'[data-pkg-slider]\');
+    if (!track) return;
+
+    var hovered = false, dragging = false;
+    var rafId = null;
+
+    function isPaused() { return hovered || dragging; }
+
+    // Mark all original cards so we can tell them apart from clones
+    Array.from(track.querySelectorAll(\'.pkg-slider-card\')).forEach(function(card) {
+        card.setAttribute(\'data-original\', \'1\');
+    });
+
+    function initSlider() {
+        // Cancel any running animation
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+        // Remove existing clones
+        Array.from(track.querySelectorAll(\'[data-clone]\'))
+            .forEach(function(c) { track.removeChild(c); });
+
+        // Collect original visible cards
+        var origCards = Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\'))
+            .filter(function(c) { return c.style.display !== \'none\'; });
+        if (origCards.length === 0) return;
+
+        // Only auto-scroll (and clone) when the visible content overflows the wrapper.
+        if (track.scrollWidth <= track.clientWidth + 2) {
+            track.scrollLeft = 0;
+            return;
+        }
 
         // Duplicate cards for seamless infinite loop
-        var origCards = Array.from(track.children);
         origCards.forEach(function(card, idx) {
             var clone = card.cloneNode(true);
-            // Remap all IDs in the clone to avoid duplicate-ID conflicts.
-            // Duplicate IDs cause Bootstrap collapse/carousel to fire on every
-            // element sharing the same ID, so clicking "Read More" on one card
-            // would expand descriptions on all other matching cards too.
+            clone.setAttribute(\'data-clone\', \'1\');
+            clone.removeAttribute(\'data-original\');
+            // Remap all IDs in the clone to avoid duplicate-ID conflicts
             var idMap = {};
             clone.querySelectorAll(\'[id]\').forEach(function(el) {
                 var oldId = el.id;
@@ -2212,66 +2252,81 @@ document.addEventListener("DOMContentLoaded", function() {
             track.appendChild(clone);
         });
 
-        var hovered = false, dragging = false;
-
-        function isPaused() { return hovered || dragging; }
+        track.scrollLeft = 0;
 
         function step() {
             if (!isPaused()) {
                 track.scrollLeft += speed;
                 var half = track.scrollWidth / 2;
-                // Reset 1px early to tolerate floating-point rounding
-                // (scrollLeft may not land exactly on half before overshooting)
                 if (track.scrollLeft >= half - 1) {
                     track.scrollLeft -= half;
                 }
             }
-            requestAnimationFrame(step);
+            rafId = requestAnimationFrame(step);
         }
-        requestAnimationFrame(step);
+        rafId = requestAnimationFrame(step);
+    }
 
-        // Pause on mouse hover
-        track.addEventListener("mouseenter", function() { hovered = true; });
-        track.addEventListener("mouseleave", function() { hovered = false; });
+    // Initialize slider on load
+    initSlider();
 
-        // Mouse drag-to-scroll
-        var isDown = false, startX = 0, scrollStart = 0;
-        track.addEventListener("mousedown", function(e) {
-            isDown = true;
-            dragging = true;
-            track.classList.add("pkg-slider-grabbing");
-            startX = e.pageX - track.offsetLeft;
-            scrollStart = track.scrollLeft;
-            document.addEventListener("mousemove", onMove);
-            e.preventDefault();
-        });
-        function onMove(e) {
-            if (!isDown) return;
-            track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
-        }
-        function stopDrag() {
-            if (!isDown) return;
-            isDown = false;
-            dragging = false;
-            track.classList.remove("pkg-slider-grabbing");
-            document.removeEventListener("mousemove", onMove);
-        }
-        document.addEventListener("mouseup", stopDrag);
+    // Pause on mouse hover
+    track.addEventListener("mouseenter", function() { hovered = true; });
+    track.addEventListener("mouseleave", function() { hovered = false; });
 
-        // Touch: pause auto-scroll and drag-to-scroll
-        var tStartX = 0, tScrollStart = 0;
-        track.addEventListener("touchstart", function(e) {
-            hovered = true;
-            dragging = true;
-            tStartX = e.touches[0].pageX;
-            tScrollStart = track.scrollLeft;
-        }, { passive: true });
-        track.addEventListener("touchmove", function(e) {
-            track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
-        }, { passive: true });
-        track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
-        track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
+    // Mouse drag-to-scroll
+    var isDown = false, startX = 0, scrollStart = 0;
+    track.addEventListener("mousedown", function(e) {
+        isDown = true;
+        dragging = true;
+        track.classList.add("pkg-slider-grabbing");
+        startX = e.pageX - track.offsetLeft;
+        scrollStart = track.scrollLeft;
+        document.addEventListener("mousemove", onMove);
+        e.preventDefault();
     });
+    function onMove(e) {
+        if (!isDown) return;
+        track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
+    }
+    function stopDrag() {
+        if (!isDown) return;
+        isDown = false;
+        dragging = false;
+        track.classList.remove("pkg-slider-grabbing");
+        document.removeEventListener("mousemove", onMove);
+    }
+    document.addEventListener("mouseup", stopDrag);
+
+    // Touch: pause auto-scroll and drag-to-scroll
+    var tStartX = 0, tScrollStart = 0;
+    track.addEventListener("touchstart", function(e) {
+        hovered = true;
+        dragging = true;
+        tStartX = e.touches[0].pageX;
+        tScrollStart = track.scrollLeft;
+    }, { passive: true });
+    track.addEventListener("touchmove", function(e) {
+        track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
+    }, { passive: true });
+    track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
+    track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
+
+    // Category filter buttons – reinitialise slider after filtering
+    if (filterBar) {
+        filterBar.addEventListener(\'click\', function(e) {
+            var btn = e.target.closest(\'.service-category-filter-btn\');
+            if (!btn) return;
+            filterBar.querySelectorAll(\'.service-category-filter-btn\').forEach(function(b) {
+                b.classList.toggle(\'active\', b === btn);
+            });
+            var filter = btn.getAttribute(\'data-filter\');
+            Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\')).forEach(function(card) {
+                card.style.display = (filter === \'all\' || card.getAttribute(\'data-service-category\') === filter) ? \'\' : \'none\';
+            });
+            initSlider();
+        });
+    }
 })();
 </script>
 <script>
@@ -2284,7 +2339,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!track) return;
 
         function getCardWidth() {
-            var card = track.querySelector(".pkg-slider-card");
+            var card = track.querySelector(".pkg-slider-card:not([style*=\'display: none\'])");
             if (!card) return 320; // fallback: matches pkg-slider-card width in CSS
             var gap = parseFloat(getComputedStyle(track).gap) || 20;
             return card.offsetWidth + gap;
@@ -2299,6 +2354,15 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         updateNavVisibility();
         window.addEventListener("resize", updateNavVisibility);
+
+        // Also update visibility when filter buttons are clicked
+        var filterBar = document.getElementById(\'serviceCategoryFilterBar\');
+        if (filterBar) {
+            filterBar.addEventListener(\'click\', function() {
+                // Delay to allow DOM to update after filtering
+                setTimeout(updateNavVisibility, 50);
+            });
+        }
 
         if (prevBtn) {
             prevBtn.addEventListener("click", function(e) {
