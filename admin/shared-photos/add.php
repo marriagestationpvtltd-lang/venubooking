@@ -1,8 +1,22 @@
 <?php
 /**
- * Shared Photo Upload Page
- * Admin can upload photos for sharing with users
+ * Shared Photo Upload Page - DEPRECATED
+ * Redirects to shared-folders (use folder-based sharing for better organization)
  */
+
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+
+requireLogin();
+
+// Redirect to the folder-based photo sharing page
+// Users should create a folder first, then upload photos to it
+header('Location: ' . BASE_URL . '/admin/shared-folders/index.php');
+exit;
+
+// ============================================================================
+// DEPRECATED CODE BELOW - Kept for reference but no longer executed
+// ============================================================================
 
 $page_title = 'Upload File for Sharing';
 require_once __DIR__ . '/../includes/header.php';

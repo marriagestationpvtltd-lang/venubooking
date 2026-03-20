@@ -1,14 +1,25 @@
 <?php
 /**
- * Shared Photos Management - List all shared photos
- * Admin can view, copy download links, and delete photos
+ * Shared Photos Management - DEPRECATED
+ * Redirects to shared-folders (the primary photo sharing feature)
+ * Individual photo sharing has been removed; use folder-based sharing instead.
  */
 
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../includes/functions.php';
 
 requireLogin();
+
+// Redirect to the folder-based photo sharing page
+header('Location: ' . BASE_URL . '/admin/shared-folders/index.php');
+exit;
+
+// ============================================================================
+// DEPRECATED CODE BELOW - Kept for reference but no longer executed
+// ============================================================================
+
+require_once __DIR__ . '/../../includes/functions.php';
+
 $current_user = getCurrentUser();
 $db = getDB();
 

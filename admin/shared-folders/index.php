@@ -63,7 +63,7 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     exit;
 }
 
-$page_title = 'फोटो फोल्डर व्यवस्थापन (Photo Folders)';
+$page_title = 'फोटो सेयर व्यवस्थापन (Photo Sharing)';
 require_once __DIR__ . '/../includes/header.php';
 
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
@@ -92,7 +92,7 @@ $folder_base_url = BASE_URL . '/folder.php?token=';
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="fas fa-folder"></i> फोटो फोल्डर व्यवस्थापन</h4>
+    <h4><i class="fas fa-share-alt"></i> फोटो सेयर व्यवस्थापन</h4>
     <a href="add.php" class="btn btn-success">
         <i class="fas fa-plus"></i> Create New Folder
     </a>
