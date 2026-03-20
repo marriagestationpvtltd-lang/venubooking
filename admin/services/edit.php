@@ -6,6 +6,9 @@ $db = getDB();
 $success_message = '';
 $error_message = '';
 
+// Fetch vendor types for category dropdown
+$vendor_types = getVendorTypes();
+
 // Get service ID from URL
 $service_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -118,9 +121,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="category" class="form-label">Category</label>
-                                <input type="text" class="form-control" id="category" name="category" 
-                                       value="<?php echo htmlspecialchars($service['category']); ?>" 
-                                       placeholder="e.g., Photography, Decoration, Entertainment">
+                                <?php $currentCategory = isset($_POST['category']) ? $_POST['category'] : $service['category']; ?>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">— Select Vendor Type —</option>
+                                    <?php foreach ($vendor_types as $vt): ?>
+                                        <option value="<?php echo htmlspecialchars($vt['label']); ?>"
+                                            <?php if ($currentCategory === $vt['label']) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars($vt['label']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-muted">Category is sourced from Vendor Types.</small>
                             </div>
                         </div>
                     </div>
