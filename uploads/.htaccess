@@ -11,14 +11,16 @@
     Header set X-Content-Type-Options "nosniff"
 </IfModule>
 
-# Force attachment (download) for non-media files to prevent XSS attacks.
-# Images and videos are allowed inline so they can be displayed in the browser.
+# Force attachment (download) by default for all files to prevent XSS attacks.
+# Only safe image and video formats are explicitly allowed inline for browser display.
+# Note: SVG is intentionally excluded from inline display due to XSS risk (can contain JavaScript).
 <IfModule mod_headers.c>
-    <FilesMatch "\.(?i:jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov|avi|mkv)$">
+    # Default: force attachment for all files (secure default)
+    Header set Content-Disposition "attachment"
+    
+    # Whitelist: allow inline display only for safe image and video formats
+    <FilesMatch "\.(?i:jpg|jpeg|png|gif|webp|mp4|webm|ogg|mov|avi|mkv)$">
         Header set Content-Disposition "inline"
-    </FilesMatch>
-    <FilesMatch "\.(?i:pdf|doc|docx|xls|xlsx|zip|rar|7z|tar|gz|txt|csv)$">
-        Header set Content-Disposition "attachment"
     </FilesMatch>
 </IfModule>
 
