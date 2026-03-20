@@ -215,7 +215,7 @@ This will check:
 
 -- Check tables
 SHOW TABLES;
--- Should show 18 tables
+-- Should show 34 tables
 
 -- Check bookings
 SELECT * FROM bookings WHERE id IN (23, 37);
