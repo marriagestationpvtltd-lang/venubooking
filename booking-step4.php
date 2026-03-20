@@ -96,6 +96,19 @@ $current_total = $totals['subtotal'];
 <section class="py-5">
     <div class="container">
 
+        <!-- Breadcrumb navigation – shown when drilling into sub-services / designs -->
+        <nav id="booking-breadcrumb" aria-label="breadcrumb" style="display:none;" class="mb-3">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="#" id="bc-services" onclick="backToServices(); return false;">
+                        <i class="fas fa-th-large me-1"></i>All Services
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" id="bc-service-name" style="display:none;"></li>
+                <li class="breadcrumb-item active" id="bc-sub-service-name" style="display:none;"></li>
+            </ol>
+        </nav>
+
         <!-- =====================================================================
              VIEW 1: Main Services List
              ===================================================================== -->
@@ -295,32 +308,51 @@ $current_total = $totals['subtotal'];
              VIEW 2: Sub-Services of a selected service
              ===================================================================== -->
         <div id="view-sub-services" style="display:none;">
-            <div class="d-flex align-items-center mb-3">
-                <button class="btn btn-outline-secondary me-3" onclick="backToServices()">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <div>
+            <div class="d-flex align-items-center mb-1">
+                <div class="flex-grow-1">
                     <h2 class="mb-0" id="sub-services-title">Select Sub-Service</h2>
                     <p class="text-muted mb-0 small" id="sub-services-subtitle"></p>
                 </div>
+                <span id="sub-service-progress" class="badge bg-secondary ms-3 fs-6" style="display:none;"></span>
+            </div>
+            <div class="alert alert-info py-2 small mb-3" id="sub-services-hint">
+                <i class="fas fa-hand-pointer me-1"></i>
+                Tap each option below to choose your preferred design. Once all options are selected, tap <strong>Done</strong>.
             </div>
             <div id="sub-services-list" class="row g-3"></div>
+            <div class="row mt-4">
+                <div class="col-6">
+                    <button class="btn btn-outline-secondary w-100" onclick="backToServices()">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Services
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button class="btn btn-success w-100" id="sub-services-done-btn" onclick="backToServices()" style="display:none;">
+                        <i class="fas fa-check me-1"></i> Done
+                    </button>
+                </div>
+            </div>
         </div><!-- /#view-sub-services -->
 
         <!-- =====================================================================
              VIEW 3: Design photos for a selected sub-service
              ===================================================================== -->
         <div id="view-designs" style="display:none;">
-            <div class="d-flex align-items-center mb-3">
-                <button class="btn btn-outline-secondary me-3" onclick="backToSubServices()">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
+            <div class="d-flex align-items-center mb-1">
                 <div>
                     <h2 class="mb-0" id="designs-title">Choose a Design</h2>
-                    <p class="text-muted mb-0 small" id="designs-subtitle">Tap a photo to select it</p>
+                    <p class="text-muted mb-0 small" id="designs-subtitle">Tap a photo to select it for this option</p>
                 </div>
             </div>
+            <div id="design-selection-feedback" class="alert alert-success py-2 small mb-3" style="display:none;">
+                <i class="fas fa-check-circle me-1"></i> <span id="design-selection-feedback-text"></span>
+            </div>
             <div id="designs-grid" class="row g-3"></div>
+            <div class="mt-4">
+                <button class="btn btn-outline-secondary" onclick="backToSubServices()">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Options
+                </button>
+            </div>
         </div><!-- /#view-designs -->
 
     </div>

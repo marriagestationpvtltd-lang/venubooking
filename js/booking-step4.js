@@ -4,7 +4,12 @@
  * Supports two modes:
  *  1. Regular services  – checkbox-based selection (existing behaviour)
  *  2. Services with sub-services – photo-based drill-down selection flow:
- *       Main services list → sub-service list → design photo grid → auto-back
+ *       Main services list → sub-service list → design photo grid → back to sub-service list
+ *
+ * Navigation flow:
+ *   View 1 (Services) → click service card
+ *   View 2 (Sub-Services) → click sub-service → see progress & "Done" button
+ *   View 3 (Designs)   → click design photo → returns to View 2 with selection shown
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -49,6 +54,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const viewServices    = document.getElementById('view-services');
     const viewSubServices = document.getElementById('view-sub-services');
     const viewDesigns     = document.getElementById('view-designs');
+    const breadcrumb      = document.getElementById('booking-breadcrumb');
+    const bcServiceName   = document.getElementById('bc-service-name');
+    const bcSubServiceName = document.getElementById('bc-sub-service-name');
 
     function showView(view) {
         [viewServices, viewSubServices, viewDesigns].forEach(function (v) {
@@ -57,6 +65,30 @@ document.addEventListener('DOMContentLoaded', function () {
         if (view) {
             view.style.display = '';
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        // Show breadcrumb only when drilling down
+        if (breadcrumb) {
+            breadcrumb.style.display = (view === viewServices) ? 'none' : '';
+        }
+    }
+
+    // ── Update breadcrumb based on current drill-down level ──────────────────
+    function updateBreadcrumb(serviceName, subServiceName) {
+        if (bcServiceName) {
+            if (serviceName) {
+                bcServiceName.textContent = serviceName;
+                bcServiceName.style.display = '';
+            } else {
+                bcServiceName.style.display = 'none';
+            }
+        }
+        if (bcSubServiceName) {
+            if (subServiceName) {
+                bcSubServiceName.textContent = subServiceName;
+                bcSubServiceName.style.display = '';
+            } else {
+                bcSubServiceName.style.display = 'none';
+            }
         }
     }
 
@@ -124,6 +156,32 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ── Update the sub-services view progress counter and Done button ─────────
+    function updateSubServiceProgress(serviceId) {
+        const svc = servicesById[serviceId];
+        if (!svc || !svc.sub_services) return;
+
+        const total    = svc.sub_services.length;
+        const selected = svc.sub_services.filter(function (ss) { return !!selectedDesigns[ss.id]; }).length;
+
+        const progressEl = document.getElementById('sub-service-progress');
+        if (progressEl) {
+            progressEl.textContent = selected + ' of ' + total + ' selected';
+            progressEl.style.display = '';
+            progressEl.className = 'badge ms-3 fs-6 ' + (selected === total ? 'bg-success' : 'bg-secondary');
+        }
+
+        const doneBtn = document.getElementById('sub-services-done-btn');
+        if (doneBtn) {
+            doneBtn.style.display = selected > 0 ? '' : 'none';
+            if (selected === total) {
+                doneBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Done – All Selected';
+            } else {
+                doneBtn.innerHTML = '<i class="fas fa-check me-1"></i> Done';
+            }
+        }
+    }
+
     // ── Navigate INTO a service's sub-services ────────────────────────────────
     window.openSubServicesView = function (serviceId) {
         currentServiceId = serviceId;
@@ -132,6 +190,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('sub-services-title').textContent    = svc.name;
         document.getElementById('sub-services-subtitle').textContent = svc.description || '';
+
+        // Update breadcrumb
+        updateBreadcrumb(svc.name, null);
 
         const list = document.getElementById('sub-services-list');
         list.innerHTML = '';
@@ -147,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 col.className = 'col-md-6';
 
                 col.innerHTML =
-                    '<div class="card h-100 sub-service-card ' + (isSelected ? 'border-success' : '') + '" ' +
+                    '<div class="card h-100 sub-service-card ' + (isSelected ? 'border-success' : 'border') + '" ' +
                          'style="cursor:pointer;" onclick="openDesignsView(' + ss.id + ')">' +
                         '<div class="card-body d-flex justify-content-between align-items-center">' +
                             '<div>' +
@@ -156,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 (isSelected
                                     ? '<div class="text-success small"><i class="fas fa-check-circle"></i> ' +
                                         escapeHtml(sel.name) + ' \u2013 ' + formatPrice(sel.price) + '</div>'
-                                    : '<div class="text-muted small">Tap to choose a design</div>') +
+                                    : '<div class="text-muted small"><i class="fas fa-hand-pointer me-1"></i> Tap to choose a design</div>') +
                             '</div>' +
                             '<i class="fas fa-chevron-right text-muted ms-3"></i>' +
                         '</div>' +
@@ -166,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        updateSubServiceProgress(serviceId);
         showView(viewSubServices);
     };
 
@@ -174,6 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (currentServiceId !== null) {
             updateServiceSummary(currentServiceId);
         }
+        updateBreadcrumb(null, null);
         showView(viewServices);
     };
 
@@ -183,8 +246,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const ss = subServicesById[subServiceId];
         if (!ss) return;
 
+        // Update breadcrumb
+        const svc = servicesById[ss.service_id];
+        updateBreadcrumb(svc ? svc.name : '', ss.name);
+
         document.getElementById('designs-title').textContent    = ss.name;
-        document.getElementById('designs-subtitle').textContent = 'Tap a photo to select it';
+        document.getElementById('designs-subtitle').textContent = 'Tap a photo to select it for this option';
+
+        // Hide any previous feedback
+        const feedbackEl = document.getElementById('design-selection-feedback');
+        if (feedbackEl) feedbackEl.style.display = 'none';
 
         const grid = document.getElementById('designs-grid');
         grid.innerHTML = '';
@@ -226,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function () {
         showView(viewDesigns);
     };
 
-    // ── Select a design and auto-navigate ────────────────────────────────────
+    // ── Select a design and return to sub-services view ───────────────────────
     window.selectDesign = function (designId) {
         const d  = designsById[designId];
         if (!d) return;
@@ -243,27 +314,19 @@ document.addEventListener('DOMContentLoaded', function () {
         syncDesignInputs();
         recalculateTotal();
 
-        // Determine next sub-service (of same parent service) without a selection yet
-        const svc = servicesById[d.service_id];
-        let nextSS = null;
-        if (svc && svc.sub_services) {
-            for (let i = 0; i < svc.sub_services.length; i++) {
-                const ss = svc.sub_services[i];
-                if (!selectedDesigns[ss.id]) {
-                    nextSS = ss;
-                    break;
-                }
-            }
+        // Show confirmation feedback briefly, then navigate back to sub-services view
+        const ss = subServicesById[d.sub_service_id];
+        const feedbackEl  = document.getElementById('design-selection-feedback');
+        const feedbackTxt = document.getElementById('design-selection-feedback-text');
+        if (feedbackEl && feedbackTxt) {
+            feedbackTxt.textContent = '\u201c' + d.name + '\u201d selected for ' + (ss ? ss.name : 'this option') + '.';
+            feedbackEl.style.display = '';
         }
 
-        if (nextSS) {
-            // Auto-navigate to next sub-service
-            openDesignsView(nextSS.id);
-        } else {
-            // All sub-services selected → back to main services list
-            updateServiceSummary(d.service_id);
-            showView(viewServices);
-        }
+        // Short delay so the user sees the confirmation before navigating back
+        setTimeout(function () {
+            openSubServicesView(d.service_id);
+        }, 800);
     };
 
     // ── Navigate BACK from designs to sub-services ────────────────────────────
