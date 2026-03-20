@@ -2,7 +2,7 @@
 # This prevents attackers from executing malicious files they may have uploaded.
 
 # Deny direct PHP execution
-<FilesMatch "\.(php|php3|php4|php5|php7|php8|phtml|phar|pl|py|cgi|sh|bash|exe|htaccess)$">
+<FilesMatch "(?i)\.(php|php3|php4|php5|php7|php8|phtml|phar|pl|py|cgi|sh|bash|exe|htaccess)$">
     Require all denied
 </FilesMatch>
 
@@ -21,12 +21,12 @@
     
     # Override for safe image formats: allow inline display for previews
     # Note: SVG is intentionally excluded as it can contain embedded JavaScript (XSS risk)
-    <FilesMatch "\.(jpg|jpeg|png|gif|webp|bmp|ico)$">
+    <FilesMatch "(?i)\.(jpg|jpeg|png|gif|webp|bmp|ico)$">
         Header set Content-Disposition "inline"
     </FilesMatch>
     
     # Override for videos: allow inline display for video player
-    <FilesMatch "\.(mp4|webm|ogg|mov|avi|mkv|m4v|3gp)$">
+    <FilesMatch "(?i)\.(mp4|webm|ogg|mov|avi|mkv|m4v|3gp)$">
         Header set Content-Disposition "inline"
     </FilesMatch>
 </IfModule>
