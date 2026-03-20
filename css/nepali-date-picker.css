@@ -2,13 +2,17 @@
  * Nepali Date Picker Styles
  */
 
+:root {
+    --nepali-picker-font: 'Noto Sans Devanagari', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 .nepali-date-picker {
     background: #fff;
     border: 1px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 10px;
-    font-family: 'Noto Sans Devanagari', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--nepali-picker-font);
     min-width: 300px;
     max-width: 340px;
 }
@@ -53,7 +57,7 @@
 }
 
 .nepali-picker-title {
-    font-family: 'Noto Sans Devanagari', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--nepali-picker-font);
     font-weight: 600;
     font-size: 17px;
     color: #333;
@@ -72,7 +76,7 @@
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-family: 'Noto Sans Devanagari', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--nepali-picker-font);
 }
 
 .nepali-calendar-table th {
