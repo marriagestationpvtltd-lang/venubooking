@@ -139,7 +139,7 @@ document.addEventListener("DOMContentLoaded", function() {
         
         try {
             const dateObj = new Date(dateStr + "T00:00:00");
-            if (isNaN(dateObj)) return null;
+            if (isNaN(dateObj.getTime())) return null;
             
             const bs = window.nepaliDateUtils.adToBS(
                 dateObj.getFullYear(),
@@ -215,7 +215,7 @@ document.addEventListener("DOMContentLoaded", function() {
             if (nepaliDate && dayNumberEl) {
                 // Get just the day and month for compact display
                 const bsParts = nepaliDate.split(" ");
-                if (bsParts.length >= 2) {
+                if (bsParts.length >= 2 && bsParts[1].length >= 3) {
                     const nepaliSpan = document.createElement("div");
                     nepaliSpan.className = "nepali-date-cell";
                     nepaliSpan.textContent = bsParts[0] + " " + bsParts[1].substring(0, 3);
