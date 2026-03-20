@@ -1064,16 +1064,20 @@ $whatsapp_number = getSetting('whatsapp_number');
                         <i class="fas fa-download me-2"></i>
                         फाइलहरू डाउनलोड गर्नुहोस्
                     </h4>
+                    <?php 
+                    $file_count = count($photos);
+                    $file_text = $file_count !== 1 ? 'फाइलहरू छन्' : 'फाइल छ';
+                    ?>
                     <p class="text-muted mb-4">
-                        यस फोल्डरमा <?php echo count($photos); ?> फाइल<?php echo count($photos) !== 1 ? 'हरू' : ''; ?> छ<?php echo count($photos) !== 1 ? 'न्' : ''; ?>।<br>
+                        यस फोल्डरमा <?php echo $file_count; ?> <?php echo $file_text; ?>।<br>
                         तलको बटन थिचेर ZIP फाइलमा एकैपटक डाउनलोड गर्नुहोस्।
                     </p>
-                    <?php if ($folder['allow_zip_download'] && count($photos) > 0): ?>
+                    <?php if ($folder['allow_zip_download'] && $file_count > 0): ?>
                         <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
                            class="btn btn-success btn-lg download-all-btn px-5 py-3"
                            onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
                             <i class="fas fa-download me-2"></i> 
-                            सबै डाउनलोड गर्नुहोस् (<?php echo count($photos); ?> files)
+                            सबै डाउनलोड गर्नुहोस् (<?php echo $file_count; ?> फाइलहरू)
                         </a>
                         <p class="text-muted mt-3 mb-0">
                             <small><i class="fas fa-file-archive me-1"></i> ZIP फाइलमा डाउनलोड हुन्छ</small>

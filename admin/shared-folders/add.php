@@ -163,7 +163,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Photo Preview</label>
+                                <label class="form-label">फोटो प्रिभियु</label>
                                 <div class="form-check mt-2">
                                     <input class="form-check-input" type="checkbox" id="show_preview" name="show_preview" checked>
                                     <label class="form-check-label" for="show_preview">
