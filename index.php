@@ -158,31 +158,33 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
     </div>
 </section>
 
-<?php if (!empty($service_categories)): ?>
 <?php
-// Filter out categories without packages
-$categories_with_packages = array_filter($service_categories, function($cat) {
-    return !empty($cat['packages']);
-});
+// Collect all packages from all categories into a single flat list
+$all_service_packages = [];
+if (!empty($service_categories)) {
+    foreach ($service_categories as $cat) {
+        if (!empty($cat['packages'])) {
+            foreach ($cat['packages'] as $pkg) {
+                $all_service_packages[] = array_merge($pkg, ['category_name' => $cat['name']]);
+            }
+        }
+    }
+}
 ?>
+<?php if (!empty($all_service_packages)): ?>
 <!-- Service Packages Section -->
 <section class="service-packages-section">
     <div class="container">
         <h2 class="text-center section-title mb-1">हाम्रा सेवा प्याकेजहरू</h2>
         <p class="text-center section-subtitle mb-4">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
-        <?php foreach ($categories_with_packages as $cat): ?>
-        <!-- Category: <?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?> -->
-        <div class="service-category-block" id="serviceCategory<?php echo (int)$cat['id']; ?>">
-            <h3 class="service-category-title">
-                <span class="category-label"><?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?></span>
-            </h3>
+        <div class="service-category-block">
             <div class="pkg-slider-wrapper">
                 <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <div class="pkg-slider-track" data-pkg-slider>
-                <?php foreach ($cat['packages'] as $pkg):
+                <?php foreach ($all_service_packages as $pkg):
                     $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
                 ?>
                     <div class="pkg-slider-card">
@@ -217,6 +219,11 @@ $categories_with_packages = array_filter($service_categories, function($cat) {
                                 <?php endif; ?>
                             <?php endif; ?>
                             <div class="card-body d-flex flex-column p-3">
+                                <?php if (!empty($pkg['category_name'])): ?>
+                                <div class="text-center mb-1">
+                                    <span class="pkg-category-badge"><?php echo htmlspecialchars($pkg['category_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                </div>
+                                <?php endif; ?>
                                 <h5 class="package-name text-center mb-2">
                                     <?php echo htmlspecialchars($pkg['name']); ?>
                                 </h5>
@@ -306,7 +313,6 @@ $categories_with_packages = array_filter($service_categories, function($cat) {
                 <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
             </p>
         </div>
-        <?php endforeach; ?>
     </div>
 </section>
 <?php endif; ?>
