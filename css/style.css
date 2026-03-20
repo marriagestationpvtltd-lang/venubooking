@@ -1406,103 +1406,72 @@ footer a:hover {
  * On xs/sm screens: horizontal scroll slider (touch-friendly).
  */
 
+/* ── Shared slider styles (all breakpoints) ── */
 .pkg-slider-wrapper {
     position: relative;
+    overflow: hidden;
 }
 
-/* ── Mobile slider (xs / sm) ── */
-@media (max-width: 767px) {
-    .pkg-slider-wrapper {
-        overflow: hidden;
-    }
-
-    .pkg-slider-track {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 1rem;
-        overflow-x: auto;
-        cursor: grab;
-        padding-bottom: 0.5rem;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        -webkit-overflow-scrolling: touch;
-        user-select: none;
-    }
-
-    .pkg-slider-track::-webkit-scrollbar { display: none; }
-
-    .pkg-slider-track.pkg-slider-grabbing {
-        cursor: grabbing;
-        scroll-behavior: auto;
-    }
-
-    .pkg-slider-card {
-        flex: 0 0 272px;
-        width: 272px;
-    }
-
-    /* Gradient edge fades */
-    .pkg-slider-wrapper::before,
-    .pkg-slider-wrapper::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 48px;
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    .pkg-slider-wrapper::before {
-        left: 0;
-        background: linear-gradient(to right, #f0f7f0 0%, transparent 100%);
-    }
-
-    .pkg-slider-wrapper::after {
-        right: 0;
-        background: linear-gradient(to left, #f0f7f0 0%, transparent 100%);
-    }
+.pkg-slider-track {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    overflow-x: auto;
+    cursor: grab;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    user-select: none;
 }
 
-/* ── Desktop / tablet grid (md+) ── */
+.pkg-slider-track::-webkit-scrollbar { display: none; }
+
+.pkg-slider-track.pkg-slider-grabbing {
+    cursor: grabbing;
+    scroll-behavior: auto;
+}
+
+.pkg-slider-card {
+    flex: 0 0 272px;
+    width: 272px;
+}
+
+/* Gradient edge fades */
+.pkg-slider-wrapper::before,
+.pkg-slider-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.pkg-slider-wrapper::before {
+    left: 0;
+    background: linear-gradient(to right, #f8faf8 0%, transparent 100%);
+}
+
+.pkg-slider-wrapper::after {
+    right: 0;
+    background: linear-gradient(to left, #f8faf8 0%, transparent 100%);
+}
+
+/* ── Desktop / tablet (md+): wider cards ── */
 @media (min-width: 768px) {
-    .pkg-slider-wrapper {
-        overflow: visible;
-    }
-
     .pkg-slider-track {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
-        overflow: visible;
-        cursor: default;
-        user-select: auto;
+        gap: 1.25rem;
     }
 
     .pkg-slider-card {
-        flex: none;
-        width: auto;
-    }
-
-    /* Hide gradient edges on desktop */
-    .pkg-slider-wrapper::before,
-    .pkg-slider-wrapper::after {
-        display: none;
-    }
-
-    /* Hide slider nav buttons – grid doesn't need them */
-    .pkg-slider-nav {
-        display: none;
+        flex: 0 0 300px;
+        width: 300px;
     }
 }
 
-@media (min-width: 1200px) {
-    .pkg-slider-track {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-/* Prev / next navigation buttons (mobile only) */
+/* Prev / next navigation buttons */
 .pkg-slider-nav {
     position: absolute;
     top: 50%;

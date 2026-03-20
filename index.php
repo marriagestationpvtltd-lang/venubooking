@@ -324,7 +324,7 @@ if (!empty($service_categories)) {
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
-            <p class="text-center pkg-swipe-hint d-md-none mt-2 mb-0">
+            <p class="text-center pkg-swipe-hint mt-2 mb-0">
                 <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
             </p>
         </div>
