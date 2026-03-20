@@ -54,6 +54,7 @@ unset($_SESSION['error_message']);
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Photo</th>
                         <th>Service Name</th>
                         <th>Category</th>
                         <th>Price</th>
@@ -66,6 +67,17 @@ unset($_SESSION['error_message']);
                     <?php foreach ($services as $service): ?>
                         <tr>
                             <td><?php echo $service['id']; ?></td>
+                            <td>
+                                <?php if (!empty($service['photo'])): ?>
+                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                         alt="<?php echo htmlspecialchars($service['name']); ?>"
+                                         style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                <?php else: ?>
+                                    <div style="width:50px;height:50px;background:#f0f0f0;border-radius:4px;display:flex;align-items:center;justify-content:center;">
+                                        <i class="fas fa-concierge-bell text-muted"></i>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo htmlspecialchars($service['name']); ?></td>
                             <td><?php echo htmlspecialchars($service['category']); ?></td>
                             <td><?php echo formatCurrency($service['price']); ?></td>

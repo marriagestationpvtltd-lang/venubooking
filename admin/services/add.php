@@ -21,35 +21,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name) || $price <= 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
-        try {
-            $sql = "INSERT INTO additional_services (name, description, price, category, status) 
-                    VALUES (?, ?, ?, ?, ?)";
-            
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([
-                $name,
-                $description,
-                $price,
-                $category,
-                $status
-            ]);
-
-            if ($result) {
-                $service_id = $db->lastInsertId();
-                
-                // Log activity
-                logActivity($current_user['id'], 'Added new service', 'additional_services', $service_id, "Added service: $name");
-                
-                // Redirect to the service view page so admin can immediately configure
-                // sub-services and design photos to enable the visual selection flow.
-                $_SESSION['success_message'] = 'Service added successfully! You can now add sub-services and design photos below to enable the visual design selection flow for customers.';
-                header('Location: view.php?id=' . $service_id);
-                exit;
+        // Handle photo upload
+        $photo_filename = null;
+        if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_result = handleImageUpload($_FILES['photo'], 'service');
+            if ($upload_result['success']) {
+                $photo_filename = $upload_result['filename'];
             } else {
-                $error_message = 'Failed to add service. Please try again.';
+                $error_message = $upload_result['message'];
             }
-        } catch (Exception $e) {
-            $error_message = 'Error: ' . $e->getMessage();
+        }
+
+        if (empty($error_message)) {
+            try {
+                $sql = "INSERT INTO additional_services (name, description, price, category, photo, status) 
+                        VALUES (?, ?, ?, ?, ?, ?)";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    $name,
+                    $description,
+                    $price,
+                    $category,
+                    $photo_filename,
+                    $status
+                ]);
+
+                if ($result) {
+                    $service_id = $db->lastInsertId();
+                    
+                    // Log activity
+                    logActivity($current_user['id'], 'Added new service', 'additional_services', $service_id, "Added service: $name");
+                    
+                    // Redirect to the service view page so admin can immediately configure
+                    // sub-services and design photos to enable the visual selection flow.
+                    $_SESSION['success_message'] = 'Service added successfully! You can now add sub-services and design photos below to enable the visual design selection flow for customers.';
+                    header('Location: view.php?id=' . $service_id);
+                    exit;
+                } else {
+                    $error_message = 'Failed to add service. Please try again.';
+                }
+            } catch (Exception $e) {
+                $error_message = 'Error: ' . $e->getMessage();
+            }
         }
     }
 }
@@ -80,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -131,10 +145,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" 
-                                  placeholder="Describe the service and what it includes..."><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" 
+                                          placeholder="Describe the service and what it includes..."><?php echo isset($_POST['description']) ? htmlspecialchars($_POST['description']) : ''; ?></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="photo" class="form-label">Service Photo</label>
+                                <input type="file" class="form-control" id="photo" name="photo"
+                                       accept="image/jpeg,image/png,image/gif,image/webp">
+                                <small class="text-muted">JPG, PNG, GIF, or WebP. Max 5MB.</small>
+                                <div id="photoPreview" class="mt-2" style="display:none;">
+                                    <img id="photoPreviewImg" src="" alt="Preview" class="img-thumbnail" style="max-height:150px;">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between">
@@ -150,5 +179,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('photo').addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('photoPreviewImg').src = e.target.result;
+            document.getElementById('photoPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        document.getElementById('photoPreview').style.display = 'none';
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

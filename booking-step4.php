@@ -150,6 +150,11 @@ $current_total = $totals['subtotal'];
                                                 <div class="service-card card service-drilldown-card" style="cursor:pointer;"
                                                      data-service-id="<?php echo $service['id']; ?>"
                                                      onclick="openSubServicesView(<?php echo $service['id']; ?>)">
+                                                    <?php if (!empty($service['photo'])): ?>
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                             alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                             class="card-img-top" style="height:140px;object-fit:cover;">
+                                                    <?php endif; ?>
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-start">
                                                             <div class="flex-grow-1">
@@ -166,6 +171,11 @@ $current_total = $totals['subtotal'];
                                             <?php else: ?>
                                                 <!-- Regular service: checkbox -->
                                                 <div class="service-card card">
+                                                    <?php if (!empty($service['photo'])): ?>
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                             alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                             class="card-img-top" style="height:140px;object-fit:cover;">
+                                                    <?php endif; ?>
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-start">
                                                             <div class="flex-grow-1">
@@ -213,6 +223,11 @@ $current_total = $totals['subtotal'];
                                             <?php foreach ($category_services as $service): ?>
                                                 <?php if ($service['has_sub_services']): ?>
                                                     <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <?php if (!empty($service['photo'])): ?>
+                                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                                 alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                 class="card-img-top" style="height:100px;object-fit:cover;">
+                                                        <?php endif; ?>
                                                         <div class="card-body p-3 service-drilldown-card d-flex justify-content-between align-items-center"
                                                              style="cursor:pointer;"
                                                              onclick="openSubServicesView(<?php echo $service['id']; ?>)">
@@ -225,6 +240,11 @@ $current_total = $totals['subtotal'];
                                                     </div>
                                                 <?php else: ?>
                                                     <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <?php if (!empty($service['photo'])): ?>
+                                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                                 alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                 class="card-img-top" style="height:100px;object-fit:cover;">
+                                                        <?php endif; ?>
                                                         <div class="card-body p-3">
                                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                                 <div class="form-check flex-grow-1">

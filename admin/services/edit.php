@@ -39,40 +39,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name) || $price <= 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
-        try {
-            $sql = "UPDATE additional_services SET 
-                    name = ?,
-                    description = ?,
-                    price = ?,
-                    category = ?,
-                    status = ?
-                    WHERE id = ?";
-            
-            $stmt = $db->prepare($sql);
-            $result = $stmt->execute([
-                $name,
-                $description,
-                $price,
-                $category,
-                $status,
-                $service_id
-            ]);
-
-            if ($result) {
-                // Log activity
-                logActivity($current_user['id'], 'Updated service', 'additional_services', $service_id, "Updated service: $name");
-                
-                $success_message = 'Service updated successfully!';
-                
-                // Refresh service data
-                $stmt = $db->prepare("SELECT * FROM additional_services WHERE id = ?");
-                $stmt->execute([$service_id]);
-                $service = $stmt->fetch();
+        // Handle photo upload
+        $photo_filename = $service['photo']; // keep existing photo by default
+        if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_result = handleImageUpload($_FILES['photo'], 'service');
+            if ($upload_result['success']) {
+                // Delete old photo if it exists
+                if (!empty($service['photo'])) {
+                    deleteUploadedFile($service['photo']);
+                }
+                $photo_filename = $upload_result['filename'];
             } else {
-                $error_message = 'Failed to update service. Please try again.';
+                $error_message = $upload_result['message'];
             }
-        } catch (Exception $e) {
-            $error_message = 'Error: ' . $e->getMessage();
+        } elseif (isset($_POST['remove_photo']) && $_POST['remove_photo'] == '1') {
+            // Admin explicitly removed photo
+            if (!empty($service['photo'])) {
+                deleteUploadedFile($service['photo']);
+            }
+            $photo_filename = null;
+        }
+
+        if (empty($error_message)) {
+            try {
+                $sql = "UPDATE additional_services SET 
+                        name = ?,
+                        description = ?,
+                        price = ?,
+                        category = ?,
+                        photo = ?,
+                        status = ?
+                        WHERE id = ?";
+                
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([
+                    $name,
+                    $description,
+                    $price,
+                    $category,
+                    $photo_filename,
+                    $status,
+                    $service_id
+                ]);
+
+                if ($result) {
+                    // Log activity
+                    logActivity($current_user['id'], 'Updated service', 'additional_services', $service_id, "Updated service: $name");
+                    
+                    $success_message = 'Service updated successfully!';
+                    
+                    // Refresh service data
+                    $stmt = $db->prepare("SELECT * FROM additional_services WHERE id = ?");
+                    $stmt->execute([$service_id]);
+                    $service = $stmt->fetch();
+                } else {
+                    $error_message = 'Failed to update service. Please try again.';
+                }
+            } catch (Exception $e) {
+                $error_message = 'Error: ' . $e->getMessage();
+            }
         }
     }
 }
@@ -107,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="">
+                <form method="POST" action="" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -158,10 +183,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" 
-                                  placeholder="Describe the service and what it includes..."><?php echo htmlspecialchars($service['description']); ?></textarea>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" 
+                                          placeholder="Describe the service and what it includes..."><?php echo htmlspecialchars($service['description']); ?></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="photo" class="form-label">Service Photo</label>
+                                <?php if (!empty($service['photo'])): ?>
+                                    <div id="currentPhotoWrapper" class="mb-2">
+                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                             alt="Current photo" id="currentPhoto"
+                                             class="img-thumbnail" style="max-height:120px;">
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="checkbox" name="remove_photo" value="1" id="removePhoto">
+                                            <label class="form-check-label text-danger small" for="removePhoto">Remove current photo</label>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" class="form-control" id="photo" name="photo"
+                                       accept="image/jpeg,image/png,image/gif,image/webp">
+                                <small class="text-muted">JPG, PNG, GIF, or WebP. Max 5MB. Leave blank to keep current photo.</small>
+                                <div id="photoPreview" class="mt-2" style="display:none;">
+                                    <img id="photoPreviewImg" src="" alt="Preview" class="img-thumbnail" style="max-height:120px;">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between">
@@ -185,5 +236,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('photo').addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('photoPreviewImg').src = e.target.result;
+            document.getElementById('photoPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        document.getElementById('photoPreview').style.display = 'none';
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
