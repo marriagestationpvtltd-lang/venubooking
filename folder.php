@@ -180,6 +180,9 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                         }
                     }
                     fclose($handle);
+                } else {
+                    // Log error if file cannot be opened
+                    error_log('Failed to open file for streaming: ' . $file_path);
                 }
                 exit;
             } else {
@@ -308,10 +311,15 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                         }
                     }
                     fclose($handle);
+                } else {
+                    // Log error if ZIP file cannot be opened
+                    error_log('Failed to open ZIP file for streaming: ' . $zip_path);
                 }
                 
-                // Clean up temp file
-                @unlink($zip_path);
+                // Clean up temp file (with error logging)
+                if (!unlink($zip_path)) {
+                    error_log('Failed to delete temporary ZIP file: ' . $zip_path);
+                }
                 exit;
             } else {
                 $error_message = 'Failed to create ZIP file.';

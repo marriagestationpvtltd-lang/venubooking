@@ -108,6 +108,9 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
                 }
             }
             fclose($handle);
+        } else {
+            // Log error if file cannot be opened
+            error_log('Failed to open file for streaming: ' . $file_path);
         }
         exit;
     } else {
