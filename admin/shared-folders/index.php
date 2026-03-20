@@ -63,7 +63,7 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     exit;
 }
 
-$page_title = 'फोटो सेयर व्यवस्थापन (Photo Sharing)';
+$page_title = 'फोटो सेयर व्यवस्थापन (Photo Share)';
 require_once __DIR__ . '/../includes/header.php';
 
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
