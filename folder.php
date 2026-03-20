@@ -10,6 +10,7 @@
 
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/ZipStream.php';
 
 $db = getDB();
 $error_message = '';
@@ -192,7 +193,7 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
     }
 }
 
-// Handle Download All as ZIP
+// Handle Download All as ZIP - Using streaming for instant downloads (like Google Drive)
 if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] === '1' && $folder['allow_zip_download']) {
     // When inside an album, only ZIP photos from that album; otherwise ZIP everything
     $photos_to_zip = ($has_subfolders && $current_album !== null)
@@ -201,9 +202,6 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
     if (empty($photos_to_zip)) {
         $error_message = 'No photos to download.';
     } else {
-        // Create ZIP file
-        $zip = new ZipArchive();
-        
         // Create safe folder name for ZIP
         $safe_folder_name = preg_replace('/[^a-zA-Z0-9_\-\s]/u', '_', $folder['folder_name']);
         $safe_folder_name = preg_replace('/_+/', '_', $safe_folder_name);
@@ -212,120 +210,86 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
             $safe_folder_name = 'photos';
         }
         
-        // Generate unique ID for this download to avoid conflicts
+        // Generate unique filename for the ZIP download
         $unique_id = substr(uniqid(), -6);
         $zip_filename = $safe_folder_name . '_' . date('Y-m-d') . '_' . $unique_id . '.zip';
-        $zip_path = sys_get_temp_dir() . '/' . 'folder_' . $unique_id . '.zip';
         
-        // Register cleanup function to ensure temp file is deleted even on error
-        register_shutdown_function(function() use ($zip_path) {
-            if (file_exists($zip_path)) {
-                @unlink($zip_path);
-            }
-        });
+        // Pre-validate all files before starting the stream
+        // This ensures we don't start a download that will fail mid-stream
+        $valid_files = [];
+        $real_upload_path = realpath(UPLOAD_PATH);
+        $file_counter = [];
         
-        if ($zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
-            $added_count = 0;
-            $file_counter = [];
+        foreach ($photos_to_zip as $photo) {
+            $file_path = UPLOAD_PATH . $photo['image_path'];
+            $real_file_path = realpath($file_path);
             
-            foreach ($photos_to_zip as $photo) {
-                $file_path = UPLOAD_PATH . $photo['image_path'];
+            // Security check: verify file is within uploads directory
+            if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
+                // Generate safe filename for inside ZIP
+                $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
+                $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
+                $safe_title = preg_replace('/_+/', '_', $safe_title);
+                $safe_title = trim($safe_title, '_');
+                if (empty($safe_title)) {
+                    $safe_title = 'photo';
+                }
                 
-                // Security check
-                $real_upload_path = realpath(UPLOAD_PATH);
-                $real_file_path = realpath($file_path);
+                // Handle duplicate filenames by adding counter
+                $base_name = $safe_title . '.' . $ext;
+                if (isset($file_counter[$base_name])) {
+                    $file_counter[$base_name]++;
+                    $zip_entry_name = $safe_folder_name . '/' . $safe_title . '_' . $file_counter[$base_name] . '.' . $ext;
+                } else {
+                    $file_counter[$base_name] = 1;
+                    $zip_entry_name = $safe_folder_name . '/' . $base_name;
+                }
                 
-                if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
-                    // Generate safe filename for inside ZIP
-                    $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
-                    $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
-                    $safe_title = preg_replace('/_+/', '_', $safe_title);
-                    $safe_title = trim($safe_title, '_');
-                    if (empty($safe_title)) {
-                        $safe_title = 'photo';
-                    }
-                    
-                    // Handle duplicate filenames by adding counter
-                    $base_name = $safe_title . '.' . $ext;
-                    if (isset($file_counter[$base_name])) {
-                        $file_counter[$base_name]++;
-                        $zip_entry_name = $safe_folder_name . '/' . $safe_title . '_' . $file_counter[$base_name] . '.' . $ext;
-                    } else {
-                        $file_counter[$base_name] = 1;
-                        $zip_entry_name = $safe_folder_name . '/' . $base_name;
-                    }
-                    
-                    // Add file to ZIP inside the folder
-                    $zip->addFile($file_path, $zip_entry_name);
+                $valid_files[] = [
+                    'path' => $file_path,
+                    'zip_name' => $zip_entry_name,
+                    'photo_id' => $photo['id']
+                ];
+            }
+        }
+        
+        if (empty($valid_files)) {
+            $error_message = 'No valid files to download.';
+        } else {
+            // Use streaming ZIP for instant download (like Google Drive)
+            // Download starts immediately without waiting for full ZIP to be created
+            $zipStream = new ZipStream($zip_filename);
+            
+            // Start streaming - this sends headers and begins the download immediately
+            $zipStream->begin();
+            
+            $added_count = 0;
+            
+            // Stream each file directly to the browser
+            foreach ($valid_files as $file_info) {
+                if ($zipStream->addFile($file_info['path'], $file_info['zip_name'])) {
                     $added_count++;
                     
-                    // Increment download count for each photo
+                    // Increment download count for this photo
                     $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
-                    $update_stmt->execute([$photo['id']]);
+                    $update_stmt->execute([$file_info['photo_id']]);
+                }
+                
+                // Check if connection is still alive
+                if (connection_aborted()) {
+                    break;
                 }
             }
             
-            $zip->close();
+            // Finish the ZIP file (write central directory)
+            $zipStream->finish();
             
-            if ($added_count > 0 && file_exists($zip_path)) {
-                // Increment folder total downloads
+            // Increment folder total downloads
+            if ($added_count > 0) {
                 $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
-                
-                // Prepare for large file download
-                // Disable time limit for large file transfers
-                @set_time_limit(0);
-                
-                // Disable output buffering to allow immediate streaming
-                if (ob_get_level()) {
-                    ob_end_clean();
-                }
-                
-                // Get file size for Content-Length header
-                $file_size = filesize($zip_path);
-                
-                // Send ZIP file for download with proper headers
-                header('Content-Type: application/zip');
-                header('Content-Disposition: attachment; filename="' . $zip_filename . '"');
-                header('Content-Length: ' . $file_size);
-                header('Content-Transfer-Encoding: binary');
-                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-                header('Cache-Control: post-check=0, pre-check=0', false);
-                header('Pragma: no-cache');
-                header('Expires: 0');
-                
-                // Flush headers to browser immediately
-                flush();
-                
-                // Stream the file in chunks to prevent memory issues and timeouts
-                $handle = fopen($zip_path, 'rb');
-                if ($handle !== false) {
-                    // Use 8KB chunks for efficient streaming
-                    $chunk_size = 8 * 1024;
-                    while (!feof($handle)) {
-                        echo fread($handle, $chunk_size);
-                        // Flush output buffer to send data immediately
-                        flush();
-                        // Check if connection is still alive
-                        if (connection_aborted()) {
-                            break;
-                        }
-                    }
-                    fclose($handle);
-                } else {
-                    // Log error if ZIP file cannot be opened
-                    error_log('Failed to open ZIP file for streaming: ' . $zip_path);
-                }
-                
-                // Clean up temp file (with error logging)
-                if (!unlink($zip_path)) {
-                    error_log('Failed to delete temporary ZIP file: ' . $zip_path);
-                }
-                exit;
-            } else {
-                $error_message = 'Failed to create ZIP file.';
             }
-        } else {
-            $error_message = 'Failed to create ZIP file.';
+            
+            exit;
         }
     }
 }
