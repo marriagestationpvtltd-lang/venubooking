@@ -1296,15 +1296,16 @@ $whatsapp_number = getSetting('whatsapp_number');
             dlPct.textContent      = '';
             dlEta.textContent      = '';
             dlSpd.textContent      = '';
-            dlTitle.textContent    = 'Download Started!';
+            dlTitle.textContent    = 'Starting Download...';
             dlFile.textContent     = defaultName || '';
-            dlSize.textContent     = 'Check your browser downloads';
-            dlIcon.className       = 'fas fa-check-circle';
+            dlSize.textContent     = '';
+            dlIcon.className       = 'fas fa-spinner fa-spin';
 
             overlay.classList.add('dl-active');
 
             // Use hidden iframe for instant download (native browser download)
-            // This triggers the browser's download manager immediately
+            // This triggers the browser's download manager immediately.
+            // The iframe is intentionally reused across downloads for efficiency.
             var iframe = document.getElementById('downloadFrame');
             if (!iframe) {
                 iframe = document.createElement('iframe');
@@ -1313,12 +1314,43 @@ $whatsapp_number = getSetting('whatsapp_number');
                 iframe.style.display = 'none';
                 document.body.appendChild(iframe);
             }
+            
+            // Listen for load event to confirm download initiated
+            var loadTimeout;
+            var onLoad = function() {
+                clearTimeout(loadTimeout);
+                dlTitle.textContent = 'Download Started!';
+                dlSize.textContent  = 'Check your browser downloads';
+                dlIcon.className    = 'fas fa-check-circle';
+                setTimeout(function() { 
+                    overlay.classList.remove('dl-active'); 
+                }, 1500);
+            };
+            
+            // Set timeout in case the server responds with an attachment (no load event fired)
+            loadTimeout = setTimeout(function() {
+                // Assume download started successfully after brief delay
+                dlTitle.textContent = 'Download Started!';
+                dlSize.textContent  = 'Check your browser downloads';
+                dlIcon.className    = 'fas fa-check-circle';
+                setTimeout(function() { 
+                    overlay.classList.remove('dl-active'); 
+                }, 1200);
+            }, 800);
+            
+            iframe.onload = onLoad;
+            iframe.onerror = function() {
+                clearTimeout(loadTimeout);
+                dlTitle.textContent = 'Download Failed';
+                dlSize.textContent  = 'Please try again';
+                dlIcon.className    = 'fas fa-exclamation-circle';
+                dlBar.style.background = '#dc3545';
+                setTimeout(function() { 
+                    overlay.classList.remove('dl-active'); 
+                }, 2500);
+            };
+            
             iframe.src = url;
-
-            // Hide overlay after brief notification
-            setTimeout(function() { 
-                overlay.classList.remove('dl-active'); 
-            }, 1500);
 
             return false;
         }
