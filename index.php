@@ -161,11 +161,13 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 <?php
 // Collect all packages from all categories into a single flat list
 $all_service_packages = [];
+$pkg_categories_present = []; // categories that actually have active packages
 if (!empty($service_categories)) {
     foreach ($service_categories as $cat) {
         if (!empty($cat['packages'])) {
+            $pkg_categories_present[] = ['id' => $cat['id'], 'name' => $cat['name']];
             foreach ($cat['packages'] as $pkg) {
-                $all_service_packages[] = array_merge($pkg, ['category_name' => $cat['name']]);
+                $all_service_packages[] = array_merge($pkg, ['category_name' => $cat['name'], 'category_id' => $cat['id']]);
             }
         }
     }
@@ -178,6 +180,19 @@ if (!empty($service_categories)) {
         <h2 class="text-center section-title mb-1">हाम्रा सेवा प्याकेजहरू</h2>
         <p class="text-center section-subtitle mb-4">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
+        <?php if (count($pkg_categories_present) > 1): ?>
+        <!-- Package Category Filter Buttons -->
+        <div class="service-category-filter-bar text-center mb-4" id="pkgFilterBar">
+            <button class="service-category-filter-btn active" data-filter="all">सबै</button>
+            <?php foreach ($pkg_categories_present as $pcat): ?>
+                <button class="service-category-filter-btn"
+                        data-filter="<?php echo (int)$pcat['id']; ?>">
+                    <?php echo htmlspecialchars($pcat['name'], ENT_QUOTES, 'UTF-8'); ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
         <div class="service-category-block">
             <div class="pkg-slider-wrapper">
                 <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
@@ -187,7 +202,7 @@ if (!empty($service_categories)) {
                 <?php foreach ($all_service_packages as $pkg):
                     $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
                 ?>
-                    <div class="pkg-slider-card">
+                    <div class="pkg-slider-card" data-pkg-category="<?php echo (int)$pkg['category_id']; ?>">
                         <div class="package-card card h-100">
                             <?php if (!empty($pkg['photos'])): ?>
                                 <?php if (count($pkg['photos']) > 1): ?>
@@ -2311,6 +2326,23 @@ document.addEventListener("DOMContentLoaded", function() {
         }, { passive: true });
         track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
         track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
+
+        // Category filter buttons – show/hide cards by category and reinitialise slider
+        var pkgFilterBar = document.getElementById('pkgFilterBar');
+        if (pkgFilterBar) {
+            pkgFilterBar.addEventListener('click', function(e) {
+                var btn = e.target.closest('.service-category-filter-btn');
+                if (!btn) return;
+                pkgFilterBar.querySelectorAll('.service-category-filter-btn').forEach(function(b) {
+                    b.classList.toggle('active', b === btn);
+                });
+                var filter = btn.getAttribute('data-filter');
+                Array.from(track.querySelectorAll('.pkg-slider-card[data-original]')).forEach(function(card) {
+                    card.style.display = (filter === 'all' || card.getAttribute('data-pkg-category') === filter) ? '' : 'none';
+                });
+                initSlider();
+            });
+        }
     });
 })();
 </script>
