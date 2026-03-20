@@ -727,7 +727,7 @@ Office Address: [Your Office Address]
 Business Hours: [Your Business Hours]
 Contact: [Your Phone Number]
 
-Please bring your booking reference number when making payment.', 'inactive', 4);
+⚠️ IMPORTANT: Update the address and contact details in Admin Panel → Payment Methods.', 'active', 4);
 
 -- Insert default vendor types
 INSERT IGNORE INTO vendor_types (slug, label, display_order) VALUES

@@ -22,19 +22,19 @@ mysql -u username -p database_name < database/upgrade.sql
 
 ### For Production Deployment
 
-**`production-shared-hosting.sql`** - ⭐ **RECOMMENDED FOR SHARED HOSTING**
-- Complete production database for shared hosting environments
-- Pre-configured for database: digitallami_partybooking
-- Creates all 28 required tables (including service packages)
+**`production-shared-hosting.sql`** - ⭐ **RECOMMENDED FOR SHARED HOSTING (LIVE)**
+- **CLEAN production database with NO sample data**
+- Creates all 34 required tables (including service packages and planner)
 - Includes default admin user (admin/Admin@123)
-- Includes comprehensive test data (venues, halls, menus, services, bookings, service packages)
+- Includes essential system settings only
+- Includes placeholder payment methods (INACTIVE by default)
+- Includes database triggers for data integrity
 - **Safe to re-run** — uses `CREATE TABLE IF NOT EXISTS` and `INSERT IGNORE`
-- **Perfect for immediate deployment with demo data!**
-- See [SHARED_HOSTING_SETUP.md](../SHARED_HOSTING_SETUP.md) for detailed instructions
+- **Perfect for immediate live deployment!**
 
 **`production-ready.sql`** - ⭐ **RECOMMENDED FOR VPS/DEDICATED**
 - Production-ready database in ONE file
-- Creates all 28 required tables (including service packages)
+- Creates all 34 required tables (including service packages and planner)
 - Includes default admin user (admin/Admin@123)
 - Includes essential system settings only
 - Includes placeholder payment methods (inactive by default)
@@ -46,7 +46,7 @@ mysql -u username -p database_name < database/upgrade.sql
 
 **`complete-database-setup.sql`** - ⭐ **RECOMMENDED FOR DEVELOPMENT**
 - Complete A-Z database implementation in ONE file
-- Creates all 28 required tables (including service packages)
+- Creates all 34 required tables (including service packages)
 - Includes default admin user (admin/Admin@123)
 - Loads all essential settings
 - Includes sample data (venues, halls, menus, services, service packages)
@@ -54,21 +54,11 @@ mysql -u username -p database_name < database/upgrade.sql
 - **Safe to re-run** — uses `CREATE TABLE IF NOT EXISTS` and `INSERT IGNORE`
 - **Use this for local development and testing!**
 
-### Original Files (Reference Only)
-
-**`schema.sql`**
-- Base database schema only
-- Missing payment-related tables (outdated)
-- Use `production-ready.sql` instead for clean production setup
+### Reference Files
 
 **`sample-data.sql`**
-- Sample data only (requires schema.sql first)
-- Use after importing schema.sql
-
-**`complete-setup.sql`** (DEPRECATED)
-- Old complete setup file
-- Missing payment-related tables
-- Use `complete-database-setup.sql` instead
+- Sample data only (for reference)
+- Contains sample venues, halls, menus, bookings for testing
 
 ### Migration Files
 
@@ -150,12 +140,12 @@ mysql -u root -p venubooking_dev < database/complete-database-setup.sql
 
 ## ✅ What Gets Installed
 
-### Tables (28)
+### Tables (34)
+- `cities` - Predefined city list for filtering
 - `venues` - Venue information
 - `venue_images` - Venue photos
 - `halls` - Halls/rooms in venues
 - `hall_images` - Hall photos
-- `cities` - Predefined city list for filtering
 - `menus` - Food menu packages
 - `menu_items` - Items in each menu
 - `hall_menus` - Which menus are available for which halls
@@ -175,20 +165,31 @@ mysql -u root -p venubooking_dev < database/complete-database-setup.sql
 - `vendors` - Vendors (photographers, decorators, etc.)
 - `vendor_photos` - Vendor photos
 - `booking_vendor_assignments` - Vendors assigned to bookings
+- `shared_folders` - Folder-based photo/file sharing
+- `shared_photos` - Photos/files in shared folders
+- `event_plans` - Event planning records
+- `plan_tasks` - Tasks for event plans
 - `users` - Admin users
 - `settings` - System settings (key-value pairs)
 - `activity_logs` - User activity tracking
+- `login_attempts` - Login attempt tracking for security
 - `site_images` - Dynamic site images
 
-### Default Data
+### Essential Data (Production)
 - **Admin User:** username: `admin`, password: `Admin@123`
+- **Cities:** Nepal cities (Kathmandu, Pokhara, etc.)
+- **Vendor Types:** Photographer, Videographer, Decorator, etc.
+- **System Settings:** Company info, tax rate, currency, etc.
+- **Payment Methods:** Bank Transfer, eSewa, Khalti, Cash (INACTIVE by default)
+
+### Sample Data (Development Only)
+In `complete-database-setup.sql`:
 - **4 Venues:** Royal Palace, Garden View Hall, City Convention Center, Lakeside Resort
 - **8 Halls:** Various halls with different capacities
 - **5 Menus:** From Bronze (NPR 1,499) to Platinum (NPR 2,999) per person
 - **8 Services:** Decoration, Photography, DJ, etc.
 - **3 Service Categories:** विवाह (Wedding), पास्नी, व्रतबन्द
 - **6 Service Packages:** Silver/Gold/Platinum Wedding, Pasni, Bratabandha packages
-- **4 Payment Methods:** Bank Transfer, eSewa, Khalti, Cash
 - **7 Sample Customers**
 - **4 Test Bookings:** Including booking #23 and #37
 
@@ -345,22 +346,18 @@ See the comprehensive guides:
 **I already have a database and want to add new features without losing data:**
 → Use `upgrade.sql` — safe, idempotent, adds only what is missing
 
-**I'm deploying to shared hosting with cPanel:**
-→ Use `production-shared-hosting.sql` + Read [SHARED_HOSTING_SETUP.md](../SHARED_HOSTING_SETUP.md)
-   (Includes test data for immediate demonstration)
+**I'm deploying to shared hosting (cPanel) for LIVE/PRODUCTION:**
+→ Use `production-shared-hosting.sql` — clean database, no sample data
 
 **I'm deploying to VPS/dedicated server:**
 → Use `production-ready.sql` + Read [PRODUCTION_DATABASE_GUIDE.md](PRODUCTION_DATABASE_GUIDE.md)
-   (Clean database, no test data)
+   (Clean database, no sample data)
 
 **I'm setting up for local development/testing:**
 → Use `complete-database-setup.sql` (includes sample data for testing)
 
-**I'm not sure which to use:**
-→ Read [SQL_FILES_COMPARISON.md](SQL_FILES_COMPARISON.md) for detailed comparison
-
 ---
 
 **Last Updated:** March 2026  
-**Database Version:** 2.1 (Non-Destructive Edition)
+**Database Version:** 2.2 (Production-Ready Edition)
 
