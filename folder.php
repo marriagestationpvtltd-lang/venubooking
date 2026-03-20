@@ -406,6 +406,34 @@ $whatsapp_number = getSetting('whatsapp_number');
             object-fit: cover;
         }
         
+        /* Prevent blinking: hide images until loaded, then show them */
+        .photo-card img.lazy-img {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .photo-card img.lazy-img.loaded {
+            opacity: 1;
+        }
+        
+        /* Error state for failed images - show placeholder instead of hiding */
+        .photo-card .img-error-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+        }
+        .photo-card .img-error-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 8px;
+        }
+        .photo-card .img-error-placeholder span {
+            font-size: 0.85rem;
+        }
+        
         .photo-card .photo-info {
             padding: 15px;
         }
@@ -811,6 +839,15 @@ $whatsapp_number = getSetting('whatsapp_number');
             height: 100%;
             object-fit: cover;
         }
+        
+        /* Prevent blinking: hide thumb images until loaded */
+        .subfolder-card .subfolder-thumb .thumb-preview img.lazy-img {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .subfolder-card .subfolder-thumb .thumb-preview img.lazy-img.loaded {
+            opacity: 1;
+        }
 
         .subfolder-card .subfolder-thumb .folder-icon-overlay {
             position: absolute;
@@ -1053,7 +1090,8 @@ $whatsapp_number = getSetting('whatsapp_number');
                                                 <img src="<?php echo htmlspecialchars(UPLOAD_URL . $tp['image_path'], ENT_QUOTES, 'UTF-8'); ?>"
                                                      alt=""
                                                      loading="lazy"
-                                                     onerror="this.style.display='none'">
+                                                     class="lazy-img"
+                                                     onload="this.classList.add('loaded')">
                                             <?php endforeach; ?>
                                         </div>
                                         <i class="fas fa-folder folder-icon-overlay"></i>
@@ -1125,7 +1163,9 @@ $whatsapp_number = getSetting('whatsapp_number');
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                          onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
                                          loading="lazy"
-                                         onerror="this.closest('.photo-card').style.display='none'"
+                                         class="lazy-img"
+                                         onload="this.classList.add('loaded')"
+                                         onerror="handleImageError(this)"
                                          style="cursor: pointer;">
                                 <?php endif; ?>
                                 
@@ -1201,7 +1241,9 @@ $whatsapp_number = getSetting('whatsapp_number');
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                          onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
                                          loading="lazy"
-                                         onerror="this.closest('.photo-card').style.display='none'"
+                                         class="lazy-img"
+                                         onload="this.classList.add('loaded')"
+                                         onerror="handleImageError(this)"
                                          style="cursor: pointer;">
                                 <?php endif; ?>
                                 
@@ -1295,6 +1337,21 @@ $whatsapp_number = getSetting('whatsapp_number');
     </div>
     
     <script>
+        /**
+         * Handle image load errors gracefully
+         * Instead of hiding the entire photo card (which causes blinking),
+         * show a placeholder indicating the image is unavailable
+         */
+        function handleImageError(img) {
+            // Create a placeholder div to replace the broken image
+            var placeholder = document.createElement('div');
+            placeholder.className = 'img-error-placeholder';
+            placeholder.innerHTML = '<i class="fas fa-image"></i><span>Image unavailable</span>';
+            
+            // Replace the img element with the placeholder
+            img.parentNode.replaceChild(placeholder, img);
+        }
+        
         function openLightbox(src) {
             document.getElementById('lightbox-image').src = src;
             document.getElementById('lightbox').classList.add('active');
