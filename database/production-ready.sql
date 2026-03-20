@@ -167,6 +167,38 @@ CREATE TABLE IF NOT EXISTS additional_services (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: service_sub_services (sub-services under additional_services for visual selection flow)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS service_sub_services (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    service_id INT NOT NULL COMMENT 'References additional_services.id',
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (service_id) REFERENCES additional_services(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: service_designs (design photos and prices for each sub-service)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS service_designs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    sub_service_id INT NOT NULL COMMENT 'References service_sub_services.id',
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    photo VARCHAR(255) COMMENT 'Filename in uploads/ directory',
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (sub_service_id) REFERENCES service_sub_services(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- TABLE: service_categories (event types for service packages, e.g. Wedding, Birthday)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS service_categories (
@@ -308,6 +340,8 @@ CREATE TABLE IF NOT EXISTS booking_services (
     category VARCHAR(100),
     added_by ENUM('user', 'admin') DEFAULT 'user' COMMENT 'Who added the service: user during booking or admin later',
     quantity INT DEFAULT 1 COMMENT 'Quantity of service',
+    sub_service_id INT DEFAULT NULL COMMENT 'References service_sub_services.id if this is a design selection',
+    design_id INT DEFAULT NULL COMMENT 'References service_designs.id if this is a design selection',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     INDEX idx_booking_services_added_by (added_by),
