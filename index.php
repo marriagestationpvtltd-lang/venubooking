@@ -2328,17 +2328,17 @@ document.addEventListener("DOMContentLoaded", function() {
         track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
 
         // Category filter buttons – show/hide cards by category and reinitialise slider
-        var pkgFilterBar = document.getElementById('pkgFilterBar');
+        var pkgFilterBar = document.getElementById(\'pkgFilterBar\');
         if (pkgFilterBar) {
-            pkgFilterBar.addEventListener('click', function(e) {
-                var btn = e.target.closest('.service-category-filter-btn');
+            pkgFilterBar.addEventListener(\'click\', function(e) {
+                var btn = e.target.closest(\'.service-category-filter-btn\');
                 if (!btn) return;
-                pkgFilterBar.querySelectorAll('.service-category-filter-btn').forEach(function(b) {
-                    b.classList.toggle('active', b === btn);
+                pkgFilterBar.querySelectorAll(\'.service-category-filter-btn\').forEach(function(b) {
+                    b.classList.toggle(\'active\', b === btn);
                 });
-                var filter = btn.getAttribute('data-filter');
-                Array.from(track.querySelectorAll('.pkg-slider-card[data-original]')).forEach(function(card) {
-                    card.style.display = (filter === 'all' || card.getAttribute('data-pkg-category') === filter) ? '' : 'none';
+                var filter = btn.getAttribute(\'data-filter\');
+                Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\')).forEach(function(card) {
+                    card.style.display = (filter === \'all\' || card.getAttribute(\'data-pkg-category\') === filter) ? \'\' : \'none\';
                 });
                 initSlider();
             });
