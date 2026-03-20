@@ -607,6 +607,32 @@ CREATE TABLE IF NOT EXISTS plan_tasks (
 -- TRIGGERS
 -- ============================================================================
 
+-- Trigger: Auto-update booking_status and advance_payment_received when payment_status changes
+DROP TRIGGER IF EXISTS trg_bookings_payment_status_sync;
+
+DELIMITER $$
+CREATE TRIGGER trg_bookings_payment_status_sync
+BEFORE UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    IF NEW.payment_status <> OLD.payment_status THEN
+        CASE NEW.payment_status
+            WHEN 'pending' THEN
+                SET NEW.booking_status          = 'pending';
+                SET NEW.advance_payment_received = 0;
+            WHEN 'partial' THEN
+                SET NEW.booking_status          = 'confirmed';
+                SET NEW.advance_payment_received = 1;
+            WHEN 'paid' THEN
+                SET NEW.booking_status          = 'completed';
+                SET NEW.advance_payment_received = 1;
+            ELSE
+                BEGIN END; -- 'cancelled' or any future status: leave as-is
+        END CASE;
+    END IF;
+END$$
+DELIMITER ;
+
 -- Triggers: Keep shared_folders.photo_count accurate when photos are added/removed/moved.
 DROP TRIGGER IF EXISTS trg_shared_photos_insert;
 DROP TRIGGER IF EXISTS trg_shared_photos_delete;
@@ -740,7 +766,8 @@ Date changes are subject to availability and must be requested at least 15 days 
 ('smtp_port', '587', 'number'),
 ('smtp_username', '', 'text'),
 ('smtp_password', '', 'password'),
-('smtp_encryption', 'tls', 'text');
+('smtp_encryption', 'tls', 'text'),
+('google_review_link', '', 'url');
 
 -- Insert Venues
 INSERT IGNORE INTO venues (name, location, address, description, image, contact_phone, contact_email) VALUES

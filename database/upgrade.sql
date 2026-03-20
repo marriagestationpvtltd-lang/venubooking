@@ -864,8 +864,36 @@ CALL venue_booking_upgrade();
 DROP PROCEDURE IF EXISTS venue_booking_upgrade;
 
 -- ============================================================================
--- TRIGGERS: Keep shared_folders.photo_count accurate when photos are added/removed/moved.
+-- TRIGGERS
 -- ============================================================================
+
+-- Trigger: Auto-update booking_status and advance_payment_received when payment_status changes
+DROP TRIGGER IF EXISTS trg_bookings_payment_status_sync;
+
+DELIMITER $$
+CREATE TRIGGER trg_bookings_payment_status_sync
+BEFORE UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    IF NEW.payment_status <> OLD.payment_status THEN
+        CASE NEW.payment_status
+            WHEN 'pending' THEN
+                SET NEW.booking_status          = 'pending';
+                SET NEW.advance_payment_received = 0;
+            WHEN 'partial' THEN
+                SET NEW.booking_status          = 'confirmed';
+                SET NEW.advance_payment_received = 1;
+            WHEN 'paid' THEN
+                SET NEW.booking_status          = 'completed';
+                SET NEW.advance_payment_received = 1;
+            ELSE
+                BEGIN END; -- 'cancelled' or any future status: leave as-is
+        END CASE;
+    END IF;
+END$$
+DELIMITER ;
+
+-- Triggers: Keep shared_folders.photo_count accurate when photos are added/removed/moved.
 DROP TRIGGER IF EXISTS trg_shared_photos_insert;
 DROP TRIGGER IF EXISTS trg_shared_photos_delete;
 DROP TRIGGER IF EXISTS trg_shared_photos_update;
@@ -956,7 +984,8 @@ INSERT IGNORE INTO settings (setting_key, setting_value, setting_type) VALUES
 ('tax_percentage', '13', 'number'),
 ('advance_payment_percentage', '25', 'number'),
 ('booking_confirmation_email', '1', 'boolean'),
-('timezone', 'Asia/Kathmandu', 'text');
+('timezone', 'Asia/Kathmandu', 'text'),
+('google_review_link', '', 'url');
 
 -- Default payment methods — inserted only when the table is completely empty
 INSERT IGNORE INTO payment_methods (name, bank_details, status, display_order)
