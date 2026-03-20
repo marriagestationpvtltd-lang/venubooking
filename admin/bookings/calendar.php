@@ -156,8 +156,38 @@ document.addEventListener("DOMContentLoaded", function() {
         return null;
     }
     
+    // Helper function to format date as YYYY-MM-DD from FullCalendar Date object
+    function formatDateStr(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+    
     // Pre-calculated booking counts for performance
     let bookingCounts = {};
+    
+    // Function to add booking count badges and Nepali dates to date cells
+    function updateDateCellBadges() {
+        // Remove existing badges first to avoid duplicates
+        document.querySelectorAll(".booking-count-badge").forEach(el => el.remove());
+        
+        // Add badges to each date cell
+        document.querySelectorAll(".fc-daygrid-day").forEach(cell => {
+            const dateStr = cell.getAttribute("data-date");
+            if (!dateStr) return;
+            
+            const count = bookingCounts[dateStr] || 0;
+            const dayNumberEl = cell.querySelector(".fc-daygrid-day-number");
+            
+            if (count > 0 && dayNumberEl) {
+                const badge = document.createElement("span");
+                badge.className = "booking-count-badge";
+                badge.textContent = count;
+                dayNumberEl.appendChild(badge);
+            }
+        });
+    }
     
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
@@ -179,6 +209,10 @@ document.addEventListener("DOMContentLoaded", function() {
                             bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
                         });
                         successCallback(data.events);
+                        
+                        // Update badges after events are loaded
+                        // Use setTimeout to ensure DOM is updated after FullCalendar processes events
+                        setTimeout(updateDateCellBadges, 100);
                     } else {
                         failureCallback(data.message || "Failed to load bookings");
                     }
@@ -193,29 +227,19 @@ document.addEventListener("DOMContentLoaded", function() {
         },
         eventClick: function(info) {
             info.jsEvent.preventDefault();
-            loadBookingsForDate(info.event.startStr);
+            // Use info.event.start which can be a Date or string
+            // Convert to YYYY-MM-DD format for API
+            const eventDate = info.event.start;
+            const dateStr = eventDate instanceof Date ? formatDateStr(eventDate) : eventDate;
+            loadBookingsForDate(dateStr);
         },
         dayCellDidMount: function(info) {
-            // Add booking count badge to date cells using pre-calculated counts
+            // Add Nepali date to each cell (badges added separately after events load)
             // Use local date components to avoid UTC timezone conversion issues
-            // info.date.toISOString() shifts dates to UTC which causes off-by-one errors for UTC+ timezones
-            const year = info.date.getFullYear();
-            const month = String(info.date.getMonth() + 1).padStart(2, '0');
-            const day = String(info.date.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
-            const count = bookingCounts[dateStr] || 0;
-            
-            // Get the day number element
+            const dateStr = formatDateStr(info.date);
             const dayNumberEl = info.el.querySelector(".fc-daygrid-day-number");
             
-            if (count > 0 && dayNumberEl) {
-                const badge = document.createElement("span");
-                badge.className = "booking-count-badge";
-                badge.textContent = count;
-                dayNumberEl.appendChild(badge);
-            }
-            
-            // Add Nepali date to each cell
+            // Add Nepali date
             const nepaliDate = convertToNepaliDate(dateStr);
             if (nepaliDate && dayNumberEl) {
                 // Get just the day and month for compact display
