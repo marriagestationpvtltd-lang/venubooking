@@ -160,15 +160,15 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 
 <?php if (!empty($service_categories)): ?>
 <!-- Service Packages Section -->
-<section class="service-packages-section py-5">
+<section class="service-packages-section">
     <div class="container">
-        <h2 class="text-center section-title mb-2">हाम्रा सेवा प्याकेजहरू</h2>
-        <p class="text-center section-subtitle mb-5">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+        <h2 class="text-center section-title mb-1">हाम्रा सेवा प्याकेजहरू</h2>
+        <p class="text-center section-subtitle mb-4">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
         <?php foreach ($service_categories as $cat): ?>
             <?php if (empty($cat['packages'])) continue; ?>
-            <div class="service-category-block mb-5">
-                <h3 class="service-category-title mb-4">
+            <div class="service-category-block">
+                <h3 class="service-category-title">
                     <span class="category-label"><?php echo htmlspecialchars($cat['name']); ?></span>
                 </h3>
                 <div class="pkg-slider-wrapper">
@@ -210,24 +210,49 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                                              alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?> photo">
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <div class="card-body d-flex flex-column">
-                                    <h5 class="package-name text-center mb-3">
+                                <div class="card-body d-flex flex-column p-3">
+                                    <h5 class="package-name text-center mb-2">
                                         <?php echo htmlspecialchars($pkg['name']); ?>
                                     </h5>
-                                    <div class="text-center mb-3">
+                                    <div class="text-center mb-2">
                                         <div class="package-price d-inline-block">
                                             <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
                                         </div>
                                     </div>
-                                    <?php if (!empty($pkg['features'])): ?>
-                                        <ul class="package-features list-unstyled mb-3">
-                                            <?php foreach ($pkg['features'] as $feat): ?>
+                                    <?php if (!empty($pkg['features'])):
+                                        $max_visible = 3;
+                                        $total_features = count($pkg['features']);
+                                        $remaining = $total_features - $max_visible;
+                                        $visible_features = array_slice($pkg['features'], 0, $max_visible);
+                                        $hidden_features = array_slice($pkg['features'], $max_visible);
+                                        $feat_collapse_id = 'pkgFeatures' . (int)$pkg['id'];
+                                    ?>
+                                        <ul class="package-features list-unstyled mb-2">
+                                            <?php foreach ($visible_features as $feat): ?>
                                                 <li class="feature-item">
                                                     <span class="feat-check">&#10003;</span>
                                                     <?php echo htmlspecialchars($feat); ?>
                                                 </li>
                                             <?php endforeach; ?>
+                                            <?php if ($remaining > 0): ?>
+                                                <li class="feature-item feature-more-toggle collapsed" data-bs-toggle="collapse" data-bs-target="#<?php echo $feat_collapse_id; ?>" role="button" aria-expanded="false" aria-controls="<?php echo $feat_collapse_id; ?>">
+                                                    <span class="feat-more-icon"><i class="fas fa-plus-circle"></i></span>
+                                                    <span class="more-text">+<?php echo $remaining; ?> थप सुविधाहरू</span>
+                                                </li>
+                                            <?php endif; ?>
                                         </ul>
+                                        <?php if ($remaining > 0): ?>
+                                        <div class="collapse" id="<?php echo $feat_collapse_id; ?>">
+                                            <ul class="package-features package-features-hidden list-unstyled mb-2">
+                                                <?php foreach ($hidden_features as $feat): ?>
+                                                    <li class="feature-item">
+                                                        <span class="feat-check">&#10003;</span>
+                                                        <?php echo htmlspecialchars($feat); ?>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        </div>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                     <?php
                                     // Build WhatsApp message with package details
@@ -249,23 +274,7 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                                         $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
                                     }
                                     ?>
-                                    <?php if (!empty($pkg['description'])): ?>
-                                        <div class="mb-2">
-                                            <a class="btn btn-outline-success btn-sm w-100 read-more-btn"
-                                               data-bs-toggle="collapse"
-                                               href="#pkgDesc<?php echo (int)$pkg['id']; ?>"
-                                               role="button"
-                                               aria-expanded="false">
-                                                <i class="fas fa-chevron-down me-1"></i> Read More
-                                            </a>
-                                            <div class="collapse mt-2" id="pkgDesc<?php echo (int)$pkg['id']; ?>">
-                                                <div class="card card-body bg-light border-0 small">
-                                                    <?php echo nl2br(htmlspecialchars($pkg['description'])); ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                    <div class="mt-auto">
+                                    <div class="mt-auto pt-2">
                                         <?php if (!empty($pkg_wa_url)): ?>
                                             <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
                                                target="_blank" rel="noopener noreferrer"
