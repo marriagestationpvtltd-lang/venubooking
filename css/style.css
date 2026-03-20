@@ -5,9 +5,23 @@
     --dark-green: #2E7D32;
     --light-green: #81C784;
     --accent-orange: #FFA726;
-    --bg-light: #F5F5F5;
+    --bg-light: #FAFBFC;
+    --bg-section: #FFFFFF;
+    --bg-section-alt: #F8FAF8;
     --text-dark: #1a1a2e;
-    --text-muted: #5a6475;
+    --text-muted: #64748b;
+    
+    /* Enhanced shadows for professional depth */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.04), 0 10px 15px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.06), 0 20px 48px rgba(0, 0, 0, 0.08);
+    --shadow-xl: 0 25px 50px rgba(0, 0, 0, 0.1), 0 12px 24px rgba(0, 0, 0, 0.06);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+    --shadow-card-hover: 0 12px 32px rgba(46, 125, 50, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+
+    /* Section spacing for visual rhythm */
+    --section-py: clamp(3rem, 6vw, 5rem);
+    --section-gap: clamp(2rem, 4vw, 3rem);
 
     /* Font families */
     --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
@@ -35,6 +49,12 @@
     --tracking-normal:  0;
     --tracking-wide:    0.04em;
     --tracking-wider:   0.08em;
+    
+    /* Border radius for consistent rounding */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
 }
 
 body {
@@ -129,6 +149,7 @@ label, .form-label {
     background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
     position: relative;
     overflow: hidden;
+    min-height: 600px;
 }
 
 /* Hero heading – uses elegant serif for premium feel */
@@ -137,9 +158,9 @@ label, .form-label {
     font-family: var(--font-heading);
     font-size: var(--text-5xl);
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1.12;
     letter-spacing: -0.03em;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    text-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .hero-section .lead {
@@ -147,7 +168,9 @@ label, .form-label {
     font-size: var(--text-lg);
     font-weight: 400;
     line-height: var(--leading-relaxed);
-    opacity: 0.95;
+    opacity: 0.92;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    max-width: 520px;
 }
 
 /* Hero banner: carousel and single image as full-bleed background */
@@ -171,6 +194,14 @@ label, .form-label {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    /* Subtle zoom animation for visual interest - optimized for performance */
+    animation: heroImageZoom 20s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes heroImageZoom {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.04); }
 }
 
 .hero-section.with-banner-image {
@@ -182,16 +213,23 @@ label, .form-label {
 .hero-overlay {
     position: relative;
     z-index: 2;
-    background: rgba(0, 0, 0, 0.45);
-    padding: 3rem 0;
+    background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(0, 0, 0, 0.45) 50%,
+        rgba(0, 0, 0, 0.55) 100%
+    );
+    padding: clamp(2rem, 5vw, 4rem) 0;
+    backdrop-filter: blur(1px);
 }
 
 /* Booking Card */
 .booking-card {
     background: white;
-    padding: 1.5rem;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .booking-card h4,
@@ -199,6 +237,7 @@ label, .form-label {
     font-family: var(--font-body);
     font-weight: 700;
     letter-spacing: normal;
+    font-size: var(--text-lg);
 }
 
 .booking-card .form-label {
@@ -206,23 +245,25 @@ label, .form-label {
     font-weight: 600;
     font-size: var(--text-sm);
     color: var(--text-dark);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
 }
 
 .booking-card .form-control,
 .booking-card .form-select {
     font-family: var(--font-body);
     font-size: var(--text-sm);
-    border: 2px solid #e0e0e0;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    transition: all 0.3s;
+    border: 1.5px solid #e2e8f0;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-sm);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #fafbfc;
 }
 
 .booking-card .form-control:focus,
 .booking-card .form-select:focus {
     border-color: var(--primary-green);
-    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+    background-color: #fff;
 }
 
 /* Buttons */
@@ -230,27 +271,33 @@ label, .form-label {
     font-family: var(--font-body);
     font-weight: 600;
     letter-spacing: var(--tracking-wide);
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
 }
 
 .btn-success {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+    border: none;
     font-weight: 600;
     padding: 0.75rem 2rem;
-    border-radius: 8px;
-    transition: all 0.3s;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 .btn-success:hover {
-    background-color: var(--dark-green);
-    border-color: var(--dark-green);
+    background: linear-gradient(135deg, var(--dark-green) 0%, #1b5e20 100%);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.btn-success:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .btn-outline-success {
     color: var(--primary-green);
-    border-color: var(--primary-green);
+    border: 1.5px solid var(--primary-green);
     font-weight: 600;
 }
 
@@ -261,15 +308,56 @@ label, .form-label {
 
 /* Features Section */
 .features-section {
-    background: white;
+    background: var(--bg-section);
+    padding: var(--section-py) 0;
 }
 
 .feature-card {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    transition: all 0.3s;
+    background: var(--bg-section);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-green), var(--light-green));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.feature-card:hover::before {
+    opacity: 1;
+}
+
+.feature-card .feature-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(129, 199, 132, 0.15) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2) 0%, rgba(129, 199, 132, 0.25) 100%);
+}
+
+.feature-card .feature-icon i {
+    font-size: 1.75rem !important;
 }
 
 .feature-card h5 {
@@ -277,28 +365,33 @@ label, .form-label {
     font-weight: 700;
     font-size: var(--text-base);
     letter-spacing: normal;
+    color: var(--text-dark);
+    margin-top: 0.5rem;
 }
 
 .feature-card p {
     font-size: var(--text-sm);
     color: var(--text-muted);
     line-height: var(--leading-relaxed);
+    margin-bottom: 0;
 }
 
 .feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-card-hover);
 }
 
 /* Venue Cards */
 .venue-card {
-    transition: all 0.3s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     border: none;
+    border-radius: var(--radius-md);
+    overflow: hidden;
 }
 
 .venue-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-card-hover) !important;
 }
 
 .venue-image {
@@ -306,24 +399,25 @@ label, .form-label {
     background-size: cover;
     background-position: center;
     background-color: var(--bg-light);
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 /* Hall Cards */
 .hall-card {
-    transition: all 0.3s;
-    border: 2px solid #e0e0e0;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    border: 1.5px solid #e2e8f0;
+    border-radius: var(--radius-md);
 }
 
 .hall-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
     border-color: var(--primary-green);
 }
 
 .hall-card.selected {
     border-color: var(--primary-green);
-    background-color: #f1f8f4;
+    background-color: rgba(76, 175, 80, 0.04);
 }
 
 .hall-image {
@@ -595,17 +689,19 @@ label, .form-label {
 /* Card Enhancements */
 .card {
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
 }
 
 .card-header {
-    border-radius: 10px 10px 0 0 !important;
+    border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
     border: none;
 }
 
 /* Footer */
 footer {
     margin-top: auto;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
 }
 
 footer h5 {
@@ -627,7 +723,7 @@ footer a {
 
 footer a {
     text-decoration: none;
-    transition: color 0.3s;
+    transition: color 0.2s ease;
 }
 
 footer a:hover {
@@ -668,33 +764,44 @@ footer a:hover {
 
 /* Venues Section - Responsive grid */
 .venues-section {
-    background: white;
+    background: var(--bg-section-alt);
+    padding: var(--section-py) 0;
 }
 
 /* City filter buttons */
 .venues-filter-bar .venue-city-btn {
     font-size: 0.875rem;
-    padding: 0.375rem 0.875rem;
+    padding: 0.5rem 1rem;
     border-radius: 2rem;
-    transition: background-color 0.2s, color 0.2s;
+    transition: all 0.2s ease;
+    border-width: 1.5px;
+    font-weight: 500;
+}
+
+.venues-filter-bar .venue-city-btn:hover {
+    background-color: rgba(76, 175, 80, 0.1);
 }
 
 .venues-filter-bar .venue-city-btn.active {
-    background-color: var(--primary-green);
+    background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
     color: #fff;
-    border-color: var(--primary-green);
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 /* Venue card grid — responsive via Bootstrap col classes */
 .venue-card-home {
-    transition: all 0.3s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     border: none;
     height: 100%;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-section);
 }
 
 .venue-card-home:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-card-hover) !important;
 }
 
 .venue-image-home {
@@ -702,18 +809,18 @@ footer a:hover {
     background-size: cover;
     background-position: center;
     background-color: var(--bg-light);
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 /* Venue Image Carousel Styling */
 .venue-image-carousel {
     position: relative;
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     overflow: hidden;
 }
 
 .venue-image-carousel .carousel-inner {
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .venue-image-carousel .carousel-item {
@@ -875,18 +982,8 @@ footer a:hover {
 
 /* ===================== Vendors Section ===================== */
 .vendors-section {
-    background-color: var(--bg-light);
-    animation: vendorFadeIn 0.7s ease-out;
-}
-
-/* Fade-in animation for the vendors section */
-@keyframes vendorFadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    background-color: var(--bg-section);
+    padding: var(--section-py) 0;
 }
 
 /* Vendor grid */
@@ -899,11 +996,11 @@ footer a:hover {
     display: flex;
     flex-wrap: nowrap;
     align-items: stretch;
-    gap: 1.25rem;
+    gap: 1.5rem;
     overflow-x: auto;
     scrollbar-width: none;
     cursor: grab;
-    padding-bottom: 0.75rem;
+    padding-bottom: 1rem;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -924,27 +1021,30 @@ footer a:hover {
 
 @media (max-width: 576px) {
     .vendor-auto-card {
-        flex: 0 0 260px;
-        width: 260px;
+        flex: 0 0 270px;
+        width: 270px;
     }
 }
 
 @media (min-width: 577px) and (max-width: 768px) {
     .vendor-auto-card {
-        flex: 0 0 280px;
-        width: 280px;
+        flex: 0 0 285px;
+        width: 285px;
     }
 }
 
 .vendor-card {
-    transition: transform 0.3s, box-shadow 0.3s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     border: none;
     flex: 1 1 auto;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-section);
 }
 
 .vendor-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-card-hover) !important;
 }
 
 .vendor-photo {
@@ -953,16 +1053,21 @@ footer a:hover {
     object-fit: cover;
     object-position: center top;
     background-color: #f8f9fa;
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     display: block;
     flex-shrink: 0;
+    transition: transform 0.4s ease;
+}
+
+.vendor-card:hover .vendor-photo {
+    transform: scale(1.03);
 }
 
 .vendor-photo-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #e9ecef;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
     flex-shrink: 0;
 }
 
@@ -1018,15 +1123,18 @@ footer a:hover {
 
 .vendor-filter-btn:hover,
 .vendor-filter-btn.active {
-    background: var(--primary-green, #4caf50);
+    background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
     color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 
 
 /* ===== Service Packages Section – Premium UI ===== */
 .service-packages-section {
-    background: linear-gradient(160deg, #f0f7f0 0%, #ffffff 50%, #f0f7f0 100%);
+    background: linear-gradient(160deg, #f8faf8 0%, #ffffff 50%, #f8faf8 100%);
+    padding: var(--section-py) 0;
 }
 
 .service-packages-section .section-title {
@@ -1038,7 +1146,7 @@ footer a:hover {
 .service-packages-section .section-subtitle {
     font-family: var(--font-body);
     font-size: var(--text-base);
-    color: #5a7a5e;
+    color: var(--text-muted);
     max-width: 560px;
     margin-left: auto;
     margin-right: auto;
@@ -1050,7 +1158,7 @@ footer a:hover {
     font-family: var(--font-heading);
     font-size: var(--text-2xl);
     font-weight: 700;
-    color: #2E7D32;
+    color: var(--dark-green);
     margin-bottom: 2rem;
 }
 
@@ -1059,49 +1167,48 @@ footer a:hover {
     align-items: center;
     gap: 0.5rem;
     background: #ffffff;
-    border: 2px solid #a5d6a7;
-    color: #2E7D32;
-    padding: 0.35rem 1.25rem;
+    border: 1.5px solid rgba(76, 175, 80, 0.3);
+    color: var(--dark-green);
+    padding: 0.4rem 1.5rem;
     border-radius: 50px;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     letter-spacing: 0.3px;
-    box-shadow: 0 2px 10px rgba(46, 125, 50, 0.1);
+    box-shadow: var(--shadow-sm);
 }
 
 .service-category-title .category-label::before {
     content: '✦';
-    font-size: 0.75rem;
-    color: #4CAF50;
+    font-size: 0.7rem;
+    color: var(--primary-green);
 }
 
 /* ── Premium Package Cards ── */
 .package-card {
     background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 14px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-                box-shadow 0.28s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     overflow: hidden;
 }
 
 .package-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 16px 48px rgba(46, 125, 50, 0.18);
+    box-shadow: var(--shadow-card-hover);
 }
 
 .package-name {
     font-family: var(--font-body);
     font-size: var(--text-base);
     font-weight: 700;
-    color: #1a2e1c;
+    color: var(--text-dark);
     letter-spacing: -0.2px;
 }
 
 /* Price block – green pill badge */
 .package-price {
     display: inline-block;
-    background: linear-gradient(135deg, #43a047, #2e7d32);
+    background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
     border-radius: 50px;
     padding: 0.55rem 1.5rem;
     box-shadow: 0 4px 14px rgba(46, 125, 50, 0.3);
@@ -1371,7 +1478,8 @@ footer a:hover {
 
 /* ===== Our Work – Folder Gallery + Slideshow Modal ===== */
 .work-photos-section {
-    background-color: #f8f9fa;
+    background-color: var(--bg-section-alt);
+    padding: var(--section-py) 0;
 }
 
 /* ── Folder cards marquee ──────────────────────────────── */
@@ -1397,7 +1505,7 @@ footer a:hover {
 .work-folder-track {
     display: flex;
     gap: 1.5rem;
-    padding: 0.75rem 0;          /* give room for box-shadow */
+    padding: 1rem 0;          /* give room for box-shadow */
     width: max-content;
     animation: workFolderScroll var(--wf-duration, 30s) linear infinite;
     user-select: none;
@@ -1442,12 +1550,12 @@ footer a:hover {
 .work-folder-card {
     flex-shrink: 0;
     width: 260px;
-    background: #fff;
-    border-radius: 12px;
+    background: var(--bg-section);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
+    box-shadow: var(--shadow-card);
     cursor: none;           /* custom circle cursor replaces native pointer */
-    transition: box-shadow 0.25s, transform 0.25s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     outline: none;
 }
 
@@ -1457,8 +1565,8 @@ footer a:hover {
 
 .work-folder-card:hover,
 .work-folder-card:focus {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.20);
-    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-6px);
 }
 
 .work-folder-img-wrap {
@@ -1825,11 +1933,11 @@ footer a:hover {
 .section-title::after {
     content: '';
     display: block;
-    width: 60px;
+    width: 56px;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary-green), var(--dark-green));
+    background: linear-gradient(90deg, var(--primary-green), var(--light-green));
     border-radius: 2px;
-    margin: 0.5rem auto 0;
+    margin: 0.6rem auto 0;
 }
 
 /* Centre the title's underline when the heading is text-center */
@@ -1842,13 +1950,14 @@ footer a:hover {
    GALLERY GRID + LIGHTBOX
    =================================================== */
 .gallery-section {
-    background: #f8f9fa;
+    background: var(--bg-section);
+    padding: var(--section-py) 0;
 }
 
 /* CSS-columns masonry grid */
 .gallery-grid {
     column-count: 3;
-    column-gap: 1rem;
+    column-gap: 1.25rem;
 }
 
 @media (max-width: 991px) {
@@ -1861,41 +1970,41 @@ footer a:hover {
 
 .gallery-grid-item {
     break-inside: avoid;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
     position: relative;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-    transition: transform 0.25s, box-shadow 0.25s;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .gallery-grid-item:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-card-hover);
 }
 
 .gallery-grid-item img {
     width: 100%;
     height: auto;
     display: block;
-    transition: transform 0.4s;
+    transition: transform 0.4s ease;
 }
 
 .gallery-grid-item:hover img {
-    transform: scale(1.06);
+    transform: scale(1.05);
 }
 
 .gallery-grid-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(46, 125, 50, 0.55);
+    background: linear-gradient(135deg, rgba(46, 125, 50, 0.6) 0%, rgba(46, 125, 50, 0.4) 100%);
     opacity: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.3s;
-    border-radius: 10px;
+    transition: opacity 0.25s ease;
+    border-radius: var(--radius-md);
 }
 
 .gallery-grid-item:hover .gallery-grid-overlay {
@@ -1929,7 +2038,7 @@ footer a:hover {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: rgba(0,0,0,0.92);
+    background: rgba(0,0,0,0.94);
     align-items: center;
     justify-content: center;
     flex-direction: column;
@@ -2009,7 +2118,7 @@ footer a:hover {
 .photo-cards-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.25rem;
+    gap: 1.5rem;
 }
 
 @media (max-width: 991px) {
@@ -2022,19 +2131,19 @@ footer a:hover {
 
 /* Individual card */
 .photo-card {
-    background: #fff;
-    border-radius: 12px;
+    background: var(--bg-section);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-card);
     cursor: pointer;
-    transition: box-shadow 0.25s, transform 0.25s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     outline: none;
 }
 
 .photo-card:hover,
 .photo-card:focus {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-6px);
 }
 
 /* Image wrapper (fixed aspect ratio 4:3) */
@@ -2052,25 +2161,26 @@ footer a:hover {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.35s;
+    transition: transform 0.4s ease;
     pointer-events: none;
 }
 
 .photo-card:hover .photo-card-img,
 .photo-card:focus .photo-card-img {
-    transform: scale(1.06);
+    transform: scale(1.05);
 }
 
 /* "+N Photos" badge – bottom-left of the image */
 .photo-card-badge {
     position: absolute;
-    bottom: 0.55rem;
-    left: 0.55rem;
-    background: rgba(0, 0, 0, 0.62);
+    bottom: 0.65rem;
+    left: 0.65rem;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
     color: #fff;
     font-size: 0.78rem;
     font-weight: 600;
-    padding: 0.2rem 0.6rem;
+    padding: 0.25rem 0.7rem;
     border-radius: 999px;
     letter-spacing: 0.02em;
     pointer-events: none;
@@ -2081,12 +2191,12 @@ footer a:hover {
 .photo-card-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(46, 125, 50, 0.45);
+    background: linear-gradient(135deg, rgba(46, 125, 50, 0.5) 0%, rgba(46, 125, 50, 0.35) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.25s;
+    transition: opacity 0.25s ease;
     z-index: 1;
 }
 
@@ -2358,7 +2468,8 @@ footer a:hover {
    TESTIMONIALS SECTION
    =================================================== */
 .testimonials-section {
-    background: linear-gradient(135deg, #f1f8f4 0%, #e8f5e9 100%);
+    background: linear-gradient(135deg, #f8faf8 0%, #f0f7f0 100%);
+    padding: var(--section-py) 0;
 }
 
 .testimonials-indicators {
@@ -2367,6 +2478,14 @@ footer a:hover {
 
 .testimonials-indicators button {
     background-color: var(--primary-green) !important;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    opacity: 0.5;
+}
+
+.testimonials-indicators button.active {
+    opacity: 1;
 }
 
 .testimonials-prev,
@@ -2375,31 +2494,31 @@ footer a:hover {
     height: 44px;
     top: 50%;
     transform: translateY(-50%);
-    background-color: rgba(76,175,80,0.15);
+    background-color: rgba(76,175,80,0.1);
     border-radius: 50%;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
 }
 
 .testimonials-prev:hover,
 .testimonials-next:hover {
-    background-color: rgba(76,175,80,0.5);
+    background-color: var(--primary-green);
 }
 
 .testimonials-prev { left: -10px; }
 .testimonials-next { right: -10px; }
 
 .testimonial-card {
-    background: #fff;
-    border-radius: 16px;
+    background: var(--bg-section);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    transition: transform 0.25s, box-shadow 0.25s;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
     height: 100%;
 }
 
 .testimonial-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 32px rgba(76,175,80,0.14);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-card-hover);
 }
 
 .testimonial-img-wrap {
@@ -2412,7 +2531,7 @@ footer a:hover {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4s;
+    transition: transform 0.4s ease;
 }
 
 .testimonial-card:hover .testimonial-img {
@@ -2420,20 +2539,20 @@ footer a:hover {
 }
 
 .testimonial-body {
-    padding: 1.2rem;
+    padding: 1.25rem;
 }
 
 .testimonial-name {
     font-weight: 700;
     font-size: 1rem;
     color: var(--text-dark);
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.5rem;
 }
 
 .testimonial-quote {
-    font-size: 0.88rem;
+    font-size: 0.9rem;
     color: var(--text-muted);
-    line-height: 1.55;
+    line-height: 1.6;
     margin-bottom: 0;
     font-style: italic;
 }
@@ -2442,13 +2561,14 @@ footer a:hover {
    ABOUT SECTION
    =================================================== */
 .about-section {
-    background: #fff;
+    background: var(--bg-section);
+    padding: var(--section-py) 0;
 }
 
 .about-carousel {
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    box-shadow: var(--shadow-lg);
 }
 
 .about-carousel-img {
