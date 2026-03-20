@@ -58,6 +58,9 @@ $db = getDB();
 
 .fc-daygrid-day-number {
     padding: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
 }
 
 .fc-day-today {
@@ -73,6 +76,15 @@ $db = getDB();
     font-size: 0.75rem;
     font-weight: bold;
     margin-left: 5px;
+}
+
+.nepali-date-cell {
+    display: block;
+    font-size: 0.65rem;
+    color: #28a745;
+    font-weight: 500;
+    margin-top: 2px;
+    cursor: default;
 }
 
 #booking-details {
@@ -119,6 +131,31 @@ document.addEventListener("DOMContentLoaded", function() {
     const calendarEl = document.getElementById("calendar");
     const bookingDetailsEl = document.getElementById("booking-details");
     
+    // Helper function to convert AD date to Nepali date string
+    function convertToNepaliDate(dateStr) {
+        if (typeof window.nepaliDateUtils === "undefined") {
+            return null;
+        }
+        
+        try {
+            const dateObj = new Date(dateStr + "T00:00:00");
+            if (isNaN(dateObj)) return null;
+            
+            const bs = window.nepaliDateUtils.adToBS(
+                dateObj.getFullYear(),
+                dateObj.getMonth() + 1,
+                dateObj.getDate()
+            );
+            
+            if (bs) {
+                return window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day);
+            }
+        } catch (error) {
+            console.error("Error converting date:", error);
+        }
+        return null;
+    }
+    
     // Pre-calculated booking counts for performance
     let bookingCounts = {};
     
@@ -163,11 +200,28 @@ document.addEventListener("DOMContentLoaded", function() {
             const dateStr = info.date.toISOString().split("T")[0];
             const count = bookingCounts[dateStr] || 0;
             
-            if (count > 0) {
+            // Get the day number element
+            const dayNumberEl = info.el.querySelector(".fc-daygrid-day-number");
+            
+            if (count > 0 && dayNumberEl) {
                 const badge = document.createElement("span");
                 badge.className = "booking-count-badge";
                 badge.textContent = count;
-                info.el.querySelector(".fc-daygrid-day-number").appendChild(badge);
+                dayNumberEl.appendChild(badge);
+            }
+            
+            // Add Nepali date to each cell
+            const nepaliDate = convertToNepaliDate(dateStr);
+            if (nepaliDate && dayNumberEl) {
+                // Get just the day and month for compact display
+                const bsParts = nepaliDate.split(" ");
+                if (bsParts.length >= 2) {
+                    const nepaliSpan = document.createElement("div");
+                    nepaliSpan.className = "nepali-date-cell";
+                    nepaliSpan.textContent = bsParts[0] + " " + bsParts[1].substring(0, 3);
+                    nepaliSpan.title = nepaliDate + " (BS)";
+                    dayNumberEl.appendChild(nepaliSpan);
+                }
             }
         }
     });
@@ -218,10 +272,15 @@ document.addEventListener("DOMContentLoaded", function() {
             day: "numeric"
         });
         
+        // Get Nepali date
+        const nepaliDate = convertToNepaliDate(date);
+        const nepaliDateHtml = nepaliDate ? `<div class="text-success small mt-1"><i class="fas fa-calendar"></i> ${nepaliDate} (BS)</div>` : "";
+        
         let html = `
             <div class="date-header">
                 <h6 class="mb-1"><i class="fas fa-calendar-day"></i> ${formattedDate}</h6>
-                <p class="mb-0 text-muted">
+                ${nepaliDateHtml}
+                <p class="mb-0 text-muted mt-2">
                     <strong>${bookings.length}</strong> booking${bookings.length !== 1 ? "s" : ""} on this date
                 </p>
             </div>
