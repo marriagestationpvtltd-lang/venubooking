@@ -388,7 +388,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <option value="pending" <?php echo (!isset($_POST['booking_status']) || $_POST['booking_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
                                     <option value="confirmed" <?php echo (isset($_POST['booking_status']) && $_POST['booking_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
                                     <option value="cancelled" <?php echo (isset($_POST['booking_status']) && $_POST['booking_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                    <option value="completed" <?php echo (isset($_POST['booking_status']) && $_POST['booking_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
+                                    <option value="completed" <?php echo (isset($_POST['booking_status']) && $_POST['booking_status'] == 'completed') ? 'selected' : ''; ?>>Order Complete</option>
                                 </select>
                             </div>
                         </div>

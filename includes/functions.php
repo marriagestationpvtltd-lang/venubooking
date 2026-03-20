@@ -1168,12 +1168,29 @@ function calculateBookingStatusVariables($booking) {
     $payment_status = $booking['payment_status'];
     
     return [
-        'booking_status_display' => ucfirst(str_replace('_', ' ', $booking_status)),
+        'booking_status_display' => getBookingStatusLabel($booking_status),
         'booking_status_color' => $booking_status_colors[$booking_status] ?? 'info',
         'payment_status_display' => ucfirst($payment_status),
         'payment_status_color' => $payment_status_colors[$payment_status] ?? 'danger',
         'payment_status_icon' => $payment_status_icons[$payment_status] ?? 'fa-exclamation-circle'
     ];
+}
+
+/**
+ * Get the display label for a booking status
+ * 
+ * @param string $status The booking status value (e.g., 'completed', 'confirmed')
+ * @return string The display label (e.g., 'Order Complete', 'Confirmed')
+ */
+function getBookingStatusLabel($status) {
+    $labels = [
+        'confirmed' => 'Confirmed',
+        'pending' => 'Pending',
+        'cancelled' => 'Cancelled',
+        'completed' => 'Order Complete',
+        'payment_submitted' => 'Payment Submitted'
+    ];
+    return $labels[$status] ?? ucfirst(str_replace('_', ' ', $status));
 }
 
 /**
@@ -1183,7 +1200,7 @@ function calculateBookingStatusVariables($booking) {
  * Rules:
  *   pending  → booking_status = pending,   advance_payment_received = 0
  *   partial  → booking_status = confirmed, advance_payment_received = 1
- *   paid     → booking_status = confirmed, advance_payment_received = 1
+ *   paid     → booking_status = completed, advance_payment_received = 1
  *   (other)  → no change (returns null values so caller keeps current values)
  *
  * @param  string $payment_status  One of 'pending','partial','paid','cancelled'

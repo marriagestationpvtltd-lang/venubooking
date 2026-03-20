@@ -483,7 +483,7 @@ require_once __DIR__ . '/../includes/header.php';
                                             ($booking['booking_status'] == 'pending' ? 'warning' :
                                             ($booking['booking_status'] == 'cancelled' ? 'danger' :
                                             ($booking['booking_status'] == 'completed' ? 'primary' : 'secondary'))));
-                                    ?> px-2 py-1 fs-6"><?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?></span>
+                                    ?> px-2 py-1 fs-6"><?php echo getBookingStatusLabel($booking['booking_status']); ?></span>
                                 </div>
                             </div>
                         </div>

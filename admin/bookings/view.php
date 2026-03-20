@@ -3260,7 +3260,7 @@ $available_packages_by_category = getServicePackagesByCategory();
                         const bookingBadge = document.getElementById('booking-status-badge');
                         if (bookingBadge) {
                             const bsColorMap = {pending: 'warning', confirmed: 'success', cancelled: 'danger', completed: 'primary', payment_submitted: 'info'};
-                            const bsLabelMap = {pending: 'Pending', confirmed: 'Confirmed', cancelled: 'Cancelled', completed: 'Completed', payment_submitted: 'Payment submitted'};
+                            const bsLabelMap = {pending: 'Pending', confirmed: 'Confirmed', cancelled: 'Cancelled', completed: 'Order Complete', payment_submitted: 'Payment Submitted'};
                             bookingBadge.className = 'badge bg-' + (bsColorMap[data.booking_status] || 'info') + ' ms-auto';
                             bookingBadge.textContent = bsLabelMap[data.booking_status] || data.booking_status;
                         }
