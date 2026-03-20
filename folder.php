@@ -308,6 +308,14 @@ $banner_a_enabled = getSetting('folder_banner_a_enabled') === '1';
 $banner_b_image = getSetting('folder_banner_b');
 $banner_b_link = getSetting('folder_banner_b_link');
 $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
+
+// WhatsApp deletion request message (Nepali)
+$whatsapp_delete_message = 'तपाईँहरूलाई धेरै धेरै धन्यवाद! मैले मेरो फोटो डाउनलोड गरिसकेँ। कृपया प्राइभेसीको कारण मेरो फोटो तपाईँहरूको सिस्टमबाट हटाइदिनुहोला।';
+$whatsapp_delete_url = '';
+if ($whatsapp_number) {
+    $clean_whatsapp = preg_replace('/[^0-9]/', '', $whatsapp_number);
+    $whatsapp_delete_url = 'https://wa.me/' . $clean_whatsapp . '?text=' . rawurlencode($whatsapp_delete_message);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ne">
@@ -688,6 +696,32 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
             .photo-card img {
                 height: 150px;
             }
+            
+            /* Mobile: Stack brand bar items vertically */
+            .folder-brand-bar {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .folder-brand-bar .brand-link {
+                order: 1;
+            }
+            .folder-brand-bar .brand-text {
+                order: 2;
+            }
+            .folder-brand-bar .go-home-btn {
+                order: 3;
+                margin: 10px 0 0 0;
+                width: 100%;
+            }
+            
+            /* Mobile: WhatsApp button full width */
+            .whatsapp-delete-btn {
+                width: 100%;
+                justify-content: center;
+                font-size: 0.9rem;
+                padding: 10px 20px;
+            }
         }
 
         /* ── Company Brand Bar ── */
@@ -698,6 +732,15 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
             padding-bottom: 20px;
             margin-bottom: 20px;
             border-bottom: 1px solid #f0f0f0;
+            flex-wrap: wrap;
+        }
+        .folder-brand-bar .brand-link {
+            display: inline-block;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .folder-brand-bar .brand-link:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
         }
         .folder-brand-bar .brand-logo {
             height: 48px;
@@ -715,6 +758,52 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
             font-size: 0.76rem;
             color: #888;
             margin: 2px 0 0;
+        }
+        .go-home-btn {
+            font-size: 0.85rem;
+            border-radius: 20px;
+            padding: 6px 16px;
+            transition: all 0.3s;
+        }
+        .go-home-btn:hover {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        /* ── WhatsApp Deletion Request Button ── */
+        .whatsapp-delete-request {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .whatsapp-delete-btn {
+            background: #25D366;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        }
+        .whatsapp-delete-btn:hover {
+            background: #128C7E;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+        }
+        .whatsapp-delete-btn i {
+            font-size: 1.2rem;
+        }
+        .whatsapp-delete-note {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 8px;
         }
 
         /* ── Security Panel ── */
@@ -1150,13 +1239,28 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
             <div class="folder-header">
                 <?php if ($site_logo && file_exists(UPLOAD_PATH . $site_logo)): ?>
                 <div class="folder-brand-bar">
-                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($site_logo); ?>"
-                         alt="<?php echo htmlspecialchars($site_name); ?>"
-                         class="brand-logo">
+                    <a href="<?php echo BASE_URL; ?>/" class="brand-link" title="Go to Home">
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($site_logo); ?>"
+                             alt="<?php echo htmlspecialchars($site_name); ?>"
+                             class="brand-logo">
+                    </a>
                     <div class="brand-text">
                         <p class="brand-name"><?php echo htmlspecialchars($site_name); ?></p>
                         <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
                     </div>
+                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-outline-success btn-sm ms-auto go-home-btn">
+                        <i class="fas fa-home me-1"></i> Go Back to Home
+                    </a>
+                </div>
+                <?php else: ?>
+                <div class="folder-brand-bar">
+                    <div class="brand-text">
+                        <p class="brand-name"><?php echo htmlspecialchars($site_name); ?></p>
+                        <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
+                    </div>
+                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-outline-success btn-sm ms-auto go-home-btn">
+                        <i class="fas fa-home me-1"></i> Go Back to Home
+                    </a>
                 </div>
                 <?php endif; ?>
                 <div class="row align-items-center">
@@ -1238,6 +1342,22 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
                                 </p>
                             <?php endif; ?>
                         <?php endif; ?>
+                        
+                        <?php if ($whatsapp_delete_url): ?>
+                        <!-- WhatsApp Photo Deletion Request -->
+                        <div class="whatsapp-delete-request">
+                            <a href="<?php echo htmlspecialchars($whatsapp_delete_url); ?>" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="whatsapp-delete-btn">
+                                <i class="fab fa-whatsapp"></i>
+                                मैले फोटो डाउनलोड गरेँ, कृपया डिलिट गरिदिनुस्
+                            </a>
+                            <p class="whatsapp-delete-note">
+                                <i class="fas fa-info-circle"></i> फोटो डाउनलोड गरिसकेपछि माथिको बटन थिच्नुहोस्
+                            </p>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -1294,6 +1414,22 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
                         <p class="text-muted mt-3 mb-0">
                             <small><i class="fas fa-file-archive me-1"></i> ZIP फाइलमा डाउनलोड हुन्छ</small>
                         </p>
+                        
+                        <?php if ($whatsapp_delete_url): ?>
+                        <!-- WhatsApp Photo Deletion Request -->
+                        <div class="whatsapp-delete-request">
+                            <a href="<?php echo htmlspecialchars($whatsapp_delete_url); ?>" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="whatsapp-delete-btn">
+                                <i class="fab fa-whatsapp"></i>
+                                मैले फोटो डाउनलोड गरेँ, कृपया डिलिट गरिदिनुस्
+                            </a>
+                            <p class="whatsapp-delete-note">
+                                <i class="fas fa-info-circle"></i> फोटो डाउनलोड गरिसकेपछि माथिको बटन थिच्नुहोस्
+                            </p>
+                        </div>
+                        <?php endif; ?>
                     <?php elseif (!$folder['allow_zip_download']): ?>
                         <div class="alert alert-warning d-inline-block">
                             <i class="fas fa-info-circle me-2"></i>
