@@ -927,7 +927,7 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
             .subfolder-card .subfolder-thumb { height: 120px; }
         }
 
-        /* Banner Ad Styles */
+        /* Banner Ad Styles - Desktop */
         .page-wrapper {
             display: flex;
             justify-content: center;
@@ -945,28 +945,33 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
         .banner-ad img {
             width: 100%;
             height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
             display: block;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .banner-ad a {
             display: block;
             text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
         }
         
         .banner-ad a:hover img {
-            transform: scale(1.02);
-            transition: transform 0.3s ease;
+            transform: scale(1.03);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.18);
         }
         
         .banner-ad-label {
-            font-size: 10px;
-            color: #999;
+            font-size: 11px;
+            color: #aaa;
             text-align: center;
-            margin-top: 5px;
+            margin-top: 8px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            font-weight: 500;
         }
         
         .main-content {
@@ -974,13 +979,129 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
             max-width: 1400px;
         }
         
-        /* Hide banners on mobile and tablet */
+        /* Desktop sidebar banners - hide on smaller screens */
         @media (max-width: 1200px) {
-            .banner-ad {
+            .banner-ad-desktop {
                 display: none;
             }
             .page-wrapper {
                 display: block;
+            }
+        }
+        
+        /* Mobile Banner Styles - Show at bottom on mobile/tablet */
+        .mobile-banner-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px 0;
+        }
+        
+        .mobile-banner-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+        
+        .mobile-banner-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            gap: 8px;
+        }
+        
+        .mobile-banner-header span {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+        
+        .mobile-banner-header::before,
+        .mobile-banner-header::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #ddd, transparent);
+        }
+        
+        .mobile-banners-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .mobile-banner-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: #fff;
+        }
+        
+        .mobile-banner-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+        
+        .mobile-banner-item a {
+            display: block;
+        }
+        
+        .mobile-banner-item a:active img {
+            transform: scale(0.98);
+        }
+        
+        .mobile-banner-item .banner-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Show mobile banners on smaller screens */
+        @media (max-width: 1200px) {
+            .mobile-banner-section {
+                display: block;
+            }
+        }
+        
+        /* Adjust mobile banner layout for different screen sizes */
+        @media (min-width: 576px) and (max-width: 1200px) {
+            /* Tablet: show banners side by side if both exist */
+            .mobile-banners-grid.has-two-banners {
+                flex-direction: row;
+                gap: 20px;
+            }
+            .mobile-banners-grid.has-two-banners .mobile-banner-item {
+                flex: 1;
+            }
+        }
+        
+        @media (max-width: 575px) {
+            /* Mobile: full width stacked banners */
+            .mobile-banner-container {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            .mobile-banners-grid {
+                gap: 12px;
+            }
+            .mobile-banner-item {
+                border-radius: 10px;
             }
         }
     </style>
@@ -995,17 +1116,17 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
     
     <?php if ($has_any_banner): ?>
     <div class="page-wrapper">
-        <!-- Banner A (Left Side) -->
+        <!-- Banner A (Left Side) - Desktop Only -->
         <?php if ($show_banner_a): ?>
-        <div class="banner-ad banner-ad-left">
+        <div class="banner-ad banner-ad-left banner-ad-desktop">
             <?php if (!empty($banner_a_link)): ?>
             <a href="<?php echo htmlspecialchars($banner_a_link); ?>" target="_blank" rel="noopener noreferrer">
-                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement">
+                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner">
             </a>
             <?php else: ?>
-            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement">
+            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner">
             <?php endif; ?>
-            <div class="banner-ad-label">Ad</div>
+            <div class="banner-ad-label">Sponsored</div>
         </div>
         <?php endif; ?>
         
@@ -1410,6 +1531,46 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
         <?php endif; ?>
         <?php endif; ?> <!-- End of show_preview else block -->
         
+        <!-- Mobile Banner Ads Section - Shows at bottom on mobile/tablet -->
+        <?php if ($has_any_banner): ?>
+        <div class="mobile-banner-section">
+            <div class="mobile-banner-container">
+                <div class="mobile-banner-header">
+                    <span>Sponsored</span>
+                </div>
+                <div class="mobile-banners-grid <?php echo ($show_banner_a && $show_banner_b) ? 'has-two-banners' : ''; ?>">
+                    <?php if ($show_banner_a): ?>
+                    <div class="mobile-banner-item">
+                        <?php if (!empty($banner_a_link)): ?>
+                        <a href="<?php echo htmlspecialchars($banner_a_link); ?>" target="_blank" rel="noopener noreferrer">
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner" loading="lazy">
+                            <span class="banner-badge">Ad</span>
+                        </a>
+                        <?php else: ?>
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner" loading="lazy">
+                        <span class="banner-badge">Ad</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($show_banner_b): ?>
+                    <div class="mobile-banner-item">
+                        <?php if (!empty($banner_b_link)): ?>
+                        <a href="<?php echo htmlspecialchars($banner_b_link); ?>" target="_blank" rel="noopener noreferrer">
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner" loading="lazy">
+                            <span class="banner-badge">Ad</span>
+                        </a>
+                        <?php else: ?>
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner" loading="lazy">
+                        <span class="banner-badge">Ad</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+        
         <div class="footer-text">
             <?php if ($contact_phone || $contact_email || $whatsapp_number): ?>
             <div class="footer-contact">
@@ -1443,17 +1604,17 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
     <?php if ($has_any_banner): ?>
         </div><!-- End main-content -->
         
-        <!-- Banner B (Right Side) -->
+        <!-- Banner B (Right Side) - Desktop Only -->
         <?php if ($show_banner_b): ?>
-        <div class="banner-ad banner-ad-right">
+        <div class="banner-ad banner-ad-right banner-ad-desktop">
             <?php if (!empty($banner_b_link)): ?>
             <a href="<?php echo htmlspecialchars($banner_b_link); ?>" target="_blank" rel="noopener noreferrer">
-                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement">
+                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner">
             </a>
             <?php else: ?>
-            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement">
+            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner">
             <?php endif; ?>
-            <div class="banner-ad-label">Ad</div>
+            <div class="banner-ad-label">Sponsored</div>
         </div>
         <?php endif; ?>
     </div><!-- End page-wrapper -->
