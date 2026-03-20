@@ -6,11 +6,20 @@
     Require all denied
 </FilesMatch>
 
-# Force all files served from this directory to be treated as plain data,
-# not as executable content (extra defence-in-depth layer).
+# Security headers for all files
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
-    Header set Content-Disposition "attachment"
+</IfModule>
+
+# Force attachment (download) for non-media files to prevent XSS attacks.
+# Images and videos are allowed inline so they can be displayed in the browser.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(?i:jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov|avi|mkv)$">
+        Header set Content-Disposition "inline"
+    </FilesMatch>
+    <FilesMatch "\.(?i:pdf|doc|docx|xls|xlsx|zip|rar|7z|tar|gz|txt|csv)$">
+        Header set Content-Disposition "attachment"
+    </FilesMatch>
 </IfModule>
 
 # Deny directory listing
