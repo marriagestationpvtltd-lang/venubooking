@@ -499,9 +499,21 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                 <div class="photo-grid">
                     <?php foreach ($sf_photos as $photo): 
                         $file_url = UPLOAD_URL . $photo['image_path'];
+                        $ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                        // Determine file type, treating image extensions as photos even if stored as 'file'
+                        $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                        $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
                         $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                         $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
-                        $ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
+                        // If file is marked as 'file' but has an image extension, treat it as a photo
+                        if ($is_generic && in_array($ext, $image_extensions)) {
+                            $is_generic = false;
+                        }
+                        // If file is marked as 'file' but has a video extension, treat it as a video
+                        if ($is_generic && in_array($ext, $video_extensions)) {
+                            $is_generic = false;
+                            $is_video = true;
+                        }
                         $icon_class = getFileTypeIcon($ext);
                     ?>
                         <div class="photo-item" data-photo-id="<?php echo $photo['id']; ?>">
@@ -521,7 +533,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                                     <span class="badge bg-secondary video-badge">FILE</span>
                                 </div>
                             <?php else: ?>
-                                <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy"
+                                <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>" loading="lazy"
                                      onclick="adminOpenImage('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
                                      title="Click to preview"
                                      onerror="this.style.opacity='0.3';this.style.cursor='default';this.onclick=null;this.title='File not found on server';">
