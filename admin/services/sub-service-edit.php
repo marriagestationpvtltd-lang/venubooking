@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/header.php';
 $page_title = 'Edit Sub-Service';
+require_once __DIR__ . '/../includes/header.php';
 
 $db = getDB();
 

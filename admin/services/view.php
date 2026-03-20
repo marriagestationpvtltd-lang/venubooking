@@ -172,7 +172,20 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         <!-- Sub-Services & Designs -->
         <div class="card mb-3">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-layer-group"></i> Sub-Services & Designs</h5>
+                <div>
+                    <h5 class="mb-0 d-inline">
+                        <i class="fas fa-layer-group"></i> Sub-Services &amp; Designs
+                    </h5>
+                    <?php if (!empty($sub_services_with_designs)): ?>
+                        <span class="badge bg-success ms-2">
+                            <i class="fas fa-images"></i> Visual Design Flow Active
+                        </span>
+                    <?php else: ?>
+                        <span class="badge bg-secondary ms-2">
+                            <i class="fas fa-check-square"></i> Checkbox Mode
+                        </span>
+                    <?php endif; ?>
+                </div>
                 <a href="sub-service-add.php?service_id=<?php echo $service_id; ?>" class="btn btn-success btn-sm">
                     <i class="fas fa-plus"></i> Add Sub-Service
                 </a>
@@ -197,9 +210,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 </p>
 
                 <?php if (empty($sub_services_with_designs)): ?>
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle"></i>
-                        No sub-services defined. Add a sub-service to enable design selection for this service.
+                    <div class="alert alert-warning mb-3">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Visual Design Flow: Not Configured</strong><br>
+                        This service currently shows as a <strong>plain checkbox</strong> to customers during booking.<br>
+                        To enable the visual photo-based design selection flow:<br>
+                        <ol class="mb-0 mt-2" aria-label="Steps to enable the visual design selection flow">
+                            <li>Click <strong>"Add Sub-Service"</strong> above to create a sub-service (e.g. <em>Mandap</em>, <em>Stage Decoration</em>).</li>
+                            <li>Inside each sub-service, add <strong>design photos</strong> with names and prices.</li>
+                            <li>Once at least one sub-service with designs exists, customers will see a photo gallery to choose from instead of a checkbox.</li>
+                        </ol>
                     </div>
                 <?php else: ?>
                     <?php foreach ($sub_services_with_designs as $ss): ?>
