@@ -27,6 +27,10 @@ if (!$service) {
     exit;
 }
 
+// Check if Visual Design Flow is active (service has sub-services)
+$sub_services_with_designs = getServiceSubServicesWithDesigns($service_id);
+$is_visual_design_flow = !empty($sub_services_with_designs);
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
@@ -36,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status'];
 
     // Validation
-    if (empty($name) || $price <= 0) {
+    if (empty($name) || $price < 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
         // Handle photo upload
@@ -164,11 +168,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="price" class="form-label">Price (<?php echo getSetting('currency', 'NPR'); ?>) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="price" name="price" 
+                                <label for="price" class="form-label">Price (<?php echo getSetting('currency', 'NPR'); ?>)</label>
+                                <input type="number" class="form-control <?php echo $is_visual_design_flow ? 'bg-light' : ''; ?>"
+                                       id="price" name="price" 
                                        value="<?php echo $service['price']; ?>" 
-                                       min="0" step="0.01" placeholder="e.g., 25000.00" required>
-                                <small class="text-muted">Price for this service</small>
+                                       min="0" step="0.01" placeholder="e.g., 25000.00">
+                                <?php if ($is_visual_design_flow): ?>
+                                    <small class="text-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Visual Design Flow is active – price is managed per design below.
+                                    </small>
+                                <?php else: ?>
+                                    <small class="text-muted">Price for this service. Set to 0 if pricing is managed per design (Visual Design Flow).</small>
+                                <?php endif; ?>
                             </div>
                         </div>
 

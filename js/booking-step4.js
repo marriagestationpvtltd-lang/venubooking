@@ -3,13 +3,12 @@
  *
  * Supports two modes:
  *  1. Regular services  – checkbox-based selection (existing behaviour)
- *  2. Services with sub-services – photo-based drill-down selection flow:
- *       Main services list → sub-service list → design photo grid → back to sub-service list
+ *  2. Services with sub-services – photo-based design selection flow:
+ *       Main services list → combined sub-services & designs view → back to services
  *
  * Navigation flow:
  *   View 1 (Services) → click service card
- *   View 2 (Sub-Services) → click sub-service → see progress & "Done" button
- *   View 3 (Designs)   → click design photo → returns to View 2 with selection shown
+ *   View 2 (Design Selection) → tap a design photo → selection shown inline → "Done" button
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // selectedDesigns: { sub_service_id: { design_id, price, name, sub_service_id, service_id } }
     const selectedDesigns = {};
     let currentServiceId    = null;   // service being navigated
-    let currentSubServiceId = null;   // sub-service whose designs are shown
 
     // ── Build lookup maps from PHP-injected JSON ──────────────────────────────
     const servicesById     = {};  // id → service object (with sub_services)
@@ -53,13 +51,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── View switching helpers ────────────────────────────────────────────────
     const viewServices    = document.getElementById('view-services');
     const viewSubServices = document.getElementById('view-sub-services');
-    const viewDesigns     = document.getElementById('view-designs');
     const breadcrumb      = document.getElementById('booking-breadcrumb');
     const bcServiceName   = document.getElementById('bc-service-name');
-    const bcSubServiceName = document.getElementById('bc-sub-service-name');
 
     function showView(view) {
-        [viewServices, viewSubServices, viewDesigns].forEach(function (v) {
+        [viewServices, viewSubServices].forEach(function (v) {
             if (v) v.style.display = 'none';
         });
         if (view) {
@@ -72,22 +68,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ── Update breadcrumb based on current drill-down level ──────────────────
-    function updateBreadcrumb(serviceName, subServiceName) {
+    // ── Update breadcrumb ────────────────────────────────────────────────────
+    function updateBreadcrumb(serviceName) {
         if (bcServiceName) {
             if (serviceName) {
                 bcServiceName.textContent = serviceName;
                 bcServiceName.style.display = '';
             } else {
                 bcServiceName.style.display = 'none';
-            }
-        }
-        if (bcSubServiceName) {
-            if (subServiceName) {
-                bcSubServiceName.textContent = subServiceName;
-                bcSubServiceName.style.display = '';
-            } else {
-                bcSubServiceName.style.display = 'none';
             }
         }
     }
@@ -182,7 +170,62 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ── Navigate INTO a service's sub-services ────────────────────────────────
+    // ── Build a single sub-service section with its design grid ───────────────
+    function buildSubServiceSection(ss) {
+        const sel = selectedDesigns[ss.id];
+
+        let html = '<div class="mb-4" id="ss-section-' + ss.id + '">';
+        html += '<div class="d-flex align-items-center flex-wrap mb-2">';
+        html += '<h5 class="mb-0 me-2">' + escapeHtml(ss.name) + '</h5>';
+        if (sel) {
+            html += '<span class="badge bg-success small">'
+                  + '<i class="fas fa-check-circle me-1"></i>'
+                  + escapeHtml(sel.name) + ' – ' + escapeHtml(formatPrice(sel.price))
+                  + '</span>';
+        } else {
+            html += '<span class="badge bg-light text-muted border small">Choose a design</span>';
+        }
+        html += '</div>';
+
+        if (ss.description) {
+            html += '<p class="text-muted small mb-2">' + escapeHtml(ss.description) + '</p>';
+        }
+
+        if (!ss.designs || ss.designs.length === 0) {
+            html += '<div class="alert alert-info small py-2 mb-0">'
+                  + '<i class="fas fa-info-circle me-1"></i>No designs available.</div>';
+        } else {
+            html += '<div class="row g-2">';
+            ss.designs.forEach(function (d) {
+                const isChosen = sel && sel.design_id == d.id;
+                const photoHtml = d.photo
+                    ? '<img src="' + escapeHtml(uploadUrl + '/' + d.photo) + '" '
+                        + 'alt="' + escapeHtml(d.name) + '" '
+                        + 'class="card-img-top" style="height:120px;object-fit:cover;">'
+                    : '<div class="d-flex align-items-center justify-content-center bg-light" style="height:120px;">'
+                        + '<i class="fas fa-image fa-2x text-muted"></i></div>';
+
+                html += '<div class="col-6 col-md-3">';
+                html += '<div class="card h-100 design-card '
+                      + (isChosen ? 'border-success border-3 selected-design' : '')
+                      + '" style="cursor:pointer;" onclick="selectDesign(' + d.id + ')">';
+                html += photoHtml;
+                html += '<div class="card-body p-2 text-center">';
+                if (isChosen) html += '<i class="fas fa-check-circle text-success me-1"></i>';
+                html += '<div class="fw-semibold small">' + escapeHtml(d.name) + '</div>';
+                html += '<div class="text-success small fw-bold">' + escapeHtml(formatPrice(d.price)) + '</div>';
+                if (d.description) {
+                    html += '<div class="text-muted small mt-1">' + escapeHtml(d.description) + '</div>';
+                }
+                html += '</div></div></div>';
+            });
+            html += '</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    // ── Navigate INTO a service's design selection view ───────────────────────
     window.openSubServicesView = function (serviceId) {
         currentServiceId = serviceId;
         const svc = servicesById[serviceId];
@@ -192,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('sub-services-subtitle').textContent = svc.description || '';
 
         // Update breadcrumb
-        updateBreadcrumb(svc.name, null);
+        updateBreadcrumb(svc.name);
 
         const list = document.getElementById('sub-services-list');
         list.innerHTML = '';
@@ -201,28 +244,9 @@ document.addEventListener('DOMContentLoaded', function () {
             list.innerHTML = '<div class="col-12"><div class="alert alert-info"><i class="fas fa-info-circle"></i> No sub-services configured.</div></div>';
         } else {
             svc.sub_services.forEach(function (ss) {
-                const sel    = selectedDesigns[ss.id];
-                const isSelected = !!sel;
-
-                const col  = document.createElement('div');
-                col.className = 'col-md-6';
-
-                col.innerHTML =
-                    '<div class="card h-100 sub-service-card ' + (isSelected ? 'border-success' : 'border') + '" ' +
-                         'style="cursor:pointer;" onclick="openDesignsView(' + ss.id + ')">' +
-                        '<div class="card-body d-flex justify-content-between align-items-center">' +
-                            '<div>' +
-                                '<h5 class="mb-1">' + escapeHtml(ss.name) + '</h5>' +
-                                (ss.description ? '<p class="text-muted small mb-1">' + escapeHtml(ss.description) + '</p>' : '') +
-                                (isSelected
-                                    ? '<div class="text-success small"><i class="fas fa-check-circle"></i> ' +
-                                        escapeHtml(sel.name) + ' \u2013 ' + formatPrice(sel.price) + '</div>'
-                                    : '<div class="text-muted small"><i class="fas fa-hand-pointer me-1"></i> Tap to choose a design</div>') +
-                            '</div>' +
-                            '<i class="fas fa-chevron-right text-muted ms-3"></i>' +
-                        '</div>' +
-                    '</div>';
-
+                const col = document.createElement('div');
+                col.className = 'col-12';
+                col.innerHTML = buildSubServiceSection(ss);
                 list.appendChild(col);
             });
         }
@@ -236,70 +260,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (currentServiceId !== null) {
             updateServiceSummary(currentServiceId);
         }
-        updateBreadcrumb(null, null);
+        updateBreadcrumb(null);
         showView(viewServices);
     };
 
-    // ── Navigate INTO a sub-service's designs ─────────────────────────────────
-    window.openDesignsView = function (subServiceId) {
-        currentSubServiceId = subServiceId;
-        const ss = subServicesById[subServiceId];
-        if (!ss) return;
-
-        // Update breadcrumb
-        const svc = servicesById[ss.service_id];
-        updateBreadcrumb(svc ? svc.name : '', ss.name);
-
-        document.getElementById('designs-title').textContent    = ss.name;
-        document.getElementById('designs-subtitle').textContent = 'Tap a photo to select it for this option';
-
-        // Hide any previous feedback
-        const feedbackEl = document.getElementById('design-selection-feedback');
-        if (feedbackEl) feedbackEl.style.display = 'none';
-
-        const grid = document.getElementById('designs-grid');
-        grid.innerHTML = '';
-
-        if (!ss.designs || ss.designs.length === 0) {
-            grid.innerHTML = '<div class="col-12"><div class="alert alert-info"><i class="fas fa-info-circle"></i> No designs available.</div></div>';
-        } else {
-            const currentSelection = selectedDesigns[subServiceId];
-
-            ss.designs.forEach(function (d) {
-                const isChosen = currentSelection && currentSelection.design_id == d.id;
-
-                const col = document.createElement('div');
-                col.className = 'col-6 col-md-3';
-
-                const photoHtml = d.photo
-                    ? '<img src="' + escapeHtml(uploadUrl + '/' + d.photo) + '" ' +
-                        'alt="' + escapeHtml(d.name) + '" ' +
-                        'class="card-img-top design-photo" style="height:160px;object-fit:cover;">'
-                    : '<div class="d-flex align-items-center justify-content-center bg-light" style="height:160px;">' +
-                        '<i class="fas fa-image fa-3x text-muted"></i></div>';
-
-                col.innerHTML =
-                    '<div class="card design-card h-100 ' + (isChosen ? 'border-success border-3 selected-design' : '') + '" ' +
-                         'style="cursor:pointer;" onclick="selectDesign(' + d.id + ')">' +
-                        photoHtml +
-                        '<div class="card-body p-2 text-center">' +
-                            (isChosen ? '<i class="fas fa-check-circle text-success"></i> ' : '') +
-                            '<div class="fw-semibold small">' + escapeHtml(d.name) + '</div>' +
-                            '<div class="text-success small fw-bold">' + formatPrice(d.price) + '</div>' +
-                            (d.description ? '<div class="text-muted small mt-1">' + escapeHtml(d.description) + '</div>' : '') +
-                        '</div>' +
-                    '</div>';
-
-                grid.appendChild(col);
-            });
-        }
-
-        showView(viewDesigns);
-    };
-
-    // ── Select a design and return to sub-services view ───────────────────────
+    // ── Select a design (in-place update, no navigation needed) ──────────────
     window.selectDesign = function (designId) {
-        const d  = designsById[designId];
+        const d = designsById[designId];
         if (!d) return;
 
         // Record selection
@@ -314,28 +281,22 @@ document.addEventListener('DOMContentLoaded', function () {
         syncDesignInputs();
         recalculateTotal();
 
-        // Show confirmation feedback briefly, then navigate back to sub-services view
+        // Re-render just this sub-service section in-place to reflect the new selection
         const ss = subServicesById[d.sub_service_id];
-        const feedbackEl  = document.getElementById('design-selection-feedback');
-        const feedbackTxt = document.getElementById('design-selection-feedback-text');
-        if (feedbackEl && feedbackTxt) {
-            feedbackTxt.textContent = '\u201c' + d.name + '\u201d selected for ' + (ss ? ss.name : 'this option') + '.';
-            feedbackEl.style.display = '';
+        if (ss) {
+            const listEl = document.getElementById('sub-services-list');
+            if (listEl) {
+                const sectionEl = listEl.querySelector('#ss-section-' + d.sub_service_id);
+                if (sectionEl) {
+                    const parentCol = sectionEl.parentElement;
+                    if (parentCol) {
+                        parentCol.innerHTML = buildSubServiceSection(ss);
+                    }
+                }
+            }
         }
 
-        // Short delay so the user sees the confirmation before navigating back
-        setTimeout(function () {
-            openSubServicesView(d.service_id);
-        }, 800);
-    };
-
-    // ── Navigate BACK from designs to sub-services ────────────────────────────
-    window.backToSubServices = function () {
-        if (currentServiceId !== null) {
-            openSubServicesView(currentServiceId);
-        } else {
-            showView(viewServices);
-        }
+        updateSubServiceProgress(d.service_id);
     };
 
     // ── Regular checkbox handler ──────────────────────────────────────────────

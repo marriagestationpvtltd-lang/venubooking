@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status'];
 
     // Validation
-    if (empty($name) || $price <= 0) {
+    if (empty($name) || $price < 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
         // Handle photo upload
@@ -126,11 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="price" class="form-label">Price (<?php echo getSetting('currency', 'NPR'); ?>) <span class="text-danger">*</span></label>
+                                <label for="price" class="form-label">Price (<?php echo getSetting('currency', 'NPR'); ?>)</label>
                                 <input type="number" class="form-control" id="price" name="price" 
-                                       value="<?php echo isset($_POST['price']) ? $_POST['price'] : ''; ?>" 
-                                       min="0" step="0.01" placeholder="e.g., 25000.00" required>
-                                <small class="text-muted">Price for this service</small>
+                                       value="<?php echo isset($_POST['price']) ? htmlspecialchars($_POST['price'], ENT_QUOTES, 'UTF-8') : '0'; ?>" 
+                                       min="0" step="0.01" placeholder="e.g., 25000.00">
+                                <small class="text-muted">Set to 0 if pricing is managed per design (Visual Design Flow).</small>
                             </div>
                         </div>
 

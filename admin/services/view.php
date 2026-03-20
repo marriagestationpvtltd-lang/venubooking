@@ -88,7 +88,14 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <strong>Price:</strong><br>
-                        <h4 class="text-success"><?php echo formatCurrency($service['price']); ?></h4>
+                        <?php if (!empty($sub_services_with_designs)): ?>
+                            <span class="text-muted small">
+                                <i class="fas fa-info-circle"></i>
+                                Price is managed per design in Visual Design Flow mode.
+                            </span>
+                        <?php else: ?>
+                            <h4 class="text-success"><?php echo formatCurrency($service['price']); ?></h4>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-6 mb-3">
                         <strong>Status:</strong><br>
