@@ -476,7 +476,7 @@ function generateBookingNumber() {
 /**
  * Calculate booking total
  */
-function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
+function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = []) {
     $db = getDB();
     
     // Get hall price
@@ -496,7 +496,7 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
         $menu_total = $menu_price_per_person * $guests;
     }
     
-    // Calculate services total
+    // Calculate services total (regular services without sub-service flows)
     $services_total = 0;
     if (!empty($services)) {
         $placeholders = str_repeat('?,', count($services) - 1) . '?';
@@ -504,6 +504,16 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = []) {
         $stmt->execute($services);
         $result = $stmt->fetch();
         $services_total = $result['total'] ?? 0;
+    }
+
+    // Add prices from selected designs (sub-service design selections)
+    if (!empty($selected_designs)) {
+        $design_ids = array_map('intval', array_values($selected_designs));
+        $placeholders = implode(',', array_fill(0, count($design_ids), '?'));
+        $stmt = $db->prepare("SELECT COALESCE(SUM(price), 0) as total FROM service_designs WHERE id IN ($placeholders)");
+        $stmt->execute($design_ids);
+        $result = $stmt->fetch();
+        $services_total += (float)($result['total'] ?? 0);
     }
     
     // Calculate totals - get tax rate from database settings
@@ -816,6 +826,63 @@ function getActiveServices() {
 }
 
 /**
+ * Get active sub-services for a given additional service.
+ */
+function getServiceSubServices($service_id) {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT * FROM service_sub_services
+         WHERE service_id = ? AND status = 'active'
+         ORDER BY display_order, name"
+    );
+    $stmt->execute([$service_id]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get active designs for a given sub-service.
+ */
+function getSubServiceDesigns($sub_service_id) {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT * FROM service_designs
+         WHERE sub_service_id = ? AND status = 'active'
+         ORDER BY display_order, name"
+    );
+    $stmt->execute([$sub_service_id]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get all sub-services (with their designs) for a given additional service.
+ * Returns an array of sub-services, each with a 'designs' key.
+ */
+function getServiceSubServicesWithDesigns($service_id) {
+    $sub_services = getServiceSubServices($service_id);
+    foreach ($sub_services as &$ss) {
+        $ss['designs'] = getSubServiceDesigns($ss['id']);
+    }
+    return $sub_services;
+}
+
+/**
+ * Calculate total price for a set of selected designs.
+ * $selected_designs is an array of design_id values.
+ */
+function calculateDesignsTotal($selected_designs) {
+    if (empty($selected_designs)) {
+        return 0.0;
+    }
+    $db = getDB();
+    $ids = array_map('intval', array_values($selected_designs));
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $db->prepare("SELECT COALESCE(SUM(price), 0) as total FROM service_designs WHERE id IN ($placeholders)");
+    $stmt->execute($ids);
+    $row = $stmt->fetch();
+    return (float)($row['total'] ?? 0);
+}
+
+/**
  * Get all active service categories with their active packages and features
  * Returns an array of categories, each with a 'packages' key containing packages,
  * each package having a 'features' key containing its feature list.
@@ -946,7 +1013,8 @@ function createBooking($data) {
             $data['hall_id'],
             $data['menus'] ?? [],
             $data['guests'],
-            $data['services'] ?? []
+            $data['services'] ?? [],
+            $data['selected_designs'] ?? []
         );
         
         // Insert booking
@@ -1011,6 +1079,44 @@ function createBooking($data) {
                 if ($service) {
                     $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
+                }
+            }
+        }
+
+        // Insert selected designs into booking_services
+        if (!empty($data['selected_designs'])) {
+            foreach ($data['selected_designs'] as $ss_id => $design_id) {
+                $ss_id    = intval($ss_id);
+                $design_id = intval($design_id);
+                $stmt = $db->prepare(
+                    "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                     FROM service_designs d
+                     JOIN service_sub_services ss ON ss.id = d.sub_service_id
+                     JOIN additional_services s ON s.id = ss.service_id
+                     WHERE d.id = ? AND d.sub_service_id = ?"
+                );
+                $stmt->execute([$design_id, $ss_id]);
+                $design = $stmt->fetch();
+
+                if ($design) {
+                    $insert = $db->prepare(
+                        "INSERT INTO booking_services
+                             (booking_id, service_id, service_name, price, description, category,
+                              added_by, quantity, sub_service_id, design_id)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    );
+                    $insert->execute([
+                        $booking_id,
+                        $design['service_id'],
+                        $design['name'],
+                        $design['price'],
+                        $design['description'],
+                        $design['category'],
+                        USER_SERVICE_TYPE,
+                        DEFAULT_SERVICE_QUANTITY,
+                        $ss_id,
+                        $design_id
+                    ]);
                 }
             }
         }

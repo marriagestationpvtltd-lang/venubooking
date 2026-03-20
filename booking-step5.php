@@ -12,17 +12,33 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
 // Save selected services (only when coming from the services step, not the final booking form)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
     $_SESSION['selected_services'] = $_POST['services'] ?? [];
+    // Save selected designs: sub_service_id => design_id
+    if (!empty($_POST['selected_designs']) && is_array($_POST['selected_designs'])) {
+        $raw_designs = $_POST['selected_designs'];
+        $clean_designs = [];
+        foreach ($raw_designs as $ss_id => $d_id) {
+            $ss_id_int = intval($ss_id);
+            $d_id_int  = intval($d_id);
+            if ($ss_id_int > 0 && $d_id_int > 0) {
+                $clean_designs[$ss_id_int] = $d_id_int;
+            }
+        }
+        $_SESSION['selected_designs'] = $clean_designs;
+    } else {
+        $_SESSION['selected_designs'] = [];
+    }
 }
 
 $booking_data = $_SESSION['booking_data'];
 $selected_hall = $_SESSION['selected_hall'];
 $selected_menus = $_SESSION['selected_menus'] ?? [];
 $selected_services = $_SESSION['selected_services'] ?? [];
+$selected_designs  = $_SESSION['selected_designs'] ?? [];
 
 // Calculate final totals — if this fails the page cannot render correctly,
 // so redirect back to the beginning rather than showing misleading zero values.
 try {
-    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services);
+    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs);
 } catch (\Throwable $e) {
     error_log('Failed to calculate booking totals: ' . $e->getMessage());
     header('Location: index.php');
@@ -65,6 +81,28 @@ if (!empty($selected_services)) {
     } catch (\Throwable $e) {
         error_log('Failed to load service details: ' . $e->getMessage());
         $service_details = [];
+    }
+}
+
+// Get selected design details (for display and booking insertion)
+$design_details = [];
+if (!empty($selected_designs)) {
+    try {
+        $db = getDB();
+        $design_ids = array_map('intval', array_values($selected_designs));
+        $placeholders = implode(',', array_fill(0, count($design_ids), '?'));
+        $stmt = $db->prepare(
+            "SELECT d.*, ss.name AS sub_service_name, ss.service_id, s.name AS service_name, s.category
+             FROM service_designs d
+             JOIN service_sub_services ss ON ss.id = d.sub_service_id
+             JOIN additional_services s ON s.id = ss.service_id
+             WHERE d.id IN ($placeholders)"
+        );
+        $stmt->execute($design_ids);
+        $design_details = $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('Failed to load design details: ' . $e->getMessage());
+        $design_details = [];
     }
 }
 
@@ -162,6 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 'guests'           => $booking_data['guests'],
                 'menus'            => $selected_menus,
                 'services'         => $selected_services,
+                'selected_designs' => $selected_designs,
                 'full_name'        => $full_name,
                 'phone'            => $phone,
                 'email'            => $email,
@@ -209,6 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             unset($_SESSION['selected_hall']);
             unset($_SESSION['selected_menus']);
             unset($_SESSION['selected_services']);
+            unset($_SESSION['selected_designs']);
             
             header('Location: confirmation.php');
             exit;
@@ -574,13 +614,21 @@ require_once __DIR__ . '/includes/header.php';
                         <?php endif; ?>
 
                         <!-- Services -->
-                        <?php if (!empty($service_details)): ?>
+                        <?php if (!empty($service_details) || !empty($design_details)): ?>
                             <h6 class="mb-2 text-success"><i class="fas fa-star me-2"></i>Additional Services</h6>
                             <?php foreach ($service_details as $service): ?>
                                 <div class="mb-1">
                                     <i class="fas fa-check-circle text-success me-1"></i>
                                     <small><strong><?php echo sanitize($service['name']); ?></strong></small>
                                     <small class="text-success ms-1"><?php echo formatCurrency($service['price']); ?></small>
+                                </div>
+                            <?php endforeach; ?>
+                            <?php foreach ($design_details as $design): ?>
+                                <div class="mb-1">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    <small><strong><?php echo sanitize($design['sub_service_name']); ?>:</strong>
+                                        <?php echo sanitize($design['name']); ?></small>
+                                    <small class="text-success ms-1"><?php echo formatCurrency($design['price']); ?></small>
                                 </div>
                             <?php endforeach; ?>
                             <hr class="my-2">
