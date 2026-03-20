@@ -160,7 +160,7 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 
 <?php if (!empty($service_categories)): ?>
 <?php
-// Filter out categories without packages
+// Filter out categories without packages for the filter bar
 $categories_with_packages = array_filter($service_categories, function($cat) {
     return !empty($cat['packages']);
 });
@@ -171,21 +171,29 @@ $categories_with_packages = array_filter($service_categories, function($cat) {
         <h2 class="text-center section-title mb-1">हाम्रा सेवा प्याकेजहरू</h2>
         <p class="text-center section-subtitle mb-4">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
 
-        <?php foreach ($categories_with_packages as $cat): ?>
-        <!-- Category: <?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?> -->
-        <div class="service-category-block" id="serviceCategory<?php echo (int)$cat['id']; ?>">
-            <h3 class="service-category-title">
-                <span class="category-label"><?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?></span>
-            </h3>
-            <div class="pkg-slider-wrapper">
-                <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
-                    <i class="fas fa-chevron-left"></i>
+        <?php if (count($categories_with_packages) > 1): ?>
+        <!-- Service Category Filter Buttons -->
+        <div class="service-category-filter-bar text-center mb-4" id="serviceCategoryFilterBar">
+            <button class="service-category-filter-btn active" data-filter="all">All</button>
+            <?php foreach ($categories_with_packages as $cat): ?>
+                <button class="service-category-filter-btn"
+                        data-filter="<?php echo (int)$cat['id']; ?>">
+                    <?php echo htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8'); ?>
                 </button>
-                <div class="pkg-slider-track" data-pkg-slider>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <div class="pkg-slider-wrapper">
+            <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="pkg-slider-track" data-pkg-slider>
+            <?php foreach ($categories_with_packages as $cat): ?>
                 <?php foreach ($cat['packages'] as $pkg):
                     $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
                 ?>
-                    <div class="pkg-slider-card">
+                    <div class="pkg-slider-card" data-service-category="<?php echo (int)$cat['id']; ?>">
                         <div class="package-card card h-100">
                             <?php if (!empty($pkg['photos'])): ?>
                                 <?php if (count($pkg['photos']) > 1): ?>
@@ -297,16 +305,15 @@ $categories_with_packages = array_filter($service_categories, function($cat) {
                         </div>
                     </div>
                 <?php endforeach; ?>
-                </div>
-                <button class="pkg-slider-nav pkg-slider-next" type="button" aria-label="Next packages">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
+            <?php endforeach; ?>
             </div>
-            <p class="text-center pkg-swipe-hint d-md-none mt-2 mb-0">
-                <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
-            </p>
+            <button class="pkg-slider-nav pkg-slider-next" type="button" aria-label="Next packages">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
-        <?php endforeach; ?>
+        <p class="text-center pkg-swipe-hint d-md-none mt-2 mb-0">
+            <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
+        </p>
     </div>
 </section>
 <?php endif; ?>
@@ -2179,137 +2186,151 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 </style>
 <script>
-// ── Auto-scroll for multiple package category sliders ──
+// ── Auto-scroll for package category sliders with filtering support ──
 (function() {
     var speed = 0.5; // pixels per frame
     var dragSensitivity = 1.5;
 
-    // Get all pkg-slider tracks (one per category)
-    var allTracks = document.querySelectorAll(\'[data-pkg-slider]\');
-    if (allTracks.length === 0) return;
+    var filterBar = document.getElementById(\'serviceCategoryFilterBar\');
+    var track = document.querySelector(\'[data-pkg-slider]\');
+    if (!track) return;
 
-    allTracks.forEach(function(track, trackIdx) {
-        var hovered = false, dragging = false;
-        var rafId = null;
+    var hovered = false, dragging = false;
+    var rafId = null;
 
-        function isPaused() { return hovered || dragging; }
+    function isPaused() { return hovered || dragging; }
 
-        // Mark all original cards so we can tell them apart from clones
-        Array.from(track.querySelectorAll(\'.pkg-slider-card\')).forEach(function(card) {
-            card.setAttribute(\'data-original\', \'1\');
+    // Mark all original cards so we can tell them apart from clones
+    Array.from(track.querySelectorAll(\'.pkg-slider-card\')).forEach(function(card) {
+        card.setAttribute(\'data-original\', \'1\');
+    });
+
+    function initSlider() {
+        // Cancel any running animation
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+        // Remove existing clones
+        Array.from(track.querySelectorAll(\'[data-clone]\'))
+            .forEach(function(c) { track.removeChild(c); });
+
+        // Collect original visible cards
+        var origCards = Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\'))
+            .filter(function(c) { return c.style.display !== \'none\'; });
+        if (origCards.length === 0) return;
+
+        // Only auto-scroll (and clone) when the visible content overflows the wrapper.
+        if (track.scrollWidth <= track.clientWidth + 2) {
+            track.scrollLeft = 0;
+            return;
+        }
+
+        // Duplicate cards for seamless infinite loop
+        origCards.forEach(function(card, idx) {
+            var clone = card.cloneNode(true);
+            clone.setAttribute(\'data-clone\', \'1\');
+            clone.removeAttribute(\'data-original\');
+            // Remap all IDs in the clone to avoid duplicate-ID conflicts
+            var idMap = {};
+            clone.querySelectorAll(\'[id]\').forEach(function(el) {
+                var oldId = el.id;
+                var newId = oldId + \'_c\' + idx;
+                idMap[oldId] = newId;
+                el.id = newId;
+            });
+            // Update all href and data-bs-target references in a single pass
+            clone.querySelectorAll(\'[href], [data-bs-target]\').forEach(function(el) {
+                [\'href\', \'data-bs-target\'].forEach(function(attr) {
+                    var val = el.getAttribute(attr);
+                    if (val && val.charAt(0) === \'#\') {
+                        var refId = val.slice(1);
+                        if (idMap.hasOwnProperty(refId)) {
+                            el.setAttribute(attr, \'#\' + idMap[refId]);
+                        }
+                    }
+                });
+            });
+            track.appendChild(clone);
         });
 
-        function initSlider() {
-            // Cancel any running animation
-            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        track.scrollLeft = 0;
 
-            // Remove existing clones
-            Array.from(track.querySelectorAll(\'[data-clone]\'))
-                .forEach(function(c) { track.removeChild(c); });
-
-            // Collect original visible cards
-            var origCards = Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\'))
-                .filter(function(c) { return c.style.display !== \'none\'; });
-            if (origCards.length === 0) return;
-
-            // Only auto-scroll (and clone) when the visible content overflows the wrapper.
-            if (track.scrollWidth <= track.clientWidth + 2) {
-                track.scrollLeft = 0;
-                return;
-            }
-
-            // Duplicate cards for seamless infinite loop
-            origCards.forEach(function(card, idx) {
-                var clone = card.cloneNode(true);
-                clone.setAttribute(\'data-clone\', \'1\');
-                clone.removeAttribute(\'data-original\');
-                // Remap all IDs in the clone to avoid duplicate-ID conflicts
-                var idMap = {};
-                clone.querySelectorAll(\'[id]\').forEach(function(el) {
-                    var oldId = el.id;
-                    var newId = oldId + \'_t\' + trackIdx + \'_c\' + idx;
-                    idMap[oldId] = newId;
-                    el.id = newId;
-                });
-                // Update all href and data-bs-target references in a single pass
-                clone.querySelectorAll(\'[href], [data-bs-target]\').forEach(function(el) {
-                    [\'href\', \'data-bs-target\'].forEach(function(attr) {
-                        var val = el.getAttribute(attr);
-                        if (val && val.charAt(0) === \'#\') {
-                            var refId = val.slice(1);
-                            if (idMap.hasOwnProperty(refId)) {
-                                el.setAttribute(attr, \'#\' + idMap[refId]);
-                            }
-                        }
-                    });
-                });
-                track.appendChild(clone);
-            });
-
-            track.scrollLeft = 0;
-
-            function step() {
-                if (!isPaused()) {
-                    track.scrollLeft += speed;
-                    var half = track.scrollWidth / 2;
-                    if (track.scrollLeft >= half - 1) {
-                        track.scrollLeft -= half;
-                    }
+        function step() {
+            if (!isPaused()) {
+                track.scrollLeft += speed;
+                var half = track.scrollWidth / 2;
+                if (track.scrollLeft >= half - 1) {
+                    track.scrollLeft -= half;
                 }
-                rafId = requestAnimationFrame(step);
             }
             rafId = requestAnimationFrame(step);
         }
+        rafId = requestAnimationFrame(step);
+    }
 
-        // Initialize slider on load
-        initSlider();
+    // Initialize slider on load
+    initSlider();
 
-        // Pause on mouse hover
-        track.addEventListener("mouseenter", function() { hovered = true; });
-        track.addEventListener("mouseleave", function() { hovered = false; });
+    // Pause on mouse hover
+    track.addEventListener("mouseenter", function() { hovered = true; });
+    track.addEventListener("mouseleave", function() { hovered = false; });
 
-        // Mouse drag-to-scroll
-        var isDown = false, startX = 0, scrollStart = 0;
-        track.addEventListener("mousedown", function(e) {
-            isDown = true;
-            dragging = true;
-            track.classList.add("pkg-slider-grabbing");
-            startX = e.pageX - track.offsetLeft;
-            scrollStart = track.scrollLeft;
-            document.addEventListener("mousemove", onMove);
-            e.preventDefault();
-        });
-        function onMove(e) {
-            if (!isDown) return;
-            track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
-        }
-        function stopDrag() {
-            if (!isDown) return;
-            isDown = false;
-            dragging = false;
-            track.classList.remove("pkg-slider-grabbing");
-            document.removeEventListener("mousemove", onMove);
-        }
-        document.addEventListener("mouseup", stopDrag);
-
-        // Touch: pause auto-scroll and drag-to-scroll
-        var tStartX = 0, tScrollStart = 0;
-        track.addEventListener("touchstart", function(e) {
-            hovered = true;
-            dragging = true;
-            tStartX = e.touches[0].pageX;
-            tScrollStart = track.scrollLeft;
-        }, { passive: true });
-        track.addEventListener("touchmove", function(e) {
-            track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
-        }, { passive: true });
-        track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
-        track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
+    // Mouse drag-to-scroll
+    var isDown = false, startX = 0, scrollStart = 0;
+    track.addEventListener("mousedown", function(e) {
+        isDown = true;
+        dragging = true;
+        track.classList.add("pkg-slider-grabbing");
+        startX = e.pageX - track.offsetLeft;
+        scrollStart = track.scrollLeft;
+        document.addEventListener("mousemove", onMove);
+        e.preventDefault();
     });
+    function onMove(e) {
+        if (!isDown) return;
+        track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * dragSensitivity;
+    }
+    function stopDrag() {
+        if (!isDown) return;
+        isDown = false;
+        dragging = false;
+        track.classList.remove("pkg-slider-grabbing");
+        document.removeEventListener("mousemove", onMove);
+    }
+    document.addEventListener("mouseup", stopDrag);
+
+    // Touch: pause auto-scroll and drag-to-scroll
+    var tStartX = 0, tScrollStart = 0;
+    track.addEventListener("touchstart", function(e) {
+        hovered = true;
+        dragging = true;
+        tStartX = e.touches[0].pageX;
+        tScrollStart = track.scrollLeft;
+    }, { passive: true });
+    track.addEventListener("touchmove", function(e) {
+        track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX);
+    }, { passive: true });
+    track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
+    track.addEventListener("touchcancel", function() { hovered = false; dragging = false; }, { passive: true });
+
+    // Category filter buttons – reinitialise slider after filtering
+    if (filterBar) {
+        filterBar.addEventListener(\'click\', function(e) {
+            var btn = e.target.closest(\'.service-category-filter-btn\');
+            if (!btn) return;
+            filterBar.querySelectorAll(\'.service-category-filter-btn\').forEach(function(b) {
+                b.classList.toggle(\'active\', b === btn);
+            });
+            var filter = btn.getAttribute(\'data-filter\');
+            Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\')).forEach(function(card) {
+                card.style.display = (filter === \'all\' || card.getAttribute(\'data-service-category\') === filter) ? \'\' : \'none\';
+            });
+            initSlider();
+        });
+    }
 })();
 </script>
 <script>
-// ── Pkg slider prev/next navigation buttons for multiple sliders ──
+// ── Pkg slider prev/next navigation buttons ──
 (function() {
     document.querySelectorAll(".pkg-slider-wrapper").forEach(function(wrapper) {
         var track = wrapper.querySelector("[data-pkg-slider]");
@@ -2333,6 +2354,15 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         updateNavVisibility();
         window.addEventListener("resize", updateNavVisibility);
+
+        // Also update visibility when filter buttons are clicked
+        var filterBar = document.getElementById(\'serviceCategoryFilterBar\');
+        if (filterBar) {
+            filterBar.addEventListener(\'click\', function() {
+                // Delay to allow DOM to update after filtering
+                setTimeout(updateNavVisibility, 50);
+            });
+        }
 
         if (prevBtn) {
             prevBtn.addEventListener("click", function(e) {
