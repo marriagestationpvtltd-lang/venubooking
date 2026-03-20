@@ -749,7 +749,8 @@ INSERT IGNORE INTO vendor_types (slug, label, display_order) VALUES
 -- Trigger: Keep booking_status and advance_payment_received in sync with payment_status.
 -- Logic:
 --   payment_status = 'pending'           → booking_status = 'pending',   advance_payment_received = 0
---   payment_status = 'partial' or 'paid' → booking_status = 'confirmed', advance_payment_received = 1
+--   payment_status = 'partial'           → booking_status = 'confirmed', advance_payment_received = 1
+--   payment_status = 'paid'              → booking_status = 'completed', advance_payment_received = 1
 --   payment_status = 'cancelled'         → no automatic change
 DROP TRIGGER IF EXISTS trg_bookings_payment_status_sync;
 
@@ -767,7 +768,7 @@ BEGIN
                 SET NEW.booking_status          = 'confirmed';
                 SET NEW.advance_payment_received = 1;
             WHEN 'paid' THEN
-                SET NEW.booking_status          = 'confirmed';
+                SET NEW.booking_status          = 'completed';
                 SET NEW.advance_payment_received = 1;
             ELSE
                 BEGIN END; -- 'cancelled' or any future status: leave as-is
