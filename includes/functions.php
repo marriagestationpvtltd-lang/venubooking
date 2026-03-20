@@ -1194,8 +1194,9 @@ function getAutoStatusByPaymentStatus(string $payment_status): array {
         case 'pending':
             return ['booking_status' => 'pending', 'advance_payment_received' => 0];
         case 'partial':
-        case 'paid':
             return ['booking_status' => 'confirmed', 'advance_payment_received' => 1];
+        case 'paid':
+            return ['booking_status' => 'completed', 'advance_payment_received' => 1];
         default:
             return ['booking_status' => null, 'advance_payment_received' => null];
     }
