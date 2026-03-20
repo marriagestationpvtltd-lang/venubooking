@@ -98,6 +98,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     </div>
                 </div>
 
+                <?php if (!empty($service['photo'])): ?>
+                <div class="mb-3">
+                    <strong>Service Photo:</strong><br>
+                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                         alt="<?php echo htmlspecialchars($service['name']); ?>"
+                         class="img-thumbnail mt-1" style="max-height:200px;">
+                </div>
+                <?php endif; ?>
+
                 <div class="mb-3">
                     <strong>Description:</strong><br>
                     <?php echo $service['description'] ? nl2br(htmlspecialchars($service['description'])) : '<em class="text-muted">No description available</em>'; ?>
