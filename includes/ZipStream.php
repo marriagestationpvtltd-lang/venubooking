@@ -11,7 +11,7 @@
  * - Supports large files and many files
  * - Instant download start (no preparation delay)
  * - Memory efficient (constant memory usage regardless of file size)
- * - Compatible with standard ZIP readers (uses DEFLATE compression)
+ * - Compatible with standard ZIP readers (uses STORE method - no compression)
  * 
  * Based on ZIP file format specification (APPNOTE.TXT)
  */
@@ -296,6 +296,12 @@ class ZipStream {
      * @return int DOS time
      */
     private function toDosTime(int $timestamp): int {
+        // DOS time format only supports years 1980-2107
+        // Clamp timestamp to valid range
+        $minTimestamp = mktime(0, 0, 0, 1, 1, 1980);
+        $maxTimestamp = mktime(23, 59, 59, 12, 31, 2107);
+        $timestamp = max($minTimestamp, min($maxTimestamp, $timestamp));
+        
         $time = getdate($timestamp);
         return (($time['seconds'] >> 1) | ($time['minutes'] << 5) | ($time['hours'] << 11));
     }
@@ -307,6 +313,12 @@ class ZipStream {
      * @return int DOS date
      */
     private function toDosDate(int $timestamp): int {
+        // DOS date format only supports years 1980-2107
+        // Clamp timestamp to valid range
+        $minTimestamp = mktime(0, 0, 0, 1, 1, 1980);
+        $maxTimestamp = mktime(23, 59, 59, 12, 31, 2107);
+        $timestamp = max($minTimestamp, min($maxTimestamp, $timestamp));
+        
         $time = getdate($timestamp);
         return ($time['mday'] | ($time['mon'] << 5) | (($time['year'] - 1980) << 9));
     }
