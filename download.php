@@ -506,6 +506,12 @@ $whatsapp_number = getSetting('whatsapp_number');
     </div>
 
     <script>
+    /**
+     * Instant Download Handler
+     * Uses native browser download (like IDM) for immediate download start.
+     * The browser's download manager handles the file transfer directly,
+     * avoiding the slow fetch-to-memory approach.
+     */
     function startDownload(url, defaultName) {
         var overlay  = document.getElementById('downloadProgressOverlay');
         var dlBar    = document.getElementById('dlBar');
@@ -517,127 +523,40 @@ $whatsapp_number = getSetting('whatsapp_number');
         var dlSize   = document.getElementById('dlSizeInfo');
         var dlIcon   = document.getElementById('dlIcon');
 
-        // Reset UI
-        dlBar.style.width   = '0%';
+        // Show brief "Starting Download" notification
+        dlBar.style.width      = '100%';
         dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
         dlBar.style.backgroundSize = '';
-        dlBar.style.animation = '';
-        dlPct.textContent   = '0%';
-        dlEta.textContent   = 'Calculating…';
-        dlSpd.textContent   = '';
-        dlTitle.textContent = 'Preparing Download…';
-        dlFile.textContent  = defaultName || '';
-        dlSize.textContent  = '';
-        dlIcon.className    = 'fas fa-spinner fa-spin';
+        dlBar.style.animation  = '';
+        dlPct.textContent      = '';
+        dlEta.textContent      = '';
+        dlSpd.textContent      = '';
+        dlTitle.textContent    = 'Download Started!';
+        dlFile.textContent     = defaultName || '';
+        dlSize.textContent     = 'Check your browser downloads';
+        dlIcon.className       = 'fas fa-check-circle';
 
         overlay.classList.add('dl-active');
 
-        var startTime = Date.now();
+        // Use hidden iframe for instant download (native browser download)
+        // This triggers the browser's download manager immediately
+        var iframe = document.getElementById('downloadFrame');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'downloadFrame';
+            iframe.name = 'downloadFrame';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+        }
+        iframe.src = url;
 
-        fetch(url)
-            .then(function(res) {
-                if (!res.ok) throw new Error('Server error ' + res.status);
-
-                var contentLength = res.headers.get('Content-Length');
-                var total = contentLength ? parseInt(contentLength, 10) : 0;
-
-                // Try to get filename from Content-Disposition header
-                var cd = res.headers.get('Content-Disposition');
-                var filename = defaultName || 'download';
-                if (cd) {
-                    var m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                    if (m && m[1]) filename = m[1].replace(/['"]/g, '').trim();
-                }
-                dlFile.textContent = filename;
-
-                if (total > 0) {
-                    dlIcon.className    = 'fas fa-download';
-                    dlTitle.textContent = 'Downloading…';
-                    dlSize.textContent  = 'Total: ' + fmtBytes(total);
-                } else {
-                    // No Content-Length — show indeterminate bar
-                    dlIcon.className          = 'fas fa-spinner fa-spin';
-                    dlTitle.textContent       = 'Downloading…';
-                    dlEta.textContent         = '';
-                    dlBar.style.width         = '100%';
-                    dlBar.style.background    = 'linear-gradient(90deg,#4CAF50,#8BC34A,#4CAF50)';
-                    dlBar.style.backgroundSize = '200% 100%';
-                    dlBar.style.animation     = 'dlIndeterminate 1.5s linear infinite';
-                }
-
-                var reader = res.body.getReader();
-                var chunks = [];
-                var received = 0;
-
-                function pump() {
-                    return reader.read().then(function(r) {
-                        if (r.done) return { chunks: chunks, filename: filename };
-                        chunks.push(r.value);
-                        received += r.value.length;
-
-                        if (total > 0) {
-                            var elapsed = (Date.now() - startTime) / 1000;
-                            var pct     = Math.min(99, Math.round((received / total) * 100));
-                            var speed   = received / Math.max(elapsed, 0.1);
-                            var rem     = Math.ceil((total - received) / speed);
-
-                            dlBar.style.width   = pct + '%';
-                            dlPct.textContent   = pct + '%';
-                            dlSpd.textContent   = fmtBytes(speed) + '/s';
-                            dlEta.textContent   = rem > 0 ? fmtEta(rem) : 'Almost done…';
-                        } else {
-                            dlPct.textContent = fmtBytes(received);
-                        }
-                        return pump();
-                    });
-                }
-
-                return pump();
-            })
-            .then(function(result) {
-                var blob    = new Blob(result.chunks);
-                var blobUrl = URL.createObjectURL(blob);
-                var a       = document.createElement('a');
-                a.href      = blobUrl;
-                a.download  = result.filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 200);
-
-                dlBar.style.width   = '100%';
-                dlBar.style.animation = '';
-                dlPct.textContent   = '100%';
-                dlEta.textContent   = 'Complete!';
-                dlSpd.textContent   = '';
-                dlTitle.textContent = 'Download Complete!';
-                dlIcon.className    = 'fas fa-check-circle';
-
-                setTimeout(function() { overlay.classList.remove('dl-active'); }, 2500);
-            })
-            .catch(function(err) {
-                console.error('Download error:', err);
-                overlay.classList.remove('dl-active');
-                // Fall back to direct navigation
-                window.location.href = url;
-            });
+        // Hide overlay after brief notification
+        setTimeout(function() { 
+            overlay.classList.remove('dl-active'); 
+        }, 1500);
 
         return false; // Prevent default link navigation
     }
-
-    function fmtBytes(b) {
-        if (b < 1024)           return Math.round(b) + ' B';
-        if (b < 1048576)        return (b / 1024).toFixed(1) + ' KB';
-        if (b < 1073741824)     return (b / 1048576).toFixed(1) + ' MB';
-        return (b / 1073741824).toFixed(2) + ' GB';
-    }
-
-        function fmtEta(s) {
-            if (s < 5)   return 'Almost done…';
-            if (s < 60)  return '~' + s + ' sec';
-            var m = Math.floor(s / 60), r = s % 60;
-            if (m < 60)  return '~' + m + ' min' + (r ? ' ' + r + ' sec' : '');
-            var h = Math.floor(m / 60), rm = m % 60;
-            if (h < 24)  return '~' + h + ' hr' + (rm ? ' ' + rm + ' min' : '');
-            return 'Calculating…';
-        }
+    </script>
+</body>
+</html>
