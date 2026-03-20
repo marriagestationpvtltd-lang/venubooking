@@ -1288,7 +1288,7 @@ $whatsapp_number = getSetting('whatsapp_number');
             var dlSize  = document.getElementById('dlSizeInfo');
             var dlIcon  = document.getElementById('dlIcon');
 
-            // Show brief "Starting Download" notification
+            // Show "Starting Download" notification with spinner
             dlBar.style.width      = '100%';
             dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
             dlBar.style.backgroundSize = '';
@@ -1303,6 +1303,16 @@ $whatsapp_number = getSetting('whatsapp_number');
 
             overlay.classList.add('dl-active');
 
+            // Helper function to show success state
+            function showSuccess() {
+                dlTitle.textContent = 'Download Started!';
+                dlSize.textContent  = 'Check your browser downloads';
+                dlIcon.className    = 'fas fa-check-circle';
+                setTimeout(function() { 
+                    overlay.classList.remove('dl-active'); 
+                }, 1500);
+            }
+
             // Use hidden iframe for instant download (native browser download)
             // This triggers the browser's download manager immediately.
             // The iframe is intentionally reused across downloads for efficiency.
@@ -1315,30 +1325,14 @@ $whatsapp_number = getSetting('whatsapp_number');
                 document.body.appendChild(iframe);
             }
             
-            // Listen for load event to confirm download initiated
-            var loadTimeout;
-            var onLoad = function() {
+            // Timeout fallback: if server responds with attachment header, onload won't fire
+            var loadTimeout = setTimeout(showSuccess, 800);
+            
+            // Attach event handlers BEFORE setting src to avoid race condition
+            iframe.onload = function() {
                 clearTimeout(loadTimeout);
-                dlTitle.textContent = 'Download Started!';
-                dlSize.textContent  = 'Check your browser downloads';
-                dlIcon.className    = 'fas fa-check-circle';
-                setTimeout(function() { 
-                    overlay.classList.remove('dl-active'); 
-                }, 1500);
+                showSuccess();
             };
-            
-            // Set timeout in case the server responds with an attachment (no load event fired)
-            loadTimeout = setTimeout(function() {
-                // Assume download started successfully after brief delay
-                dlTitle.textContent = 'Download Started!';
-                dlSize.textContent  = 'Check your browser downloads';
-                dlIcon.className    = 'fas fa-check-circle';
-                setTimeout(function() { 
-                    overlay.classList.remove('dl-active'); 
-                }, 1200);
-            }, 800);
-            
-            iframe.onload = onLoad;
             iframe.onerror = function() {
                 clearTimeout(loadTimeout);
                 dlTitle.textContent = 'Download Failed';
@@ -1350,6 +1344,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                 }, 2500);
             };
             
+            // Trigger download
             iframe.src = url;
 
             return false;
