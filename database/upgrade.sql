@@ -769,6 +769,19 @@ BEGIN
             AFTER file_size;
     END IF;
 
+    -- ---- shared_folders.show_preview ------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'shared_folders'
+          AND column_name = 'show_preview'
+    ) THEN
+        ALTER TABLE shared_folders
+            ADD COLUMN show_preview TINYINT(1) DEFAULT 1
+            COMMENT 'Show photo previews to users. If 0, only ZIP download is shown'
+            AFTER allow_zip_download;
+    END IF;
+
 END$$
 
 DELIMITER ;

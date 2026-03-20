@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $expires_in = intval($_POST['expires_in'] ?? 0);
     $max_downloads = !empty($_POST['max_downloads']) ? intval($_POST['max_downloads']) : null;
     $allow_zip_download = isset($_POST['allow_zip_download']) ? 1 : 0;
+    $show_preview = isset($_POST['show_preview']) ? 1 : 0;
     
     if (empty($folder_name)) {
         $error_message = 'Please enter a folder name.';
@@ -35,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         try {
-            $sql = "INSERT INTO shared_folders (folder_name, description, download_token, max_downloads, expires_at, allow_zip_download, status, created_by) 
-                    VALUES (?, ?, ?, ?, ?, ?, 'active', ?)";
+            $sql = "INSERT INTO shared_folders (folder_name, description, download_token, max_downloads, expires_at, allow_zip_download, show_preview, status, created_by) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)";
             $stmt = $db->prepare($sql);
             $result = $stmt->execute([
                 $folder_name, 
@@ -45,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $max_downloads, 
                 $expires_at, 
                 $allow_zip_download,
+                $show_preview,
                 $current_user['id']
             ]);
             
@@ -154,6 +156,21 @@ require_once __DIR__ . '/../includes/header.php';
                                     </label>
                                 </div>
                                 <small class="text-muted">सबै फोटो एकैपटक ZIP मा डाउनलोड</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Photo Preview</label>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="show_preview" name="show_preview" checked>
+                                    <label class="form-check-label" for="show_preview">
+                                        <i class="fas fa-eye"></i> फोटो प्रिभियु देखाउनुहोस्
+                                    </label>
+                                </div>
+                                <small class="text-muted">बन्द गरेमा युजरलाई सिधै ZIP डाउनलोड मात्र देखिन्छ, फोटो प्रिभियु देखिँदैन</small>
                             </div>
                         </div>
                     </div>

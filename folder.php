@@ -1050,6 +1050,49 @@ $whatsapp_number = getSetting('whatsapp_number');
                 </div>
             </div>
 
+            <?php 
+            // Check if preview is disabled - show download-only view
+            $show_preview = !isset($folder['show_preview']) || $folder['show_preview'];
+            if (!$show_preview): 
+            ?>
+                <!-- ── Download Only View (Preview Disabled) ── -->
+                <div class="download-only-view text-center py-5">
+                    <div class="download-only-icon mb-4">
+                        <i class="fas fa-file-archive" style="font-size: 5rem; color: #28a745;"></i>
+                    </div>
+                    <h4 class="mb-3">
+                        <i class="fas fa-download me-2"></i>
+                        फाइलहरू डाउनलोड गर्नुहोस्
+                    </h4>
+                    <p class="text-muted mb-4">
+                        यस फोल्डरमा <?php echo count($photos); ?> फाइल<?php echo count($photos) !== 1 ? 'हरू' : ''; ?> छ<?php echo count($photos) !== 1 ? 'न्' : ''; ?>।<br>
+                        तलको बटन थिचेर ZIP फाइलमा एकैपटक डाउनलोड गर्नुहोस्।
+                    </p>
+                    <?php if ($folder['allow_zip_download'] && count($photos) > 0): ?>
+                        <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
+                           class="btn btn-success btn-lg download-all-btn px-5 py-3"
+                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
+                            <i class="fas fa-download me-2"></i> 
+                            सबै डाउनलोड गर्नुहोस् (<?php echo count($photos); ?> files)
+                        </a>
+                        <p class="text-muted mt-3 mb-0">
+                            <small><i class="fas fa-file-archive me-1"></i> ZIP फाइलमा डाउनलोड हुन्छ</small>
+                        </p>
+                    <?php elseif (!$folder['allow_zip_download']): ?>
+                        <div class="alert alert-warning d-inline-block">
+                            <i class="fas fa-info-circle me-2"></i>
+                            डाउनलोड यस फोल्डरको लागि उपलब्ध छैन।
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-info d-inline-block">
+                            <i class="fas fa-folder-open me-2"></i>
+                            यस फोल्डरमा अहिले कुनै फाइल छैन।
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <!-- ── Preview Enabled: Show Photos/Albums ── -->
+
             <?php if ($has_subfolders && $current_album !== null): ?>
             <!-- Breadcrumb navigation when inside an album -->
             <div class="breadcrumb-nav">
@@ -1270,6 +1313,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                 <?php endif; ?>
             <?php endif; ?>
         <?php endif; ?>
+        <?php endif; ?> <!-- End of show_preview else block -->
         
         <div class="footer-text">
             <?php if ($contact_phone || $contact_email || $whatsapp_number): ?>

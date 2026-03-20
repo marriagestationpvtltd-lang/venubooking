@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $expires_in = $_POST['expires_in'] ?? '';
     $max_downloads = !empty($_POST['max_downloads']) ? intval($_POST['max_downloads']) : null;
     $allow_zip_download = isset($_POST['allow_zip_download']) ? 1 : 0;
+    $show_preview = isset($_POST['show_preview']) ? 1 : 0;
     $status = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
     
     if (empty($folder_name)) {
@@ -59,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     max_downloads = ?, 
                     expires_at = ?, 
                     allow_zip_download = ?,
+                    show_preview = ?,
                     status = ?
                     WHERE id = ?";
             $stmt = $db->prepare($sql);
@@ -68,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $max_downloads, 
                 $expires_at, 
                 $allow_zip_download,
+                $show_preview,
                 $status,
                 $folder_id
             ]);
@@ -186,6 +189,17 @@ $folder_url = BASE_URL . '/folder.php?token=' . urlencode($folder['download_toke
                                 <i class="fas fa-file-archive"></i> Allow "Download All as ZIP" (सबै फोटो एकैपटक डाउनलोड)
                             </label>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="show_preview" name="show_preview" 
+                                   <?php echo (!isset($folder['show_preview']) || $folder['show_preview']) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="show_preview">
+                                <i class="fas fa-eye"></i> फोटो प्रिभियु देखाउनुहोस्
+                            </label>
+                        </div>
+                        <small class="text-muted ms-4">बन्द गरेमा युजरलाई सिधै ZIP डाउनलोड मात्र देखिन्छ, फोटो प्रिभियु देखिँदैन</small>
                     </div>
 
                     <div class="d-flex justify-content-between mt-4">
