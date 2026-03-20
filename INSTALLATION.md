@@ -21,11 +21,14 @@ Follow this checklist to ensure proper installation of the Venue Booking System.
 - [ ] Create an empty database in MySQL / cPanel
 - [ ] Import `database/production-ready.sql` — this creates all tables, the default admin user, and essential settings with no sample data
 
-**Option B – Shared hosting with sample data:**
+**Option B – Shared hosting (cPanel):**
 - [ ] Create the database in cPanel MySQL Databases
-- [ ] Import `database/production-shared-hosting.sql` via phpMyAdmin — this includes venues, halls, menus, sample bookings, and vendor records to explore the system before entering real data (remove sample data before going live)
+- [ ] Import `database/production-shared-hosting.sql` via phpMyAdmin — this is a clean production database with no sample data, ready for live deployment
 
-> Both scripts create all 21 required tables in a single import. Do **not** run the older `schema.sql`, `complete-setup.sql`, or individual migration files; those are kept for reference only.
+**Option C – Development/Testing:**
+- [ ] Import `database/complete-database-setup.sql` — includes sample venues, halls, menus, bookings for testing
+
+> All scripts create all 34 required tables in a single import. Do **not** run individual migration files unless upgrading an existing database.
 
 ### 3. Configuration
 - [ ] Copy `.env.example` to `.env`
@@ -134,7 +137,7 @@ If you encounter issues:
 - [ ] Check MySQL error logs
 - [ ] Check web server error logs
 - [ ] Verify database credentials in `.env`
-- [ ] Ensure all tables were created (run `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE();` — should return 21)
+- [ ] Ensure all tables were created (run `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE();` — should return 34)
 - [ ] Check file permissions on `uploads/` and `logs/`
 - [ ] Clear browser cache and try again
 
