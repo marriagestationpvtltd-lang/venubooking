@@ -733,7 +733,14 @@ Date changes are subject to availability and must be requested at least 15 days 
 ('smtp_username', '', 'text'),
 ('smtp_password', '', 'password'),
 ('smtp_encryption', 'tls', 'text'),
-('google_review_link', '', 'url');
+('google_review_link', '', 'url'),
+-- Folder page banner ad settings
+('folder_banner_a', '', 'image'),
+('folder_banner_a_link', '', 'url'),
+('folder_banner_a_enabled', '0', 'boolean'),
+('folder_banner_b', '', 'image'),
+('folder_banner_b_link', '', 'url'),
+('folder_banner_b_enabled', '0', 'boolean');
 
 
 -- Insert placeholder payment methods (INACTIVE by default)

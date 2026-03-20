@@ -83,6 +83,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'send_
             }
         }
         
+        // Handle Banner A upload
+        if (isset($_FILES['setting_folder_banner_a']) && $_FILES['setting_folder_banner_a']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_result = handleImageUpload($_FILES['setting_folder_banner_a'], 'banner_a');
+            if ($upload_result['success']) {
+                $old_banner = getSetting('folder_banner_a', '');
+                if (!empty($old_banner)) {
+                    deleteUploadedFile($old_banner);
+                }
+                $_POST['setting_folder_banner_a'] = $upload_result['filename'];
+            } else {
+                throw new Exception('Banner A upload failed: ' . $upload_result['message']);
+            }
+        }
+        
+        // Handle Banner B upload
+        if (isset($_FILES['setting_folder_banner_b']) && $_FILES['setting_folder_banner_b']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $upload_result = handleImageUpload($_FILES['setting_folder_banner_b'], 'banner_b');
+            if ($upload_result['success']) {
+                $old_banner = getSetting('folder_banner_b', '');
+                if (!empty($old_banner)) {
+                    deleteUploadedFile($old_banner);
+                }
+                $_POST['setting_folder_banner_b'] = $upload_result['filename'];
+            } else {
+                throw new Exception('Banner B upload failed: ' . $upload_result['message']);
+            }
+        }
+        
         // Update all settings
         foreach ($_POST as $key => $value) {
             if (strpos($key, 'setting_') === 0) {
@@ -220,6 +248,11 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#quicklinks">
                         <i class="fas fa-link"></i> Quick Links
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#bannerads">
+                        <i class="fas fa-ad"></i> Banner Ads
                     </a>
                 </li>
             </ul>
@@ -769,6 +802,100 @@ Date changes are subject to availability and must be requested at least 15 days 
                     </button>
                     
                     <input type="hidden" name="setting_quick_links" id="quickLinksData" value="">
+                </div>
+
+                <!-- Banner Ads Tab -->
+                <div class="tab-pane fade" id="bannerads">
+                    <h6 class="mb-3 text-success"><i class="fas fa-ad"></i> Folder Page Banner Ads</h6>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Upload banner advertisements that will be displayed on the public folder/photo sharing page (folder.php). 
+                        <strong>Banner A</strong> appears on the left side and <strong>Banner B</strong> appears on the right side of the page.
+                        Recommended size: 300×600px (vertical banner).
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <i class="fas fa-image"></i> Banner A (Left Side)
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Banner Image</label>
+                                        <input type="file" class="form-control" name="setting_folder_banner_a" accept="image/*">
+                                        <div class="form-text">Upload image for Banner A (displayed on left side)</div>
+                                    </div>
+                                    <?php if (!empty($settings['folder_banner_a'])): ?>
+                                        <div class="image-preview mb-3">
+                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($settings['folder_banner_a']); ?>" 
+                                                 alt="Banner A" style="max-width: 200px; max-height: 300px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <p class="text-muted small mt-1">Current Banner A</p>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="mb-3">
+                                        <label class="form-label">Banner A Link (Optional)</label>
+                                        <input type="url" class="form-control" name="setting_folder_banner_a_link" 
+                                               value="<?php echo htmlspecialchars($settings['folder_banner_a_link'] ?? ''); ?>"
+                                               placeholder="https://example.com">
+                                        <div class="form-text">URL to open when banner is clicked</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Enable Banner A</label>
+                                        <select class="form-select" name="setting_folder_banner_a_enabled">
+                                            <option value="1" <?php echo ($settings['folder_banner_a_enabled'] ?? '0') == '1' ? 'selected' : ''; ?>>Enabled</option>
+                                            <option value="0" <?php echo ($settings['folder_banner_a_enabled'] ?? '0') == '0' ? 'selected' : ''; ?>>Disabled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <i class="fas fa-image"></i> Banner B (Right Side)
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Banner Image</label>
+                                        <input type="file" class="form-control" name="setting_folder_banner_b" accept="image/*">
+                                        <div class="form-text">Upload image for Banner B (displayed on right side)</div>
+                                    </div>
+                                    <?php if (!empty($settings['folder_banner_b'])): ?>
+                                        <div class="image-preview mb-3">
+                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($settings['folder_banner_b']); ?>" 
+                                                 alt="Banner B" style="max-width: 200px; max-height: 300px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <p class="text-muted small mt-1">Current Banner B</p>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="mb-3">
+                                        <label class="form-label">Banner B Link (Optional)</label>
+                                        <input type="url" class="form-control" name="setting_folder_banner_b_link" 
+                                               value="<?php echo htmlspecialchars($settings['folder_banner_b_link'] ?? ''); ?>"
+                                               placeholder="https://example.com">
+                                        <div class="form-text">URL to open when banner is clicked</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Enable Banner B</label>
+                                        <select class="form-select" name="setting_folder_banner_b_enabled">
+                                            <option value="1" <?php echo ($settings['folder_banner_b_enabled'] ?? '0') == '1' ? 'selected' : ''; ?>>Enabled</option>
+                                            <option value="0" <?php echo ($settings['folder_banner_b_enabled'] ?? '0') == '0' ? 'selected' : ''; ?>>Disabled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-lightbulb"></i> <strong>Tips:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Use high-quality images optimized for web (JPG, PNG, or WebP)</li>
+                            <li>Banners are displayed on desktop view. On mobile devices, they are hidden to save space.</li>
+                            <li>Leave the link empty if you don't want the banner to be clickable.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 

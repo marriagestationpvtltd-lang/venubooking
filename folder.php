@@ -300,6 +300,14 @@ $site_logo = getSetting('site_logo');
 $contact_phone = getSetting('contact_phone');
 $contact_email = getSetting('contact_email');
 $whatsapp_number = getSetting('whatsapp_number');
+
+// Get banner ad settings
+$banner_a_image = getSetting('folder_banner_a');
+$banner_a_link = getSetting('folder_banner_a_link');
+$banner_a_enabled = getSetting('folder_banner_a_enabled') === '1';
+$banner_b_image = getSetting('folder_banner_b');
+$banner_b_link = getSetting('folder_banner_b_link');
+$banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
 ?>
 <!DOCTYPE html>
 <html lang="ne">
@@ -918,9 +926,92 @@ $whatsapp_number = getSetting('whatsapp_number');
             }
             .subfolder-card .subfolder-thumb { height: 120px; }
         }
+
+        /* Banner Ad Styles */
+        .page-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .banner-ad {
+            width: 300px;
+            min-width: 300px;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .banner-ad img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: block;
+        }
+        
+        .banner-ad a {
+            display: block;
+            text-decoration: none;
+        }
+        
+        .banner-ad a:hover img {
+            transform: scale(1.02);
+            transition: transform 0.3s ease;
+        }
+        
+        .banner-ad-label {
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .main-content {
+            flex: 1;
+            max-width: 1400px;
+        }
+        
+        /* Hide banners on mobile and tablet */
+        @media (max-width: 1200px) {
+            .banner-ad {
+                display: none;
+            }
+            .page-wrapper {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
+    <?php 
+    // Check if any banner is enabled and has an image
+    $show_banner_a = $banner_a_enabled && !empty($banner_a_image) && file_exists(UPLOAD_PATH . $banner_a_image);
+    $show_banner_b = $banner_b_enabled && !empty($banner_b_image) && file_exists(UPLOAD_PATH . $banner_b_image);
+    $has_any_banner = $show_banner_a || $show_banner_b;
+    ?>
+    
+    <?php if ($has_any_banner): ?>
+    <div class="page-wrapper">
+        <!-- Banner A (Left Side) -->
+        <?php if ($show_banner_a): ?>
+        <div class="banner-ad banner-ad-left">
+            <?php if (!empty($banner_a_link)): ?>
+            <a href="<?php echo htmlspecialchars($banner_a_link); ?>" target="_blank" rel="noopener noreferrer">
+                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement">
+            </a>
+            <?php else: ?>
+            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement">
+            <?php endif; ?>
+            <div class="banner-ad-label">Ad</div>
+        </div>
+        <?php endif; ?>
+        
+        <div class="main-content">
+    <?php endif; ?>
+    
     <div class="folder-container">
         <?php if ($error_message): ?>
             <div class="error-container">
@@ -1348,6 +1439,25 @@ $whatsapp_number = getSetting('whatsapp_number');
             </div>
         </div>
     </div>
+    
+    <?php if ($has_any_banner): ?>
+        </div><!-- End main-content -->
+        
+        <!-- Banner B (Right Side) -->
+        <?php if ($show_banner_b): ?>
+        <div class="banner-ad banner-ad-right">
+            <?php if (!empty($banner_b_link)): ?>
+            <a href="<?php echo htmlspecialchars($banner_b_link); ?>" target="_blank" rel="noopener noreferrer">
+                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement">
+            </a>
+            <?php else: ?>
+            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement">
+            <?php endif; ?>
+            <div class="banner-ad-label">Ad</div>
+        </div>
+        <?php endif; ?>
+    </div><!-- End page-wrapper -->
+    <?php endif; ?>
     
     <!-- Lightbox for image preview -->
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
