@@ -88,7 +88,7 @@ $bookings = $stmt->fetchAll();
                         <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending Only</option>
                         <option value="payment_submitted" <?php echo $status_filter === 'payment_submitted' ? 'selected' : ''; ?>>Payment Submitted</option>
                         <option value="confirmed" <?php echo $status_filter === 'confirmed' ? 'selected' : ''; ?>>Confirmed Only</option>
-                        <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Completed Only</option>
+                        <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Order Complete Only</option>
                         <option value="cancelled" <?php echo $status_filter === 'cancelled' ? 'selected' : ''; ?>>Cancelled Only</option>
                         <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Bookings</option>
                     </select>
@@ -112,7 +112,7 @@ $bookings = $stmt->fetchAll();
                     'pending' => 'Showing: Pending Bookings',
                     'payment_submitted' => 'Showing: Payment Submitted',
                     'confirmed' => 'Showing: Confirmed Bookings',
-                    'completed' => 'Showing: Completed Bookings',
+                    'completed' => 'Showing: Order Complete Bookings',
                     'cancelled' => 'Showing: Cancelled Bookings'
                 ];
                 echo $filter_labels[$status_filter] ?? 'Filtered';
@@ -215,8 +215,8 @@ $bookings = $stmt->fetchAll();
                                 ?> px-2 py-1 booking-status-badge"
                                     title="Booking status is read-only on this page. Use the View page to update it."
                                     role="status"
-                                    aria-label="Booking status: <?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?> (read-only)">
-                                    <?php echo ucfirst(str_replace('_', ' ', $booking['booking_status'])); ?>
+                                    aria-label="Booking status: <?php echo getBookingStatusLabel($booking['booking_status']); ?> (read-only)">
+                                    <?php echo getBookingStatusLabel($booking['booking_status']); ?>
                                 </span>
                             </td>
                             <td>
