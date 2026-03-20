@@ -237,6 +237,15 @@ if (!move_uploaded_file($file['tmp_name'], $upload_path)) {
     exit;
 }
 
+// Verify the file was actually written to disk before touching the database.
+// This guards against silent write failures (e.g. disk-quota exhaustion) where
+// move_uploaded_file() may return true but leave an empty or missing file.
+if (!file_exists($upload_path) || filesize($upload_path) === 0) {
+    @unlink($upload_path);
+    echo json_encode(['success' => false, 'message' => 'File could not be saved to disk. Please check server disk space and permissions.']);
+    exit;
+}
+
 $thumbnail_relative_path = null;
 
 // If replacing an existing file, delete the old physical file and database record

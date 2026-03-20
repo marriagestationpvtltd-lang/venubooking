@@ -523,7 +523,8 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                             <?php else: ?>
                                 <img src="<?php echo htmlspecialchars($file_url); ?>" alt="<?php echo htmlspecialchars($photo['title']); ?>" loading="lazy"
                                      onclick="adminOpenImage('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
-                                     title="Click to preview">
+                                     title="Click to preview"
+                                     onerror="this.style.opacity='0.3';this.style.cursor='default';this.onclick=null;this.title='File not found on server';">
                             <?php endif; ?>
                             
                             <a href="?id=<?php echo $folder_id; ?>&delete_photo=<?php echo $photo['id']; ?>" 
