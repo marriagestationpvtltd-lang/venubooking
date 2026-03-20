@@ -882,7 +882,8 @@ function calculateDesignsTotal($selected_designs) {
     return (float)($row['total'] ?? 0);
 }
 
-
+/**
+ * Get all active service categories with their active packages and features
  * Returns an array of categories, each with a 'packages' key containing packages,
  * each package having a 'features' key containing its feature list.
  */
