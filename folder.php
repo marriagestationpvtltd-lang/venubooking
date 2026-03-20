@@ -1084,12 +1084,14 @@ $whatsapp_number = getSetting('whatsapp_number');
                     </div>
                 <?php else: ?>
                     <div class="photo-grid">
-                        <?php foreach ($visible_photos as $photo): 
+                        <?php 
+                        // Define extension arrays once for performance
+                        $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                        $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
+                        foreach ($visible_photos as $photo): 
                             $file_url = UPLOAD_URL . $photo['image_path'];
                             $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
                             // Determine file type, treating image extensions as photos even if stored as 'file'
-                            $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-                            $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
                             $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                             $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
                             // If file is marked as 'file' but has an image extension, treat it as a photo
@@ -1158,12 +1160,14 @@ $whatsapp_number = getSetting('whatsapp_number');
                     </div>
                 <?php else: ?>
                     <div class="photo-grid">
-                        <?php foreach ($photos as $photo): 
+                        <?php 
+                        // Define extension arrays once for performance
+                        $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                        $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
+                        foreach ($photos as $photo): 
                             $file_url = UPLOAD_URL . $photo['image_path'];
                             $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
                             // Determine file type, treating image extensions as photos even if stored as 'file'
-                            $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-                            $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
                             $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                             $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
                             // If file is marked as 'file' but has an image extension, treat it as a photo

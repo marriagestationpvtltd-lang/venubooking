@@ -497,12 +497,14 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                     </div>
                 <?php endif; ?>
                 <div class="photo-grid">
-                    <?php foreach ($sf_photos as $photo): 
+                    <?php 
+                    // Define extension arrays once for performance
+                    $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                    $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
+                    foreach ($sf_photos as $photo): 
                         $file_url = UPLOAD_URL . $photo['image_path'];
                         $ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
                         // Determine file type, treating image extensions as photos even if stored as 'file'
-                        $image_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-                        $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
                         $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
                         $is_generic = isset($photo['file_type']) && $photo['file_type'] === 'file';
                         // If file is marked as 'file' but has an image extension, treat it as a photo
