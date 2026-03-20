@@ -197,7 +197,12 @@ document.addEventListener("DOMContentLoaded", function() {
         },
         dayCellDidMount: function(info) {
             // Add booking count badge to date cells using pre-calculated counts
-            const dateStr = info.date.toISOString().split("T")[0];
+            // Use local date components to avoid UTC timezone conversion issues
+            // info.date.toISOString() shifts dates to UTC which causes off-by-one errors for UTC+ timezones
+            const year = info.date.getFullYear();
+            const month = String(info.date.getMonth() + 1).padStart(2, '0');
+            const day = String(info.date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
             const count = bookingCounts[dateStr] || 0;
             
             // Get the day number element
