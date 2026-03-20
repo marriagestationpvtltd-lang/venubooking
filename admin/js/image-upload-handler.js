@@ -38,6 +38,7 @@ class ImageUploadHandler {
             chunkUploadUrl: 'ajax-chunk-upload.php', // Chunked upload endpoint
             disableChunkedUpload: false, // When true, all uploads use direct POST (max = maxFileSize/maxOtherFileSize)
             autoUpload: false, // When true, upload starts immediately after file selection without clicking the Upload button
+            skipPreviewGeneration: false, // When true, skip thumbnail/preview loading (Google Drive style: instant upload, no preview)
             onUploadStart: () => {},
             onUploadProgress: () => {},
             onUploadComplete: () => {},
@@ -227,9 +228,8 @@ class ImageUploadHandler {
             this.removeFile(index);
         });
 
-        // Generate thumbnail
+        // Generate thumbnail (or icon if skipPreviewGeneration is true)
         const container = preview.querySelector('.preview-image-container');
-        const isImage = this.options.allowedTypes.includes(file.type);
         if (this.isVideoFile(file)) {
             // Show video icon placeholder for videos
             container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
@@ -242,6 +242,13 @@ class ImageUploadHandler {
             container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
                 <i class="${fileInfo.icon}" style="font-size:2rem;color:${fileInfo.color};"></i>
                 <small style="margin-top:4px;font-size:0.65rem;color:#888;">${fileInfo.label}</small>
+            </div>`;
+        } else if (this.options.skipPreviewGeneration) {
+            // skipPreviewGeneration: skip thumbnail generation to avoid loading file data into memory,
+            // allowing upload to start instantly (Google Drive style).
+            container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#666;">
+                <i class="fas fa-image" style="font-size:2rem;color:#3498db;"></i>
+                <small style="margin-top:4px;font-size:0.65rem;color:#888;">IMAGE</small>
             </div>`;
         } else {
             try {

@@ -142,6 +142,7 @@ $error_message = '';
         allowAllFiles: true, // Allow any file type
         disableChunkedUpload: true, // Standalone sharing: direct upload only; 500MB server limit applies
         autoUpload: true, // Start upload immediately after file selection
+        skipPreviewGeneration: true, // Skip thumbnail loading; upload instantly (Google Drive style)
         maxFileSize: 500 * 1024 * 1024,       // 500 MB for images
         maxVideoSize: 500 * 1024 * 1024,      // 500 MB for videos (direct upload only)
         maxOtherFileSize: 500 * 1024 * 1024,  // 500 MB for any other file
