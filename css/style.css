@@ -1129,6 +1129,34 @@ footer a:hover {
     box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
+/* Service category filter buttons */
+.service-category-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.service-category-filter-btn {
+    padding: 0.4rem 1.1rem;
+    border: 2px solid var(--primary-green, #4caf50);
+    background: transparent;
+    color: var(--primary-green, #4caf50);
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.service-category-filter-btn:hover,
+.service-category-filter-btn.active {
+    background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
 
 
 /* ===== Service Packages Section – Premium UI ===== */
