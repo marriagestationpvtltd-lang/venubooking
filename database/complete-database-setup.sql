@@ -534,7 +534,8 @@ CREATE TABLE IF NOT EXISTS shared_folders (
 CREATE TABLE IF NOT EXISTS shared_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     folder_id INT NULL COMMENT 'Folder this file belongs to, NULL for standalone file',
-    file_type ENUM('photo', 'video') DEFAULT 'photo' COMMENT 'Type of file: photo or video',
+    subfolder_name VARCHAR(255) NULL DEFAULT NULL COMMENT 'Album/sub-folder name for grouping photos within a shared folder',
+    file_type ENUM('photo', 'video', 'file') DEFAULT 'photo' COMMENT 'Type of file: photo, video, or generic file',
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_path VARCHAR(255) NOT NULL COMMENT 'Relative path to the file (photo or video)',
@@ -551,12 +552,109 @@ CREATE TABLE IF NOT EXISTS shared_photos (
     FOREIGN KEY (folder_id) REFERENCES shared_folders(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_folder_id (folder_id),
+    INDEX idx_subfolder_name (subfolder_name),
     INDEX idx_file_type (file_type),
     INDEX idx_download_token (download_token),
     INDEX idx_status (status),
     INDEX idx_expires_at (expires_at),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- PLANNER SYSTEM TABLES
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS event_plans (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    event_date DATE DEFAULT NULL,
+    customer_id INT DEFAULT NULL,
+    total_budget DECIMAL(12,2) DEFAULT 0,
+    description TEXT,
+    status ENUM('planning', 'in_progress', 'completed', 'cancelled') DEFAULT 'planning',
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_status (status),
+    INDEX idx_event_date (event_date),
+    INDEX idx_customer_id (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS plan_tasks (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    plan_id INT NOT NULL,
+    task_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'General',
+    description TEXT,
+    due_date DATE DEFAULT NULL,
+    estimated_cost DECIMAL(10,2) DEFAULT 0,
+    actual_cost DECIMAL(10,2) DEFAULT 0,
+    status ENUM('pending', 'in_progress', 'completed') DEFAULT 'pending',
+    priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (plan_id) REFERENCES event_plans(id) ON DELETE CASCADE,
+    INDEX idx_plan_id (plan_id),
+    INDEX idx_status (status),
+    INDEX idx_due_date (due_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TRIGGERS
+-- ============================================================================
+
+-- Triggers: Keep shared_folders.photo_count accurate when photos are added/removed/moved.
+DROP TRIGGER IF EXISTS trg_shared_photos_insert;
+DROP TRIGGER IF EXISTS trg_shared_photos_delete;
+DROP TRIGGER IF EXISTS trg_shared_photos_update;
+
+DELIMITER $$
+CREATE TRIGGER trg_shared_photos_insert
+AFTER INSERT ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF NEW.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_delete
+AFTER DELETE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_update
+AFTER UPDATE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL AND (NEW.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+    IF NEW.folder_id IS NOT NULL AND (OLD.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+DELIMITER ;
 
 -- ============================================================================
 -- INSERT DEFAULT DATA

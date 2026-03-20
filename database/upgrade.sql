@@ -415,6 +415,7 @@ CREATE TABLE IF NOT EXISTS shared_folders (
     expires_at DATETIME DEFAULT NULL COMMENT 'Folder expiration date, NULL for never',
     status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
     allow_zip_download TINYINT(1) DEFAULT 1 COMMENT 'Allow downloading all photos as ZIP',
+    show_preview TINYINT(1) DEFAULT 1 COMMENT 'Show photo previews to users. If 0, only ZIP download is shown',
     created_by INT NULL COMMENT 'Admin user who created the folder',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -428,7 +429,8 @@ CREATE TABLE IF NOT EXISTS shared_folders (
 CREATE TABLE IF NOT EXISTS shared_photos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     folder_id INT NULL COMMENT 'Folder this file belongs to, NULL for standalone file',
-    file_type ENUM('photo', 'video') DEFAULT 'photo' COMMENT 'Type of file: photo or video',
+    subfolder_name VARCHAR(255) NULL DEFAULT NULL COMMENT 'Album/sub-folder name for grouping photos within a shared folder',
+    file_type ENUM('photo', 'video', 'file') DEFAULT 'photo' COMMENT 'Type of file: photo, video, or generic file',
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_path VARCHAR(255) NOT NULL COMMENT 'Relative path to the file (photo or video)',
@@ -445,12 +447,70 @@ CREATE TABLE IF NOT EXISTS shared_photos (
     FOREIGN KEY (folder_id) REFERENCES shared_folders(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_folder_id (folder_id),
+    INDEX idx_subfolder_name (subfolder_name),
     INDEX idx_file_type (file_type),
     INDEX idx_download_token (download_token),
     INDEX idx_status (status),
     INDEX idx_expires_at (expires_at),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- PLANNER SYSTEM TABLES
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS event_plans (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    event_date DATE DEFAULT NULL,
+    customer_id INT DEFAULT NULL,
+    total_budget DECIMAL(12,2) DEFAULT 0,
+    description TEXT,
+    status ENUM('planning', 'in_progress', 'completed', 'cancelled') DEFAULT 'planning',
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_status (status),
+    INDEX idx_event_date (event_date),
+    INDEX idx_customer_id (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS plan_tasks (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    plan_id INT NOT NULL,
+    task_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'General',
+    description TEXT,
+    due_date DATE DEFAULT NULL,
+    estimated_cost DECIMAL(10,2) DEFAULT 0,
+    actual_cost DECIMAL(10,2) DEFAULT 0,
+    status ENUM('pending', 'in_progress', 'completed') DEFAULT 'pending',
+    priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (plan_id) REFERENCES event_plans(id) ON DELETE CASCADE,
+    INDEX idx_plan_id (plan_id),
+    INDEX idx_status (status),
+    INDEX idx_due_date (due_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: login_attempts (persistent brute-force protection)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    ip_address   VARCHAR(45)     NOT NULL COMMENT 'IPv4 or IPv6 address of the client',
+    success      TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '0 = failed, 1 = successful login',
+    attempted_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_ip_attempted (ip_address, attempted_at),
+    INDEX idx_attempted_at (attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  COMMENT='Tracks login attempts for IP-based brute-force protection';
 
 -- ============================================================================
 -- 2. ADD MISSING COLUMNS TO EXISTING TABLES
@@ -769,6 +829,20 @@ BEGIN
             AFTER file_size;
     END IF;
 
+    -- ---- shared_photos.subfolder_name -----------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'shared_photos'
+          AND column_name = 'subfolder_name'
+    ) THEN
+        ALTER TABLE shared_photos
+            ADD COLUMN subfolder_name VARCHAR(255) NULL DEFAULT NULL
+            COMMENT 'Album/sub-folder name for grouping photos within a shared folder'
+            AFTER folder_id;
+        ALTER TABLE shared_photos ADD INDEX idx_subfolder_name (subfolder_name);
+    END IF;
+
     -- ---- shared_folders.show_preview ------------------------------------
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
@@ -788,6 +862,57 @@ DELIMITER ;
 
 CALL venue_booking_upgrade();
 DROP PROCEDURE IF EXISTS venue_booking_upgrade;
+
+-- ============================================================================
+-- TRIGGERS: Keep shared_folders.photo_count accurate when photos are added/removed/moved.
+-- ============================================================================
+DROP TRIGGER IF EXISTS trg_shared_photos_insert;
+DROP TRIGGER IF EXISTS trg_shared_photos_delete;
+DROP TRIGGER IF EXISTS trg_shared_photos_update;
+
+DELIMITER $$
+CREATE TRIGGER trg_shared_photos_insert
+AFTER INSERT ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF NEW.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_delete
+AFTER DELETE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_shared_photos_update
+AFTER UPDATE ON shared_photos
+FOR EACH ROW
+BEGIN
+    IF OLD.folder_id IS NOT NULL AND (NEW.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = GREATEST(0, photo_count - 1),
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = OLD.folder_id;
+    END IF;
+    IF NEW.folder_id IS NOT NULL AND (OLD.folder_id IS NULL OR NEW.folder_id != OLD.folder_id) THEN
+        UPDATE shared_folders
+        SET photo_count = photo_count + 1,
+            updated_at  = CURRENT_TIMESTAMP
+        WHERE id = NEW.folder_id;
+    END IF;
+END$$
+DELIMITER ;
 
 -- ============================================================================
 -- 3. INSERT MISSING REFERENCE DATA
