@@ -421,13 +421,13 @@
             
             const html = `
                 <div class="nepali-picker-header">
-                    <button type="button" class="nepali-picker-prev-year" data-action="prev-year">&laquo;</button>
-                    <button type="button" class="nepali-picker-prev-month" data-action="prev-month">&lsaquo;</button>
+                    <button type="button" class="nepali-picker-prev-year" data-action="prev-year" title="Previous Year"><i class="fas fa-angle-double-left"></i></button>
+                    <button type="button" class="nepali-picker-prev-month" data-action="prev-month" title="Previous Month"><i class="fas fa-angle-left"></i></button>
                     <span class="nepali-picker-title">
                         ${nepaliMonths[this.currentBSDate.month - 1]} ${this.currentBSDate.year}
                     </span>
-                    <button type="button" class="nepali-picker-next-month" data-action="next-month">&rsaquo;</button>
-                    <button type="button" class="nepali-picker-next-year" data-action="next-year">&raquo;</button>
+                    <button type="button" class="nepali-picker-next-month" data-action="next-month" title="Next Month"><i class="fas fa-angle-right"></i></button>
+                    <button type="button" class="nepali-picker-next-year" data-action="next-year" title="Next Year"><i class="fas fa-angle-double-right"></i></button>
                 </div>
                 <div class="nepali-picker-body">
                     ${this.renderCalendar()}
