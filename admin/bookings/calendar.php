@@ -156,18 +156,35 @@ document.addEventListener("DOMContentLoaded", function() {
         return null;
     }
     
-    // Helper function to format date as YYYY-MM-DD from FullCalendar Date object
+    // Helper function to format date as YYYY-MM-DD
+    // Accepts Date object or string in YYYY-MM-DD format
     function formatDateStr(date) {
+        // If it is already a string in YYYY-MM-DD format, return as-is
+        if (typeof date === "string") {
+            // Validate format and return
+            if (/^\\d{4}-\\d{2}-\\d{2}/.test(date)) {
+                return date.substring(0, 10);
+            }
+            // Try to parse as date
+            date = new Date(date);
+        }
+        
+        // Validate it is a Date object
+        if (!(date instanceof Date) || isNaN(date.getTime())) {
+            console.error("Invalid date provided to formatDateStr:", date);
+            return null;
+        }
+        
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, "0");
         const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
+        return year + "-" + month + "-" + day;
     }
     
     // Pre-calculated booking counts for performance
     let bookingCounts = {};
     
-    // Function to add booking count badges and Nepali dates to date cells
+    // Function to add booking count badges to date cells
     function updateDateCellBadges() {
         // Remove existing badges first to avoid duplicates
         document.querySelectorAll(".booking-count-badge").forEach(el => el.remove());
@@ -209,10 +226,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
                         });
                         successCallback(data.events);
-                        
-                        // Update badges after events are loaded
-                        // Use setTimeout to ensure DOM is updated after FullCalendar processes events
-                        setTimeout(updateDateCellBadges, 100);
                     } else {
                         failureCallback(data.message || "Failed to load bookings");
                     }
@@ -222,16 +235,20 @@ document.addEventListener("DOMContentLoaded", function() {
                     failureCallback(error);
                 });
         },
+        // Called when events are rendered/updated - update badges after FullCalendar finishes
+        eventsSet: function() {
+            updateDateCellBadges();
+        },
         dateClick: function(info) {
             loadBookingsForDate(info.dateStr);
         },
         eventClick: function(info) {
             info.jsEvent.preventDefault();
-            // Use info.event.start which can be a Date or string
-            // Convert to YYYY-MM-DD format for API
-            const eventDate = info.event.start;
-            const dateStr = eventDate instanceof Date ? formatDateStr(eventDate) : eventDate;
-            loadBookingsForDate(dateStr);
+            // formatDateStr handles both Date objects and strings
+            const dateStr = formatDateStr(info.event.start);
+            if (dateStr) {
+                loadBookingsForDate(dateStr);
+            }
         },
         dayCellDidMount: function(info) {
             // Add Nepali date to each cell (badges added separately after events load)
