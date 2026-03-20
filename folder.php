@@ -965,7 +965,7 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
         }
         
         .banner-ad-label {
-            font-size: 9px;
+            font-size: 11px;
             color: #aaa;
             text-align: center;
             margin-top: 8px;
@@ -1013,7 +1013,7 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
         }
         
         .mobile-banner-header span {
-            font-size: 11px;
+            font-size: 12px;
             color: #888;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -1063,9 +1063,9 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
             right: 8px;
             background: rgba(0,0,0,0.6);
             color: #fff;
-            padding: 3px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 9px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
             font-weight: 500;
@@ -1121,10 +1121,10 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
         <div class="banner-ad banner-ad-left banner-ad-desktop">
             <?php if (!empty($banner_a_link)): ?>
             <a href="<?php echo htmlspecialchars($banner_a_link); ?>" target="_blank" rel="noopener noreferrer">
-                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement">
+                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner">
             </a>
             <?php else: ?>
-            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement">
+            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner">
             <?php endif; ?>
             <div class="banner-ad-label">Sponsored</div>
         </div>
@@ -1543,11 +1543,11 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
                     <div class="mobile-banner-item">
                         <?php if (!empty($banner_a_link)): ?>
                         <a href="<?php echo htmlspecialchars($banner_a_link); ?>" target="_blank" rel="noopener noreferrer">
-                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement" loading="lazy">
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner" loading="lazy">
                             <span class="banner-badge">Ad</span>
                         </a>
                         <?php else: ?>
-                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Advertisement" loading="lazy">
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner" loading="lazy">
                         <span class="banner-badge">Ad</span>
                         <?php endif; ?>
                     </div>
@@ -1557,11 +1557,11 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
                     <div class="mobile-banner-item">
                         <?php if (!empty($banner_b_link)): ?>
                         <a href="<?php echo htmlspecialchars($banner_b_link); ?>" target="_blank" rel="noopener noreferrer">
-                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement" loading="lazy">
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner" loading="lazy">
                             <span class="banner-badge">Ad</span>
                         </a>
                         <?php else: ?>
-                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement" loading="lazy">
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner" loading="lazy">
                         <span class="banner-badge">Ad</span>
                         <?php endif; ?>
                     </div>
@@ -1609,10 +1609,10 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
         <div class="banner-ad banner-ad-right banner-ad-desktop">
             <?php if (!empty($banner_b_link)): ?>
             <a href="<?php echo htmlspecialchars($banner_b_link); ?>" target="_blank" rel="noopener noreferrer">
-                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement">
+                <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner">
             </a>
             <?php else: ?>
-            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Advertisement">
+            <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_b_image); ?>" alt="Sponsored Banner">
             <?php endif; ?>
             <div class="banner-ad-label">Sponsored</div>
         </div>
