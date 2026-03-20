@@ -140,14 +140,50 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                 $safe_title = trim($safe_title, '_');
                 $download_filename = (!empty($safe_title) ? $safe_title : 'photo') . '.' . $ext;
                 
-                // Send file for download
+                // Prepare for large file download
+                // Disable time limit for large file transfers
+                @set_time_limit(0);
+                
+                // Disable output buffering to allow immediate streaming
+                if (ob_get_level()) {
+                    ob_end_clean();
+                }
+                
+                // Get file size
+                $file_size = filesize($file_path);
+                
+                // Send file for download with proper headers
                 header('Content-Type: ' . $mime_type);
                 header('Content-Disposition: attachment; filename="' . $download_filename . '"');
-                header('Content-Length: ' . filesize($file_path));
-                header('Cache-Control: no-cache, must-revalidate');
+                header('Content-Length: ' . $file_size);
+                header('Content-Transfer-Encoding: binary');
+                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+                header('Cache-Control: post-check=0, pre-check=0', false);
                 header('Pragma: no-cache');
+                header('Expires: 0');
                 
-                readfile($file_path);
+                // Flush headers to browser immediately
+                flush();
+                
+                // Stream the file in chunks for large files
+                $handle = fopen($file_path, 'rb');
+                if ($handle !== false) {
+                    // Use 8KB chunks for efficient streaming
+                    $chunk_size = 8 * 1024;
+                    while (!feof($handle)) {
+                        echo fread($handle, $chunk_size);
+                        // Flush output buffer to send data immediately
+                        flush();
+                        // Check if connection is still alive
+                        if (connection_aborted()) {
+                            break;
+                        }
+                    }
+                    fclose($handle);
+                } else {
+                    // Log error if file cannot be opened
+                    error_log('Failed to open file for streaming: ' . $file_path);
+                }
                 exit;
             } else {
                 $error_message = 'File not found.';
@@ -235,17 +271,55 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                 // Increment folder total downloads
                 $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
                 
-                // Send ZIP file for download
+                // Prepare for large file download
+                // Disable time limit for large file transfers
+                @set_time_limit(0);
+                
+                // Disable output buffering to allow immediate streaming
+                if (ob_get_level()) {
+                    ob_end_clean();
+                }
+                
+                // Get file size for Content-Length header
+                $file_size = filesize($zip_path);
+                
+                // Send ZIP file for download with proper headers
                 header('Content-Type: application/zip');
                 header('Content-Disposition: attachment; filename="' . $zip_filename . '"');
-                header('Content-Length: ' . filesize($zip_path));
-                header('Cache-Control: no-cache, must-revalidate');
+                header('Content-Length: ' . $file_size);
+                header('Content-Transfer-Encoding: binary');
+                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+                header('Cache-Control: post-check=0, pre-check=0', false);
                 header('Pragma: no-cache');
+                header('Expires: 0');
                 
-                readfile($zip_path);
+                // Flush headers to browser immediately
+                flush();
                 
-                // Clean up temp file
-                unlink($zip_path);
+                // Stream the file in chunks to prevent memory issues and timeouts
+                $handle = fopen($zip_path, 'rb');
+                if ($handle !== false) {
+                    // Use 8KB chunks for efficient streaming
+                    $chunk_size = 8 * 1024;
+                    while (!feof($handle)) {
+                        echo fread($handle, $chunk_size);
+                        // Flush output buffer to send data immediately
+                        flush();
+                        // Check if connection is still alive
+                        if (connection_aborted()) {
+                            break;
+                        }
+                    }
+                    fclose($handle);
+                } else {
+                    // Log error if ZIP file cannot be opened
+                    error_log('Failed to open ZIP file for streaming: ' . $zip_path);
+                }
+                
+                // Clean up temp file (with error logging)
+                if (!unlink($zip_path)) {
+                    error_log('Failed to delete temporary ZIP file: ' . $zip_path);
+                }
                 exit;
             } else {
                 $error_message = 'Failed to create ZIP file.';
