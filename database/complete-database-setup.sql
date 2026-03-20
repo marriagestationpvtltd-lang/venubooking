@@ -520,6 +520,7 @@ CREATE TABLE IF NOT EXISTS shared_folders (
     expires_at DATETIME DEFAULT NULL COMMENT 'Folder expiration date, NULL for never',
     status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
     allow_zip_download TINYINT(1) DEFAULT 1 COMMENT 'Allow downloading all photos as ZIP',
+    show_preview TINYINT(1) DEFAULT 1 COMMENT 'Show photo previews to users. If 0, only ZIP download is shown',
     created_by INT NULL COMMENT 'Admin user who created the folder',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
