@@ -448,6 +448,36 @@ function checkHallAvailability($hall_id, $date, $shift) {
 }
 
 /**
+ * Get booking counts grouped by date for a given date range
+ *
+ * @param string $start_date Start date inclusive (YYYY-MM-DD, AD/Gregorian)
+ * @param string $end_date   End date inclusive (YYYY-MM-DD, AD/Gregorian)
+ * @return array Associative array mapping AD date strings to booking counts,
+ *               e.g. ['2024-04-14' => 3, '2024-04-20' => 1]
+ */
+function getBookingCountsByDate($start_date, $end_date) {
+    $db = getDB();
+
+    $sql = "SELECT event_date, COUNT(*) as booking_count
+            FROM bookings
+            WHERE event_date BETWEEN ? AND ?
+            AND booking_status != 'cancelled'
+            GROUP BY event_date
+            ORDER BY event_date";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$start_date, $end_date]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $counts = [];
+    foreach ($rows as $row) {
+        $counts[$row['event_date']] = (int)$row['booking_count'];
+    }
+
+    return $counts;
+}
+
+/**
  * Generate unique booking number
  */
 function generateBookingNumber() {
