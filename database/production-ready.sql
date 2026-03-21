@@ -545,6 +545,7 @@ CREATE TABLE IF NOT EXISTS vendor_photos (
 CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_id INT NOT NULL,
+    booking_service_id INT DEFAULT NULL COMMENT 'FK → booking_services.id; links assignment to a specific booking service row',
     vendor_id INT NOT NULL,
     task_description VARCHAR(255) NOT NULL COMMENT 'What the vendor will do for this booking',
     assigned_amount DECIMAL(10, 2) DEFAULT 0.00 COMMENT 'Amount to be paid to vendor',
@@ -555,6 +556,7 @@ CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE RESTRICT,
     INDEX idx_booking_id (booking_id),
+    INDEX idx_bva_booking_service_id (booking_service_id),
     INDEX idx_vendor_id (vendor_id),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

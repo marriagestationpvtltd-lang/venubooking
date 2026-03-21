@@ -3533,6 +3533,42 @@ function getVendorPrimaryPhotoUrls(array $vendor_ids) {
 }
 
 /**
+ * Get the primary photo URL for multiple additional_services at once (avoids N+1 queries).
+ * Uses the `photo` column stored directly on the additional_services table.
+ *
+ * @param int[] $service_ids  Values of additional_services.id (booking_services.service_id)
+ * @return array Associative array keyed by service_id with the photo URL string (or '' if none).
+ */
+function getServicePrimaryPhotoUrls(array $service_ids) {
+    if (empty($service_ids)) {
+        return [];
+    }
+    $db = getDB();
+    $ids = array_filter(array_map('intval', $service_ids), fn($id) => $id > 0);
+    if (empty($ids)) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    try {
+        $stmt = $db->prepare("SELECT id, photo FROM additional_services WHERE id IN ($placeholders) AND photo IS NOT NULL AND photo != ''");
+        $stmt->execute(array_values($ids));
+        $rows = $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+    $result = [];
+    foreach ($rows as $row) {
+        $sid = (int)$row['id'];
+        $safe = !empty($row['photo']) ? basename($row['photo']) : '';
+        if (!empty($safe) && preg_match(SAFE_FILENAME_PATTERN, $safe)
+            && file_exists(UPLOAD_PATH . $safe)) {
+            $result[$sid] = UPLOAD_URL . $safe;
+        }
+    }
+    return $result;
+}
+
+/**
  * Get vendor assignments for a booking
  *
  * @param int $booking_id
@@ -3549,7 +3585,7 @@ function getBookingVendorAssignments($booking_id) {
             INNER JOIN vendors v ON bva.vendor_id = v.id
             LEFT JOIN cities c ON v.city_id = c.id
             WHERE bva.booking_id = ?
-            ORDER BY v.type, v.name
+            ORDER BY bva.booking_service_id IS NULL, bva.booking_service_id, v.type, v.name
         ");
         $stmt->execute([intval($booking_id)]);
         return $stmt->fetchAll();
@@ -3567,9 +3603,10 @@ function getBookingVendorAssignments($booking_id) {
  * @param string $task_description
  * @param float $assigned_amount
  * @param string $notes
+ * @param int|null $booking_service_id Optional booking_services.id to link the assignment to a specific service
  * @return int|false New assignment ID or false on failure
  */
-function addVendorAssignment($booking_id, $vendor_id, $task_description, $assigned_amount, $notes) {
+function addVendorAssignment($booking_id, $vendor_id, $task_description, $assigned_amount, $notes, $booking_service_id = null) {
     $db = getDB();
     try {
         $booking_id = intval($booking_id);
@@ -3577,16 +3614,19 @@ function addVendorAssignment($booking_id, $vendor_id, $task_description, $assign
         $task_description = trim($task_description);
         $assigned_amount = max(0, floatval($assigned_amount));
         $notes = trim($notes);
+        $booking_service_id = ($booking_service_id !== null && intval($booking_service_id) > 0)
+            ? intval($booking_service_id)
+            : null;
 
         if ($vendor_id <= 0) {
             throw new Exception("A valid vendor must be selected");
         }
 
         $stmt = $db->prepare("
-            INSERT INTO booking_vendor_assignments (booking_id, vendor_id, task_description, assigned_amount, notes, status)
-            VALUES (?, ?, ?, ?, ?, 'assigned')
+            INSERT INTO booking_vendor_assignments (booking_id, booking_service_id, vendor_id, task_description, assigned_amount, notes, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'assigned')
         ");
-        $stmt->execute([$booking_id, $vendor_id, $task_description, $assigned_amount, $notes]);
+        $stmt->execute([$booking_id, $booking_service_id, $vendor_id, $task_description, $assigned_amount, $notes]);
         $new_id = (int)$db->lastInsertId();
         recalculateBookingTotals($booking_id);
         return $new_id;
