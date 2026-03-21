@@ -18,7 +18,7 @@ $venues = $db->query("SELECT id, name FROM venues WHERE status = 'active' ORDER 
 $halls = $db->query("SELECT h.id, h.name, v.name as venue_name, h.capacity FROM halls h INNER JOIN venues v ON h.venue_id = v.id WHERE h.status = 'active' ORDER BY v.name, h.name")->fetchAll();
 
 // Fetch services
-$services = $db->query("SELECT id, name, price, category FROM additional_services WHERE status = 'active' ORDER BY category, name")->fetchAll();
+$services = $db->query("SELECT id, name, price, category, photo FROM additional_services WHERE status = 'active' ORDER BY category, name")->fetchAll();
 
 // Fetch active payment methods
 $payment_methods = getActivePaymentMethods();
@@ -352,17 +352,31 @@ require_once __DIR__ . '/../includes/header.php';
                                     <?php endforeach; ?>
                                 </select>
                                 <!-- Services list grouped by category -->
-                                <div class="border rounded p-2" style="max-height:260px;overflow-y:auto;">
+                                <div class="border rounded p-2" style="max-height:320px;overflow-y:auto;">
                                     <?php foreach ($services_by_category as $cat => $cat_services): ?>
                                     <div class="svc-category-group mb-2" data-category="<?php echo htmlspecialchars($cat, ENT_QUOTES); ?>">
                                         <small class="text-muted fw-semibold d-block mb-1"><?php echo htmlspecialchars($cat); ?></small>
                                         <?php foreach ($cat_services as $service): ?>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="services[]" value="<?php echo $service['id']; ?>"
+                                        <div class="form-check d-flex align-items-center gap-2 mb-2">
+                                            <input class="form-check-input flex-shrink-0" type="checkbox" name="services[]" value="<?php echo $service['id']; ?>"
                                                    id="service_<?php echo $service['id']; ?>"
                                                    <?php echo (isset($_POST['services']) && in_array($service['id'], $_POST['services'])) ? 'checked' : ''; ?>>
-                                            <label class="form-check-label" for="service_<?php echo $service['id']; ?>">
-                                                <?php echo htmlspecialchars($service['name']) . ' - ' . formatCurrency($service['price']); ?>
+                                            <label class="form-check-label d-flex align-items-center gap-2" for="service_<?php echo $service['id']; ?>" style="cursor:pointer;">
+                                                <?php if (!empty($service['photo'])): ?>
+                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                     alt="<?php echo htmlspecialchars($service['name']); ?>"
+                                                     class="rounded flex-shrink-0"
+                                                     style="width:48px;height:48px;object-fit:cover;">
+                                                <?php else: ?>
+                                                <span class="rounded bg-light border d-flex align-items-center justify-content-center flex-shrink-0"
+                                                      style="width:48px;height:48px;">
+                                                    <i class="fas fa-concierge-bell text-muted" style="font-size:1.2rem;"></i>
+                                                </span>
+                                                <?php endif; ?>
+                                                <span>
+                                                    <span class="fw-medium"><?php echo htmlspecialchars($service['name']); ?></span><br>
+                                                    <small class="text-success fw-semibold"><?php echo formatCurrency($service['price']); ?></small>
+                                                </span>
                                             </label>
                                         </div>
                                         <?php endforeach; ?>
