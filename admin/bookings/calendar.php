@@ -72,19 +72,22 @@ $db = getDB();
     border-radius: 4px;
 }
 
-/* Booking count badge - prominently displayed on each date cell */
+/* Booking count badge - displayed at the bottom of each date cell */
 .booking-count-badge {
-    display: inline-block;
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
     background: #198754;
     color: white;
-    border-radius: 10px;
-    padding: 2px 7px;
-    font-size: 0.70rem;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 0.78rem;
     font-weight: 700;
-    margin-top: 3px;
     line-height: 1.4;
     box-shadow: 0 1px 3px rgba(0,0,0,0.25);
     white-space: nowrap;
+    z-index: 3;
+    pointer-events: none;
 }
 
 /* Heat-map coloring for days with many bookings */
@@ -367,14 +370,14 @@ document.addEventListener("DOMContentLoaded", function() {
             else if (count === 3) cell.classList.add("has-bookings-3");
             else cell.classList.add("has-bookings-many");
             
-            // Count badge
-            const dayNumberEl = cell.querySelector(".fc-daygrid-day-number");
-            if (dayNumberEl) {
-                const badge = document.createElement("span");
+            // Count badge - shown at bottom-left of cell frame
+            const cellFrame = cell.querySelector(".fc-daygrid-day-frame");
+            if (cellFrame) {
+                const badge = document.createElement("div");
                 badge.className = "booking-count-badge";
                 badge.title = count + " booking" + (count !== 1 ? "s" : "") + " on this date";
-                badge.textContent = count + (count !== 1 ? " bookings" : " booking");
-                dayNumberEl.appendChild(badge);
+                badge.textContent = count + (count !== 1 ? " Bookings" : " Booking");
+                cellFrame.appendChild(badge);
             }
         });
         
