@@ -331,7 +331,7 @@ function validatePhoneNumber($phone) {
         return ['valid' => false, 'error' => 'Phone number is required'];
     }
     // Remove spaces and special characters
-    $cleaned = preg_replace('/[\s()\-\.]/', '', $phone);
+    $cleaned = preg_replace('/[\s().\-]/', '', $phone);
     // Accept 7-15 digits (supports Nepali landlines from 7 digits and mobiles/international up to 15)
     if (!preg_match('/^\+?\d{7,15}$/', $cleaned)) {
         return ['valid' => false, 'error' => 'Please enter a valid phone number (7 or more digits)'];
@@ -1207,7 +1207,7 @@ function createBooking($data) {
             $userMessage = 'A booking with the same details already exists. Please check your previous bookings or contact support.';
         } elseif (stripos($errMsg, 'no longer available') !== false) {
             $userMessage = $errMsg; // Hall availability message is already user-friendly
-        } elseif (stripos($errMsg, "doesn't exist") !== false || stripos($errMsg, 'Unknown column') !== false || stripos($errMsg, 'Table') !== false) {
+        } elseif (stripos($errMsg, "doesn't exist") !== false || stripos($errMsg, 'Unknown column') !== false || stripos($errMsg, "Table '") !== false || stripos($errMsg, "table doesn't") !== false) {
             $userMessage = 'A system configuration error occurred. Please contact support and mention: DB schema issue.';
         } elseif (stripos($errMsg, 'Connection') !== false || stripos($errMsg, 'connect') !== false) {
             $userMessage = 'Unable to connect to the database. Please try again in a few minutes.';
