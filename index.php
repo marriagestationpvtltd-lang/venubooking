@@ -19,7 +19,7 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 ?>
 
 <!-- Hero Section -->
-<section class="hero-section<?php if (!empty($banner_images)): ?> with-banner-image<?php endif; ?>" id="bookingForm">
+<section class="hero-section<?php if (!empty($banner_images)): ?> with-banner-image<?php endif; ?>" id="bookingSection">
     <?php if (count($banner_images) > 1): ?>
     <!-- Multi-image banner carousel (fills entire hero as background, auto-plays) -->
     <div id="heroBannerCarousel" class="carousel slide hero-banner-carousel" data-bs-ride="carousel" data-bs-interval="5000">
@@ -1886,7 +1886,7 @@ if (!empty($about_images)):
         sessionStorage.setItem('preferred_venue_name', venueName);
         var hiddenField = document.getElementById('preferred_venue_id');
         if (hiddenField) { hiddenField.value = venueId; }
-        var bookingFormSection = document.getElementById('bookingForm');
+        var bookingFormSection = document.getElementById('bookingSection');
         if (bookingFormSection) {
             bookingFormSection.scrollIntoView({ behavior: 'smooth' });
             var bookingCard = document.querySelector('.booking-card');
@@ -2145,7 +2145,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Show preferred venue message if set
     const preferredVenueName = sessionStorage.getItem("preferred_venue_name");
     if (preferredVenueName) {
-        const bookingCard = document.querySelector(".booking-card h3");
+        const bookingCard = document.querySelector(".booking-card h4");
         if (bookingCard) {
             const infoDiv = document.createElement("div");
             infoDiv.className = "alert alert-info alert-dismissible fade show mb-3";
@@ -2166,7 +2166,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     
     // Clear session storage after form submission
-    const form = document.getElementById("bookingForm");
+    const form = document.querySelector("form#bookingForm");
     if (form) {
         form.addEventListener("submit", function() {
             // Keep the value in sessionStorage for the next page
