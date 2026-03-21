@@ -14,6 +14,16 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
 // Save selected services (only when coming from the services step, not the final booking form)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
     $_SESSION['selected_services'] = $_POST['services'] ?? [];
+    // Save selected packages: array of package IDs (integers, > 0 only)
+    $raw_packages = $_POST['packages'] ?? [];
+    $clean_packages = [];
+    foreach ($raw_packages as $pkg_id) {
+        $pkg_id_int = intval($pkg_id);
+        if ($pkg_id_int > 0) {
+            $clean_packages[] = $pkg_id_int;
+        }
+    }
+    $_SESSION['selected_packages'] = $clean_packages;
     // Save selected designs: service_id => design_id (or sub_service_id => design_id for legacy data)
     if (!empty($_POST['selected_designs']) && is_array($_POST['selected_designs'])) {
         $raw_designs = $_POST['selected_designs'];
@@ -36,13 +46,14 @@ $selected_hall = $_SESSION['selected_hall'];
 $selected_menus = $_SESSION['selected_menus'] ?? [];
 $selected_services = $_SESSION['selected_services'] ?? [];
 $selected_designs  = $_SESSION['selected_designs'] ?? [];
+$selected_packages = $_SESSION['selected_packages'] ?? [];
 
 // Calculate final totals — if this fails on a GET request the page cannot render
 // correctly, so redirect back to the beginning.  On a POST submission (final booking
 // confirmation) we keep the user on the page and surface the error so they can retry.
 $totals_error = '';
 try {
-    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs);
+    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs, $selected_packages);
 } catch (\Throwable $e) {
     error_log('Failed to calculate booking totals: ' . $e->getMessage());
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -91,6 +102,29 @@ if (!empty($selected_services)) {
     } catch (\Throwable $e) {
         error_log('Failed to load service details: ' . $e->getMessage());
         $service_details = [];
+    }
+}
+
+// Get selected package details (for display in summary)
+$package_details = [];
+if (!empty($selected_packages)) {
+    try {
+        $db = getDB();
+        $placeholders = implode(',', array_fill(0, count($selected_packages), '?'));
+        $stmt = $db->prepare(
+            "SELECT sp.id, sp.name, sp.price, sp.description,
+                    sc.name AS category_name,
+                    (SELECT image_path FROM service_package_photos
+                     WHERE package_id = sp.id ORDER BY display_order, id LIMIT 1) AS first_photo
+             FROM service_packages sp
+             LEFT JOIN service_categories sc ON sc.id = sp.category_id
+             WHERE sp.id IN ($placeholders) AND sp.status = 'active'"
+        );
+        $stmt->execute(array_map('intval', $selected_packages));
+        $package_details = $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('Failed to load package details: ' . $e->getMessage());
+        $package_details = [];
     }
 }
 
@@ -233,6 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 'menus'              => $selected_menus,
                 'services'           => $selected_services,
                 'selected_designs'   => $selected_designs,
+                'packages'           => $selected_packages,
                 'full_name'          => $full_name,
                 'phone'              => $phone,
                 'email'              => $email,
@@ -281,6 +316,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             unset($_SESSION['selected_menus']);
             unset($_SESSION['selected_services']);
             unset($_SESSION['selected_designs']);
+            unset($_SESSION['selected_packages']);
             
             header('Location: confirmation.php');
             exit;
@@ -666,6 +702,32 @@ require_once __DIR__ . '/includes/header.php';
                             <hr class="my-2">
                         <?php endif; ?>
 
+                        <!-- Packages -->
+                        <?php if (!empty($package_details)): ?>
+                            <h6 class="mb-2 text-success"><i class="fas fa-box-open me-2"></i>Selected Packages</h6>
+                            <?php foreach ($package_details as $pkg): ?>
+                                <div class="mb-2 d-flex align-items-start gap-2">
+                                    <?php if (!empty($pkg['first_photo'])): ?>
+                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['first_photo']); ?>"
+                                             alt="<?php echo htmlspecialchars($pkg['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                             style="width:40px;height:30px;object-fit:cover;border-radius:3px;flex-shrink:0;">
+                                    <?php else: ?>
+                                        <span style="width:40px;height:30px;flex-shrink:0;" class="d-flex align-items-center justify-content-center bg-light rounded">
+                                            <i class="fas fa-box text-muted small"></i>
+                                        </span>
+                                    <?php endif; ?>
+                                    <div class="flex-grow-1">
+                                        <small><strong><?php echo sanitize($pkg['name']); ?></strong></small>
+                                        <?php if (!empty($pkg['category_name'])): ?>
+                                            <small class="text-muted d-block"><?php echo sanitize($pkg['category_name']); ?></small>
+                                        <?php endif; ?>
+                                        <small class="text-success"><?php echo formatCurrency($pkg['price']); ?></small>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                            <hr class="my-2">
+                        <?php endif; ?>
+
                         <!-- Services -->
                         <?php if (!empty($service_details) || !empty($design_details)): ?>
                             <h6 class="mb-2 text-success"><i class="fas fa-star me-2"></i>Additional Services</h6>
@@ -756,6 +818,17 @@ require_once __DIR__ . '/includes/header.php';
                                 <div><strong><?php echo sanitize($selected_hall['venue_name']); ?></strong></div>
                                 <div><small><?php echo sanitize($selected_hall['name']); ?></small></div>
                             </div>
+
+                            <?php if (!empty($package_details)): ?>
+                            <!-- Compact Packages -->
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1"><i class="fas fa-box-open me-1"></i>Packages</small>
+                                <?php foreach ($package_details as $pkg): ?>
+                                    <div><small><strong><?php echo sanitize($pkg['name']); ?></strong>
+                                    <span class="text-success ms-1"><?php echo formatCurrency($pkg['price']); ?></span></small></div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
 
                             <!-- Compact Cost Summary -->
                             <div class="border-top pt-2">

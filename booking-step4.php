@@ -33,7 +33,14 @@ foreach ($services as &$svc) {
 }
 unset($svc);
 
-// Calculate current totals (no services/designs selected yet in initial load)
+// Get service packages grouped by category (for package selection section)
+$packages_by_category = getServicePackagesByCategory();
+// Keep only categories that have active packages
+$packages_by_category = array_filter($packages_by_category, function ($cat) {
+    return !empty($cat['packages']);
+});
+
+// Calculate current totals (no services/designs/packages selected yet in initial load)
 $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests']);
 $tax_rate = floatval(getSetting('tax_rate', '13'));
 $current_total = $totals['grand_total'];
@@ -118,6 +125,117 @@ $current_total = $totals['grand_total'];
             <p class="lead text-muted mb-4">Enhance your event with our premium services (Optional)</p>
 
             <form id="servicesForm" method="POST" action="booking-step5.php">
+                <?php if (!empty($packages_by_category)): ?>
+                <!-- ============================================================
+                     SERVICE PACKAGES – photo cards with features, grouped by category
+                     ============================================================ -->
+                <div id="packages-section" class="mb-5">
+                    <h3 class="mb-1"><i class="fas fa-box-open me-2 text-success"></i>Service Packages</h3>
+                    <p class="text-muted mb-4">Choose a pre-configured service package (Optional)</p>
+
+                    <?php foreach ($packages_by_category as $cat): ?>
+                        <?php if (empty($cat['packages'])) continue; ?>
+                        <h5 class="mb-3 text-secondary">
+                            <i class="fas fa-tag me-1"></i><?php echo sanitize($cat['name']); ?>
+                        </h5>
+                        <div class="row g-3 mb-4">
+                            <?php foreach ($cat['packages'] as $pkg): ?>
+                                <div class="col-sm-6 col-lg-4">
+                                    <div class="card package-select-card h-100 shadow-sm" style="transition:box-shadow .2s;">
+                                        <?php if (!empty($pkg['photos'])): ?>
+                                            <?php if (count($pkg['photos']) > 1): ?>
+                                                <!-- Multiple photos: simple carousel -->
+                                                <?php $pid = 'pkgCarousel' . $pkg['id']; ?>
+                                                <div id="<?php echo $pid; ?>" class="carousel slide" data-bs-ride="false">
+                                                    <div class="carousel-indicators">
+                                                        <?php foreach ($pkg['photos'] as $pi => $ph): ?>
+                                                            <button type="button"
+                                                                    data-bs-target="#<?php echo $pid; ?>"
+                                                                    data-bs-slide-to="<?php echo $pi; ?>"
+                                                                    <?php if ($pi === 0) echo 'class="active" aria-current="true"'; ?>
+                                                                    aria-label="Photo <?php echo $pi + 1; ?>">
+                                                            </button>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                    <div class="carousel-inner">
+                                                        <?php foreach ($pkg['photos'] as $pi => $photo): ?>
+                                                            <div class="carousel-item <?php echo ($pi === 0) ? 'active' : ''; ?>">
+                                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo); ?>"
+                                                                     alt="<?php echo htmlspecialchars($pkg['name']); ?>"
+                                                                     class="d-block w-100"
+                                                                     style="height:200px;object-fit:cover;">
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                    <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $pid; ?>" data-bs-slide="prev">
+                                                        <span class="carousel-control-prev-icon"></span>
+                                                    </button>
+                                                    <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $pid; ?>" data-bs-slide="next">
+                                                        <span class="carousel-control-next-icon"></span>
+                                                    </button>
+                                                </div>
+                                            <?php else: ?>
+                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0]); ?>"
+                                                     alt="<?php echo htmlspecialchars($pkg['name']); ?>"
+                                                     class="card-img-top"
+                                                     style="height:200px;object-fit:cover;">
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <div class="d-flex align-items-center justify-content-center bg-light"
+                                                 style="height:200px;">
+                                                <i class="fas fa-box fa-3x text-muted"></i>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <div class="card-body d-flex flex-column">
+                                            <!-- Package name + checkbox + price -->
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div class="form-check flex-grow-1 me-2">
+                                                    <input class="form-check-input package-checkbox"
+                                                           type="checkbox"
+                                                           name="packages[]"
+                                                           value="<?php echo $pkg['id']; ?>"
+                                                           id="pkg<?php echo $pkg['id']; ?>"
+                                                           data-price="<?php echo htmlspecialchars($pkg['price'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <label class="form-check-label fw-semibold" for="pkg<?php echo $pkg['id']; ?>">
+                                                        <?php echo sanitize($pkg['name']); ?>
+                                                    </label>
+                                                </div>
+                                                <span class="text-success fw-bold text-nowrap">
+                                                    <?php echo formatCurrency($pkg['price']); ?>
+                                                </span>
+                                            </div>
+
+                                            <?php if (!empty($pkg['description'])): ?>
+                                                <p class="text-muted small mb-2"><?php echo sanitize($pkg['description']); ?></p>
+                                            <?php endif; ?>
+
+                                            <?php if (!empty($pkg['features'])): ?>
+                                                <ul class="list-unstyled small mb-0 mt-auto">
+                                                    <?php foreach (array_slice($pkg['features'], 0, 6) as $feat): ?>
+                                                        <li class="mb-1">
+                                                            <i class="fas fa-check-circle text-success me-1"></i>
+                                                            <?php echo sanitize($feat); ?>
+                                                        </li>
+                                                    <?php endforeach; ?>
+                                                    <?php if (count($pkg['features']) > 6): ?>
+                                                        <li class="text-muted">
+                                                            <i class="fas fa-ellipsis-h me-1"></i>
+                                                            +<?php echo count($pkg['features']) - 6; ?> more features
+                                                        </li>
+                                                    <?php endif; ?>
+                                                </ul>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <hr class="mb-5">
+                <?php endif; ?>
+
                 <?php if (empty($services)): ?>
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> No additional services available at this time.

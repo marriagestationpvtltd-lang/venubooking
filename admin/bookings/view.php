@@ -411,18 +411,17 @@ $additional_items_label = getSetting('invoice_additional_items_label', 'Addition
 $currency = getSetting('currency', 'NPR');
 
 // Separate user, admin, and package services for display in print invoice and screen view
-// Note: Package services share added_by='admin' but have category=PACKAGE_SERVICE_CATEGORY
+// Note: Package services (added by admin OR user) have category=PACKAGE_SERVICE_CATEGORY
 $user_services    = [];
 $admin_services   = [];
 $package_services = [];
 if (!empty($booking['services']) && is_array($booking['services'])) {
     foreach ($booking['services'] as $service) {
-        if (isset($service['added_by']) && $service['added_by'] === 'admin') {
-            if (($service['category'] ?? '') === PACKAGE_SERVICE_CATEGORY) {
-                $package_services[] = $service;
-            } else {
-                $admin_services[] = $service;
-            }
+        if (($service['category'] ?? '') === PACKAGE_SERVICE_CATEGORY) {
+            // All package-category services (user- or admin-added) go to packages section
+            $package_services[] = $service;
+        } elseif (isset($service['added_by']) && $service['added_by'] === 'admin') {
+            $admin_services[] = $service;
         } else {
             $user_services[] = $service;
         }
@@ -1487,11 +1486,15 @@ $available_services = getActiveServices();
                                     $pkg_price = floatval($service['price'] ?? 0);
                                     $pkg_qty   = intval($service['quantity'] ?? 1);
                                     $pkg_total = $pkg_price * $pkg_qty;
+                                    $pkg_is_admin_added = isset($service['added_by']) && $service['added_by'] === 'admin';
                                 ?>
                                 <tr>
                                     <td>
                                         <i class="fas fa-box-open text-primary me-1"></i>
                                         <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
+                                        <?php if (!$pkg_is_admin_added): ?>
+                                            <span class="badge bg-success ms-1" style="font-size:.65rem;" title="Selected by customer during booking">Customer</span>
+                                        <?php endif; ?>
                                         <?php if (!empty($service['description'])): ?>
                                             <small class="d-block text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($service['description']); ?></small>
                                         <?php endif; ?>
@@ -1500,6 +1503,7 @@ $available_services = getActiveServices();
                                     <td class="text-end fw-bold text-primary"><?php echo formatCurrency($pkg_price); ?></td>
                                     <td class="text-end fw-bold text-success"><?php echo formatCurrency($pkg_total); ?></td>
                                     <td class="text-center">
+                                        <?php if ($pkg_is_admin_added): ?>
                                         <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this package from the booking?');">
                                             <input type="hidden" name="action" value="delete_admin_service">
                                             <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
@@ -1508,6 +1512,9 @@ $available_services = getActiveServices();
                                                 <i class="fas fa-trash small"></i>
                                             </button>
                                         </form>
+                                        <?php else: ?>
+                                        <span class="text-muted" title="Customer-selected package" style="font-size:.75rem;">—</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
