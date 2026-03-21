@@ -129,6 +129,10 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             border-color: var(--dark-green);
         }
         
+        .nav-link-sub {
+            padding-left: 2.5rem;
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 margin-left: -250px;
@@ -172,8 +176,11 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/menus/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'menus') ? 'active' : ''; ?>">
                 <i class="fas fa-utensils"></i> Menus
             </a>
-            <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'bookings') ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php" class="nav-link <?php echo (strpos($_SERVER['PHP_SELF'], 'bookings/') !== false && strpos($_SERVER['PHP_SELF'], 'calendar') === false) ? 'active' : ''; ?>">
                 <i class="fas fa-calendar-check"></i> Bookings
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/bookings/calendar.php" class="nav-link nav-link-sub <?php echo strpos($_SERVER['PHP_SELF'], 'bookings/calendar') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-alt"></i> Booking Calendar
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/customers/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'customers') ? 'active' : ''; ?>">
                 <i class="fas fa-users"></i> Customers
