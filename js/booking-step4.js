@@ -93,7 +93,8 @@ document.addEventListener('DOMContentLoaded', function () {
             designTotal += parseFloat(d.price) || 0;
         });
 
-        const total = baseTotal + regularTotal + designTotal;
+        const rate = (typeof taxRate !== 'undefined') ? taxRate : 0; // taxRate is always PHP-injected; 0 is a safe fallback to avoid breaking the UI
+        const total = (baseTotal + regularTotal + designTotal) * (1 + rate / 100);
         const totalCostEl = document.getElementById('totalCost');
         if (totalCostEl) totalCostEl.textContent = formatCurrency(total);
     }

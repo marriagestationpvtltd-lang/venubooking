@@ -93,7 +93,9 @@ function calculateMenuTotal() {
         menuTotal += pricePerPerson * guestsCount;
     });
     
-    const total = hallPrice + menuTotal;
+    const rate = (typeof taxRate !== 'undefined') ? taxRate : 0; // taxRate is always PHP-injected; 0 is a safe fallback to avoid breaking the UI
+    const subtotal = hallPrice + menuTotal;
+    const total = subtotal * (1 + rate / 100);
     updateTotalCost(total);
 }
 
