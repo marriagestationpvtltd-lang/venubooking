@@ -151,7 +151,8 @@ if (isset($_POST['action'])) {
             $catalog_svc['description'] ?? '',
             $quantity,
             $final_price,
-            $catalog_design_id
+            $catalog_design_id,
+            $catalog_service_id
         );
 
         if ($new_service_id) {
@@ -387,7 +388,7 @@ $vendors_total = $payment_summary['vendors_total'];
 $vendor_assignments = getBookingVendorAssignments($booking_id);
 
 // Get available vendors for the assignment form (used in Quick Check panel)
-$all_vendors = getAvailableVendors($booking['event_date']);
+$all_vendors = getAvailableVendors($booking['event_date'], $booking_id);
 
 // Batch-fetch primary photo URLs for all relevant vendors (avoids N+1 queries)
 $_vendor_photo_ids = array_unique(array_merge(
