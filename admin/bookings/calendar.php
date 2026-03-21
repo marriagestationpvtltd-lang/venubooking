@@ -72,22 +72,60 @@ $db = getDB();
     border-radius: 4px;
 }
 
-/* Booking count badge - displayed at the bottom of each date cell */
+/* Booking count badge - inline next to day number, always visible */
 .booking-count-badge {
-    position: absolute;
-    bottom: 4px;
-    left: 4px;
+    display: inline-flex;
+    align-items: center;
     background: #198754;
     color: white;
-    border-radius: 8px;
-    padding: 2px 8px;
-    font-size: 0.78rem;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 0.7rem;
     font-weight: 700;
-    line-height: 1.4;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    line-height: 1.6;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     white-space: nowrap;
-    z-index: 3;
-    pointer-events: none;
+    margin-left: 4px;
+    vertical-align: middle;
+    cursor: default;
+}
+
+/* Day top row: flex so badge sits beside the date number */
+.fc-daygrid-day-top {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: nowrap;
+    padding: 2px 4px;
+}
+
+/* Give cells enough room to display events + badge */
+.fc-daygrid-day-frame {
+    min-height: 90px !important;
+}
+
+/* Custom event content: booking number + customer */
+.fc-event-inner {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 1px 3px;
+    line-height: 1.3;
+}
+
+.fc-event-bnum {
+    font-weight: 700;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fc-event-cust {
+    font-size: 0.68rem;
+    opacity: 0.92;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Heat-map coloring for days with many bookings */
@@ -370,14 +408,15 @@ document.addEventListener("DOMContentLoaded", function() {
             else if (count === 3) cell.classList.add("has-bookings-3");
             else cell.classList.add("has-bookings-many");
             
-            // Count badge - shown at bottom-left of cell frame
-            const cellFrame = cell.querySelector(".fc-daygrid-day-frame");
-            if (cellFrame) {
-                const badge = document.createElement("div");
+            // Count badge – injected into the day-top row (beside the date number)
+            // so it is always visible regardless of cell overflow
+            const dayTop = cell.querySelector(".fc-daygrid-day-top");
+            if (dayTop) {
+                const badge = document.createElement("span");
                 badge.className = "booking-count-badge";
                 badge.title = count + " booking" + (count !== 1 ? "s" : "") + " on this date";
                 badge.textContent = count + (count !== 1 ? " Bookings" : " Booking");
-                cellFrame.appendChild(badge);
+                dayTop.appendChild(badge);
             }
         });
         
@@ -397,6 +436,30 @@ document.addEventListener("DOMContentLoaded", function() {
             right: "dayGridMonth,dayGridWeek"
         },
         dayMaxEvents: 3,
+        // Render booking number + customer name inside each event bar
+        eventContent: function(arg) {
+            const props = arg.event.extendedProps;
+            const bookingNum = arg.event.title.split(" - ")[0];
+            const customer = props.customer_name || "";
+            const firstName = customer.split(" ")[0];
+            const totalNum = props.grand_total ? Number(props.grand_total) : 0;
+            const totalStr = totalNum > 0 ? " (" + totalNum.toLocaleString(undefined, {maximumFractionDigits: 0}) + ")" : "";
+            
+            const inner = document.createElement("div");
+            inner.className = "fc-event-inner";
+            
+            const numSpan = document.createElement("span");
+            numSpan.className = "fc-event-bnum";
+            numSpan.textContent = bookingNum;
+            
+            const custSpan = document.createElement("span");
+            custSpan.className = "fc-event-cust";
+            custSpan.textContent = firstName + totalStr;
+            
+            inner.appendChild(numSpan);
+            inner.appendChild(custSpan);
+            return { domNodes: [inner] };
+        },
         events: function(info, successCallback, failureCallback) {
             fetch("get-calendar-bookings.php?start=" + info.startStr + "&end=" + info.endStr)
                 .then(function(response) { return response.json(); })

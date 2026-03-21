@@ -45,7 +45,7 @@ try {
     
     // Fetch bookings within the date range
     $stmt = $db->prepare("SELECT b.id, b.booking_number, b.event_date, b.shift, 
-                          b.event_type, b.booking_status,
+                          b.event_type, b.booking_status, b.grand_total,
                           c.full_name as customer_name,
                           COALESCE(h.name, b.custom_hall_name) as hall_name,
                           COALESCE(v.name, b.custom_venue_name) as venue_name
@@ -77,7 +77,8 @@ try {
                 'hall_name' => $booking['hall_name'],
                 'shift' => $booking['shift'],
                 'event_type' => $booking['event_type'],
-                'status' => $booking['booking_status']
+                'status' => $booking['booking_status'],
+                'grand_total' => (float)$booking['grand_total']
             ]
         ];
     }
