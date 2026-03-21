@@ -245,8 +245,111 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // ── Regular checkbox handler ──────────────────────────────────────────────
+    // selectedVendors: { service_id: vendor_id } (0 = no vendor selected)
+    var selectedVendors = {};
+
+    function syncVendorInputs() {
+        var container = document.getElementById('selected-vendor-inputs');
+        if (!container) return;
+        container.innerHTML = '';
+        Object.keys(selectedVendors).forEach(function (svcId) {
+            var vid = selectedVendors[svcId];
+            if (vid > 0) {
+                var input = document.createElement('input');
+                input.type  = 'hidden';
+                input.name  = 'vendor_for_service[' + svcId + ']';
+                input.value = vid;
+                container.appendChild(input);
+            }
+        });
+    }
+
+    // Vendor modal references
+    var vendorModal         = null;
+    var _pendingCheckbox    = null;  // checkbox that triggered the vendor selection modal
+
+    var vendorModalEl    = document.getElementById('vendorSelectModal');
+    var vendorModalSel   = document.getElementById('vendorModalSelect');
+    var vendorModalHint  = document.getElementById('vendorModalServiceHint');
+    var vendorModalConfirm = document.getElementById('vendorModalConfirm');
+    var vendorModalSkip  = document.getElementById('vendorModalSkip');
+
+    if (vendorModalEl && typeof bootstrap !== 'undefined') {
+        vendorModal = new bootstrap.Modal(vendorModalEl);
+    }
+
+    function openVendorModal(cb) {
+        if (!vendorModal || !vendorModalSel) return;
+        var typeSlug    = cb.dataset.vendorTypeSlug || '';
+        var serviceName = cb.dataset.serviceName    || '';
+        var vendors     = (typeof vendorsByTypeMap !== 'undefined' && typeSlug) ? (vendorsByTypeMap[typeSlug] || []) : [];
+
+        if (vendors.length === 0) return; // nothing to show
+
+        _pendingCheckbox = cb;
+
+        // Populate dropdown
+        vendorModalSel.innerHTML = '<option value="">— No vendor preference (skip) —</option>';
+        vendors.forEach(function (v) {
+            var opt = document.createElement('option');
+            opt.value = v.id;
+            opt.textContent = v.name;
+            // Pre-select if already chosen
+            if (selectedVendors[cb.value] == v.id) opt.selected = true;
+            vendorModalSel.appendChild(opt);
+        });
+
+        if (vendorModalHint) {
+            vendorModalHint.textContent = 'You selected "' + serviceName + '". Would you like to assign a vendor for this service?';
+        }
+
+        vendorModal.show();
+    }
+
+    if (vendorModalConfirm) {
+        vendorModalConfirm.addEventListener('click', function () {
+            if (_pendingCheckbox) {
+                var vid = parseInt(vendorModalSel.value, 10) || 0;
+                selectedVendors[_pendingCheckbox.value] = vid;
+                syncVendorInputs();
+            }
+            vendorModal.hide();
+        });
+    }
+
+    if (vendorModalSkip) {
+        vendorModalSkip.addEventListener('click', function () {
+            if (_pendingCheckbox) {
+                delete selectedVendors[_pendingCheckbox.value];
+                syncVendorInputs();
+            }
+            vendorModal.hide();
+        });
+    }
+
+    // Close button: treat as skip
+    if (vendorModalEl) {
+        vendorModalEl.addEventListener('hidden.bs.modal', function () {
+            _pendingCheckbox = null;
+        });
+    }
+
     document.querySelectorAll('.service-checkbox').forEach(function (cb) {
-        cb.addEventListener('change', recalculateTotal);
+        cb.addEventListener('change', function () {
+            if (cb.checked) {
+                var typeSlug = cb.dataset.vendorTypeSlug || '';
+                var vendors  = (typeof vendorsByTypeMap !== 'undefined' && typeSlug)
+                    ? (vendorsByTypeMap[typeSlug] || []) : [];
+                if (vendors.length > 0) {
+                    openVendorModal(cb);
+                }
+            } else {
+                // Unchecked: remove any vendor selection for this service
+                delete selectedVendors[cb.value];
+                syncVendorInputs();
+            }
+            recalculateTotal();
+        });
     });
 
     // ── Package checkbox handler ──────────────────────────────────────────────

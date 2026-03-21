@@ -140,7 +140,19 @@ if (isset($_POST['action'])) {
 
         if ($new_service_id) {
             logActivity($current_user['id'], 'Added catalog service', 'bookings', $booking_id, "Added catalog service: {$catalog_svc['name']} (Qty: {$quantity}, Price: {$catalog_svc['price']})");
-            $_SESSION['flash_success'] = 'Service added from catalog successfully!';
+            // If admin also selected a vendor for this service, create the assignment
+            $catalog_vendor_id = intval($_POST['catalog_vendor_id'] ?? 0);
+            if ($catalog_vendor_id > 0) {
+                $va_id = addVendorAssignment($booking_id, $catalog_vendor_id, $catalog_svc['name'], floatval($catalog_svc['price']), '');
+                if ($va_id) {
+                    logActivity($current_user['id'], 'Auto-assigned vendor for catalog service', 'booking_vendor_assignments', $booking_id, "Vendor ID {$catalog_vendor_id} assigned for: {$catalog_svc['name']}");
+                    $_SESSION['flash_success'] = 'Service added and vendor assigned successfully!';
+                } else {
+                    $_SESSION['flash_success'] = 'Service added from catalog successfully! (Vendor assignment failed.)';
+                }
+            } else {
+                $_SESSION['flash_success'] = 'Service added from catalog successfully!';
+            }
         } else {
             $_SESSION['flash_error'] = 'Failed to add service from catalog. Please try again.';
         }
@@ -1686,6 +1698,7 @@ $available_services = getActiveServices();
                         <?php if (!empty($available_services)): ?>
                         <form method="POST" action="" id="add-catalog-service-form">
                             <input type="hidden" name="action" value="add_catalog_service">
+                            <input type="hidden" name="catalog_vendor_id" id="catalog-vendor-id-input" value="">
                             <div class="row g-2 align-items-end">
                                 <div class="col-auto">
                                     <label class="form-label mb-1 small fw-semibold">Service <span class="text-danger">*</span></label>
@@ -1693,19 +1706,20 @@ $available_services = getActiveServices();
                                     // Group services by category for the dropdown
                                     $services_by_cat = [];
                                     foreach ($available_services as $svc) {
-                                        $cat = !empty($svc['category']) ? $svc['category'] : 'General';
+                                        $cat = !empty($svc['vendor_type_label']) ? $svc['vendor_type_label'] : (!empty($svc['category']) ? $svc['category'] : 'General');
                                         $services_by_cat[$cat][] = $svc;
                                     }
                                     ?>
                                     <select class="form-select form-select-sm" name="catalog_service_id" id="catalog-service-select"
-                                            required onchange="updateCatalogServicePreview(this)" style="min-width:180px;">
+                                            required style="min-width:180px;">
                                         <option value="">— Select Service —</option>
                                         <?php foreach ($services_by_cat as $cat => $svcs): ?>
                                             <optgroup label="<?php echo htmlspecialchars($cat); ?>">
                                                 <?php foreach ($svcs as $svc): ?>
                                                 <option value="<?php echo intval($svc['id']); ?>"
                                                         data-formatted-price="<?php echo htmlspecialchars(formatCurrency($svc['price']), ENT_QUOTES); ?>"
-                                                        data-description="<?php echo htmlspecialchars($svc['description'] ?? '', ENT_QUOTES); ?>">
+                                                        data-description="<?php echo htmlspecialchars($svc['description'] ?? '', ENT_QUOTES); ?>"
+                                                        data-vendor-type-slug="<?php echo htmlspecialchars($svc['vendor_type_slug'] ?? '', ENT_QUOTES); ?>">
                                                     <?php echo htmlspecialchars($svc['name']); ?> — <?php echo formatCurrency($svc['price']); ?>
                                                 </option>
                                                 <?php endforeach; ?>
@@ -1729,12 +1743,67 @@ $available_services = getActiveServices();
                                     </button>
                                 </div>
                             </div>
+                            <!-- Vendor selection row: shown automatically when selected service has linked vendors -->
+                            <div class="row g-2 align-items-center mt-1 d-none" id="catalog-vendor-row">
+                                <div class="col-auto">
+                                    <span class="badge bg-info text-dark" style="font-size:.72rem;">
+                                        <i class="fas fa-user-tie me-1"></i>Assign Vendor
+                                    </span>
+                                </div>
+                                <div class="col-auto">
+                                    <select class="form-select form-select-sm" id="catalog-vendor-select" style="min-width:180px;">
+                                        <option value="">— No vendor (skip) —</option>
+                                    </select>
+                                </div>
+                                <div class="col-auto">
+                                    <small class="text-muted" style="font-size:.72rem;"><i class="fas fa-info-circle me-1"></i>Vendors available for this service type</small>
+                                </div>
+                            </div>
                         </form>
                         <script>
-                        function updateCatalogServicePreview(select) {
-                            const opt = select.options[select.selectedIndex];
-                            document.getElementById('catalog-service-price-preview').value = opt.dataset.formattedPrice || '';
-                        }
+                        (function() {
+                            var catalogVendorsByType = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
+                            function updateCatalogServicePreview(select) {
+                                var opt = select.options[select.selectedIndex];
+                                document.getElementById('catalog-service-price-preview').value = opt.dataset.formattedPrice || '';
+
+                                var vendorTypeSlug = opt.dataset.vendorTypeSlug || '';
+                                var vendorRow      = document.getElementById('catalog-vendor-row');
+                                var vendorSelect   = document.getElementById('catalog-vendor-select');
+                                var vendorInput    = document.getElementById('catalog-vendor-id-input');
+
+                                vendorSelect.innerHTML = '<option value="">— No vendor (skip) —</option>';
+                                vendorInput.value = '';
+
+                                if (vendorTypeSlug && catalogVendorsByType[vendorTypeSlug] && catalogVendorsByType[vendorTypeSlug].length > 0) {
+                                    catalogVendorsByType[vendorTypeSlug].forEach(function(v) {
+                                        var o = document.createElement('option');
+                                        o.value = v.id;
+                                        o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                                        vendorSelect.appendChild(o);
+                                    });
+                                    vendorRow.classList.remove('d-none');
+                                } else {
+                                    vendorRow.classList.add('d-none');
+                                }
+                            }
+
+                            var serviceSelect = document.getElementById('catalog-service-select');
+                            if (serviceSelect) {
+                                serviceSelect.addEventListener('change', function() {
+                                    updateCatalogServicePreview(this);
+                                });
+                            }
+
+                            var vendorSelect = document.getElementById('catalog-vendor-select');
+                            if (vendorSelect) {
+                                vendorSelect.addEventListener('change', function() {
+                                    var input = document.getElementById('catalog-vendor-id-input');
+                                    if (input) input.value = this.value;
+                                });
+                            }
+                        })();
                         </script>
                         <?php else: ?>
                         <p class="text-muted small mb-2">
