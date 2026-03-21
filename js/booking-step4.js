@@ -93,7 +93,9 @@ document.addEventListener('DOMContentLoaded', function () {
             designTotal += parseFloat(d.price) || 0;
         });
 
-        updateTotalCost(baseTotal + regularTotal + designTotal);
+        const total = baseTotal + regularTotal + designTotal;
+        const totalCostEl = document.getElementById('totalCost');
+        if (totalCostEl) totalCostEl.textContent = formatCurrency(total);
     }
 
     // ── Update hidden inputs so form includes selected designs ────────────────
