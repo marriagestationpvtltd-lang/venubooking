@@ -981,16 +981,80 @@ CALL add_pano_image_columns();
 DROP PROCEDURE IF EXISTS add_pano_image_columns;
 
 -- ============================================================================
--- SCHEMA UPGRADE: Add booking start_time and end_time columns if missing
--- Required by createBooking() in includes/functions.php
--- Safe to run on both fresh and existing databases (idempotent)
+-- SCHEMA UPGRADES: Add any missing columns to existing tables
+-- Safe to run on both fresh and existing databases (idempotent).
+-- These procedures are required to keep older installations in sync with the
+-- current codebase.  createBooking() in includes/functions.php inserts all of
+-- these columns; if any are missing the entire booking is rolled back.
 -- ============================================================================
 
-DROP PROCEDURE IF EXISTS add_booking_time_columns;
+-- ---- bookings table ---------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS upgrade_bookings_columns;
 
 DELIMITER $$
-CREATE PROCEDURE add_booking_time_columns()
+CREATE PROCEDURE upgrade_bookings_columns()
 BEGIN
+    -- Add custom_venue_name to bookings if it doesn't exist
+    -- (required by createBooking() for custom/own-venue bookings)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'custom_venue_name'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN custom_venue_name VARCHAR(255) DEFAULT NULL
+                COMMENT 'Venue name when customer brings own venue (hall_id is NULL)'
+            AFTER hall_id;
+    END IF;
+
+    -- Add custom_hall_name to bookings if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'custom_hall_name'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN custom_hall_name VARCHAR(255) DEFAULT NULL
+                COMMENT 'Hall/location name when customer brings own venue (hall_id is NULL)'
+            AFTER custom_venue_name;
+    END IF;
+
+    -- Make hall_id nullable if it was created NOT NULL in an older version
+    -- (custom-venue bookings set hall_id to NULL)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'hall_id'
+          AND is_nullable = 'NO'
+    ) THEN
+        SET @fk_hall = NULL;
+        SELECT CONSTRAINT_NAME INTO @fk_hall
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'bookings'
+          AND COLUMN_NAME = 'hall_id'
+          AND REFERENCED_TABLE_NAME = 'halls'
+        LIMIT 1;
+
+        IF @fk_hall IS NOT NULL THEN
+            SET @drop_fk_hall = CONCAT('ALTER TABLE bookings DROP FOREIGN KEY `', @fk_hall, '`');
+            PREPARE stmt FROM @drop_fk_hall;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        END IF;
+
+        ALTER TABLE bookings MODIFY COLUMN hall_id INT DEFAULT NULL;
+
+        -- Re-add the FK as nullable (ON DELETE SET NULL preserves the booking)
+        ALTER TABLE bookings
+            ADD CONSTRAINT fk_bookings_hall_id
+                FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE SET NULL;
+    END IF;
+
     -- Add start_time to bookings if it doesn't exist
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
@@ -999,7 +1063,6 @@ BEGIN
           AND column_name = 'start_time'
     ) THEN
         ALTER TABLE bookings ADD COLUMN start_time TIME DEFAULT NULL AFTER event_date;
-        -- Back-fill from shift for any existing bookings
         UPDATE bookings SET start_time = '06:00:00' WHERE shift = 'morning'   AND start_time IS NULL;
         UPDATE bookings SET start_time = '12:00:00' WHERE shift = 'afternoon' AND start_time IS NULL;
         UPDATE bookings SET start_time = '18:00:00' WHERE shift = 'evening'   AND start_time IS NULL;
@@ -1014,15 +1077,160 @@ BEGIN
           AND column_name = 'end_time'
     ) THEN
         ALTER TABLE bookings ADD COLUMN end_time TIME DEFAULT NULL AFTER start_time;
-        -- Back-fill from shift for any existing bookings
         UPDATE bookings SET end_time = '12:00:00' WHERE shift = 'morning'   AND end_time IS NULL;
         UPDATE bookings SET end_time = '18:00:00' WHERE shift = 'afternoon' AND end_time IS NULL;
         UPDATE bookings SET end_time = '23:00:00' WHERE shift = 'evening'   AND end_time IS NULL;
         UPDATE bookings SET end_time = '23:00:00' WHERE shift = 'fullday'   AND end_time IS NULL;
     END IF;
+
+    -- Add advance_payment_received to bookings if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'advance_payment_received'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN advance_payment_received TINYINT(1) DEFAULT 0
+                COMMENT 'Whether advance payment has been received (0=No, 1=Yes)'
+            AFTER payment_status;
+        ALTER TABLE bookings ADD INDEX idx_advance_payment_received (advance_payment_received);
+    END IF;
 END$$
 
 DELIMITER ;
 
-CALL add_booking_time_columns();
-DROP PROCEDURE IF EXISTS add_booking_time_columns;
+CALL upgrade_bookings_columns();
+DROP PROCEDURE IF EXISTS upgrade_bookings_columns;
+
+-- ---- booking_services table -------------------------------------------------
+-- createBooking() inserts description, category, added_by, quantity,
+-- sub_service_id and design_id.  If any are absent the INSERT fails and rolls
+-- back the whole booking (including the parent bookings row).
+
+DROP PROCEDURE IF EXISTS upgrade_booking_services_columns;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_booking_services_columns()
+BEGIN
+    -- Add description column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'description'
+    ) THEN
+        ALTER TABLE booking_services ADD COLUMN description TEXT AFTER price;
+    END IF;
+
+    -- Add category column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'category'
+    ) THEN
+        ALTER TABLE booking_services ADD COLUMN category VARCHAR(100) AFTER description;
+    END IF;
+
+    -- Add added_by column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'added_by'
+    ) THEN
+        ALTER TABLE booking_services
+            ADD COLUMN added_by ENUM('user', 'admin') DEFAULT 'user'
+                COMMENT 'Who added the service: user during booking or admin later'
+            AFTER category;
+        UPDATE booking_services SET added_by = 'user' WHERE added_by IS NULL;
+    END IF;
+
+    -- Add quantity column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'quantity'
+    ) THEN
+        ALTER TABLE booking_services
+            ADD COLUMN quantity INT DEFAULT 1
+                COMMENT 'Quantity of service'
+            AFTER added_by;
+        UPDATE booking_services SET quantity = 1 WHERE quantity IS NULL;
+    END IF;
+
+    -- Add sub_service_id column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'sub_service_id'
+    ) THEN
+        ALTER TABLE booking_services
+            ADD COLUMN sub_service_id INT DEFAULT NULL
+                COMMENT 'References service_sub_services.id if this is a design selection'
+            AFTER quantity;
+    END IF;
+
+    -- Add design_id column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'design_id'
+    ) THEN
+        ALTER TABLE booking_services
+            ADD COLUMN design_id INT DEFAULT NULL
+                COMMENT 'References service_designs.id if this is a design selection'
+            AFTER sub_service_id;
+    END IF;
+
+    -- Remove the FK on service_id if it exists.
+    -- Admin-added services use service_id = 0 which violates the FK.
+    SET @fk_svc = NULL;
+    SELECT CONSTRAINT_NAME INTO @fk_svc
+    FROM information_schema.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'booking_services'
+      AND COLUMN_NAME = 'service_id'
+      AND REFERENCED_TABLE_NAME = 'additional_services'
+    LIMIT 1;
+
+    IF @fk_svc IS NOT NULL THEN
+        SET @drop_fk_svc = CONCAT('ALTER TABLE booking_services DROP FOREIGN KEY `', @fk_svc, '`');
+        PREPARE stmt FROM @drop_fk_svc;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+
+    -- Ensure service_id allows 0 (admin services have no reference row)
+    ALTER TABLE booking_services
+        MODIFY service_id INT NOT NULL DEFAULT 0
+            COMMENT '0 for admin services, >0 for user services referencing additional_services';
+
+    -- Add indexes if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND index_name = 'idx_booking_services_added_by'
+    ) THEN
+        CREATE INDEX idx_booking_services_added_by ON booking_services(added_by);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND index_name = 'idx_booking_services_service_id'
+    ) THEN
+        CREATE INDEX idx_booking_services_service_id ON booking_services(service_id);
+    END IF;
+END$$
+
+DELIMITER ;
+
+CALL upgrade_booking_services_columns();
+DROP PROCEDURE IF EXISTS upgrade_booking_services_columns;

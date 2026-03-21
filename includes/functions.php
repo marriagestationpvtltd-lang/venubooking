@@ -1022,184 +1022,220 @@ function createBooking($data) {
                 return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and shift. Please select a different date or hall.'];
             }
         }
+    } catch (\Throwable $e) {
+        error_log('Hall availability check error: ' . $e->getMessage());
+        return ['success' => false, 'error' => 'Unable to check hall availability. Please try again or contact support.'];
+    }
 
-        $db->beginTransaction();
-        
-        // Generate booking number
-        $booking_number = generateBookingNumber();
-        
-        // Get or create customer
-        $customer_id = getOrCreateCustomer(
-            $data['full_name'],
-            $data['phone'],
-            $data['email'] ?? '',
-            $data['address'] ?? ''
-        );
-        
-        // Resolve hall_id — NULL for custom venues
-        $hall_id_value = $is_custom ? null : ($data['hall_id'] ?: null);
+    // Attempt the booking up to 3 times to handle the rare race condition
+    // where two simultaneous requests generate the same booking number and
+    // one fails with a UNIQUE constraint violation on booking_number.
+    // Only duplicate booking_number errors trigger automatic retry; all other
+    // errors fail immediately and are returned to the caller.
+    $maxAttempts = 3;
+    $lastError = null;
 
-        // Calculate totals
-        $totals = calculateBookingTotal(
-            $hall_id_value,
-            $data['menus'] ?? [],
-            $data['guests'],
-            $data['services'] ?? [],
-            $data['selected_designs'] ?? []
-        );
-        
-        // Insert booking
-        // Derive default times from shift if not explicitly provided
-        $shift_times = getShiftDefaultTimes($data['shift']);
-        $start_time = !empty($data['start_time']) ? $data['start_time'] : $shift_times['start'];
-        $end_time   = !empty($data['end_time'])   ? $data['end_time']   : $shift_times['end'];
+    for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+        $booking_id     = null;
+        $booking_number = null;
 
-        $sql = "INSERT INTO bookings (
-                    booking_number, customer_id, hall_id, custom_venue_name, custom_hall_name,
-                    event_date, start_time, end_time, shift,
-                    event_type, number_of_guests, hall_price, menu_total, 
-                    services_total, subtotal, tax_amount, grand_total, 
-                    special_requests, booking_status, payment_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute([
-            $booking_number,
-            $customer_id,
-            $hall_id_value,
-            $is_custom ? ($data['custom_venue_name'] ?? '') : null,
-            $is_custom ? ($data['custom_hall_name']  ?? '') : null,
-            $data['event_date'],
-            $start_time ?: null,
-            $end_time   ?: null,
-            $data['shift'],
-            $data['event_type'],
-            $data['guests'],
-            $totals['hall_price'],
-            $totals['menu_total'],
-            $totals['services_total'],
-            $totals['subtotal'],
-            $totals['tax_amount'],
-            $totals['grand_total'],
-            $data['special_requests'] ?? ''
-        ]);
-        
-        $booking_id = $db->lastInsertId();
-        
-        // Insert booking menus
-        if (!empty($data['menus'])) {
-            foreach ($data['menus'] as $menu_id) {
-                $stmt = $db->prepare("SELECT price_per_person FROM menus WHERE id = ?");
-                $stmt->execute([$menu_id]);
-                $menu = $stmt->fetch();
-                
-                if ($menu) {
-                    $menu_price = $menu['price_per_person'];
-                    $menu_total = $menu_price * $data['guests'];
-                    
-                    $stmt = $db->prepare("INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->execute([$booking_id, $menu_id, $menu_price, $data['guests'], $menu_total]);
+        try {
+            $db->beginTransaction();
+
+            // Generate booking number
+            $booking_number = generateBookingNumber();
+
+            // Get or create customer
+            $customer_id = getOrCreateCustomer(
+                $data['full_name'],
+                $data['phone'],
+                $data['email'] ?? '',
+                $data['address'] ?? ''
+            );
+
+            // Resolve hall_id — NULL for custom venues
+            $hall_id_value = $is_custom ? null : ($data['hall_id'] ?: null);
+
+            // Calculate totals
+            $totals = calculateBookingTotal(
+                $hall_id_value,
+                $data['menus'] ?? [],
+                $data['guests'],
+                $data['services'] ?? [],
+                $data['selected_designs'] ?? []
+            );
+
+            // Insert booking
+            // Derive default times from shift if not explicitly provided
+            $shift_times = getShiftDefaultTimes($data['shift']);
+            $start_time = !empty($data['start_time']) ? $data['start_time'] : $shift_times['start'];
+            $end_time   = !empty($data['end_time'])   ? $data['end_time']   : $shift_times['end'];
+
+            $sql = "INSERT INTO bookings (
+                        booking_number, customer_id, hall_id, custom_venue_name, custom_hall_name,
+                        event_date, start_time, end_time, shift,
+                        event_type, number_of_guests, hall_price, menu_total, 
+                        services_total, subtotal, tax_amount, grand_total, 
+                        special_requests, booking_status, payment_status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
+                $booking_number,
+                $customer_id,
+                $hall_id_value,
+                $is_custom ? ($data['custom_venue_name'] ?? '') : null,
+                $is_custom ? ($data['custom_hall_name']  ?? '') : null,
+                $data['event_date'],
+                $start_time ?: null,
+                $end_time   ?: null,
+                $data['shift'],
+                $data['event_type'],
+                $data['guests'],
+                $totals['hall_price'],
+                $totals['menu_total'],
+                $totals['services_total'],
+                $totals['subtotal'],
+                $totals['tax_amount'],
+                $totals['grand_total'],
+                $data['special_requests'] ?? ''
+            ]);
+
+            $booking_id = $db->lastInsertId();
+
+            // Insert booking menus
+            if (!empty($data['menus'])) {
+                foreach ($data['menus'] as $menu_id) {
+                    $stmt = $db->prepare("SELECT price_per_person FROM menus WHERE id = ?");
+                    $stmt->execute([$menu_id]);
+                    $menu = $stmt->fetch();
+
+                    if ($menu) {
+                        $menu_price = $menu['price_per_person'];
+                        $menu_total = $menu_price * $data['guests'];
+
+                        $stmt = $db->prepare("INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES (?, ?, ?, ?, ?)");
+                        $stmt->execute([$booking_id, $menu_id, $menu_price, $data['guests'], $menu_total]);
+                    }
                 }
             }
-        }
-        
-        // Insert booking services
-        if (!empty($data['services'])) {
-            foreach ($data['services'] as $service_id) {
-                $stmt = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
-                $stmt->execute([$service_id]);
-                $service = $stmt->fetch();
-                
-                if ($service) {
-                    $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
+
+            // Insert booking services
+            if (!empty($data['services'])) {
+                foreach ($data['services'] as $service_id) {
+                    $stmt = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
+                    $stmt->execute([$service_id]);
+                    $service = $stmt->fetch();
+
+                    if ($service) {
+                        $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
+                    }
                 }
             }
-        }
 
-        // Insert selected designs into booking_services.
-        // selected_designs format: { service_id => design_id } (direct design flow)
-        // Also supports legacy { sub_service_id => design_id } for backward compatibility.
-        // Each design insertion is wrapped in its own try-catch so that a schema
-        // mismatch (e.g. missing sub_service_id / design_id columns on an older
-        // database that hasn't been migrated) does NOT roll back the whole booking.
-        // The basic booking record is always preserved; missing designs are logged.
-        if (!empty($data['selected_designs'])) {
-            foreach ($data['selected_designs'] as $key_id => $design_id) {
-                $key_id    = intval($key_id);
-                $design_id = intval($design_id);
+            // Insert selected designs into booking_services.
+            // selected_designs format: { service_id => design_id } (direct design flow)
+            // Also supports legacy { sub_service_id => design_id } for backward compatibility.
+            // Each design insertion is wrapped in its own try-catch so that a schema
+            // mismatch (e.g. missing sub_service_id / design_id columns on an older
+            // database that hasn't been migrated) does NOT roll back the whole booking.
+            // The basic booking record is always preserved; missing designs are logged.
+            if (!empty($data['selected_designs'])) {
+                foreach ($data['selected_designs'] as $key_id => $design_id) {
+                    $key_id    = intval($key_id);
+                    $design_id = intval($design_id);
 
-                try {
-                    // Try new direct-service design first (service_id on service_designs)
-                    $stmt = $db->prepare(
-                        "SELECT d.name, d.price, d.description, d.service_id, s.category
-                         FROM service_designs d
-                         JOIN additional_services s ON s.id = d.service_id
-                         WHERE d.id = ? AND d.service_id = ?"
-                    );
-                    $stmt->execute([$design_id, $key_id]);
-                    $design = $stmt->fetch();
-                    $sub_service_id_val = null;
-
-                    if (!$design) {
-                        // Fall back to legacy sub-service flow
+                    try {
+                        // Try new direct-service design first (service_id on service_designs)
                         $stmt = $db->prepare(
-                            "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                            "SELECT d.name, d.price, d.description, d.service_id, s.category
                              FROM service_designs d
-                             JOIN service_sub_services ss ON ss.id = d.sub_service_id
-                             JOIN additional_services s ON s.id = ss.service_id
-                             WHERE d.id = ? AND d.sub_service_id = ?"
+                             JOIN additional_services s ON s.id = d.service_id
+                             WHERE d.id = ? AND d.service_id = ?"
                         );
                         $stmt->execute([$design_id, $key_id]);
                         $design = $stmt->fetch();
-                        if ($design) {
-                            $sub_service_id_val = $key_id;
-                        }
-                    }
+                        $sub_service_id_val = null;
 
-                    if ($design) {
-                        $insert = $db->prepare(
-                            "INSERT INTO booking_services
-                                 (booking_id, service_id, service_name, price, description, category,
-                                  added_by, quantity, sub_service_id, design_id)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                        );
-                        $insert->execute([
-                            $booking_id,
-                            $design['service_id'],
-                            $design['name'],
-                            $design['price'],
-                            $design['description'],
-                            $design['category'],
-                            USER_SERVICE_TYPE,
-                            DEFAULT_SERVICE_QUANTITY,
-                            $sub_service_id_val,
-                            $design_id
-                        ]);
+                        if (!$design) {
+                            // Fall back to legacy sub-service flow
+                            $stmt = $db->prepare(
+                                "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                                 FROM service_designs d
+                                 JOIN service_sub_services ss ON ss.id = d.sub_service_id
+                                 JOIN additional_services s ON s.id = ss.service_id
+                                 WHERE d.id = ? AND d.sub_service_id = ?"
+                            );
+                            $stmt->execute([$design_id, $key_id]);
+                            $design = $stmt->fetch();
+                            if ($design) {
+                                $sub_service_id_val = $key_id;
+                            }
+                        }
+
+                        if ($design) {
+                            $insert = $db->prepare(
+                                "INSERT INTO booking_services
+                                     (booking_id, service_id, service_name, price, description, category,
+                                      added_by, quantity, sub_service_id, design_id)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            );
+                            $insert->execute([
+                                $booking_id,
+                                $design['service_id'],
+                                $design['name'],
+                                $design['price'],
+                                $design['description'],
+                                $design['category'],
+                                USER_SERVICE_TYPE,
+                                DEFAULT_SERVICE_QUANTITY,
+                                $sub_service_id_val,
+                                $design_id
+                            ]);
+                        }
+                    } catch (\Throwable $designErr) {
+                        // Log the error but do not abort the booking — the core booking
+                        // record was already inserted.  Run the fix_booking_step5_submission
+                        // migration (database/migrations/fix_booking_step5_submission.sql)
+                        // to add the missing columns and prevent this fallback.
+                        error_log("Design insertion skipped for booking {$booking_id}, design_id={$design_id}: " . $designErr->getMessage());
                     }
-                } catch (\Throwable $designErr) {
-                    // Log the error but do not abort the booking — the core booking
-                    // record was already inserted.  Run the fix_booking_step5_submission
-                    // migration (database/migrations/fix_booking_step5_submission.sql)
-                    // to add the missing columns and prevent this fallback.
-                    error_log("Design insertion skipped for booking {$booking_id}, design_id={$design_id}: " . $designErr->getMessage());
                 }
             }
-        }
-        
-        $db->commit();
-        
-    } catch (\Throwable $e) {
-        // Catch both Exception and PHP 7+ Error objects so no DB error can escape
-        try {
-            if ($db->inTransaction()) {
-                $db->rollBack();
+
+            $db->commit();
+            $lastError = null;
+            break; // Booking committed successfully — exit retry loop.
+
+        } catch (\Throwable $e) {
+            // Roll back this attempt
+            try {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+            } catch (\Throwable $rollbackError) {
+                error_log('Booking rollback failed: ' . $rollbackError->getMessage());
             }
-        } catch (\Throwable $rollbackError) {
-            error_log('Booking rollback failed: ' . $rollbackError->getMessage());
+
+            $errMsg = $e->getMessage();
+            error_log("Booking creation attempt {$attempt} error: " . $errMsg);
+
+            // If the booking_number uniqueness constraint was violated (race
+            // condition), generate a fresh number and retry automatically.
+            if (stripos($errMsg, 'Duplicate entry') !== false
+                && stripos($errMsg, 'booking_number') !== false
+                && $attempt < $maxAttempts) {
+                continue; // next attempt
+            }
+
+            $lastError = $e;
+            break; // non-retryable error — stop retrying
         }
-        $errMsg = $e->getMessage();
-        error_log('Booking creation error: ' . $errMsg);
+    } // end for ($attempt ...)
+
+    if ($lastError !== null) {
+        $errMsg = $lastError->getMessage();
 
         // Provide a specific user-facing message for known error types
         $userMessage = 'Unable to complete your booking. Please try again or contact support.';
@@ -1214,7 +1250,7 @@ function createBooking($data) {
         }
         return ['success' => false, 'error' => $userMessage];
     }
-    
+
     // Send email notifications after successful commit (outside try-catch so email
     // failures do not roll back or mask the successfully stored booking)
     try {
@@ -1222,9 +1258,10 @@ function createBooking($data) {
     } catch (\Throwable $e) {
         error_log("Booking notification email failed for booking ID {$booking_id}: " . $e->getMessage());
     }
-    
+
     return ['success' => true, 'booking_id' => $booking_id, 'booking_number' => $booking_number];
 }
+
 
 /**
  * Get booking details
