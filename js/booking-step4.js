@@ -87,6 +87,12 @@ document.addEventListener('DOMContentLoaded', function () {
             regularTotal += parseFloat(cb.dataset.price) || 0;
         });
 
+        // Package checkboxes
+        let packageTotal = 0;
+        document.querySelectorAll('.package-checkbox:checked').forEach(function (cb) {
+            packageTotal += parseFloat(cb.dataset.price) || 0;
+        });
+
         // Design selections
         let designTotal = 0;
         Object.values(selectedDesigns).forEach(function (d) {
@@ -94,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const rate = (typeof taxRate !== 'undefined') ? taxRate : 0; // taxRate is always PHP-injected; 0 is a safe fallback to avoid breaking the UI
-        const total = (baseTotal + regularTotal + designTotal) * (1 + rate / 100);
+        const total = (baseTotal + regularTotal + packageTotal + designTotal) * (1 + rate / 100);
         const totalCostEl = document.getElementById('totalCost');
         if (totalCostEl) totalCostEl.textContent = formatCurrency(total);
     }
@@ -240,6 +246,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Regular checkbox handler ──────────────────────────────────────────────
     document.querySelectorAll('.service-checkbox').forEach(function (cb) {
+        cb.addEventListener('change', recalculateTotal);
+    });
+
+    // ── Package checkbox handler ──────────────────────────────────────────────
+    document.querySelectorAll('.package-checkbox').forEach(function (cb) {
         cb.addEventListener('change', recalculateTotal);
     });
 

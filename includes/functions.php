@@ -476,7 +476,7 @@ function generateBookingNumber() {
 /**
  * Calculate booking total
  */
-function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = []) {
+function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = [], $packages = []) {
     $db = getDB();
     
     // Get hall price (custom venues have id=0 and no price in DB)
@@ -522,6 +522,20 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
             // If service_designs table is missing or inaccessible, skip design prices
             // rather than aborting the entire calculation.
             error_log('calculateBookingTotal: design price query failed: ' . $designErr->getMessage());
+        }
+    }
+
+    // Add prices from user-selected service packages
+    if (!empty($packages)) {
+        try {
+            $pkg_ids = array_map('intval', $packages);
+            $placeholders = implode(',', array_fill(0, count($pkg_ids), '?'));
+            $stmt = $db->prepare("SELECT COALESCE(SUM(price), 0) as total FROM service_packages WHERE id IN ($placeholders) AND status = 'active'");
+            $stmt->execute($pkg_ids);
+            $result = $stmt->fetch();
+            $services_total += (float)($result['total'] ?? 0);
+        } catch (\Throwable $pkgErr) {
+            error_log('calculateBookingTotal: package price query failed: ' . $pkgErr->getMessage());
         }
     }
     
@@ -1142,6 +1156,34 @@ function createBooking($data) {
                     if ($service) {
                         $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                         $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
+                    }
+                }
+            }
+
+            // Insert user-selected service packages into booking_services
+            if (!empty($data['packages'])) {
+                foreach ($data['packages'] as $package_id) {
+                    $package_id = intval($package_id);
+                    if ($package_id <= 0) continue;
+                    try {
+                        $stmt = $db->prepare("SELECT name, price, description FROM service_packages WHERE id = ? AND status = 'active'");
+                        $stmt->execute([$package_id]);
+                        $package = $stmt->fetch();
+                        if ($package) {
+                            $insert = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                            $insert->execute([
+                                $booking_id,
+                                $package_id,
+                                $package['name'],
+                                $package['price'],
+                                $package['description'] ?? '',
+                                PACKAGE_SERVICE_CATEGORY,
+                                USER_SERVICE_TYPE,
+                                DEFAULT_SERVICE_QUANTITY,
+                            ]);
+                        }
+                    } catch (\Throwable $pkgErr) {
+                        error_log("Package insertion skipped for booking {$booking_id}, package_id={$package_id}: " . $pkgErr->getMessage());
                     }
                 }
             }
