@@ -345,8 +345,53 @@ function initNepaliCalendar() {
             closeOnSelect: true, // Close calendar after date is selected (like English calendar)
             onChange: function(adDate, bsDate) {
                 updateNepaliDisplay();
+            },
+            onMonthChange: function(bsYear, bsMonth) {
+                loadBookingCountsForMonth(bsYear, bsMonth);
             }
         });
+
+        // Load booking counts for the currently displayed month
+        if (nepaliPicker.currentBSDate) {
+            loadBookingCountsForMonth(nepaliPicker.currentBSDate.year, nepaliPicker.currentBSDate.month);
+        }
+    }
+
+    /**
+     * Fetch booking counts for a Nepali (BS) month and update the date picker.
+     * Converts the BS month boundaries to AD dates, calls the API, then
+     * passes the result to the picker so it can render count badges.
+     */
+    function loadBookingCountsForMonth(bsYear, bsMonth) {
+        if (typeof window.nepaliDateUtils === 'undefined') return;
+
+        var utils = window.nepaliDateUtils;
+        var daysInMonth = utils.getDaysInBSMonth(bsYear, bsMonth);
+        var firstDay = utils.bsToAD(bsYear, bsMonth, 1);
+        var lastDay  = utils.bsToAD(bsYear, bsMonth, daysInMonth);
+
+        if (!firstDay || !lastDay) return;
+
+        var startDate = firstDay.year + '-' +
+            String(firstDay.month).padStart(2, '0') + '-' +
+            String(firstDay.day).padStart(2, '0');
+        var endDate = lastDay.year + '-' +
+            String(lastDay.month).padStart(2, '0') + '-' +
+            String(lastDay.day).padStart(2, '0');
+
+        var apiUrl = (typeof baseUrl !== 'undefined' ? baseUrl : '') +
+            '/api/get-booking-counts.php?start=' + startDate + '&end=' + endDate;
+
+        fetch(apiUrl)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success && nepaliPicker) {
+                    nepaliPicker.setBookingCounts(data.counts);
+                }
+            })
+            .catch(function(err) {
+                // Non-critical: silently ignore network errors
+            });
     }
     
     // Initial display update and setup
@@ -381,8 +426,16 @@ function initNepaliCalendar() {
                     closeOnSelect: true, // Close calendar after date is selected (like English calendar)
                     onChange: function(adDate, bsDate) {
                         updateNepaliDisplay();
+                    },
+                    onMonthChange: function(bsYear, bsMonth) {
+                        loadBookingCountsForMonth(bsYear, bsMonth);
                     }
                 });
+
+                // Load counts for the initial month shown
+                if (nepaliPicker.currentBSDate) {
+                    loadBookingCountsForMonth(nepaliPicker.currentBSDate.year, nepaliPicker.currentBSDate.month);
+                }
             }
             
             // Show current BS date in display

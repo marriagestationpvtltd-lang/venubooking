@@ -275,9 +275,15 @@
                 closeOnSelect: options.closeOnSelect !== false, // Default to true - close after date selection
                 minDate: options.minDate || null,
                 maxDate: options.maxDate || null,
-                onChange: options.onChange || null
+                onChange: options.onChange || null,
+                // Callback invoked when the displayed month/year changes (e.g. user navigates).
+                // Receives (bsYear, bsMonth) so the host can fetch and update booking counts.
+                onMonthChange: options.onMonthChange || null
             };
             
+            // Booking counts keyed by AD date string "YYYY-MM-DD" → number
+            this.bookingCounts = options.bookingCounts || {};
+
             this.currentBSDate = null;
             this.selectedBSDate = null;
             this.pickerElement = null;
@@ -285,6 +291,17 @@
             this.justClosed = false; // Flag to prevent immediate reopening
             
             this.init();
+        }
+
+        /**
+         * Update booking counts and re-render the calendar.
+         * @param {Object} counts - Mapping of AD date strings to booking counts.
+         */
+        setBookingCounts(counts) {
+            this.bookingCounts = counts || {};
+            if (this.isOpen) {
+                this.render();
+            }
         }
         
         init() {
@@ -509,13 +526,35 @@
                     (year === todayBS.year && month === todayBS.month && day < todayBS.day)
                 );
 
+                // Look up booking count for this date
+                let bookingCount = 0;
+                if (!isPast && Object.keys(this.bookingCounts).length > 0) {
+                    const adDate = bsToAD(year, month, day);
+                    if (adDate) {
+                        const adStr = adDate.year + '-' +
+                            String(adDate.month).padStart(2, '0') + '-' +
+                            String(adDate.day).padStart(2, '0');
+                        bookingCount = this.bookingCounts[adStr] || 0;
+                    }
+                }
+
                 let className = 'nepali-day';
                 if (isSelected) className += ' selected';
                 if (isToday) className += ' today';
                 if (isPast) className += ' disabled';
+                if (bookingCount > 0) className += ' has-bookings';
 
                 const disabledAttr = isPast ? ' disabled' : '';
-                html += `<td><button type="button" class="${className}" data-day="${day}"${disabledAttr}>${day}</button></td>`;
+                const titleAttr = bookingCount > 0
+                    ? ` title="${bookingCount} booking${bookingCount !== 1 ? 's' : ''} on this date"`
+                    : '';
+
+                // Show count badge alongside the day number for booked dates
+                const countBadge = bookingCount > 0
+                    ? `<span class="nepali-day-count">${bookingCount}</span>`
+                    : '';
+
+                html += `<td><button type="button" class="${className}" data-day="${day}"${disabledAttr}${titleAttr}>${day}${countBadge}</button></td>`;
                 
                 currentWeekDay++;
                 if (currentWeekDay > 6) {
@@ -581,6 +620,11 @@
             }
             
             this.render();
+
+            // Notify host so it can load booking counts for the new month
+            if (this.options.onMonthChange) {
+                this.options.onMonthChange(this.currentBSDate.year, this.currentBSDate.month);
+            }
         }
         
         selectDate(day) {

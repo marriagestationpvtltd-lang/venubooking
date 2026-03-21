@@ -153,6 +153,35 @@
     opacity: 0.45;
 }
 
+/* Booking count badge shown on dates that already have bookings */
+.nepali-day.has-bookings {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px 2px;
+}
+
+.nepali-day-count {
+    display: block;
+    font-size: 9px;
+    line-height: 1;
+    font-weight: 700;
+    color: #fff;
+    background-color: rgba(25, 135, 84, 0.85);
+    border-radius: 4px;
+    padding: 1px 4px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Keep count badge visible even when the day is selected */
+.nepali-day.selected .nepali-day-count {
+    background-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+}
+
 /* Calendar type toggle button styles */
 .calendar-type-toggle {
     display: inline-flex;
