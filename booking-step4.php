@@ -40,19 +40,6 @@ $packages_by_category = array_filter($packages_by_category, function ($cat) {
     return !empty($cat['packages']);
 });
 
-// Build vendors grouped by vendor_type_slug for the vendor selection prompt
-$_all_vendors = getVendors();
-$vendors_by_type_booking = [];
-foreach ($_all_vendors as $_v) {
-    if (!empty($_v['type'])) {
-        $vendors_by_type_booking[$_v['type']][] = [
-            'id'   => intval($_v['id']),
-            'name' => $_v['name'],
-        ];
-    }
-}
-unset($_all_vendors, $_v);
-
 // Calculate current totals (no services/designs/packages selected yet in initial load)
 $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests']);
 $tax_rate = floatval(getSetting('tax_rate', '13'));
@@ -429,9 +416,6 @@ $current_total = $totals['grand_total'];
                 <!-- Hidden inputs for selected designs (populated by JS) -->
                 <div id="selected-designs-inputs"></div>
 
-                <!-- Hidden inputs for selected vendors per service (populated by JS) -->
-                <div id="selected-vendor-inputs"></div>
-
                 <div class="row mt-4">
                     <div class="col-md-6">
                         <a href="booking-step3.php" class="btn btn-outline-secondary btn-lg w-100">
@@ -474,39 +458,6 @@ $current_total = $totals['grand_total'];
     </div>
 </section>
 
-<!-- Vendor Selection Modal (shown when user selects a service with associated vendors) -->
-<div class="modal fade" id="vendorSelectModal" tabindex="-1" aria-labelledby="vendorSelectModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="vendorSelectModalLabel">
-                    <i class="fas fa-user-tie me-2 text-success"></i>Select a Vendor
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small mb-3" id="vendorModalServiceHint">
-                    Vendors are available for this service. Would you like to select one?
-                </p>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Vendor</label>
-                    <select class="form-select" id="vendorModalSelect">
-                        <option value="">— No vendor preference (skip) —</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="vendorModalSkip">
-                    Skip
-                </button>
-                <button type="button" class="btn btn-success" id="vendorModalConfirm">
-                    <i class="fas fa-check me-1"></i>Confirm
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- JSON data for JS -->
 <script>
 const baseTotal          = <?php echo json_encode($totals['subtotal']); ?>;
@@ -514,7 +465,6 @@ const taxRate            = <?php echo json_encode($tax_rate); ?>;
 const servicesData       = <?php echo json_encode(array_values($services_map)); ?>;
 const uploadUrl          = <?php echo json_encode(rtrim(UPLOAD_URL, '/')); ?>;
 const currency           = <?php echo json_encode(getSetting('currency', 'NPR')); ?>;
-const vendorsByTypeMap   = <?php echo json_encode($vendors_by_type_booking, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 </script>
 <?php
 $extra_js = '<script src="' . BASE_URL . '/js/booking-step4.js"></script>';

@@ -39,20 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
     } else {
         $_SESSION['selected_designs'] = [];
     }
-    // Save vendor selections: service_id => vendor_id (customer chose vendor for service)
-    if (!empty($_POST['vendor_for_service']) && is_array($_POST['vendor_for_service'])) {
-        $clean_vendors = [];
-        foreach ($_POST['vendor_for_service'] as $svc_id => $vendor_id) {
-            $svc_id_int    = intval($svc_id);
-            $vendor_id_int = intval($vendor_id);
-            if ($svc_id_int > 0 && $vendor_id_int > 0) {
-                $clean_vendors[$svc_id_int] = $vendor_id_int;
-            }
-        }
-        $_SESSION['selected_vendor_for_service'] = $clean_vendors;
-    } else {
-        $_SESSION['selected_vendor_for_service'] = [];
-    }
 }
 
 $booking_data = $_SESSION['booking_data'];
@@ -319,19 +305,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 }
             }
 
-            // Auto-assign vendors that the customer selected during service selection
-            $selected_vendor_for_service = $_SESSION['selected_vendor_for_service'] ?? [];
-            if (!empty($selected_vendor_for_service)) {
-                // Build a quick service-name lookup
-                $svc_name_map = [];
-                foreach ($service_details as $sd) {
-                    $svc_name_map[intval($sd['id'])] = $sd['name'];
-                }
-                foreach ($selected_vendor_for_service as $svc_id => $vendor_id) {
-                    $task_name = $svc_name_map[intval($svc_id)] ?? '';
-                    addVendorAssignment($booking_id, intval($vendor_id), $task_name, 0, '');
-                }
-            }
             
             // Clear booking session data and redirect to confirmation
             $_SESSION['booking_completed'] = [
@@ -345,7 +318,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             unset($_SESSION['selected_services']);
             unset($_SESSION['selected_designs']);
             unset($_SESSION['selected_packages']);
-            unset($_SESSION['selected_vendor_for_service']);
             
             header('Location: confirmation.php');
             exit;
