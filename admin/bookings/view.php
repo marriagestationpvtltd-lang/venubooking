@@ -86,12 +86,12 @@ if (isset($_POST['action'])) {
         if (empty($service_name)) {
             $_SESSION['flash_error']   = 'Service name is required.';
             $_SESSION['flash_section'] = 'admin_services';
-            header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+            header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
             exit;
         } elseif ($price <= 0) {
             $_SESSION['flash_error']   = 'Price must be greater than 0.';
             $_SESSION['flash_section'] = 'admin_services';
-            header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+            header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
             exit;
         } else {
             $new_service_id = addAdminService($booking_id, $service_name, $description, $quantity, $price);
@@ -102,7 +102,7 @@ if (isset($_POST['action'])) {
                 $_SESSION['flash_error'] = 'Failed to add admin service. Please check error logs or run fix_admin_services.php to update database schema.';
             }
             $_SESSION['flash_section'] = 'admin_services';
-            header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+            header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
             exit;
         }
     } elseif ($action === 'add_catalog_service') {
@@ -113,7 +113,7 @@ if (isset($_POST['action'])) {
         if ($catalog_service_id <= 0) {
             $_SESSION['flash_error']   = 'Please select a service from the catalog.';
             $_SESSION['flash_section'] = 'admin_services';
-            header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+            header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
             exit;
         }
 
@@ -126,7 +126,7 @@ if (isset($_POST['action'])) {
         if (!$catalog_svc) {
             $_SESSION['flash_error']   = 'Selected service not found or is inactive.';
             $_SESSION['flash_section'] = 'admin_services';
-            header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+            header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
             exit;
         }
 
@@ -157,7 +157,7 @@ if (isset($_POST['action'])) {
             $_SESSION['flash_error'] = 'Failed to add service from catalog. Please try again.';
         }
         $_SESSION['flash_section'] = 'admin_services';
-        header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+        header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
         exit;
     } elseif ($action === 'delete_admin_service') {
         // Handle deleting admin service (also handles package services since they share added_by='admin')
@@ -175,19 +175,19 @@ if (isset($_POST['action'])) {
                 } else {
                     $_SESSION['flash_success'] = 'Service removed successfully!';
                     $_SESSION['flash_section'] = 'admin_services';
-                    header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+                    header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
                     exit;
                 }
             } else {
                 $_SESSION['flash_error']   = 'Failed to delete service. Please try again.';
                 $_SESSION['flash_section'] = 'admin_services';
-                header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+                header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
                 exit;
             }
         } else {
             $_SESSION['flash_error']   = 'Invalid service ID.';
             $_SESSION['flash_section'] = 'admin_services';
-            header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+            header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
             exit;
         }
     } elseif ($action === 'add_package') {
@@ -304,7 +304,7 @@ if (isset($_POST['action'])) {
             }
         }
         $_SESSION['flash_section'] = 'admin_services';
-        header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+        header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
         exit;
     } elseif ($action === 'update_vendor_assignment_status') {
         $assignment_id     = intval($_POST['assignment_id'] ?? 0);
@@ -317,7 +317,7 @@ if (isset($_POST['action'])) {
             $_SESSION['flash_error'] = 'Failed to update vendor assignment status.';
         }
         $_SESSION['flash_section'] = 'admin_services';
-        header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+        header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
         exit;
     } elseif ($action === 'delete_vendor_assignment') {
         $assignment_id = intval($_POST['assignment_id'] ?? 0);
@@ -329,7 +329,7 @@ if (isset($_POST['action'])) {
             $_SESSION['flash_error'] = 'Failed to remove vendor assignment.';
         }
         $_SESSION['flash_section'] = 'admin_services';
-        header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
+        header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
         exit;
     }
 }
@@ -1003,8 +1003,8 @@ foreach ($user_services as $_svc) {
     $user_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
 }
 $booking_payment_methods = getBookingPaymentMethods($booking_id);
-// Services tab count: only menus, user services, and packages (admin services are shown in Quick Check panel)
-$tab_services_count = count($user_services) + count($booking['menus'] ?? []) + count($package_services);
+// Services tab count: menus, user services, admin services, and packages
+$tab_services_count = count($user_services) + count($admin_services) + count($booking['menus'] ?? []) + count($package_services);
 $tab_payments_count = count($payment_transactions);
 
 // Load available service packages for the Add Package form
@@ -1389,402 +1389,7 @@ $available_services = getActiveServices();
                     </div>
                 </div>
 
-                <!-- Admin Added Services -->
-                <div class="border-top mt-3 pt-2" id="admin-added-services">
-                    <!-- Section Header -->
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-shield-alt text-warning" style="font-size:.85rem;"></i>
-                            <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.06em;">Admin Added Services</span>
-                            <?php if (!empty($admin_services)): ?>
-                                <span class="badge bg-warning text-dark" style="font-size:.65rem;"><?php echo count($admin_services); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <?php if (($is_admin_services_flash || $is_vendor_flash) && $success_message): ?>
-                    <div class="alert alert-success alert-dismissible fade show py-2 px-3 small" role="alert">
-                        <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message); ?>
-                        <?php if (!empty($new_vendor_wa_url)): ?>
-                            <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
-                               class="btn btn-sm btn-success ms-2 py-0 px-2">
-                                <i class="fab fa-whatsapp me-1"></i>Notify
-                            </a>
-                        <?php endif; ?>
-                        <?php if ($new_vendor_email_sent): ?>
-                            <span class="badge bg-info ms-1"><i class="fas fa-envelope me-1"></i>Email sent</span>
-                        <?php endif; ?>
-                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (($is_admin_services_flash || $is_vendor_flash) && $error_message): ?>
-                    <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small" role="alert">
-                        <i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($error_message); ?>
-                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($admin_services)): ?>
-                    <div class="table-responsive mb-2">
-                        <table class="table table-sm table-bordered mb-0 align-middle" style="font-size:.8rem;">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Service</th>
-                                    <th class="text-center">Qty</th>
-                                    <th class="text-end">Price</th>
-                                    <th class="text-end">Total</th>
-                                    <?php if (!empty($vendor_types_available)): ?>
-                                    <th class="text-center" title="Assign a vendor for this service"></th>
-                                    <?php endif; ?>
-                                    <th class="text-center">Remove</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($admin_services as $service):
-                                    $svc_price = floatval($service['price'] ?? 0);
-                                    $svc_qty   = intval($service['quantity'] ?? 1);
-                                    $svc_total = $svc_price * $svc_qty;
-                                ?>
-                                <tr>
-                                    <td>
-                                        <i class="fas fa-shield-alt text-warning me-1"></i>
-                                        <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
-                                        <?php if (!empty($service['description'])): ?>
-                                            <small class="d-block text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($service['description']); ?></small>
-                                        <?php endif; ?>
-                                        <?php
-                                            $_asvc_id      = (int)$service['id'];
-                                            $_asvc_vendors = $vendor_assignments_by_service[$_asvc_id] ?? [];
-                                        ?>
-                                        <?php if (!empty($_asvc_vendors)): ?>
-                                        <div class="mt-1 pt-1 border-top">
-                                            <?php foreach ($_asvc_vendors as $_av):
-                                                $_av_photo = $vendor_primary_photos[$_av['vendor_id']] ?? '';
-                                            ?>
-                                            <div class="d-flex align-items-center gap-1 mb-1 flex-wrap" style="font-size:.75rem;">
-                                                <?php if (!empty($_av_photo)): ?>
-                                                    <img src="<?php echo htmlspecialchars($_av_photo); ?>"
-                                                         alt="<?php echo htmlspecialchars($_av['vendor_name']); ?>"
-                                                         class="rounded-circle flex-shrink-0"
-                                                         style="width:22px;height:22px;object-fit:cover;">
-                                                <?php else: ?>
-                                                    <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded-circle flex-shrink-0"
-                                                          style="width:22px;height:22px;font-size:.6rem;">
-                                                        <i class="fas fa-user"></i>
-                                                    </span>
-                                                <?php endif; ?>
-                                                <span class="fw-semibold"><?php echo htmlspecialchars($_av['vendor_name']); ?></span>
-                                                <span class="badge bg-light text-secondary border" style="font-size:.6rem;"><?php echo htmlspecialchars(getVendorTypeLabel($_av['vendor_type'])); ?></span>
-                                                <span class="badge <?php echo $_av['status'] === 'confirmed' ? 'bg-success' : ($_av['status'] === 'completed' ? 'bg-primary' : ($_av['status'] === 'cancelled' ? 'bg-danger' : 'bg-warning text-dark')); ?>" style="font-size:.6rem;"><?php echo ucfirst($_av['status']); ?></span>
-                                            </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center"><span class="badge bg-info"><?php echo $svc_qty; ?></span></td>
-                                    <td class="text-end fw-bold text-primary"><?php echo formatCurrency($svc_price); ?></td>
-                                    <td class="text-end fw-bold text-success"><?php echo formatCurrency($svc_total); ?></td>
-                                    <?php if (!empty($vendor_types_available)): ?>
-                                    <td class="text-center">
-                                        <?php
-                                            $_asvc_vt_slug = $service_vendor_type_slugs[(int)$service['id']] ?? '';
-                                        ?>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-secondary py-0 px-1 assign-vendor-from-service-btn"
-                                                title="Assign vendor for this service"
-                                                data-service-name="<?php echo htmlspecialchars($service['service_name']); ?>"
-                                                data-service-category="<?php echo htmlspecialchars($service['category'] ?? ''); ?>"
-                                                data-vendor-type-slug="<?php echo htmlspecialchars($_asvc_vt_slug); ?>"
-                                                data-booking-service-id="<?php echo (int)$service['id']; ?>"
-                                                data-service-price="<?php echo $svc_price; ?>"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#assignVendorFromServiceModal">
-                                            <i class="fas fa-user-plus" style="font-size:.7rem;"></i>
-                                        </button>
-                                    </td>
-                                    <?php endif; ?>
-                                    <td class="text-center">
-                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this service from the booking?');">
-                                            <input type="hidden" name="action" value="delete_admin_service">
-                                            <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                            <button type="submit" class="btn btn-danger btn-sm py-0 px-1" title="Remove service" style="font-size:.75rem;">
-                                                <i class="fas fa-trash small"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-light">
-                                    <td colspan="3" class="text-end fw-bold small">Total:</td>
-                                    <td class="text-end"><strong class="text-success"><?php echo formatCurrency($admin_services_total); ?></strong></td>
-                                    <?php if (!empty($vendor_types_available)): ?>
-                                    <td></td>
-                                    <?php endif; ?>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    <?php else: ?>
-                    <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i>No admin services added yet.</p>
-                    <?php endif; ?>
-
-                    <!-- Assigned Vendors (compact) - shows legacy/unlinked assignments only -->
-                    <?php if (!empty($vendor_assignments_unlinked)): ?>
-                    <div class="border rounded p-2 mb-2 bg-light" style="font-size:.8rem;">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <i class="fas fa-user-tie text-secondary" style="font-size:.8rem;"></i>
-                            <span class="fw-semibold text-muted text-uppercase" style="font-size:.72rem;letter-spacing:.06em;">Assigned Vendors</span>
-                            <span class="badge bg-secondary" style="font-size:.65rem;"><?php echo count($vendor_assignments_unlinked); ?></span>
-                        </div>
-                        <?php foreach ($vendor_assignments_unlinked as $assignment):
-                            $is_last_va = ($assignment === end($vendor_assignments_unlinked));
-                        ?>
-                        <div class="d-flex align-items-center gap-2 py-1 flex-wrap<?php echo $is_last_va ? '' : ' border-bottom'; ?>">
-                            <?php $va_photo_url = $vendor_primary_photos[$assignment['vendor_id']] ?? ''; ?>
-                            <?php if (!empty($va_photo_url)): ?>
-                                <img src="<?php echo htmlspecialchars($va_photo_url); ?>"
-                                     alt="<?php echo htmlspecialchars($assignment['vendor_name']); ?>"
-                                     class="rounded-circle flex-shrink-0"
-                                     style="width:26px;height:26px;object-fit:cover;">
-                            <?php else: ?>
-                                <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded-circle flex-shrink-0"
-                                      style="width:26px;height:26px;font-size:.7rem;">
-                                    <i class="fas fa-user"></i>
-                                </span>
-                            <?php endif; ?>
-                            <span class="fw-semibold"><?php echo htmlspecialchars($assignment['vendor_name']); ?></span>
-                            <span class="badge bg-light text-secondary border" style="font-size:.65rem;"><?php echo htmlspecialchars(getVendorTypeLabel($assignment['vendor_type'])); ?></span>
-                            <?php if (!empty($assignment['task_description'])): ?>
-                                <span class="text-muted" title="<?php echo htmlspecialchars($assignment['notes'] ?? ''); ?>"><?php echo htmlspecialchars($assignment['task_description']); ?></span>
-                            <?php endif; ?>
-                            <div class="ms-auto d-flex align-items-center gap-1 flex-shrink-0">
-                                <form method="POST" style="display:inline-block;">
-                                    <input type="hidden" name="action" value="update_vendor_assignment_status">
-                                    <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
-                                    <select name="assignment_status" class="form-select form-select-sm py-0 d-inline-block w-auto"
-                                            style="font-size:.72rem;" onchange="this.form.submit()">
-                                        <?php foreach (['assigned', 'confirmed', 'completed', 'cancelled'] as $s): ?>
-                                            <option value="<?php echo $s; ?>" <?php echo ($assignment['status'] === $s) ? 'selected' : ''; ?>>
-                                                <?php echo ucfirst($s); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </form>
-                                <?php if (!empty($assignment['vendor_phone'])): ?>
-                                    <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($assignment['vendor_name'], $assignment['vendor_phone'], $booking); ?>
-                                    <?php if (!empty($va_wa_url)): ?>
-                                    <a href="<?php echo htmlspecialchars($va_wa_url); ?>" target="_blank" rel="noopener noreferrer"
-                                       class="btn btn-sm btn-outline-success py-0 px-1" title="Notify via WhatsApp" style="font-size:.72rem;">
-                                        <i class="fab fa-whatsapp"></i>
-                                    </a>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                                <form method="POST" style="display:inline-block;"
-                                      onsubmit="return confirm('Remove this vendor assignment?');">
-                                    <input type="hidden" name="action" value="delete_vendor_assignment">
-                                    <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Remove" style="font-size:.72rem;">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Add Service (unified tabbed section) -->
-                    <div class="border-top pt-2">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="fw-semibold text-muted" style="font-size:.78rem;">Add Service:</span>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-info active" id="tab-catalog-btn"
-                                        onclick="switchAddServiceTab('catalog')">
-                                    <i class="fas fa-list me-1"></i>From Catalog
-                                </button>
-                                <button type="button" class="btn btn-outline-warning" id="tab-manual-btn"
-                                        onclick="switchAddServiceTab('manual')">
-                                    <i class="fas fa-pen me-1"></i>Manual Entry
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Catalog Pane -->
-                        <div id="add-service-catalog-pane">
-                        <?php if (!empty($available_services)): ?>
-                        <form method="POST" action="" id="add-catalog-service-form">
-                            <input type="hidden" name="action" value="add_catalog_service">
-                            <input type="hidden" name="catalog_vendor_id" id="catalog-vendor-id-input" value="">
-                            <div class="row g-2 align-items-end">
-                                <div class="col-auto">
-                                    <label class="form-label mb-1 small fw-semibold">Service <span class="text-danger">*</span></label>
-                                    <?php
-                                    // Group services by category for the dropdown
-                                    $services_by_cat = [];
-                                    foreach ($available_services as $svc) {
-                                        $cat = !empty($svc['vendor_type_label']) ? $svc['vendor_type_label'] : (!empty($svc['category']) ? $svc['category'] : 'General');
-                                        $services_by_cat[$cat][] = $svc;
-                                    }
-                                    ?>
-                                    <select class="form-select form-select-sm" name="catalog_service_id" id="catalog-service-select"
-                                            required style="min-width:180px;">
-                                        <option value="">— Select Service —</option>
-                                        <?php foreach ($services_by_cat as $cat => $svcs): ?>
-                                            <optgroup label="<?php echo htmlspecialchars($cat); ?>">
-                                                <?php foreach ($svcs as $svc): ?>
-                                                <option value="<?php echo intval($svc['id']); ?>"
-                                                        data-formatted-price="<?php echo htmlspecialchars(formatCurrency($svc['price']), ENT_QUOTES); ?>"
-                                                        data-description="<?php echo htmlspecialchars($svc['description'] ?? '', ENT_QUOTES); ?>"
-                                                        data-vendor-type-slug="<?php echo htmlspecialchars($svc['vendor_type_slug'] ?? '', ENT_QUOTES); ?>">
-                                                    <?php echo htmlspecialchars($svc['name']); ?> — <?php echo formatCurrency($svc['price']); ?>
-                                                </option>
-                                                <?php endforeach; ?>
-                                            </optgroup>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label mb-1 small fw-semibold">Qty</label>
-                                    <input type="number" class="form-control form-control-sm" name="quantity"
-                                           min="1" value="1" style="width:65px;">
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label mb-1 small fw-semibold">Price</label>
-                                    <input type="text" class="form-control form-control-sm bg-light" id="catalog-service-price-preview"
-                                           readonly style="width:110px;" placeholder="—">
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-plus me-1"></i>Add
-                                    </button>
-                                </div>
-                            </div>
-                            <!-- Vendor selection row: shown automatically when selected service has linked vendors -->
-                            <div class="row g-2 align-items-center mt-1 d-none" id="catalog-vendor-row">
-                                <div class="col-auto">
-                                    <span class="badge bg-info text-dark" style="font-size:.72rem;">
-                                        <i class="fas fa-user-tie me-1"></i>Assign Vendor
-                                    </span>
-                                </div>
-                                <div class="col-auto">
-                                    <select class="form-select form-select-sm" id="catalog-vendor-select" style="min-width:180px;">
-                                        <option value="">— No vendor (skip) —</option>
-                                    </select>
-                                </div>
-                                <div class="col-auto">
-                                    <small class="text-muted" style="font-size:.72rem;"><i class="fas fa-info-circle me-1"></i>Vendors available for this service type</small>
-                                </div>
-                            </div>
-                        </form>
-                        <script>
-                        (function() {
-                            var catalogVendorsByType = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-
-                            function updateCatalogServicePreview(select) {
-                                var opt = select.options[select.selectedIndex];
-                                document.getElementById('catalog-service-price-preview').value = opt.dataset.formattedPrice || '';
-
-                                var vendorTypeSlug = opt.dataset.vendorTypeSlug || '';
-                                var vendorRow      = document.getElementById('catalog-vendor-row');
-                                var vendorSelect   = document.getElementById('catalog-vendor-select');
-                                var vendorInput    = document.getElementById('catalog-vendor-id-input');
-
-                                vendorSelect.innerHTML = '<option value="">— No vendor (skip) —</option>';
-                                vendorInput.value = '';
-
-                                if (vendorTypeSlug && catalogVendorsByType[vendorTypeSlug] && catalogVendorsByType[vendorTypeSlug].length > 0) {
-                                    catalogVendorsByType[vendorTypeSlug].forEach(function(v) {
-                                        var o = document.createElement('option');
-                                        o.value = v.id;
-                                        o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
-                                        vendorSelect.appendChild(o);
-                                    });
-                                    vendorRow.classList.remove('d-none');
-                                } else {
-                                    vendorRow.classList.add('d-none');
-                                }
-                            }
-
-                            var serviceSelect = document.getElementById('catalog-service-select');
-                            if (serviceSelect) {
-                                serviceSelect.addEventListener('change', function() {
-                                    updateCatalogServicePreview(this);
-                                });
-                            }
-
-                            var vendorSelect = document.getElementById('catalog-vendor-select');
-                            if (vendorSelect) {
-                                vendorSelect.addEventListener('change', function() {
-                                    var input = document.getElementById('catalog-vendor-id-input');
-                                    if (input) input.value = this.value;
-                                });
-                            }
-                        })();
-                        </script>
-                        <?php else: ?>
-                        <p class="text-muted small mb-0">
-                            <i class="fas fa-info-circle me-1 text-info"></i>
-                            No active services in catalog. <a href="<?php echo BASE_URL; ?>/admin/services/index.php">Manage services</a> to add catalog entries.
-                        </p>
-                        <?php endif; ?>
-                        </div><!-- /#add-service-catalog-pane -->
-
-                        <!-- Manual Entry Pane -->
-                        <div id="add-service-manual-pane" style="display:none;">
-                        <form method="POST" action="">
-                            <input type="hidden" name="action" value="add_admin_service">
-                            <div class="row g-1 align-items-end">
-                                <div class="col">
-                                    <input type="text" class="form-control form-control-sm" name="service_name"
-                                           placeholder="Service Name *" required style="font-size:.78rem;">
-                                </div>
-                                <div class="col">
-                                    <input type="text" class="form-control form-control-sm" name="description"
-                                           placeholder="Description" style="font-size:.78rem;">
-                                </div>
-                                <div class="col-auto">
-                                    <input type="number" class="form-control form-control-sm" name="quantity"
-                                           min="1" value="1" style="width:55px;font-size:.78rem;" required
-                                           title="Quantity" aria-label="Quantity">
-                                </div>
-                                <div class="col-auto">
-                                    <input type="number" class="form-control form-control-sm" name="price"
-                                           min="0" step="0.01" style="width:90px;font-size:.78rem;" placeholder="Price *" required
-                                           aria-label="Price">
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-success btn-sm" style="font-size:.78rem;">
-                                        <i class="fas fa-plus me-1"></i>Add
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                        </div><!-- /#add-service-manual-pane -->
-
-                        <script>
-                        function switchAddServiceTab(tab) {
-                            var catalogPane = document.getElementById('add-service-catalog-pane');
-                            var manualPane  = document.getElementById('add-service-manual-pane');
-                            var catalogBtn  = document.getElementById('tab-catalog-btn');
-                            var manualBtn   = document.getElementById('tab-manual-btn');
-                            if (tab === 'catalog') {
-                                catalogPane.style.display = 'block';
-                                manualPane.style.display  = 'none';
-                                catalogBtn.classList.add('active');
-                                manualBtn.classList.remove('active');
-                            } else {
-                                catalogPane.style.display = 'none';
-                                manualPane.style.display  = 'block';
-                                manualBtn.classList.add('active');
-                                catalogBtn.classList.remove('active');
-                            }
-                        }
-                        </script>
-                    </div>
-                </div>
+                <!-- [Admin Added Services and Add Service sections moved to #section-services below] -->
 
             </div>
         </div>
@@ -1991,14 +1596,54 @@ $available_services = getActiveServices();
                         </div>
                         <?php endif; ?>
 
-                        <!-- User-Selected Services -->
-                        <?php if ($user_services_count > 0): ?>
-                        <div class="mb-4">
-                            <div class="section-label-premium mb-2">
-                                <span class="section-dot bg-secondary"></span>
-                                <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Customer Selected Services</span>
+                        <!-- Unified Services Section (Customer + Admin) -->
+                        <?php
+                        $all_display_services = [];
+                        foreach ($user_services as $_s) {
+                            $all_display_services[] = array_merge($_s, ['_is_admin' => false]);
+                        }
+                        foreach ($admin_services as $_s) {
+                            $all_display_services[] = array_merge($_s, ['_is_admin' => true]);
+                        }
+                        $all_display_services_count = count($all_display_services);
+                        $all_display_services_total = $user_services_total + $admin_services_total;
+                        ?>
+                        <?php if ($all_display_services_count > 0 || !empty($available_services)): ?>
+                        <div class="mb-3" id="unified-services">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="section-label-premium mb-0">
+                                    <span class="section-dot bg-secondary"></span>
+                                    <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Services</span>
+                                    <?php if ($all_display_services_count > 0): ?>
+                                        <span class="badge bg-secondary ms-1" style="font-size:.65rem;"><?php echo $all_display_services_count; ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <?php foreach ($user_services as $service):
+
+                            <?php if (($is_admin_services_flash || $is_vendor_flash) && $success_message): ?>
+                            <div class="alert alert-success alert-dismissible fade show py-2 px-3 small" role="alert">
+                                <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message); ?>
+                                <?php if (!empty($new_vendor_wa_url)): ?>
+                                    <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+                                       class="btn btn-sm btn-success ms-2 py-0 px-2">
+                                        <i class="fab fa-whatsapp me-1"></i>Notify
+                                    </a>
+                                <?php endif; ?>
+                                <?php if ($new_vendor_email_sent): ?>
+                                    <span class="badge bg-info ms-1"><i class="fas fa-envelope me-1"></i>Email sent</span>
+                                <?php endif; ?>
+                                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (($is_admin_services_flash || $is_vendor_flash) && $error_message): ?>
+                            <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small" role="alert">
+                                <i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($error_message); ?>
+                                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                            </div>
+                            <?php endif; ?>
+
+                            <!-- Service cards loop (user + admin combined) -->
+                            <?php foreach ($all_display_services as $service):
                                 $service_price   = floatval($service['price'] ?? 0);
                                 $service_qty     = intval($service['quantity'] ?? 1);
                                 $service_total   = $service_price * $service_qty;
@@ -2006,8 +1651,8 @@ $available_services = getActiveServices();
                                 $svc_master_id   = (int)($service['service_id'] ?? 0);
                                 $svc_photo_url   = ($svc_master_id > 0) ? ($service_primary_photos[$svc_master_id] ?? '') : '';
                                 $svc_vt_slug     = $service_vendor_type_slugs[$svc_id] ?? '';
-                                // Vendors already assigned to this specific service row
                                 $svc_vendors     = $vendor_assignments_by_service[$svc_id] ?? [];
+                                $svc_is_admin    = $service['_is_admin'];
                             ?>
                             <div class="border rounded mb-2 overflow-hidden">
                                 <!-- Service header row -->
@@ -2029,6 +1674,9 @@ $available_services = getActiveServices();
                                             <?php if (!empty($service['category'])): ?>
                                                 <span class="badge bg-secondary" style="font-size:.65rem;"><?php echo htmlspecialchars($service['category']); ?></span>
                                             <?php endif; ?>
+                                            <?php if ($svc_is_admin): ?>
+                                                <span class="badge bg-warning text-dark" style="font-size:.6rem;" title="Added by admin" aria-label="Service added by administrator"><i class="fas fa-shield-alt me-1"></i>Admin</span>
+                                            <?php endif; ?>
                                         </div>
                                         <?php if (!empty($service['description'])): ?>
                                             <small class="text-muted d-block" style="font-size:.72rem;"><?php echo htmlspecialchars($service['description']); ?></small>
@@ -2039,26 +1687,71 @@ $available_services = getActiveServices();
                                             <span class="text-success fw-bold">= <?php echo formatCurrency($service_total); ?></span>
                                         </div>
                                     </div>
-                                    <?php if (!empty($vendor_types_available)): ?>
-                                    <div class="flex-shrink-0">
+                                    <div class="flex-shrink-0 d-flex align-items-center gap-1">
+                                        <!-- Plus button: toggles inline vendor assignment form -->
+                                        <?php if (!empty($vendor_types_available)): ?>
                                         <button type="button"
-                                                class="btn btn-sm btn-outline-success py-0 px-2 assign-vendor-from-service-btn"
+                                                class="btn btn-sm btn-outline-primary py-0 px-2 inline-va-toggle"
                                                 title="Assign vendor for this service"
-                                                data-service-name="<?php echo htmlspecialchars($service['service_name']); ?>"
-                                                data-service-category="<?php echo htmlspecialchars($service['category'] ?? ''); ?>"
+                                                aria-expanded="false"
+                                                aria-controls="inline-va-<?php echo $svc_id; ?>"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#inline-va-<?php echo $svc_id; ?>"
                                                 data-vendor-type-slug="<?php echo htmlspecialchars($svc_vt_slug); ?>"
-                                                data-booking-service-id="<?php echo $svc_id; ?>"
-                                                data-service-price="<?php echo $service_price; ?>"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#assignVendorFromServiceModal">
-                                            <i class="fas fa-user-plus" style="font-size:.7rem;"></i>
-                                            <span style="font-size:.72rem;">Assign Vendor</span>
+                                                data-service-category="<?php echo htmlspecialchars($service['category'] ?? ''); ?>"
+                                                data-service-name="<?php echo htmlspecialchars($service['service_name']); ?>"
+                                                data-service-price="<?php echo $service_price; ?>">
+                                            <i class="fas fa-plus" style="font-size:.75rem;"></i>
                                         </button>
+                                        <?php endif; ?>
+                                        <!-- Remove button (admin-added services only) -->
+                                        <?php if ($svc_is_admin): ?>
+                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this service from the booking?');">
+                                            <input type="hidden" name="action" value="delete_admin_service">
+                                            <input type="hidden" name="service_id" value="<?php echo $svc_id; ?>">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1" title="Remove service" style="font-size:.75rem;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
                                     </div>
-                                    <?php endif; ?>
                                 </div>
+                                <!-- Inline vendor assignment form (collapsed, toggled by + button) -->
+                                <?php if (!empty($vendor_types_available)): ?>
+                                <div class="collapse" id="inline-va-<?php echo $svc_id; ?>">
+                                    <div class="px-2 py-2 border-top" style="background:#eef4ff;">
+                                        <form method="POST" action="" class="inline-va-form">
+                                            <input type="hidden" name="action" value="add_vendor_assignment">
+                                            <input type="hidden" name="booking_service_id" value="<?php echo $svc_id; ?>">
+                                            <input type="hidden" name="task_description" value="<?php echo htmlspecialchars($service['service_name']); ?>">
+                                            <div class="row g-2 align-items-end">
+                                                <div class="col">
+                                                    <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Vendor <span class="text-danger">*</span></label>
+                                                    <select name="vendor_id" class="form-select form-select-sm inline-va-vendor-select"
+                                                            data-vendor-type-slug="<?php echo htmlspecialchars($svc_vt_slug); ?>"
+                                                            data-service-category="<?php echo htmlspecialchars($service['category'] ?? ''); ?>"
+                                                            required style="font-size:.78rem;">
+                                                        <option value="">&#x2014; Select Vendor &#x2014;</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Amount</label>
+                                                    <input type="number" name="assigned_amount" class="form-control form-control-sm"
+                                                           value="<?php echo $service_price; ?>" min="0" step="0.01"
+                                                           style="width:90px;font-size:.78rem;">
+                                                </div>
+                                                <div class="col-auto">
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-user-plus me-1"></i>Assign
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                <!-- Existing vendor assignments shown below the service -->
                                 <?php if (!empty($svc_vendors)): ?>
-                                <!-- Inline vendor assignments for this service -->
                                 <div class="px-2 pb-2 pt-1" style="background:#f8fff9;">
                                     <?php foreach ($svc_vendors as $idx => $va):
                                         $va_photo_url = $vendor_primary_photos[$va['vendor_id']] ?? '';
@@ -2078,6 +1771,7 @@ $available_services = getActiveServices();
                                         <?php endif; ?>
                                         <span class="fw-semibold"><?php echo htmlspecialchars($va['vendor_name']); ?></span>
                                         <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></span>
+                                        <span class="text-primary fw-bold" style="font-size:.75rem;"><?php echo formatCurrency($va['assigned_amount'] ?? 0); ?></span>
                                         <?php if (!empty($va['task_description'])): ?>
                                             <span class="text-muted" title="<?php echo htmlspecialchars($va['notes'] ?? ''); ?>"><?php echo htmlspecialchars($va['task_description']); ?></span>
                                         <?php endif; ?>
@@ -2118,16 +1812,207 @@ $available_services = getActiveServices();
                                 <?php endif; ?>
                             </div>
                             <?php endforeach; ?>
-                            <?php if ($user_services_count > 1): ?>
+
+                            <?php if ($all_display_services_count > 1): ?>
                             <div class="text-end small fw-bold text-muted border-top pt-1 mt-1">
-                                Total: <strong class="text-success"><?php echo formatCurrency($user_services_total); ?></strong>
+                                Total: <strong class="text-success"><?php echo formatCurrency($all_display_services_total); ?></strong>
                             </div>
                             <?php endif; ?>
-                        </div>
+
+                            <!-- Add Service form (catalog + manual) at bottom of services list -->
+                            <div class="border-top pt-2 mt-2">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="fw-semibold text-muted" style="font-size:.78rem;">Add Service:</span>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-info active" id="tab-catalog-btn"
+                                                onclick="switchAddServiceTab('catalog')">
+                                            <i class="fas fa-list me-1"></i>From Catalog
+                                        </button>
+                                        <button type="button" class="btn btn-outline-warning" id="tab-manual-btn"
+                                                onclick="switchAddServiceTab('manual')">
+                                            <i class="fas fa-pen me-1"></i>Manual Entry
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Catalog Pane -->
+                                <div id="add-service-catalog-pane">
+                                <?php if (!empty($available_services)): ?>
+                                <form method="POST" action="" id="add-catalog-service-form">
+                                    <input type="hidden" name="action" value="add_catalog_service">
+                                    <input type="hidden" name="catalog_vendor_id" id="catalog-vendor-id-input" value="">
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-auto">
+                                            <label class="form-label mb-1 small fw-semibold">Service <span class="text-danger">*</span></label>
+                                            <?php
+                                            $services_by_cat = [];
+                                            foreach ($available_services as $svc) {
+                                                $cat = !empty($svc['vendor_type_label']) ? $svc['vendor_type_label'] : (!empty($svc['category']) ? $svc['category'] : 'General');
+                                                $services_by_cat[$cat][] = $svc;
+                                            }
+                                            ?>
+                                            <select class="form-select form-select-sm" name="catalog_service_id" id="catalog-service-select"
+                                                    required style="min-width:180px;">
+                                                <option value="">&#x2014; Select Service &#x2014;</option>
+                                                <?php foreach ($services_by_cat as $cat => $svcs): ?>
+                                                    <optgroup label="<?php echo htmlspecialchars($cat); ?>">
+                                                        <?php foreach ($svcs as $svc): ?>
+                                                        <option value="<?php echo intval($svc['id']); ?>"
+                                                                data-formatted-price="<?php echo htmlspecialchars(formatCurrency($svc['price']), ENT_QUOTES); ?>"
+                                                                data-description="<?php echo htmlspecialchars($svc['description'] ?? '', ENT_QUOTES); ?>"
+                                                                data-vendor-type-slug="<?php echo htmlspecialchars($svc['vendor_type_slug'] ?? '', ENT_QUOTES); ?>">
+                                                            <?php echo htmlspecialchars($svc['name']); ?> &#x2014; <?php echo formatCurrency($svc['price']); ?>
+                                                        </option>
+                                                        <?php endforeach; ?>
+                                                    </optgroup>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-auto">
+                                            <label class="form-label mb-1 small fw-semibold">Qty</label>
+                                            <input type="number" class="form-control form-control-sm" name="quantity"
+                                                   min="1" value="1" style="width:65px;">
+                                        </div>
+                                        <div class="col-auto">
+                                            <label class="form-label mb-1 small fw-semibold">Price</label>
+                                            <input type="text" class="form-control form-control-sm bg-light" id="catalog-service-price-preview"
+                                                   readonly style="width:110px;" placeholder="&#x2014;">
+                                        </div>
+                                        <div class="col-auto">
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-plus me-1"></i>Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Vendor selection row: shown when selected service has linked vendors -->
+                                    <div class="row g-2 align-items-center mt-1 d-none" id="catalog-vendor-row">
+                                        <div class="col-auto">
+                                            <span class="badge bg-info text-dark" style="font-size:.72rem;">
+                                                <i class="fas fa-user-tie me-1"></i>Assign Vendor
+                                            </span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <select class="form-select form-select-sm" id="catalog-vendor-select" style="min-width:180px;">
+                                                <option value="">&#x2014; No vendor (skip) &#x2014;</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-auto">
+                                            <small class="text-muted" style="font-size:.72rem;"><i class="fas fa-info-circle me-1"></i>Vendors available for this service type</small>
+                                        </div>
+                                    </div>
+                                </form>
+                                <script>
+                                (function() {
+                                    var catalogVendorsByType = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
+                                    function updateCatalogServicePreview(select) {
+                                        var opt = select.options[select.selectedIndex];
+                                        document.getElementById('catalog-service-price-preview').value = opt.dataset.formattedPrice || '';
+
+                                        var vendorTypeSlug = opt.dataset.vendorTypeSlug || '';
+                                        var vendorRow      = document.getElementById('catalog-vendor-row');
+                                        var vendorSelect   = document.getElementById('catalog-vendor-select');
+                                        var vendorInput    = document.getElementById('catalog-vendor-id-input');
+
+                                        vendorSelect.innerHTML = '<option value="">\u2014 No vendor (skip) \u2014</option>';
+                                        vendorInput.value = '';
+
+                                        if (vendorTypeSlug && catalogVendorsByType[vendorTypeSlug] && catalogVendorsByType[vendorTypeSlug].length > 0) {
+                                            catalogVendorsByType[vendorTypeSlug].forEach(function(v) {
+                                                var o = document.createElement('option');
+                                                o.value = v.id;
+                                                o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                                                vendorSelect.appendChild(o);
+                                            });
+                                            vendorRow.classList.remove('d-none');
+                                        } else {
+                                            vendorRow.classList.add('d-none');
+                                        }
+                                    }
+
+                                    var serviceSelect = document.getElementById('catalog-service-select');
+                                    if (serviceSelect) {
+                                        serviceSelect.addEventListener('change', function() {
+                                            updateCatalogServicePreview(this);
+                                        });
+                                    }
+
+                                    var vendorSelect = document.getElementById('catalog-vendor-select');
+                                    if (vendorSelect) {
+                                        vendorSelect.addEventListener('change', function() {
+                                            var input = document.getElementById('catalog-vendor-id-input');
+                                            if (input) input.value = this.value;
+                                        });
+                                    }
+                                })();
+                                </script>
+                                <?php else: ?>
+                                <p class="text-muted small mb-0">
+                                    <i class="fas fa-info-circle me-1 text-info"></i>
+                                    No active services in catalog. <a href="<?php echo BASE_URL; ?>/admin/services/index.php">Manage services</a> to add catalog entries.
+                                </p>
+                                <?php endif; ?>
+                                </div><!-- /#add-service-catalog-pane -->
+
+                                <!-- Manual Entry Pane -->
+                                <div id="add-service-manual-pane" style="display:none;">
+                                <form method="POST" action="">
+                                    <input type="hidden" name="action" value="add_admin_service">
+                                    <div class="row g-1 align-items-end">
+                                        <div class="col">
+                                            <input type="text" class="form-control form-control-sm" name="service_name"
+                                                   placeholder="Service Name *" required style="font-size:.78rem;">
+                                        </div>
+                                        <div class="col">
+                                            <input type="text" class="form-control form-control-sm" name="description"
+                                                   placeholder="Description" style="font-size:.78rem;">
+                                        </div>
+                                        <div class="col-auto">
+                                            <input type="number" class="form-control form-control-sm" name="quantity"
+                                                   min="1" value="1" style="width:55px;font-size:.78rem;" required
+                                                   title="Quantity" aria-label="Quantity">
+                                        </div>
+                                        <div class="col-auto">
+                                            <input type="number" class="form-control form-control-sm" name="price"
+                                                   min="0" step="0.01" style="width:90px;font-size:.78rem;" placeholder="Price *" required
+                                                   aria-label="Price">
+                                        </div>
+                                        <div class="col-auto">
+                                            <button type="submit" class="btn btn-success btn-sm" style="font-size:.78rem;">
+                                                <i class="fas fa-plus me-1"></i>Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                                </div><!-- /#add-service-manual-pane -->
+
+                                <script>
+                                function switchAddServiceTab(tab) {
+                                    var catalogPane = document.getElementById('add-service-catalog-pane');
+                                    var manualPane  = document.getElementById('add-service-manual-pane');
+                                    var catalogBtn  = document.getElementById('tab-catalog-btn');
+                                    var manualBtn   = document.getElementById('tab-manual-btn');
+                                    if (tab === 'catalog') {
+                                        catalogPane.style.display = 'block';
+                                        manualPane.style.display  = 'none';
+                                        catalogBtn.classList.add('active');
+                                        manualBtn.classList.remove('active');
+                                    } else {
+                                        catalogPane.style.display = 'none';
+                                        manualPane.style.display  = 'block';
+                                        manualBtn.classList.add('active');
+                                        catalogBtn.classList.remove('active');
+                                    }
+                                }
+                                </script>
+                            </div><!-- /add service form -->
+
+                        </div><!-- /#unified-services -->
                         <?php endif; ?>
 
             </div>
         </div><!-- /section-services -->
+
 
         <!-- ===== PAYMENTS SECTION ===== -->
         <div class="card shadow-sm border-0 mb-3 booking-section-card" id="section-payments">
@@ -3522,246 +3407,66 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </script>
 
-<!-- Assign Vendor from Service Modal -->
+
+<!-- Inline Vendor Assignment: populate vendor dropdowns on collapse show -->
 <?php if (!empty($vendor_types_available)): ?>
-<div class="modal fade" id="assignVendorFromServiceModal" tabindex="-1" aria-labelledby="assignVendorFromServiceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white py-2">
-                <h6 class="modal-title fw-bold" id="assignVendorFromServiceModalLabel">
-                    <i class="fas fa-user-plus me-2"></i>Assign Vendor for Service
-                </h6>
-                <button type="button" class="btn-close btn-close-white btn-close-sm" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="" id="assignVendorFromServiceForm">
-                <input type="hidden" name="action" value="add_vendor_assignment">
-                <input type="hidden" name="booking_service_id" id="avsBookingServiceId" value="">
-                <div class="modal-body py-3">
-                    <p class="mb-3 small">
-                        <span class="text-muted">Service:</span>
-                        <strong id="avsModalServiceName" class="ms-1 text-dark"></strong>
-                        <span id="avsVendorTypeLabel" class="badge bg-secondary ms-1" style="font-size:.65rem;"></span>
-                    </p>
-                    <!-- No vendor-type dropdown: type is auto-detected from the service -->
-                    <div class="mb-3" id="avsVendorWrapper">
-                        <label class="form-label small fw-semibold">Vendor <span class="text-danger">*</span></label>
-                        <select name="vendor_id" id="avsVendorSelect" class="form-select form-select-sm">
-                            <option value="">— Select Vendor —</option>
-                        </select>
-                        <div id="avsVendorInfo" class="d-none mt-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <img id="avsVendorPhoto" src="" alt="" class="d-none rounded-circle" style="width:44px;height:44px;object-fit:cover;">
-                                <div>
-                                    <small id="avsVendorLocation" class="text-muted d-block" style="font-size:.72rem;"></small>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="avsNoVendorsMsg" class="d-none mt-1">
-                            <small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>No available vendors for this service type.</small>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Task Description</label>
-                        <input type="text" name="task_description" id="avsTaskDescription" class="form-control form-control-sm"
-                               placeholder="e.g., Photography">
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Amount (<?php echo htmlspecialchars(getSetting('currency', 'NPR')); ?>)</label>
-                            <input type="number" name="assigned_amount" id="avsAmount" class="form-control form-control-sm"
-                                   min="0" step="0.01" placeholder="0.00" value="0">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Notes</label>
-                            <input type="text" name="assignment_notes" class="form-control form-control-sm" placeholder="Instructions…">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-sm btn-success" id="avsSubmitBtn">
-                        <i class="fas fa-user-plus me-1"></i>Assign Vendor
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 <script>
 (function() {
-    var vendorsByType      = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    var vendorTypesMap     = <?php echo json_encode(array_column(array_values($vendor_types_available), 'label', 'slug'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    var modalEl            = document.getElementById('assignVendorFromServiceModal');
-    var vendorSelect       = document.getElementById('avsVendorSelect');
-    var bookingServiceIdEl = document.getElementById('avsBookingServiceId');
-    var taskDesc           = document.getElementById('avsTaskDescription');
-    var amountInput        = document.getElementById('avsAmount');
-    var vendorInfo         = document.getElementById('avsVendorInfo');
-    var vendorPhoto        = document.getElementById('avsVendorPhoto');
-    var vendorLocation     = document.getElementById('avsVendorLocation');
-    var serviceNameEl      = document.getElementById('avsModalServiceName');
-    var vendorTypeLabelEl  = document.getElementById('avsVendorTypeLabel');
-    var noVendorsMsg       = document.getElementById('avsNoVendorsMsg');
-    var submitBtn          = document.getElementById('avsSubmitBtn');
+    var vendorsByType  = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    var vendorTypesMap = <?php echo json_encode(array_column(array_values($vendor_types_available), 'label', 'slug'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
     /**
-     * Populate the vendor dropdown for the given vendor-type slug.
-     * Also looks up the type by category label / slug if an exact slug is not provided.
+     * Resolve a vendor-type slug from a direct slug or a category label.
      */
-    function populateVendors(typeSlug, categoryLabel) {
-        vendorSelect.innerHTML = '<option value="">— Select Vendor —</option>';
-        vendorInfo.classList.add('d-none');
-        vendorPhoto.classList.add('d-none');
-        vendorPhoto.src = '';
-        vendorLocation.textContent = '';
-        noVendorsMsg.classList.add('d-none');
-
-        var resolved = typeSlug || '';
-
-        // If no direct slug, try to match via category label
-        if (!resolved && categoryLabel) {
-            var catLower = categoryLabel.toLowerCase();
-            // Pass 1: exact match
-            for (var slug in vendorTypesMap) {
-                if (slug.toLowerCase() === catLower || vendorTypesMap[slug].toLowerCase() === catLower) {
-                    resolved = slug;
-                    break;
-                }
-            }
-            // Pass 2: partial prefix match
-            if (!resolved) {
-                for (var slug2 in vendorTypesMap) {
-                    var lSlug = slug2.toLowerCase();
-                    var lLabel = vendorTypesMap[slug2].toLowerCase();
-                    if (lSlug.indexOf(catLower) === 0 || catLower.indexOf(lSlug) === 0 ||
-                        lLabel.indexOf(catLower) === 0 || catLower.indexOf(lLabel) === 0) {
-                        resolved = slug2;
-                        break;
-                    }
-                }
-            }
+    function resolveVendorTypeSlug(typeSlug, categoryLabel) {
+        if (typeSlug && vendorsByType[typeSlug]) return typeSlug;
+        if (!categoryLabel) return typeSlug || '';
+        var catLower = categoryLabel.toLowerCase();
+        for (var slug in vendorTypesMap) {
+            if (slug.toLowerCase() === catLower || vendorTypesMap[slug].toLowerCase() === catLower) return slug;
         }
-
-        // Update the vendor type badge in the modal header
-        if (resolved && vendorTypesMap[resolved]) {
-            vendorTypeLabelEl.textContent = vendorTypesMap[resolved];
-            vendorTypeLabelEl.classList.remove('d-none');
-        } else {
-            vendorTypeLabelEl.textContent = '';
-            vendorTypeLabelEl.classList.add('d-none');
+        for (var slug2 in vendorTypesMap) {
+            var ls = slug2.toLowerCase(), ll = vendorTypesMap[slug2].toLowerCase();
+            if (ls.indexOf(catLower) === 0 || catLower.indexOf(ls) === 0 ||
+                ll.indexOf(catLower) === 0 || catLower.indexOf(ll) === 0) return slug2;
         }
+        return typeSlug || '';
+    }
 
+    /**
+     * Populate a vendor <select> with options for the given vendor type.
+     */
+    function populateVendorSelect(selectEl, typeSlug, categoryLabel) {
+        if (selectEl.dataset.populated === '1') return; // already populated
+        selectEl.dataset.populated = '1'; // set flag early to prevent concurrent calls
+        var resolved = resolveVendorTypeSlug(typeSlug, categoryLabel);
+        selectEl.innerHTML = '<option value="">\u2014 Select Vendor \u2014</option>';
         if (resolved && vendorsByType[resolved] && vendorsByType[resolved].length > 0) {
             vendorsByType[resolved].forEach(function(v) {
-                var opt = document.createElement('option');
-                opt.value = v.id;
-                opt.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
-                opt.dataset.description = v.description || '';
-                opt.dataset.city = v.city || '';
-                opt.dataset.photo = v.photo || '';
-                vendorSelect.appendChild(opt);
+                var o = document.createElement('option');
+                o.value = v.id;
+                o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                selectEl.appendChild(o);
             });
-            submitBtn.disabled = false;
-        } else if (resolved) {
-            // Type known but no vendors available
-            noVendorsMsg.classList.remove('d-none');
-            submitBtn.disabled = true;
         } else {
-            // No type at all – show all vendors across all types
-            var added = false;
-            for (var t in vendorsByType) {
-                vendorsByType[t].forEach(function(v) {
-                    var opt = document.createElement('option');
-                    opt.value = v.id;
-                    opt.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
-                    opt.dataset.description = v.description || '';
-                    opt.dataset.city = v.city || '';
-                    opt.dataset.photo = v.photo || '';
-                    vendorSelect.appendChild(opt);
-                    added = true;
-                });
-            }
-            submitBtn.disabled = !added;
-            if (!added) noVendorsMsg.classList.remove('d-none');
+            // No vendor type match: show informational message
+            var o = document.createElement('option');
+            o.value = '';
+            o.disabled = true;
+            o.textContent = '\u2014 No vendors available for this service type \u2014';
+            selectEl.appendChild(o);
         }
     }
 
-    // Show vendor photo/location when vendor is selected
-    vendorSelect.addEventListener('change', function() {
-        var opt   = this.options[this.selectedIndex];
-        var desc  = opt.dataset.description || '';
-        var city  = opt.dataset.city || '';
-        var photo = opt.dataset.photo || '';
-
-        if (desc && !taskDesc.value) {
-            taskDesc.value = desc;
-        }
-
-        if (photo) {
-            vendorPhoto.src = photo;
-            vendorPhoto.classList.remove('d-none');
-        } else {
-            vendorPhoto.classList.add('d-none');
-            vendorPhoto.src = '';
-        }
-
-        if (city) {
-            vendorLocation.textContent = '';
-            var icon = document.createElement('i');
-            icon.className = 'fas fa-map-marker-alt me-1';
-            vendorLocation.appendChild(icon);
-            vendorLocation.appendChild(document.createTextNode(city));
-            vendorInfo.classList.remove('d-none');
-        } else if (photo) {
-            vendorInfo.classList.remove('d-none');
-        } else {
-            vendorInfo.classList.add('d-none');
-        }
+    // When a collapse relevant to inline vendor assignment opens, populate its vendor select
+    document.addEventListener('show.bs.collapse', function(e) {
+        if (!e.target || !e.target.id || e.target.id.indexOf('inline-va-') !== 0) return;
+        var selectEl = e.target.querySelector('.inline-va-vendor-select');
+        if (!selectEl) return;
+        var typeSlug = selectEl.dataset.vendorTypeSlug || '';
+        var category = selectEl.dataset.serviceCategory || '';
+        populateVendorSelect(selectEl, typeSlug, category);
     });
-
-    // When modal opens: fill service info and populate vendor dropdown for the service type
-    if (modalEl) {
-        modalEl.addEventListener('show.bs.modal', function(event) {
-            var btn             = event.relatedTarget;
-            var serviceName     = btn ? (btn.dataset.serviceName || '') : '';
-            var serviceCategory = btn ? (btn.dataset.serviceCategory || '') : '';
-            var vendorTypeSlug  = btn ? (btn.dataset.vendorTypeSlug || '') : '';
-            var bookingServiceId = btn ? (btn.dataset.bookingServiceId || '') : '';
-            var servicePrice    = btn ? parseFloat(btn.dataset.servicePrice || 0) : 0;
-
-            // Update hidden field and service name label
-            if (bookingServiceIdEl) bookingServiceIdEl.value = bookingServiceId;
-            if (serviceNameEl) serviceNameEl.textContent = serviceName;
-
-            // Pre-fill task description with service name
-            taskDesc.value = serviceName;
-
-            // Pre-fill amount with service price
-            amountInput.value = servicePrice > 0 ? servicePrice : 0;
-
-            // Reset vendor info
-            vendorInfo.classList.add('d-none');
-            vendorPhoto.classList.add('d-none');
-            vendorPhoto.src = '';
-            vendorLocation.textContent = '';
-            submitBtn.disabled = false;
-
-            // Populate vendor dropdown based on the service's vendor type
-            populateVendors(vendorTypeSlug, serviceCategory);
-        });
-    }
-
-    // Form validation on submit
-    var form = document.getElementById('assignVendorFromServiceForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            if (!vendorSelect.value) {
-                e.preventDefault();
-                vendorSelect.focus();
-                alert('Please select a vendor.');
-            }
-        });
-    }
 })();
 </script>
 <?php endif; ?>
