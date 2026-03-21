@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 } elseif (!isset($_SESSION['booking_data'])) {
+    $_SESSION['booking_error_flash'] = 'Your booking session has expired or is incomplete. Please start again.';
     header('Location: index.php');
     exit;
 }

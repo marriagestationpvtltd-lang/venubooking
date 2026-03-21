@@ -52,6 +52,13 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                         <h4 class="text-center mb-3 text-success">
                             <i class="fas fa-calendar-check"></i> Start Your Booking
                         </h4>
+                        <?php if (!empty($_SESSION['booking_error_flash'])): ?>
+                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i><?php echo sanitize($_SESSION['booking_error_flash']); ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                            <?php unset($_SESSION['booking_error_flash']); ?>
+                        <?php endif; ?>
                         <form id="bookingForm" method="POST" action="booking-step2.php" novalidate>
                             <input type="hidden" id="preferred_venue_id" name="preferred_venue_id" value="">
                             <div class="mb-2">
