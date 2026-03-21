@@ -14,6 +14,7 @@ $new_vendor_wa_url = '';
 $new_vendor_email_sent = false;
 $is_vendor_flash = false;
 $is_packages_flash = false;
+$is_admin_service_flash = false;
 
 // Display flash message from previous redirect (e.g., after creating a booking)
 $_flash_section = $_SESSION['flash_section'] ?? '';
@@ -78,6 +79,7 @@ if (isset($_POST['action'])) {
         $quantity = max(1, intval($_POST['quantity'] ?? 1));
         $price = max(0, floatval($_POST['price'] ?? 0));
         
+        $is_admin_service_flash = true;
         if (empty($service_name)) {
             $error_message = 'Service name is required.';
         } elseif ($price <= 0) {
@@ -113,6 +115,7 @@ if (isset($_POST['action'])) {
                     header('Location: view.php?id=' . urlencode($booking_id) . '#packages');
                     exit;
                 } else {
+                    $is_admin_service_flash = true;
                     $success_message = 'Service removed successfully!';
                     $initial_tab = 'tab-services';
                     // Re-fetch booking to get updated services and totals
@@ -121,10 +124,12 @@ if (isset($_POST['action'])) {
                     extract($status_vars);
                 }
             } else {
+                $is_admin_service_flash = true;
                 $error_message = 'Failed to delete service. Please try again.';
                 $initial_tab = 'tab-services';
             }
         } else {
+            $is_admin_service_flash = true;
             $error_message = 'Invalid service ID.';
             $initial_tab = 'tab-services';
         }
@@ -272,14 +277,14 @@ if (isset($_POST['action'])) {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<?php if ($success_message && !$is_vendor_flash && !$is_packages_flash): ?>
+<?php if ($success_message && !$is_vendor_flash && !$is_packages_flash && !$is_admin_service_flash): ?>
     <div class="alert alert-success alert-dismissible fade show" id="flash-success-alert" role="alert">
         <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
-<?php if ($error_message && !$is_vendor_flash && !$is_packages_flash): ?>
+<?php if ($error_message && !$is_vendor_flash && !$is_packages_flash && !$is_admin_service_flash): ?>
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -890,7 +895,7 @@ foreach ($user_services as $_svc) {
     $user_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
 }
 $booking_payment_methods = getBookingPaymentMethods($booking_id);
-$tab_services_count = count($user_services) + count($booking['menus'] ?? []) + count($package_services);
+$tab_services_count = count($user_services) + count($booking['menus'] ?? []) + count($package_services) + count($admin_services);
 $tab_payments_count = count($payment_transactions);
 
 // Load available service packages for the Add Package form
@@ -1535,111 +1540,6 @@ $available_packages_by_category = getServicePackagesByCategory();
                     </div>
                 </div>
 
-                <!-- Admin Added Services -->
-                <div class="border-top mt-3 pt-2" id="admin-added-services">
-                    <!-- Section Header -->
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-shield-alt text-secondary" style="font-size:.85rem;"></i>
-                            <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.06em;">Admin Added Services</span>
-                            <?php if (!empty($admin_services)): ?>
-                                <span class="badge bg-dark" style="font-size:.65rem;"><?php echo count($admin_services); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <?php if (count($admin_services) > 0): ?>
-                    <div class="table-responsive mb-2">
-                        <table class="table table-sm table-bordered mb-0 align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Service</th>
-                                    <th class="text-center">Qty</th>
-                                    <th class="text-end">Price</th>
-                                    <th class="text-end">Total</th>
-                                    <th class="text-center">Delete</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($admin_services as $service):
-                                    $service_price = floatval($service['price'] ?? 0);
-                                    $service_qty   = intval($service['quantity'] ?? 1);
-                                    $service_total = $service_price * $service_qty;
-                                ?>
-                                <tr>
-                                    <td class="service-info-cell">
-                                        <i class="fas fa-shield-alt text-warning me-2"></i>
-                                        <strong><?php echo htmlspecialchars($service['service_name']); ?></strong>
-                                        <?php if (!empty($service['description'])): ?>
-                                            <small class="service-description"><?php echo htmlspecialchars($service['description']); ?></small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center"><span class="badge bg-info"><?php echo $service_qty; ?></span></td>
-                                    <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service_price); ?></td>
-                                    <td class="text-end fw-bold text-success"><?php echo formatCurrency($service_total); ?></td>
-                                    <td class="text-center">
-                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this service?');">
-                                            <input type="hidden" name="action" value="delete_admin_service">
-                                            <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                            <button type="submit" class="btn btn-danger btn-sm py-0 px-1" title="Delete">
-                                                <i class="fas fa-trash small"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-light">
-                                    <td colspan="3" class="text-end fw-bold small">Total Admin Services:</td>
-                                    <td colspan="2" class="text-end"><strong class="text-success"><?php echo formatCurrency($admin_services_total); ?></strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    <?php else: ?>
-                    <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> No admin services added yet.</p>
-                    <?php endif; ?>
-
-                    <!-- Add Service Form -->
-                    <div class="border-top pt-2">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-plus-circle text-success me-1" style="font-size:.85rem;"></i>
-                            <span class="fw-semibold text-muted" style="font-size:.8rem;">Add a Service</span>
-                        </div>
-                        <form method="POST" action="">
-                            <input type="hidden" name="action" value="add_admin_service">
-                            <div class="row g-2 align-items-end">
-                                <div class="col-auto">
-                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Service Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" name="service_name"
-                                           placeholder="Service Name" required>
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Description</label>
-                                    <input type="text" class="form-control form-control-sm" name="description"
-                                           placeholder="Description (optional)">
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Qty <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control form-control-sm" name="quantity"
-                                           min="1" value="1" style="width:70px;" required>
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Price <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control form-control-sm" name="price"
-                                           min="0" step="0.01" style="width:100px;" required>
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-sm btn-success">
-                                        <i class="fas fa-plus me-1"></i>Add
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -1899,6 +1799,115 @@ $available_packages_by_category = getServicePackagesByCategory();
                             </div>
                         </div>
                         <?php endif; ?>
+
+                        <!-- Admin Added Services -->
+                        <div class="border-top mt-3 pt-3" id="admin-added-services">
+                            <div class="section-label-premium mb-2">
+                                <span class="section-dot bg-warning"></span>
+                                <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Admin Added Services</span>
+                                <?php if (!empty($admin_services)): ?>
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem;"><?php echo count($admin_services); ?></span>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if ($is_admin_service_flash && $success_message): ?>
+                            <div class="alert alert-success alert-dismissible fade show py-1 px-2 small mb-2" role="alert">
+                                <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message); ?>
+                                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($is_admin_service_flash && $error_message): ?>
+                            <div class="alert alert-danger alert-dismissible fade show py-1 px-2 small mb-2" role="alert">
+                                <i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($error_message); ?>
+                                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($admin_services)): ?>
+                            <div class="table-responsive mb-2">
+                                <table class="table table-sm table-bordered mb-0 align-middle" style="font-size:.8rem;">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Service</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-end">Price</th>
+                                            <th class="text-end">Total</th>
+                                            <th class="text-center">Del</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($admin_services as $service):
+                                            $service_price = floatval($service['price'] ?? 0);
+                                            $service_qty   = intval($service['quantity'] ?? 1);
+                                            $service_total = $service_price * $service_qty;
+                                        ?>
+                                        <tr>
+                                            <td class="service-info-cell">
+                                                <i class="fas fa-shield-alt text-warning me-1"></i>
+                                                <strong><?php echo htmlspecialchars($service['service_name']); ?></strong>
+                                                <?php if (!empty($service['description'])): ?>
+                                                    <small class="d-block text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($service['description']); ?></small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-center"><span class="badge bg-info"><?php echo $service_qty; ?></span></td>
+                                            <td class="text-end fw-bold text-primary"><?php echo formatCurrency($service_price); ?></td>
+                                            <td class="text-end fw-bold text-success"><?php echo formatCurrency($service_total); ?></td>
+                                            <td class="text-center">
+                                                <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this service?');">
+                                                    <input type="hidden" name="action" value="delete_admin_service">
+                                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                                    <button type="submit" class="btn btn-danger btn-sm py-0 px-1" title="Delete">
+                                                        <i class="fas fa-trash small"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-light">
+                                            <td colspan="3" class="text-end fw-bold small">Total Admin Services:</td>
+                                            <td colspan="2" class="text-end"><strong class="text-success"><?php echo formatCurrency($admin_services_total); ?></strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <?php else: ?>
+                            <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> No admin services added yet.</p>
+                            <?php endif; ?>
+
+                            <!-- Compact Add Service Form -->
+                            <div class="border-top pt-2">
+                                <form method="POST" action="">
+                                    <input type="hidden" name="action" value="add_admin_service">
+                                    <div class="row g-1 align-items-end">
+                                        <div class="col">
+                                            <input type="text" class="form-control form-control-sm" name="service_name"
+                                                   placeholder="Service Name *" required style="font-size:.78rem;">
+                                        </div>
+                                        <div class="col">
+                                            <input type="text" class="form-control form-control-sm" name="description"
+                                                   placeholder="Description" style="font-size:.78rem;">
+                                        </div>
+                                        <div class="col-auto">
+                                            <input type="number" class="form-control form-control-sm" name="quantity"
+                                                   min="1" value="1" style="width:55px;font-size:.78rem;" required
+                                                   title="Quantity" aria-label="Quantity">
+                                        </div>
+                                        <div class="col-auto">
+                                            <input type="number" class="form-control form-control-sm" name="price"
+                                                   min="0" step="0.01" style="width:90px;font-size:.78rem;" placeholder="Price *" required
+                                                   aria-label="Price">
+                                        </div>
+                                        <div class="col-auto">
+                                            <button type="submit" class="btn btn-success btn-sm" style="font-size:.78rem;">
+                                                <i class="fas fa-plus me-1"></i>Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
 
             </div>
         </div><!-- /section-services -->
@@ -3284,6 +3293,15 @@ $available_packages_by_category = getServicePackagesByCategory();
     }
 })();
 
+<?php if ($initial_tab === 'tab-services'): ?>
+// Auto-scroll to the Services section after admin service add/delete
+document.addEventListener('DOMContentLoaded', function() {
+    var servicesSection = document.getElementById('section-services');
+    if (servicesSection) {
+        servicesSection.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+});
+<?php endif; ?>
 
 </script>
 
