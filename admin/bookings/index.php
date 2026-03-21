@@ -63,7 +63,7 @@ try {
 
 <?php if ($success_message): ?>
     <div class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
@@ -266,6 +266,7 @@ try {
                                     </a>
                                     <form method="POST" action="delete.php" style="display: inline;" 
                                           onsubmit="return confirm('Are you sure you want to delete this booking? This action cannot be undone.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                                         <input type="hidden" name="id" value="<?php echo $booking['id']; ?>">
                                         <button type="submit" 
                                                 class="btn btn-sm btn-danger" 

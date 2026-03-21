@@ -12,6 +12,9 @@ $cities = $cities_stmt->fetchAll();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
     $name = trim($_POST['name']);
     $city_id = isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null;
     $address = trim($_POST['address']);
@@ -114,9 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($image_filename) && $image_filename) {
                 deleteUploadedFile($image_filename);
             }
-            $error_message = 'Error: ' . $e->getMessage();
+            $error_message = 'Error adding venue. Please try again or contact support.';
         }
     }
+    } // end CSRF-valid else
 }
 ?>
 
@@ -132,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card-body">
                 <?php if ($success_message): ?>
                     <div class="alert alert-success alert-dismissible fade show">
-                        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
                         <a href="index.php" class="alert-link">View all venues</a>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
@@ -140,12 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <?php if ($error_message): ?>
                     <div class="alert alert-danger alert-dismissible fade show">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+                        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
 
                 <form method="POST" action="" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">

@@ -15,7 +15,7 @@ unset($_SESSION['error_message']);
 
 <?php if ($success_message): ?>
     <div class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
@@ -61,6 +61,7 @@ unset($_SESSION['error_message']);
                                 <a href="view.php?id=<?php echo $hall['id']; ?>" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>
                                 <a href="edit.php?id=<?php echo $hall['id']; ?>" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
                                 <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this hall? This action cannot be undone.');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                                     <input type="hidden" name="id" value="<?php echo $hall['id']; ?>">
                                     <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>
                                 </form>

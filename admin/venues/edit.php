@@ -30,7 +30,9 @@ $cities = $cities_stmt->fetchAll();
 
 // Handle venue image upload (separate from main form)
 if (isset($_POST['upload_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_FILES['venue_image_upload'])) {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } elseif (isset($_FILES['venue_image_upload'])) {
         $upload_result = handleImageUpload($_FILES['venue_image_upload'], 'venue');
 
         if ($upload_result['success']) {
@@ -84,7 +86,9 @@ if (isset($_POST['delete_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Handle 360° panoramic image upload
 if (isset($_POST['upload_pano']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_FILES['venue_pano_image']) && $_FILES['venue_pano_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } elseif (isset($_FILES['venue_pano_image']) && $_FILES['venue_pano_image']['error'] !== UPLOAD_ERR_NO_FILE) {
         $pano_result = handleImageUpload($_FILES['venue_pano_image'], 'venue_pano');
         if ($pano_result['success']) {
             try {
@@ -134,6 +138,9 @@ if (isset($_POST['delete_pano']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Handle form submission
 if (isset($_POST['update_venue']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
     $name = trim($_POST['name']);
     $city_id = isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null;
     $address = trim($_POST['address']);
@@ -206,9 +213,11 @@ if (isset($_POST['update_venue']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } catch (Exception $e) {
-            $error_message = 'Error: ' . $e->getMessage();
+            error_log('Error updating venue ID ' . $venue_id . ': ' . $e->getMessage());
+            $error_message = 'Error updating venue. Please try again or contact support.';
         }
     }
+    } // end CSRF-valid else
 }
 
 // Fetch venue images for display
@@ -238,19 +247,20 @@ try {
             <div class="card-body">
                 <?php if ($success_message): ?>
                     <div class="alert alert-success alert-dismissible fade show">
-                        <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
 
                 <?php if ($error_message): ?>
                     <div class="alert alert-danger alert-dismissible fade show">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+                        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
 
                 <form method="POST" action="" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -334,6 +344,7 @@ try {
 
                     <div class="d-flex justify-content-between">
                         <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this venue? This action cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="hidden" name="id" value="<?php echo $venue_id; ?>">
                             <button type="submit" class="btn btn-danger">
                                 <i class="fas fa-trash"></i> Delete Venue
@@ -371,6 +382,7 @@ try {
                         <div class="card-body bg-light">
                             <h6 class="card-title">Upload New Image</h6>
                             <form method="POST" action="" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
@@ -471,6 +483,7 @@ try {
                             <h6 class="card-title">Upload 360° Panoramic Photo</h6>
                             <p class="text-muted small">Upload an equirectangular panoramic image. This will be displayed as an interactive 360° viewer on the booking page.</p>
                             <form method="POST" action="" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                                 <div class="mb-3">
                                     <label for="venue_pano_image" class="form-label">Panoramic Image <span class="text-danger">*</span></label>
                                     <input type="file" class="form-control" id="venue_pano_image" name="venue_pano_image" accept="image/*" required>
