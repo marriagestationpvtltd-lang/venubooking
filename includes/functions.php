@@ -3101,7 +3101,7 @@ function updateHallMenus($hall_id, $menu_ids) {
  * @param float $price Price per unit
  * @return bool|int Returns service ID on success, false on failure
  */
-function addAdminService($booking_id, $service_name, $description, $quantity, $price, $design_id = 0) {
+function addAdminService($booking_id, $service_name, $description, $quantity, $price, $design_id = 0, $catalog_service_id = 0) {
     $db = getDB();
     
     try {
@@ -3114,6 +3114,7 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
         $quantity = max(1, intval($quantity));
         $price = floatval($price);
         $design_id = max(0, intval($design_id));
+        $catalog_service_id = max(0, intval($catalog_service_id));
         
         if (empty($service_name)) {
             throw new Exception("Service name is required");
@@ -3123,13 +3124,16 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
             throw new Exception("Price must be greater than 0");
         }
         
+        // Store the catalog service_id reference when available so photo/vendor-type lookups work
+        $service_ref_id = $catalog_service_id > 0 ? $catalog_service_id : ADMIN_SERVICE_NO_REF_ID;
+
         // Insert admin service (include design_id when provided)
         $stmt = $db->prepare("
             INSERT INTO booking_services 
             (booking_id, service_id, service_name, price, description, category, added_by, quantity, design_id) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$booking_id, ADMIN_SERVICE_NO_REF_ID, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity, $design_id > 0 ? $design_id : null]);
+        $stmt->execute([$booking_id, $service_ref_id, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity, $design_id > 0 ? $design_id : null]);
         $service_id = $db->lastInsertId();
         
         // Recalculate booking totals
@@ -3421,9 +3425,14 @@ function getVendors($type = null) {
  * @param string $event_date  Date string (YYYY-MM-DD)
  * @return array
  */
-function getAvailableVendors($event_date) {
+function getAvailableVendors($event_date, $current_booking_id = 0) {
     $db = getDB();
     try {
+        $current_booking_id = intval($current_booking_id);
+        // Exclude vendors assigned to OTHER bookings on the same date.
+        // Vendors already assigned to the current booking remain available so they
+        // can be assigned to additional services within the same booking.
+        $booking_exclude = $current_booking_id > 0 ? 'AND bva.booking_id != ?' : '';
         $stmt = $db->prepare("
             SELECT v.*, c.name AS city_name
             FROM vendors v
@@ -3434,10 +3443,15 @@ function getAvailableVendors($event_date) {
                   FROM booking_vendor_assignments bva
                   INNER JOIN bookings b ON bva.booking_id = b.id
                   WHERE b.event_date = ?
+                    $booking_exclude
               )
             ORDER BY v.type, v.name
         ");
-        $stmt->execute([$event_date]);
+        $params = [$event_date];
+        if ($current_booking_id > 0) {
+            $params[] = $current_booking_id;
+        }
+        $stmt->execute($params);
         return $stmt->fetchAll();
     } catch (Exception $e) {
         error_log("Error getting available vendors: " . $e->getMessage());
