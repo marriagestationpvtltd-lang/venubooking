@@ -1675,7 +1675,7 @@ $available_services = getActiveServices();
                                                 <span class="badge bg-secondary" style="font-size:.65rem;"><?php echo htmlspecialchars($service['category']); ?></span>
                                             <?php endif; ?>
                                             <?php if ($svc_is_admin): ?>
-                                                <span class="badge bg-warning text-dark" style="font-size:.6rem;" title="Added by admin"><i class="fas fa-shield-alt me-1"></i>Admin</span>
+                                                <span class="badge bg-warning text-dark" style="font-size:.6rem;" title="Added by admin" aria-label="Service added by administrator"><i class="fas fa-shield-alt me-1"></i>Admin</span>
                                             <?php endif; ?>
                                         </div>
                                         <?php if (!empty($service['description'])): ?>
@@ -1693,6 +1693,8 @@ $available_services = getActiveServices();
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-primary py-0 px-2 inline-va-toggle"
                                                 title="Assign vendor for this service"
+                                                aria-expanded="false"
+                                                aria-controls="inline-va-<?php echo $svc_id; ?>"
                                                 data-bs-toggle="collapse"
                                                 data-bs-target="#inline-va-<?php echo $svc_id; ?>"
                                                 data-vendor-type-slug="<?php echo htmlspecialchars($svc_vt_slug); ?>"
@@ -3436,6 +3438,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function populateVendorSelect(selectEl, typeSlug, categoryLabel) {
         if (selectEl.dataset.populated === '1') return; // already populated
+        selectEl.dataset.populated = '1'; // set flag early to prevent concurrent calls
         var resolved = resolveVendorTypeSlug(typeSlug, categoryLabel);
         selectEl.innerHTML = '<option value="">\u2014 Select Vendor \u2014</option>';
         if (resolved && vendorsByType[resolved] && vendorsByType[resolved].length > 0) {
@@ -3445,21 +3448,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
                 selectEl.appendChild(o);
             });
-        } else if (!resolved || !vendorsByType[resolved]) {
-            // Fallback: show all vendors if no type match
-            for (var t in vendorsByType) {
-                vendorsByType[t].forEach(function(v) {
-                    var o = document.createElement('option');
-                    o.value = v.id;
-                    o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
-                    selectEl.appendChild(o);
-                });
-            }
+        } else {
+            // No vendor type match: show informational message
+            var o = document.createElement('option');
+            o.value = '';
+            o.disabled = true;
+            o.textContent = '\u2014 No vendors available for this service type \u2014';
+            selectEl.appendChild(o);
         }
-        selectEl.dataset.populated = '1';
     }
 
-    // When a collapse opens, populate its vendor select
+    // When a collapse relevant to inline vendor assignment opens, populate its vendor select
     document.addEventListener('show.bs.collapse', function(e) {
         if (!e.target || !e.target.id || e.target.id.indexOf('inline-va-') !== 0) return;
         var selectEl = e.target.querySelector('.inline-va-vendor-select');
