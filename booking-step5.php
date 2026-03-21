@@ -466,6 +466,14 @@ require_once __DIR__ . '/includes/header.php';
                             <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Step 3: Payment Options</h5>
                         </div>
                         <div class="card-body">
+                            <!-- Advance Payment Required — always visible in this step -->
+                            <div class="alert alert-warning mb-3">
+                                <i class="fas fa-calculator me-2"></i>
+                                <strong>Advance Payment Required:</strong>
+                                <?php echo formatCurrency($advance['amount']); ?>
+                                <small class="ms-1">(<?php echo $advance['percentage']; ?>% of Grand Total: <?php echo formatCurrency($totals['grand_total']); ?>)</small>
+                            </div>
+
                             <p class="mb-3">Choose how you would like to proceed with your booking:</p>
                             
                             <!-- Payment Option Selection -->
@@ -572,6 +580,10 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                     </div>
 
+                    <!-- Hidden field ensures submit_booking is always present in POST data
+                         even when the submit button is programmatically disabled on click -->
+                    <input type="hidden" name="submit_booking" value="1">
+
                     <!-- Step 4: Navigation Buttons (Initially Hidden) -->
                     <div class="row" id="final_buttons_section" style="display: none;">
                         <div class="col-md-6">
@@ -580,7 +592,7 @@ require_once __DIR__ . '/includes/header.php';
                             </button>
                         </div>
                         <div class="col-md-6">
-                            <button type="submit" name="submit_booking" class="btn btn-success btn-lg w-100" id="submit_btn">
+                            <button type="submit" class="btn btn-success btn-lg w-100" id="submit_btn">
                                 <i class="fas fa-check"></i> Confirm Booking
                             </button>
                         </div>
