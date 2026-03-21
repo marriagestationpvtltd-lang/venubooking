@@ -289,7 +289,7 @@ $current_total = $totals['grand_total'];
                                                     <?php endif; ?>
                                                     <div class="row g-2">
                                                         <?php foreach ($service['designs'] as $design): ?>
-                                                            <div class="col-6 col-md-3 col-xl-2">
+                                                            <div class="col-6 col-md-3 col-xl-2 design-col-item">
                                                                 <label class="design-select-label d-block h-100" for="design_<?php echo $design['id']; ?>">
                                                                     <div class="card design-checkbox-card h-100 position-relative" id="design-card-<?php echo $design['id']; ?>">
                                                                         <div class="design-check-overlay position-absolute top-0 end-0 m-1">
@@ -385,7 +385,7 @@ $current_total = $totals['grand_total'];
                                                         <h6 class="fw-semibold mb-2 px-1"><?php echo sanitize($service['name']); ?></h6>
                                                         <div class="row g-2">
                                                             <?php foreach ($service['designs'] as $design): ?>
-                                                                <div class="col-6">
+                                                                <div class="col-6 design-col-item">
                                                                     <label class="design-select-label d-block h-100" for="design_mob_<?php echo $design['id']; ?>">
                                                                         <div class="card design-checkbox-card h-100 position-relative" id="design-card-mob-<?php echo $design['id']; ?>">
                                                                             <div class="design-check-overlay position-absolute top-0 end-0 m-1">
@@ -528,6 +528,9 @@ $current_total = $totals['grand_total'];
 .design-check-overlay {
     display: none;
     z-index: 2;
+}
+.design-col-item.design-col-hidden {
+    display: none;
 }
 .design-card-img {
     height: 120px;
