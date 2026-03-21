@@ -3101,7 +3101,7 @@ function updateHallMenus($hall_id, $menu_ids) {
  * @param float $price Price per unit
  * @return bool|int Returns service ID on success, false on failure
  */
-function addAdminService($booking_id, $service_name, $description, $quantity, $price) {
+function addAdminService($booking_id, $service_name, $description, $quantity, $price, $design_id = 0) {
     $db = getDB();
     
     try {
@@ -3113,6 +3113,7 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
         $description = trim($description);
         $quantity = max(1, intval($quantity));
         $price = floatval($price);
+        $design_id = max(0, intval($design_id));
         
         if (empty($service_name)) {
             throw new Exception("Service name is required");
@@ -3122,13 +3123,13 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
             throw new Exception("Price must be greater than 0");
         }
         
-        // Insert admin service
+        // Insert admin service (include design_id when provided)
         $stmt = $db->prepare("
             INSERT INTO booking_services 
-            (booking_id, service_id, service_name, price, description, category, added_by, quantity) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (booking_id, service_id, service_name, price, description, category, added_by, quantity, design_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$booking_id, ADMIN_SERVICE_NO_REF_ID, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity]);
+        $stmt->execute([$booking_id, ADMIN_SERVICE_NO_REF_ID, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity, $design_id > 0 ? $design_id : null]);
         $service_id = $db->lastInsertId();
         
         // Recalculate booking totals

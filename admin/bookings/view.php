@@ -109,6 +109,7 @@ if (isset($_POST['action'])) {
         // Handle adding a service selected from the admin-configured services catalog
         $catalog_service_id = intval($_POST['catalog_service_id'] ?? 0);
         $quantity           = max(1, intval($_POST['quantity'] ?? 1));
+        $catalog_design_id  = intval($_POST['catalog_design_id'] ?? 0);
 
         if ($catalog_service_id <= 0) {
             $_SESSION['flash_error']   = 'Please select a service from the catalog.';
@@ -130,20 +131,36 @@ if (isset($_POST['action'])) {
             exit;
         }
 
+        // Determine the final price: use the selected design's price if a design was chosen
+        $final_price     = floatval($catalog_svc['price']);
+        $catalog_design  = null;
+        if ($catalog_design_id > 0) {
+            $design_stmt = $db_svc->prepare("SELECT id, name, price, photo, description FROM service_designs WHERE id = ? AND service_id = ? AND status = 'active'");
+            $design_stmt->execute([$catalog_design_id, $catalog_service_id]);
+            $catalog_design = $design_stmt->fetch();
+            if ($catalog_design) {
+                $final_price = floatval($catalog_design['price']);
+            } else {
+                $catalog_design_id = 0; // Design not found; ignore
+            }
+        }
+
         $new_service_id = addAdminService(
             $booking_id,
             $catalog_svc['name'],
             $catalog_svc['description'] ?? '',
             $quantity,
-            floatval($catalog_svc['price'])
+            $final_price,
+            $catalog_design_id
         );
 
         if ($new_service_id) {
-            logActivity($current_user['id'], 'Added catalog service', 'bookings', $booking_id, "Added catalog service: {$catalog_svc['name']} (Qty: {$quantity}, Price: {$catalog_svc['price']})");
+            $log_detail = "Added catalog service: {$catalog_svc['name']} (Qty: {$quantity}, Price: {$final_price})" . ($catalog_design ? ", Design: {$catalog_design['name']}" : '');
+            logActivity($current_user['id'], 'Added catalog service', 'bookings', $booking_id, $log_detail);
             // If admin also selected a vendor for this service, create the assignment linked to the service row
             $catalog_vendor_id = intval($_POST['catalog_vendor_id'] ?? 0);
             if ($catalog_vendor_id > 0) {
-                $va_id = addVendorAssignment($booking_id, $catalog_vendor_id, $catalog_svc['name'], floatval($catalog_svc['price']), '', $new_service_id);
+                $va_id = addVendorAssignment($booking_id, $catalog_vendor_id, $catalog_svc['name'], $final_price, '', $new_service_id);
                 if ($va_id) {
                     logActivity($current_user['id'], 'Auto-assigned vendor for catalog service', 'booking_vendor_assignments', $booking_id, "Vendor ID {$catalog_vendor_id} assigned for: {$catalog_svc['name']}");
                     $_SESSION['flash_success'] = 'Service added and vendor assigned successfully!';
@@ -1009,8 +1026,13 @@ $tab_payments_count = count($payment_transactions);
 
 // Load available service packages for the Add Package form
 $available_packages_by_category = getServicePackagesByCategory();
-// Load active services for the catalog selection dropdown
+// Load active services for the catalog selection dropdown, enriched with their designs
 $available_services = getActiveServices();
+foreach ($available_services as &$_avail_svc) {
+    $_avail_svc['designs']     = getServiceDesigns($_avail_svc['id']);
+    $_avail_svc['has_designs'] = !empty($_avail_svc['designs']);
+}
+unset($_avail_svc);
 ?>
 
 <div class="row g-4">
@@ -1838,9 +1860,61 @@ $available_services = getActiveServices();
                                 <!-- Catalog Pane -->
                                 <div id="add-service-catalog-pane">
                                 <?php if (!empty($available_services)): ?>
+                                <?php
+                                // Build a map of service designs keyed by service ID for JS injection
+                                $catalog_services_designs_map = [];
+                                foreach ($available_services as $_cs) {
+                                    if (!empty($_cs['designs'])) {
+                                        $catalog_services_designs_map[intval($_cs['id'])] = array_map(function($d) {
+                                            return [
+                                                'id'    => intval($d['id']),
+                                                'name'  => $d['name'],
+                                                'price' => floatval($d['price']),
+                                                'photo' => $d['photo'] ?? '',
+                                                'description' => $d['description'] ?? '',
+                                            ];
+                                        }, $_cs['designs']);
+                                    }
+                                }
+                                ?>
+                                <!-- Design card styles (matching booking-step4.php) -->
+                                <style>
+                                .catalog-design-checkbox-card {
+                                    cursor: pointer;
+                                    transition: border-color .2s, box-shadow .2s;
+                                    border: 2px solid #dee2e6;
+                                }
+                                .catalog-design-select-label:hover .catalog-design-checkbox-card,
+                                .catalog-design-checkbox-card:hover {
+                                    border-color: #198754;
+                                    box-shadow: 0 0 0 3px rgba(25,135,84,.15);
+                                }
+                                .catalog-design-checkbox-card.selected-design {
+                                    border-color: #198754 !important;
+                                    border-width: 3px !important;
+                                    box-shadow: 0 0 0 3px rgba(25,135,84,.2);
+                                    background-color: rgba(25,135,84,.04);
+                                }
+                                .catalog-design-check-overlay {
+                                    display: none;
+                                    z-index: 2;
+                                }
+                                .catalog-design-checkbox-card.selected-design .catalog-design-check-overlay {
+                                    display: block;
+                                }
+                                .catalog-design-card-img {
+                                    height: 90px;
+                                    object-fit: cover;
+                                }
+                                .catalog-design-select-label {
+                                    cursor: pointer;
+                                    margin: 0;
+                                }
+                                </style>
                                 <form method="POST" action="" id="add-catalog-service-form">
                                     <input type="hidden" name="action" value="add_catalog_service">
                                     <input type="hidden" name="catalog_vendor_id" id="catalog-vendor-id-input" value="">
+                                    <input type="hidden" name="catalog_design_id" id="catalog-design-id-input" value="">
                                     <div class="row g-2 align-items-end">
                                         <div class="col-auto">
                                             <label class="form-label mb-1 small fw-semibold">Service <span class="text-danger">*</span></label>
@@ -1860,8 +1934,9 @@ $available_services = getActiveServices();
                                                         <option value="<?php echo intval($svc['id']); ?>"
                                                                 data-formatted-price="<?php echo htmlspecialchars(formatCurrency($svc['price']), ENT_QUOTES); ?>"
                                                                 data-description="<?php echo htmlspecialchars($svc['description'] ?? '', ENT_QUOTES); ?>"
-                                                                data-vendor-type-slug="<?php echo htmlspecialchars($svc['vendor_type_slug'] ?? '', ENT_QUOTES); ?>">
-                                                            <?php echo htmlspecialchars($svc['name']); ?> &#x2014; <?php echo formatCurrency($svc['price']); ?>
+                                                                data-vendor-type-slug="<?php echo htmlspecialchars($svc['vendor_type_slug'] ?? '', ENT_QUOTES); ?>"
+                                                                data-has-designs="<?php echo $svc['has_designs'] ? '1' : '0'; ?>">
+                                                            <?php echo htmlspecialchars($svc['name']); ?><?php echo $svc['has_designs'] ? ' &#x2605;' : (' &#x2014; ' . formatCurrency($svc['price'])); ?>
                                                         </option>
                                                         <?php endforeach; ?>
                                                     </optgroup>
@@ -1879,10 +1954,18 @@ $available_services = getActiveServices();
                                                    readonly style="width:110px;" placeholder="&#x2014;">
                                         </div>
                                         <div class="col-auto">
-                                            <button type="submit" class="btn btn-sm btn-primary">
+                                            <button type="submit" class="btn btn-sm btn-primary" id="catalog-add-btn">
                                                 <i class="fas fa-plus me-1"></i>Add
                                             </button>
                                         </div>
+                                    </div>
+                                    <!-- Design selection grid: shown when selected service has designs -->
+                                    <div id="catalog-design-grid-wrap" class="d-none mt-2 p-2 rounded" style="background:#f8f9fa;border:1px solid #dee2e6;">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-success" style="font-size:.72rem;"><i class="fas fa-palette me-1"></i>Select Design</span>
+                                            <small class="text-muted" style="font-size:.72rem;">Choose a design — its price will be applied</small>
+                                        </div>
+                                        <div class="row g-2" id="catalog-design-grid"></div>
                                     </div>
                                     <!-- Vendor selection row: shown when selected service has linked vendors -->
                                     <div class="row g-2 align-items-center mt-1 d-none" id="catalog-vendor-row">
@@ -1903,12 +1986,129 @@ $available_services = getActiveServices();
                                 </form>
                                 <script>
                                 (function() {
-                                    var catalogVendorsByType = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+                                    var catalogVendorsByType  = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+                                    var catalogServiceDesigns = <?php echo json_encode($catalog_services_designs_map, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+                                    var uploadUrlBase         = <?php echo json_encode(rtrim(UPLOAD_URL, '/'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
+                                    var selectedDesignId    = 0;
+                                    var selectedDesignPrice = '';
+
+                                    function buildCatalogDesignGrid(serviceId) {
+                                        var designs = catalogServiceDesigns[serviceId] || [];
+                                        var grid    = document.getElementById('catalog-design-grid');
+                                        var wrap    = document.getElementById('catalog-design-grid-wrap');
+                                        var addBtn  = document.getElementById('catalog-add-btn');
+                                        if (!grid) return;
+
+                                        // Reset selection
+                                        selectedDesignId    = 0;
+                                        selectedDesignPrice = '';
+                                        document.getElementById('catalog-design-id-input').value = '';
+                                        document.getElementById('catalog-service-price-preview').value = '';
+                                        if (addBtn) addBtn.disabled = true;
+
+                                        if (designs.length === 0) {
+                                            wrap.classList.add('d-none');
+                                            return;
+                                        }
+
+                                        var html = '';
+                                        designs.forEach(function(d) {
+                                            var imgHtml = d.photo
+                                                ? '<img src="' + uploadUrlBase + '/' + d.photo + '" class="card-img-top catalog-design-card-img" alt="' + escHtml(d.name) + '">'
+                                                : '<div class="d-flex align-items-center justify-content-center bg-light catalog-design-card-img"><i class="fas fa-image fa-2x text-muted"></i></div>';
+
+                                            html += '<div class="col-6 col-md-3 col-xl-2">';
+                                            html += '<label class="catalog-design-select-label d-block h-100">';
+                                            html += '<div class="card catalog-design-checkbox-card h-100 position-relative" id="c-design-card-' + d.id + '" onclick="selectCatalogDesign(' + d.id + ')" tabindex="0" role="radio" aria-checked="false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectCatalogDesign(' + d.id + ')}">';
+                                            html += '<div class="catalog-design-check-overlay position-absolute top-0 end-0 m-1">';
+                                            html += '<span class="badge bg-success rounded-pill px-2 py-1"><i class="fas fa-check me-1"></i>Selected</span>';
+                                            html += '</div>';
+                                            html += imgHtml;
+                                            html += '<div class="card-body p-2 text-center">';
+                                            html += '<div class="fw-semibold small">' + escHtml(d.name) + '</div>';
+                                            html += '<div class="text-success small fw-bold">' + escHtml(formatDesignPrice(d.price)) + '</div>';
+                                            if (d.description) {
+                                                html += '<div class="text-muted mt-1" style="font-size:.68rem;">' + escHtml(d.description) + '</div>';
+                                            }
+                                            html += '</div></div></label></div>';
+                                        });
+                                        grid.innerHTML = html;
+                                        wrap.classList.remove('d-none');
+                                    }
+
+                                    window.selectCatalogDesign = function(designId) {
+                                        var designs = catalogServiceDesigns[currentCatalogServiceId()] || [];
+                                        var design  = null;
+                                        designs.forEach(function(d) { if (d.id === designId) design = d; });
+                                        if (!design) return;
+
+                                        // Update card states
+                                        document.querySelectorAll('[id^="c-design-card-"]').forEach(function(card) {
+                                            card.classList.remove('selected-design');
+                                            card.setAttribute('aria-checked', 'false');
+                                        });
+                                        var selectedCard = document.getElementById('c-design-card-' + designId);
+                                        if (selectedCard) {
+                                            selectedCard.classList.add('selected-design');
+                                            selectedCard.setAttribute('aria-checked', 'true');
+                                        }
+
+                                        // Update state & form fields
+                                        selectedDesignId    = designId;
+                                        selectedDesignPrice = formatDesignPrice(design.price);
+                                        document.getElementById('catalog-design-id-input').value        = designId;
+                                        document.getElementById('catalog-service-price-preview').value  = selectedDesignPrice;
+                                        var addBtn = document.getElementById('catalog-add-btn');
+                                        if (addBtn) addBtn.disabled = false;
+                                        // Remove validation error message once a design is chosen
+                                        var errMsg = document.getElementById('catalog-design-required-msg');
+                                        if (errMsg) errMsg.remove();
+                                    };
+
+                                    function currentCatalogServiceId() {
+                                        var sel = document.getElementById('catalog-service-select');
+                                        return sel ? parseInt(sel.value) || 0 : 0;
+                                    }
+
+                                    function escHtml(str) {
+                                        var d = document.createElement('div');
+                                        d.appendChild(document.createTextNode(String(str)));
+                                        return d.innerHTML;
+                                    }
+
+                                    function formatDesignPrice(price) {
+                                        // Use same currency formatting as PHP formatCurrency
+                                        var num = parseFloat(price) || 0;
+                                        return '<?php echo addslashes(getSetting('currency', 'NPR')); ?> ' + num.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                    }
 
                                     function updateCatalogServicePreview(select) {
-                                        var opt = select.options[select.selectedIndex];
-                                        document.getElementById('catalog-service-price-preview').value = opt.dataset.formattedPrice || '';
+                                        var opt        = select.options[select.selectedIndex];
+                                        var serviceId  = parseInt(opt.value) || 0;
+                                        var hasDesigns = opt.dataset.hasDesigns === '1';
 
+                                        // Reset design selection
+                                        selectedDesignId    = 0;
+                                        selectedDesignPrice = '';
+                                        document.getElementById('catalog-design-id-input').value = '';
+
+                                        var addBtn = document.getElementById('catalog-add-btn');
+
+                                        if (hasDesigns && serviceId > 0) {
+                                            // Services with designs: show design grid, price shown after design selection
+                                            document.getElementById('catalog-service-price-preview').value = '';
+                                            if (addBtn) addBtn.disabled = true;
+                                            buildCatalogDesignGrid(serviceId);
+                                        } else {
+                                            // Regular service: show price immediately, hide design grid
+                                            document.getElementById('catalog-service-price-preview').value = opt.dataset.formattedPrice || '';
+                                            var wrap = document.getElementById('catalog-design-grid-wrap');
+                                            if (wrap) { wrap.classList.add('d-none'); document.getElementById('catalog-design-grid').innerHTML = ''; }
+                                            if (addBtn) addBtn.disabled = false;
+                                        }
+
+                                        // Vendor row
                                         var vendorTypeSlug = opt.dataset.vendorTypeSlug || '';
                                         var vendorRow      = document.getElementById('catalog-vendor-row');
                                         var vendorSelect   = document.getElementById('catalog-vendor-select');
@@ -1942,6 +2142,26 @@ $available_services = getActiveServices();
                                         vendorSelect.addEventListener('change', function() {
                                             var input = document.getElementById('catalog-vendor-id-input');
                                             if (input) input.value = this.value;
+                                        });
+                                    }
+
+                                    // Prevent form submit if a design-service is selected but no design chosen
+                                    var form = document.getElementById('add-catalog-service-form');
+                                    if (form) {
+                                        form.addEventListener('submit', function(e) {
+                                            var sel = document.getElementById('catalog-service-select');
+                                            var opt = sel ? sel.options[sel.selectedIndex] : null;
+                                            if (opt && opt.dataset.hasDesigns === '1' && !document.getElementById('catalog-design-id-input').value) {
+                                                e.preventDefault();
+                                                var wrap = document.getElementById('catalog-design-grid-wrap');
+                                                if (wrap && !document.getElementById('catalog-design-required-msg')) {
+                                                    var msg = document.createElement('div');
+                                                    msg.id = 'catalog-design-required-msg';
+                                                    msg.className = 'text-danger small mt-1';
+                                                    msg.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Please select a design before adding this service.';
+                                                    wrap.appendChild(msg);
+                                                }
+                                            }
                                         });
                                     }
                                 })();
