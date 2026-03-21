@@ -227,8 +227,11 @@ $upcoming_events = $stmt->fetchAll();
     <!-- Upcoming Events -->
     <div class="col-lg-6 mb-4">
         <div class="card">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-calendar-day"></i> Upcoming Events</h5>
+                <a href="<?php echo BASE_URL; ?>/admin/bookings/calendar.php" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-calendar-alt"></i> View Calendar
+                </a>
             </div>
             <div class="card-body">
                 <?php if (empty($upcoming_events)): ?>
