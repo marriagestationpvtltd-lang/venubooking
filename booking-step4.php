@@ -277,29 +277,52 @@ $current_total = $totals['grand_total'];
                                 <h4 class="mb-3"><?php echo sanitize($category); ?></h4>
                                 <div class="row g-3">
                                     <?php foreach ($category_services as $service): ?>
-                                        <div class="col-md-6" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <div class="<?php echo $service['has_designs'] ? 'col-12' : 'col-md-6'; ?>" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
                                             <?php if ($service['has_designs']): ?>
-                                                <!-- Service with designs: drill-down card -->
-                                                <div class="service-card card service-drilldown-card" style="cursor:pointer;"
-                                                     data-service-id="<?php echo $service['id']; ?>"
-                                                     onclick="openDesignsView(<?php echo $service['id']; ?>)">
-                                                    <!-- Selected subcategory photo shown here after selection -->
-                                                    <div id="service-photo-<?php echo $service['id']; ?>" style="display:none;">
-                                                        <img src="" alt=""
-                                                             id="service-selected-img-<?php echo $service['id']; ?>"
-                                                             class="card-img-top" style="height:140px;object-fit:cover;">
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="d-flex justify-content-between align-items-start">
-                                                            <div class="flex-grow-1">
-                                                                <h5 class="card-title mb-1"><?php echo sanitize($service['name']); ?></h5>
-                                                                <p class="card-text text-muted small mb-1"><?php echo sanitize($service['description']); ?></p>
-                                                                <div id="service-summary-<?php echo $service['id']; ?>" class="service-design-summary text-success small"></div>
+                                                <!-- Service with designs: inline checkbox design grid -->
+                                                <div class="card service-designs-inline-card p-3">
+                                                    <h5 class="mb-1"><?php echo sanitize($service['name']); ?></h5>
+                                                    <?php if (!empty($service['description'])): ?>
+                                                        <p class="text-muted small mb-3"><?php echo sanitize($service['description']); ?></p>
+                                                    <?php else: ?>
+                                                        <div class="mb-3"></div>
+                                                    <?php endif; ?>
+                                                    <div class="row g-2">
+                                                        <?php foreach ($service['designs'] as $design): ?>
+                                                            <div class="col-6 col-md-3 col-xl-2">
+                                                                <label class="design-select-label d-block h-100" for="design_<?php echo $design['id']; ?>">
+                                                                    <div class="card design-checkbox-card h-100 position-relative" id="design-card-<?php echo $design['id']; ?>">
+                                                                        <div class="design-check-overlay position-absolute top-0 end-0 m-1">
+                                                                            <span class="badge bg-success rounded-pill px-2 py-1"><i class="fas fa-check me-1"></i>Selected</span>
+                                                                        </div>
+                                                                        <?php if (!empty($design['photo'])): ?>
+                                                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
+                                                                                 alt="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                 class="card-img-top design-card-img">
+                                                                        <?php else: ?>
+                                                                            <div class="d-flex align-items-center justify-content-center bg-light design-card-img-placeholder">
+                                                                                <i class="fas fa-image fa-2x text-muted"></i>
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                        <div class="card-body p-2 text-center">
+                                                                            <input type="radio" class="design-radio visually-hidden"
+                                                                                   name="design_group_<?php echo $service['id']; ?>"
+                                                                                   id="design_<?php echo $design['id']; ?>"
+                                                                                   data-design-id="<?php echo $design['id']; ?>"
+                                                                                   data-service-id="<?php echo $service['id']; ?>"
+                                                                                   data-price="<?php echo htmlspecialchars($design['price'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                   data-name="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                   data-photo="<?php echo htmlspecialchars($design['photo'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                                                            <div class="fw-semibold small"><?php echo sanitize($design['name']); ?></div>
+                                                                            <div class="text-success small fw-bold"><?php echo formatCurrency($design['price']); ?></div>
+                                                                            <?php if (!empty($design['description'])): ?>
+                                                                                <div class="text-muted mt-1" style="font-size:0.7rem;"><?php echo sanitize($design['description']); ?></div>
+                                                                            <?php endif; ?>
+                                                                        </div>
+                                                                    </div>
+                                                                </label>
                                                             </div>
-                                                            <div class="ms-3 text-end">
-                                                                <i class="fas fa-chevron-right text-muted fa-lg mt-1"></i>
-                                                            </div>
-                                                        </div>
+                                                        <?php endforeach; ?>
                                                     </div>
                                                 </div>
                                             <?php else: ?>
@@ -358,22 +381,41 @@ $current_total = $totals['grand_total'];
                                         <div class="card-body p-2">
                                             <?php foreach ($category_services as $service): ?>
                                                 <?php if ($service['has_designs']): ?>
-                                                    <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>" data-service-id="<?php echo $service['id']; ?>">
-                                                        <!-- Selected subcategory photo shown here after selection -->
-                                                        <div id="service-photo-mob-<?php echo $service['id']; ?>" style="display:none;">
-                                                            <img src="" alt=""
-                                                                 id="service-selected-img-mob-<?php echo $service['id']; ?>"
-                                                                 class="card-img-top" style="height:100px;object-fit:cover;">
-                                                        </div>
-                                                        <div class="card-body p-3 service-drilldown-card d-flex justify-content-between align-items-center"
-                                                             data-service-id="<?php echo $service['id']; ?>"
-                                                             style="cursor:pointer;"
-                                                             onclick="openDesignsView(<?php echo $service['id']; ?>)">
-                                                            <div>
-                                                                <strong><?php echo sanitize($service['name']); ?></strong>
-                                                                <div id="service-summary-mob-<?php echo $service['id']; ?>" class="service-design-summary-mob text-success small"></div>
-                                                            </div>
-                                                            <i class="fas fa-chevron-right text-muted"></i>
+                                                    <div class="mb-3" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>" data-service-id="<?php echo $service['id']; ?>">
+                                                        <h6 class="fw-semibold mb-2 px-1"><?php echo sanitize($service['name']); ?></h6>
+                                                        <div class="row g-2">
+                                                            <?php foreach ($service['designs'] as $design): ?>
+                                                                <div class="col-6">
+                                                                    <label class="design-select-label d-block h-100" for="design_mob_<?php echo $design['id']; ?>">
+                                                                        <div class="card design-checkbox-card h-100 position-relative" id="design-card-mob-<?php echo $design['id']; ?>">
+                                                                            <div class="design-check-overlay position-absolute top-0 end-0 m-1">
+                                                                                <span class="badge bg-success rounded-pill px-2 py-1"><i class="fas fa-check me-1"></i>Selected</span>
+                                                                            </div>
+                                                                            <?php if (!empty($design['photo'])): ?>
+                                                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
+                                                                                     alt="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                     class="card-img-top design-card-img-mob">
+                                                                            <?php else: ?>
+                                                                                <div class="d-flex align-items-center justify-content-center bg-light design-card-img-placeholder-mob">
+                                                                                    <i class="fas fa-image fa-2x text-muted"></i>
+                                                                                </div>
+                                                                            <?php endif; ?>
+                                                                            <div class="card-body p-2 text-center">
+                                                                                <input type="radio" class="design-radio visually-hidden"
+                                                                                       name="design_group_mob_<?php echo $service['id']; ?>"
+                                                                                       id="design_mob_<?php echo $design['id']; ?>"
+                                                                                       data-design-id="<?php echo $design['id']; ?>"
+                                                                                       data-service-id="<?php echo $service['id']; ?>"
+                                                                                       data-price="<?php echo htmlspecialchars($design['price'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                       data-name="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                       data-photo="<?php echo htmlspecialchars($design['photo'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                                                                <div class="fw-semibold small"><?php echo sanitize($design['name']); ?></div>
+                                                                                <div class="text-success small fw-bold"><?php echo formatCurrency($design['price']); ?></div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                            <?php endforeach; ?>
                                                         </div>
                                                     </div>
                                                 <?php else: ?>
@@ -457,6 +499,51 @@ $current_total = $totals['grand_total'];
 
     </div>
 </section>
+
+<!-- Design checkbox card styles -->
+<style>
+.design-checkbox-card {
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    border: 2px solid #dee2e6;
+}
+.design-select-label:hover .design-checkbox-card,
+.design-checkbox-card:hover {
+    border-color: #198754;
+    box-shadow: 0 0 0 3px rgba(25,135,84,.15);
+}
+.design-checkbox-card.selected-design {
+    border-color: #198754 !important;
+    border-width: 3px !important;
+    box-shadow: 0 0 0 3px rgba(25,135,84,.2);
+    background-color: rgba(25,135,84,.04);
+}
+.service-designs-inline-card {
+    background-color: #f8f9fa;
+}
+.design-select-label {
+    cursor: pointer;
+    margin: 0;
+}
+.design-check-overlay {
+    display: none;
+    z-index: 2;
+}
+.design-card-img {
+    height: 120px;
+    object-fit: cover;
+}
+.design-card-img-placeholder {
+    height: 120px;
+}
+.design-card-img-mob {
+    height: 100px;
+    object-fit: cover;
+}
+.design-card-img-placeholder-mob {
+    height: 100px;
+}
+</style>
 
 <!-- JSON data for JS -->
 <script>

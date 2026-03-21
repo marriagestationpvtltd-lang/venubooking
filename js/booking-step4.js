@@ -254,6 +254,64 @@ document.addEventListener('DOMContentLoaded', function () {
         cb.addEventListener('change', recalculateTotal);
     });
 
+    // ── Design radio handlers (inline checkbox mode) ──────────────────────────
+    // Update visual state for all design cards belonging to a service
+    function updateDesignCardStates(serviceId) {
+        const sel = selectedDesigns[serviceId];
+        document.querySelectorAll('.design-radio[data-service-id="' + serviceId + '"]').forEach(function (radio) {
+            const dId = parseInt(radio.dataset.designId);
+            const isSelected = !!(sel && sel.design_id === dId);
+            radio.checked = isSelected;
+            // Update both desktop and mobile card variants
+            ['design-card-' + dId, 'design-card-mob-' + dId].forEach(function (cardId) {
+                const card = document.getElementById(cardId);
+                if (!card) return;
+                card.classList.toggle('selected-design', isSelected);
+                const overlay = card.querySelector('.design-check-overlay');
+                if (overlay) overlay.style.display = isSelected ? '' : 'none';
+            });
+        });
+    }
+
+    // Handle label click: support deselecting an already-selected design
+    document.querySelectorAll('.design-select-label').forEach(function (label) {
+        label.addEventListener('click', function (e) {
+            const radio = this.querySelector('.design-radio');
+            if (!radio) return;
+            const serviceId = parseInt(radio.dataset.serviceId);
+            const designId  = parseInt(radio.dataset.designId);
+            const sel = selectedDesigns[serviceId];
+            if (sel && sel.design_id === designId) {
+                // Already selected – deselect on second click
+                e.preventDefault();
+                radio.checked = false;
+                delete selectedDesigns[serviceId];
+                updateDesignCardStates(serviceId);
+                syncDesignInputs();
+                recalculateTotal();
+            }
+        });
+    });
+
+    // Handle radio change: record new selection
+    document.querySelectorAll('.design-radio').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (!this.checked) return;
+            const designId  = parseInt(this.dataset.designId);
+            const serviceId = parseInt(this.dataset.serviceId);
+            selectedDesigns[serviceId] = {
+                design_id  : designId,
+                price      : parseFloat(this.dataset.price) || 0,
+                name       : this.dataset.name || '',
+                service_id : serviceId,
+                photo      : this.dataset.photo || ''
+            };
+            updateDesignCardStates(serviceId);
+            syncDesignInputs();
+            recalculateTotal();
+        });
+    });
+
     // ── Service search filter ─────────────────────────────────────────────────
     const searchInput = document.getElementById('serviceSearchInput');
     const clearBtn    = document.getElementById('serviceSearchClear');
