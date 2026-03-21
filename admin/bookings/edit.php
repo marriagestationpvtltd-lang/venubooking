@@ -381,16 +381,46 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Additional Services (Optional)</label>
-                                <?php foreach ($services as $service): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="services[]" value="<?php echo $service['id']; ?>" 
-                                           id="service_<?php echo $service['id']; ?>" 
-                                           <?php echo in_array($service['id'], $selected_services) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="service_<?php echo $service['id']; ?>">
-                                        <?php echo htmlspecialchars($service['name']) . ' - ' . formatCurrency($service['price']); ?>
-                                    </label>
+                                <?php
+                                // Group services by category
+                                $services_by_category = [];
+                                foreach ($services as $service) {
+                                    $cat = !empty($service['category']) ? $service['category'] : 'Other';
+                                    $services_by_category[$cat][] = $service;
+                                }
+                                $categories = array_keys($services_by_category);
+                                ?>
+                                <?php if (empty($services)): ?>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> No additional services available.
+                                    </div>
+                                <?php else: ?>
+                                <!-- Category filter -->
+                                <select class="form-select form-select-sm mb-2" id="service-category-filter">
+                                    <option value="">— All Categories —</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                    <option value="<?php echo htmlspecialchars($cat, ENT_QUOTES); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <!-- Services list grouped by category -->
+                                <div class="border rounded p-2" style="max-height:260px;overflow-y:auto;">
+                                    <?php foreach ($services_by_category as $cat => $cat_services): ?>
+                                    <div class="svc-category-group mb-2" data-category="<?php echo htmlspecialchars($cat, ENT_QUOTES); ?>">
+                                        <small class="text-muted fw-semibold d-block mb-1"><?php echo htmlspecialchars($cat); ?></small>
+                                        <?php foreach ($cat_services as $service): ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="services[]" value="<?php echo $service['id']; ?>"
+                                                   id="service_<?php echo $service['id']; ?>"
+                                                   <?php echo in_array($service['id'], $selected_services) ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="service_<?php echo $service['id']; ?>">
+                                                <?php echo htmlspecialchars($service['name']) . ' - ' . formatCurrency($service['price']); ?>
+                                            </label>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
-                                <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -586,6 +616,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Service category filter
+    const serviceCategoryFilter = document.getElementById('service-category-filter');
+    if (serviceCategoryFilter) {
+        serviceCategoryFilter.addEventListener('change', function() {
+            const selected = this.value;
+            document.querySelectorAll('.svc-category-group').forEach(function(group) {
+                if (!selected || group.dataset.category === selected) {
+                    group.style.display = '';
+                } else {
+                    group.style.display = 'none';
+                }
+            });
+        });
     }
 });
 </script>
