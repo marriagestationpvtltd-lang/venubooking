@@ -14,8 +14,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
     $description = trim($_POST['description']);
     $price = floatval($_POST['price']);
-    $category = trim($_POST['category']);
+    $vendor_type_id = isset($_POST['vendor_type_id']) && $_POST['vendor_type_id'] !== '' ? intval($_POST['vendor_type_id']) : null;
     $status = $_POST['status'];
+
+    // Validate vendor_type_id against known vendor types (prevents invalid FK submissions)
+    $category = '';
+    if ($vendor_type_id !== null) {
+        $vendor_type_id = null; // reset; re-assign only if found in valid list
+        foreach ($vendor_types as $vt) {
+            if ((int)$vt['id'] === intval($_POST['vendor_type_id'])) {
+                $vendor_type_id = (int)$vt['id'];
+                $category       = $vt['label'];
+                break;
+            }
+        }
+    }
 
     // Validation
     if (empty($name) || $price < 0) {
@@ -34,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($error_message)) {
             try {
-                $sql = "INSERT INTO additional_services (name, description, price, category, photo, status) 
-                        VALUES (?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO additional_services (name, description, price, category, vendor_type_id, photo, status) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = $db->prepare($sql);
                 $result = $stmt->execute([
@@ -43,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $description,
                     $price,
                     $category,
+                    $vendor_type_id,
                     $photo_filename,
                     $status
                 ]);
@@ -107,18 +121,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="category" class="form-label">Category</label>
-                                <?php $currentCategory = isset($_POST['category']) ? $_POST['category'] : ''; ?>
-                                <select class="form-select" id="category" name="category">
+                                <label for="vendor_type_id" class="form-label">Vendor Type (Category)</label>
+                                <?php $currentVendorTypeId = isset($_POST['vendor_type_id']) ? intval($_POST['vendor_type_id']) : 0; ?>
+                                <select class="form-select" id="vendor_type_id" name="vendor_type_id">
                                     <option value="">— Select Vendor Type —</option>
                                     <?php foreach ($vendor_types as $vt): ?>
-                                        <option value="<?php echo htmlspecialchars($vt['label']); ?>"
-                                            <?php if ($currentCategory === $vt['label']) echo 'selected'; ?>>
+                                        <option value="<?php echo (int)$vt['id']; ?>"
+                                            <?php if ($currentVendorTypeId === (int)$vt['id']) echo 'selected'; ?>>
                                             <?php echo htmlspecialchars($vt['label']); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <small class="text-muted">Category is sourced from Vendor Types.</small>
+                                <small class="text-muted">Services are grouped by Vendor Type on the booking page.</small>
                             </div>
                         </div>
                     </div>

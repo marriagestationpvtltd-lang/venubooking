@@ -834,15 +834,23 @@ function getMenuItems($menu_id) {
 }
 
 /**
- * Get all active services
+ * Get all active services, joined with vendor_types for proper categorisation.
+ * Returns vendor_type_id and vendor_type_label from the vendor_types table when
+ * available, falling back to the legacy free-text category field for older rows
+ * that have not been migrated yet.
  */
 function getActiveServices() {
     $db = getDB();
-    
-    $sql = "SELECT * FROM additional_services 
-            WHERE status = 'active' 
-            ORDER BY category, name";
-    
+
+    $sql = "SELECT s.*,
+                   COALESCE(vt.label, s.category) AS vendor_type_label,
+                   vt.slug                         AS vendor_type_slug,
+                   COALESCE(vt.display_order, 9999) AS vendor_type_order
+            FROM additional_services s
+            LEFT JOIN vendor_types vt ON vt.id = s.vendor_type_id
+            WHERE s.status = 'active'
+            ORDER BY vendor_type_order, vendor_type_label, s.name";
+
     $stmt = $db->prepare($sql);
     $stmt->execute();
     return $stmt->fetchAll();
