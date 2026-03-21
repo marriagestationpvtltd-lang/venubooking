@@ -13,16 +13,27 @@ $error_message = '';
 $new_vendor_wa_url = '';
 $new_vendor_email_sent = false;
 $is_vendor_flash = false;
+$is_packages_flash = false;
 
 // Display flash message from previous redirect (e.g., after creating a booking)
+$_flash_section = $_SESSION['flash_section'] ?? '';
+unset($_SESSION['flash_section']);
 if (!empty($_SESSION['flash_success'])) {
     $success_message = $_SESSION['flash_success'];
-    $is_vendor_flash = true;
+    if ($_flash_section === 'packages') {
+        $is_packages_flash = true;
+    } else {
+        $is_vendor_flash = true;
+    }
     unset($_SESSION['flash_success']);
 }
 if (!empty($_SESSION['flash_error'])) {
     $error_message = $_SESSION['flash_error'];
-    $is_vendor_flash = true;
+    if ($_flash_section === 'packages') {
+        $is_packages_flash = true;
+    } else {
+        $is_vendor_flash = true;
+    }
     unset($_SESSION['flash_error']);
 }
 if (!empty($_SESSION['flash_vendor_wa_url'])) {
@@ -90,18 +101,25 @@ if (isset($_POST['action'])) {
         }
     } elseif ($action === 'delete_admin_service') {
         // Handle deleting admin service (also handles package services since they share added_by='admin')
-        $service_id = intval($_POST['service_id'] ?? 0);
-        
+        $service_id    = intval($_POST['service_id'] ?? 0);
+        $from_packages = ($_POST['from_packages'] ?? '') === '1';
+
         if ($service_id > 0) {
             if (deleteAdminService($service_id)) {
                 logActivity($current_user['id'], 'Deleted admin service', 'bookings', $booking_id, "Deleted admin service ID: {$service_id}");
-                $success_message = 'Service removed successfully!';
-                $initial_tab = 'tab-services';
-                
-                // Re-fetch booking to get updated services and totals
-                $booking = getBookingDetails($booking_id);
-                $status_vars = calculateBookingStatusVariables($booking);
-                extract($status_vars);
+                if ($from_packages) {
+                    $_SESSION['flash_success'] = 'Package removed successfully!';
+                    $_SESSION['flash_section'] = 'packages';
+                    header('Location: view.php?id=' . urlencode($booking_id) . '#packages');
+                    exit;
+                } else {
+                    $success_message = 'Service removed successfully!';
+                    $initial_tab = 'tab-services';
+                    // Re-fetch booking to get updated services and totals
+                    $booking = getBookingDetails($booking_id);
+                    $status_vars = calculateBookingStatusVariables($booking);
+                    extract($status_vars);
+                }
             } else {
                 $error_message = 'Failed to delete service. Please try again.';
                 $initial_tab = 'tab-services';
@@ -116,8 +134,10 @@ if (isset($_POST['action'])) {
         $quantity   = max(1, intval($_POST['quantity'] ?? 1));
 
         if ($package_id <= 0) {
-            $error_message = 'Please select a package.';
-            $initial_tab   = 'tab-services';
+            $_SESSION['flash_error']   = 'Please select a package.';
+            $_SESSION['flash_section'] = 'packages';
+            header('Location: view.php?id=' . urlencode($booking_id) . '#packages');
+            exit;
         } else {
             $service_id = addPackageToBooking($booking_id, $package_id, $quantity);
             if ($service_id) {
@@ -127,14 +147,15 @@ if (isset($_POST['action'])) {
                 $pkg_row  = $pkg_log->fetch();
                 $pkg_name = $pkg_row ? $pkg_row['name'] : "Package #{$package_id}";
                 logActivity($current_user['id'], 'Added package to booking', 'bookings', $booking_id, "Added package: {$pkg_name} (Qty: {$quantity})");
-                $success_message = 'Package added to booking successfully!';
-                $initial_tab     = 'tab-services';
-                $booking         = getBookingDetails($booking_id);
-                $status_vars     = calculateBookingStatusVariables($booking);
-                extract($status_vars);
+                $_SESSION['flash_success'] = 'Package added to booking successfully!';
+                $_SESSION['flash_section'] = 'packages';
+                header('Location: view.php?id=' . urlencode($booking_id) . '#packages');
+                exit;
             } else {
-                $error_message = 'Failed to add package. Please try again.';
-                $initial_tab   = 'tab-services';
+                $_SESSION['flash_error']   = 'Failed to add package. Please try again.';
+                $_SESSION['flash_section'] = 'packages';
+                header('Location: view.php?id=' . urlencode($booking_id) . '#packages');
+                exit;
             }
         }
     } elseif ($action === 'send_payment_request_email') {
@@ -251,14 +272,14 @@ if (isset($_POST['action'])) {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<?php if ($success_message && !$is_vendor_flash): ?>
+<?php if ($success_message && !$is_vendor_flash && !$is_packages_flash): ?>
     <div class="alert alert-success alert-dismissible fade show" id="flash-success-alert" role="alert">
         <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
-<?php if ($error_message && !$is_vendor_flash): ?>
+<?php if ($error_message && !$is_vendor_flash && !$is_packages_flash): ?>
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -1370,6 +1391,150 @@ $available_packages_by_category = getServicePackagesByCategory();
                     <?php endif; ?>
                 </div>
 
+                <!-- Packages -->
+                <div class="border-top mt-3 pt-2" id="packages">
+                    <!-- Section Header -->
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-box-open text-secondary" style="font-size:.85rem;"></i>
+                            <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.06em;">Packages</span>
+                            <?php if (!empty($package_services)): ?>
+                                <span class="badge bg-primary" style="font-size:.65rem;"><?php echo count($package_services); ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <?php if ($is_packages_flash && $success_message): ?>
+                    <div class="alert alert-success alert-dismissible fade show py-2 px-3 small" role="alert">
+                        <i class="fas fa-check-circle me-1"></i><?php echo $success_message; ?>
+                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($is_packages_flash && $error_message): ?>
+                    <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small" role="alert">
+                        <i class="fas fa-exclamation-circle me-1"></i><?php echo $error_message; ?>
+                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($package_services)): ?>
+                    <div class="table-responsive mb-2">
+                        <table class="table table-sm table-bordered mb-0 align-middle" style="font-size:.8rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Package</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Price</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center">Remove</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($package_services as $service):
+                                    $pkg_price = floatval($service['price'] ?? 0);
+                                    $pkg_qty   = intval($service['quantity'] ?? 1);
+                                    $pkg_total = $pkg_price * $pkg_qty;
+                                ?>
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-box-open text-primary me-1"></i>
+                                        <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
+                                        <?php if (!empty($service['description'])): ?>
+                                            <small class="d-block text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($service['description']); ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center"><span class="badge bg-info"><?php echo $pkg_qty; ?></span></td>
+                                    <td class="text-end fw-bold text-primary"><?php echo formatCurrency($pkg_price); ?></td>
+                                    <td class="text-end fw-bold text-success"><?php echo formatCurrency($pkg_total); ?></td>
+                                    <td class="text-center">
+                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this package from the booking?');">
+                                            <input type="hidden" name="action" value="delete_admin_service">
+                                            <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                            <input type="hidden" name="from_packages" value="1">
+                                            <button type="submit" class="btn btn-danger btn-sm py-0 px-1" title="Remove package" style="font-size:.75rem;">
+                                                <i class="fas fa-trash small"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <?php if (count($package_services) > 1): ?>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <td colspan="3" class="text-end fw-bold small">Total:</td>
+                                    <td class="text-end"><strong class="text-success"><?php echo formatCurrency($package_services_total); ?></strong></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                            <?php endif; ?>
+                        </table>
+                    </div>
+                    <?php else: ?>
+                    <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i>No packages added yet.</p>
+                    <?php endif; ?>
+
+                    <!-- Add Package Form -->
+                    <div class="border-top pt-2">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-plus-circle text-primary me-1" style="font-size:.8rem;"></i>
+                            <span class="fw-semibold text-muted" style="font-size:.78rem;">Add Package</span>
+                        </div>
+                        <?php if (!empty($available_packages_by_category)): ?>
+                        <form method="POST" action="" id="add-package-form">
+                            <input type="hidden" name="action" value="add_package">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-auto">
+                                    <label class="form-label mb-1 small fw-semibold">Package <span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-sm" name="package_id" id="package-select" required onchange="updatePackagePricePreview(this)" style="min-width:160px;">
+                                        <option value="">— Select Package —</option>
+                                        <?php foreach ($available_packages_by_category as $cat): ?>
+                                            <?php if (!empty($cat['packages'])): ?>
+                                            <optgroup label="<?php echo htmlspecialchars($cat['name']); ?>">
+                                                <?php foreach ($cat['packages'] as $pkg): ?>
+                                                <option value="<?php echo intval($pkg['id']); ?>"
+                                                        data-formatted-price="<?php echo htmlspecialchars(formatCurrency($pkg['price']), ENT_QUOTES); ?>"
+                                                        data-description="<?php echo htmlspecialchars($pkg['description'] ?? '', ENT_QUOTES); ?>">
+                                                    <?php echo htmlspecialchars($pkg['name']); ?> — <?php echo formatCurrency($pkg['price']); ?>
+                                                </option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label mb-1 small fw-semibold">Qty</label>
+                                    <input type="number" class="form-control form-control-sm" name="quantity"
+                                           min="1" value="1" style="width:65px;">
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label mb-1 small fw-semibold">Price</label>
+                                    <input type="text" class="form-control form-control-sm bg-light" id="package-price-preview"
+                                           readonly style="width:110px;" placeholder="—">
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus me-1"></i>Add
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        <script>
+                        function updatePackagePricePreview(select) {
+                            const opt = select.options[select.selectedIndex];
+                            document.getElementById('package-price-preview').value = opt.dataset.formattedPrice || '';
+                        }
+                        </script>
+                        <?php else: ?>
+                        <p class="text-muted small mb-0">
+                            <i class="fas fa-info-circle me-1 text-info"></i>
+                            No active packages available. <a href="<?php echo BASE_URL; ?>/admin/packages/add.php">Add packages</a> to use this feature.
+                        </p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
                 <!-- Admin Added Services -->
                 <div class="border-top mt-3 pt-2" id="admin-added-services">
                     <!-- Section Header -->
@@ -1734,127 +1899,6 @@ $available_packages_by_category = getServicePackagesByCategory();
                             </div>
                         </div>
                         <?php endif; ?>
-
-                        <!-- Added Packages -->
-                        <?php if (!empty($package_services)): ?>
-                        <div class="mb-4">
-                            <div class="section-label-premium mb-2">
-                                <span class="section-dot bg-primary"></span>
-                                <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Added Packages</span>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover mb-0 border rounded">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="fw-semibold">Package</th>
-                                            <th class="fw-semibold text-center">Qty</th>
-                                            <th class="fw-semibold text-end">Price</th>
-                                            <th class="fw-semibold text-end">Total</th>
-                                            <th class="fw-semibold text-center">Remove</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($package_services as $service):
-                                            $pkg_price = floatval($service['price'] ?? 0);
-                                            $pkg_qty   = intval($service['quantity'] ?? 1);
-                                            $pkg_total = $pkg_price * $pkg_qty;
-                                        ?>
-                                        <tr>
-                                            <td class="service-info-cell">
-                                                <i class="fas fa-box-open text-primary me-2"></i>
-                                                <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
-                                                <?php if (!empty($service['description'])): ?>
-                                                    <small class="service-description"><?php echo htmlspecialchars($service['description']); ?></small>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-center"><span class="badge bg-info"><?php echo $pkg_qty; ?></span></td>
-                                            <td class="text-end fw-bold text-primary"><?php echo formatCurrency($pkg_price); ?></td>
-                                            <td class="text-end fw-bold text-success"><?php echo formatCurrency($pkg_total); ?></td>
-                                            <td class="text-center">
-                                                <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this package from the booking?');">
-                                                    <input type="hidden" name="action" value="delete_admin_service">
-                                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                                    <button type="submit" class="btn btn-danger btn-sm py-0 px-1" title="Remove package">
-                                                        <i class="fas fa-trash small"></i>
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                    <?php if (count($package_services) > 1): ?>
-                                    <tfoot>
-                                        <tr class="table-light">
-                                            <td colspan="3" class="text-end fw-bold small">Total:</td>
-                                            <td class="text-end"><strong class="text-success"><?php echo formatCurrency($package_services_total); ?></strong></td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                    <?php endif; ?>
-                                </table>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-
-                        <!-- Add Package Form -->
-                        <div class="mb-2">
-                            <div class="section-label-premium mb-2">
-                                <span class="section-dot bg-info"></span>
-                                <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Add Package</span>
-                            </div>
-                            <?php if (!empty($available_packages_by_category)): ?>
-                            <form method="POST" action="" id="add-package-form">
-                                <input type="hidden" name="action" value="add_package">
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-md-5">
-                                        <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Select Package <span class="text-danger">*</span></label>
-                                        <select class="form-select form-select-sm" name="package_id" id="package-select" required onchange="updatePackagePricePreview(this)">
-                                            <option value="">— Select a Package —</option>
-                                            <?php foreach ($available_packages_by_category as $cat): ?>
-                                                <?php if (!empty($cat['packages'])): ?>
-                                                <optgroup label="<?php echo htmlspecialchars($cat['name']); ?>">
-                                                    <?php foreach ($cat['packages'] as $pkg): ?>
-                                                    <option value="<?php echo intval($pkg['id']); ?>"
-                                                            data-formatted-price="<?php echo htmlspecialchars(formatCurrency($pkg['price']), ENT_QUOTES); ?>"
-                                                            data-description="<?php echo htmlspecialchars($pkg['description'] ?? '', ENT_QUOTES); ?>">
-                                                        <?php echo htmlspecialchars($pkg['name']); ?> — <?php echo formatCurrency($pkg['price']); ?>
-                                                    </option>
-                                                    <?php endforeach; ?>
-                                                </optgroup>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-auto">
-                                        <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Qty</label>
-                                        <input type="number" class="form-control form-control-sm" name="quantity"
-                                               min="1" value="1" style="width:70px;">
-                                    </div>
-                                    <div class="col-auto">
-                                        <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Price</label>
-                                        <input type="text" class="form-control form-control-sm bg-light" id="package-price-preview"
-                                               readonly style="width:120px;" placeholder="—">
-                                    </div>
-                                    <div class="col-auto">
-                                        <button type="submit" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-plus me-1"></i>Add Package
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                            <script>
-                            function updatePackagePricePreview(select) {
-                                var opt = select.options[select.selectedIndex];
-                                document.getElementById('package-price-preview').value = opt.dataset.formattedPrice || '';
-                            }
-                            </script>
-                            <?php else: ?>
-                            <p class="text-muted small mb-0">
-                                <i class="fas fa-info-circle me-1 text-info"></i>
-                                No active packages available. <a href="<?php echo BASE_URL; ?>/admin/packages/add.php">Add packages</a> to use this feature.
-                            </p>
-                            <?php endif; ?>
-                        </div>
 
             </div>
         </div><!-- /section-services -->
