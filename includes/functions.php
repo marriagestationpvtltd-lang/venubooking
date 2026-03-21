@@ -607,15 +607,16 @@ function getAvailableVenues($date, $shift, $city_id = null) {
     
     // Get all active venues (optionally filtered by city)
     $params = [];
-    $where = "v.status = 'active'";
-    if ($city_id) {
-        $where .= " AND v.city_id = ?";
-        $params[] = intval($city_id);
-    }
     $sql = "SELECT v.*, c.name AS city_name FROM venues v
             LEFT JOIN cities c ON v.city_id = c.id
-            WHERE $where 
-            ORDER BY v.name";
+            WHERE v.status = 'active'";
+    
+    if ($city_id) {
+        $sql .= " AND v.city_id = ?";
+        $params[] = intval($city_id);
+    }
+    
+    $sql .= " ORDER BY v.name";
     
     $stmt = $db->prepare($sql);
     $stmt->execute($params);

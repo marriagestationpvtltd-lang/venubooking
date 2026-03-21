@@ -68,7 +68,11 @@ if (!$booking) {
 
 // Helper variables for consistent status display formatting
 $status_vars = calculateBookingStatusVariables($booking);
-extract($status_vars); // Extract variables: booking_status_display, booking_status_color, payment_status_display, payment_status_color, payment_status_icon
+$booking_status_display = $status_vars['booking_status_display'];
+$booking_status_color = $status_vars['booking_status_color'];
+$payment_status_display = $status_vars['payment_status_display'];
+$payment_status_color = $status_vars['payment_status_color'];
+$payment_status_icon = $status_vars['payment_status_icon'];
 
 
 // Handle payment request actions

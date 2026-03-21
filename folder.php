@@ -1333,7 +1333,7 @@ if ($whatsapp_number) {
                                 <!-- Album view: download only this album -->
                                 <a href="?token=<?php echo urlencode($token); ?>&album=<?php echo urlencode($current_album); ?>&download_all=1"
                                    class="btn btn-success album-download-btn"
-                                   onclick="return startDownload(this.href, <?php echo json_encode(($current_album === '' ? 'General' : $current_album) . '.zip'); ?>)">
+                                   onclick="return startDownload(this.href, <?php echo htmlspecialchars(json_encode(($current_album === '' ? 'General' : $current_album) . '.zip'), ENT_QUOTES, 'UTF-8'); ?>)">
                                     <i class="fas fa-download me-2"></i>
                                     Download Album (<?php echo count($visible_photos); ?>)
                                 </a>
