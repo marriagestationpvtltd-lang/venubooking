@@ -128,6 +128,35 @@ if (isset($_POST['action'])) {
             $error_message = 'Invalid service ID.';
             $initial_tab = 'tab-services';
         }
+    } elseif ($action === 'add_catalog_service') {
+        // Handle adding a service from the catalog (additional_services) by admin
+        $catalog_service_id = intval($_POST['catalog_service_id'] ?? 0);
+        $catalog_design_id  = intval($_POST['catalog_design_id'] ?? 0) ?: null;
+        $quantity           = max(1, intval($_POST['quantity'] ?? 1));
+
+        if ($catalog_service_id <= 0) {
+            $error_message = 'Please select a service from the catalog.';
+            $initial_tab = 'tab-services';
+        } else {
+            $inserted_id = addCatalogServiceToBooking($booking_id, $catalog_service_id, $catalog_design_id, $quantity);
+            if ($inserted_id) {
+                // Fetch service name for log
+                $db_log2  = getDB();
+                $svc_log2 = $db_log2->prepare("SELECT service_name FROM booking_services WHERE id = ?");
+                $svc_log2->execute([$inserted_id]);
+                $svc_row2  = $svc_log2->fetch();
+                $svc_name2 = $svc_row2 ? $svc_row2['service_name'] : "Service #{$catalog_service_id}";
+                logActivity($current_user['id'], 'Added catalog service to booking', 'bookings', $booking_id, "Added: {$svc_name2} (Qty: {$quantity})");
+                $success_message = 'Service added to booking successfully!';
+                $initial_tab = 'tab-services';
+                $booking = getBookingDetails($booking_id);
+                $status_vars = calculateBookingStatusVariables($booking);
+                extract($status_vars);
+            } else {
+                $error_message = 'Failed to add service. Please try again.';
+                $initial_tab = 'tab-services';
+            }
+        }
     } elseif ($action === 'add_package') {
         // Handle adding a predefined service package to the booking
         $package_id = intval($_POST['package_id'] ?? 0);
@@ -895,6 +924,24 @@ $tab_payments_count = count($payment_transactions);
 
 // Load available service packages for the Add Package form
 $available_packages_by_category = getServicePackagesByCategory();
+
+// Load active catalog services with their designs for the Add Catalog Service form
+$catalog_services_raw = getActiveServices();
+$catalog_services_with_designs = [];
+foreach ($catalog_services_raw as $svc) {
+    $svc['designs'] = getServiceDesigns($svc['id']);
+    $catalog_services_with_designs[] = $svc;
+}
+// Group by category for the UI dropdown
+$catalog_services_by_category = [];
+foreach ($catalog_services_with_designs as $svc) {
+    $cat = !empty($svc['category']) ? $svc['category'] : 'General';
+    $catalog_services_by_category[$cat][] = $svc;
+}
+ksort($catalog_services_by_category);
+// JSON encode for JavaScript use (designs data)
+$catalog_services_json = json_encode($catalog_services_with_designs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+
 ?>
 
 <div class="row g-4">
@@ -1601,11 +1648,65 @@ $available_packages_by_category = getServicePackagesByCategory();
                     <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> No admin services added yet.</p>
                     <?php endif; ?>
 
-                    <!-- Add Service Form -->
-                    <div class="border-top pt-2">
+                    <!-- Add from Catalog Form -->
+                    <?php if (!empty($catalog_services_with_designs)): ?>
+                    <div class="border-top pt-2 mt-2" id="add-catalog-service-section">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-list-check text-primary me-1" style="font-size:.85rem;"></i>
+                            <span class="fw-semibold text-muted" style="font-size:.8rem;">Add from Service Catalog</span>
+                        </div>
+                        <form method="POST" action="" id="add-catalog-service-form">
+                            <input type="hidden" name="action" value="add_catalog_service">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-sm-4 col-md-3">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Service <span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-sm" name="catalog_service_id" id="catalogServiceSelect" required>
+                                        <option value="">— Select Service —</option>
+                                        <?php foreach ($catalog_services_by_category as $cat_name => $cat_services): ?>
+                                            <optgroup label="<?php echo htmlspecialchars($cat_name); ?>">
+                                                <?php foreach ($cat_services as $csvc): ?>
+                                                    <option value="<?php echo $csvc['id']; ?>"
+                                                            data-price="<?php echo floatval($csvc['price']); ?>"
+                                                            data-has-designs="<?php echo !empty($csvc['designs']) ? '1' : '0'; ?>">
+                                                        <?php echo htmlspecialchars($csvc['name']); ?>
+                                                        (<?php echo formatCurrency(floatval($csvc['price'])); ?>)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-sm-4 col-md-3" id="catalogDesignRow" style="display:none;">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Design</label>
+                                    <select class="form-select form-select-sm" name="catalog_design_id" id="catalogDesignSelect">
+                                        <option value="">— No Design —</option>
+                                    </select>
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Qty <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control form-control-sm" name="quantity"
+                                           id="catalogQty" min="1" value="1" style="width:70px;" required>
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label form-label-sm mb-1" style="font-size:.75rem;">Price</label>
+                                    <input type="text" class="form-control form-control-sm bg-light" id="catalogPriceDisplay"
+                                           style="width:110px;" readonly placeholder="Auto">
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus me-1"></i>Add
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Add Service Form (Custom) -->
+                    <div class="border-top pt-2 mt-2">
                         <div class="d-flex align-items-center mb-2">
                             <i class="fas fa-plus-circle text-success me-1" style="font-size:.85rem;"></i>
-                            <span class="fw-semibold text-muted" style="font-size:.8rem;">Add a Service</span>
+                            <span class="fw-semibold text-muted" style="font-size:.8rem;">Add a Custom Service</span>
                         </div>
                         <form method="POST" action="">
                             <input type="hidden" name="action" value="add_admin_service">
@@ -3282,6 +3383,72 @@ $available_packages_by_category = getServicePackagesByCategory();
             });
         });
     }
+})();
+
+// ── Catalog Service form: dynamic design dropdown and price display ──────────
+(function () {
+    var catalogServicesData = <?php echo $catalog_services_json; ?>;
+    var servicesMap = {};
+    catalogServicesData.forEach(function (svc) {
+        servicesMap[svc.id] = svc;
+    });
+
+    var serviceSelect  = document.getElementById('catalogServiceSelect');
+    var designRow      = document.getElementById('catalogDesignRow');
+    var designSelect   = document.getElementById('catalogDesignSelect');
+    var priceDisplay   = document.getElementById('catalogPriceDisplay');
+
+    if (!serviceSelect) return;
+
+    function formatAmt(val) {
+        var num = parseFloat(val) || 0;
+        // Simple comma-separated formatting matching PHP's number_format($n, 2)
+        return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    function updateDesignsAndPrice() {
+        var serviceId = parseInt(serviceSelect.value) || 0;
+        var svc = servicesMap[serviceId];
+
+        // Reset design dropdown
+        designSelect.innerHTML = '<option value="">— No Design —</option>';
+        designRow.style.display = 'none';
+        priceDisplay.value = '';
+
+        if (!svc) return;
+
+        // Show service base price
+        priceDisplay.value = formatAmt(svc.price);
+
+        // Populate designs if any
+        if (svc.designs && svc.designs.length > 0) {
+            designRow.style.display = '';
+            svc.designs.forEach(function (d) {
+                var opt = document.createElement('option');
+                opt.value = d.id;
+                opt.dataset.price = d.price;
+                opt.textContent = d.name + ' (' + formatAmt(d.price) + ')';
+                designSelect.appendChild(opt);
+            });
+        }
+    }
+
+    serviceSelect.addEventListener('change', updateDesignsAndPrice);
+
+    designSelect.addEventListener('change', function () {
+        var designId = parseInt(designSelect.value) || 0;
+        if (designId && designSelect.selectedOptions[0]) {
+            var dPrice = parseFloat(designSelect.selectedOptions[0].dataset.price) || 0;
+            if (dPrice > 0) {
+                priceDisplay.value = formatAmt(dPrice);
+            }
+        } else {
+            // Revert to service price
+            var serviceId = parseInt(serviceSelect.value) || 0;
+            var svc = servicesMap[serviceId];
+            priceDisplay.value = svc ? formatAmt(svc.price) : '';
+        }
+    });
 })();
 
 

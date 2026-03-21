@@ -3080,6 +3080,95 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
 }
 
 /**
+ * Add a service from the catalog (additional_services) to a booking by the admin.
+ * Optionally links a specific design from service_designs.
+ * Stored in booking_services with added_by = ADMIN_SERVICE_TYPE.
+ *
+ * @param int      $booking_id  Booking ID
+ * @param int      $service_id  ID from additional_services table
+ * @param int|null $design_id   Optional ID from service_designs table
+ * @param int      $quantity    Quantity (default 1)
+ * @return bool|int Returns booking_service ID on success, false on failure
+ */
+function addCatalogServiceToBooking($booking_id, $service_id, $design_id = null, $quantity = 1) {
+    $db = getDB();
+
+    try {
+        $booking_id = intval($booking_id);
+        $service_id = intval($service_id);
+        $quantity   = max(1, intval($quantity));
+        $design_id  = $design_id ? intval($design_id) : null;
+
+        // Fetch the service
+        $svc_stmt = $db->prepare("SELECT * FROM additional_services WHERE id = ? AND status = 'active'");
+        $svc_stmt->execute([$service_id]);
+        $service = $svc_stmt->fetch();
+
+        if (!$service) {
+            throw new Exception("Service not found or inactive");
+        }
+
+        $service_name = $service['name'];
+        $description  = $service['description'] ?? '';
+        $category     = $service['category'] ?? '';
+        $price        = floatval($service['price'] ?? 0);
+
+        // If a design is selected, use the design's price and name
+        if ($design_id) {
+            $des_stmt = $db->prepare("SELECT * FROM service_designs WHERE id = ? AND status = 'active'");
+            $des_stmt->execute([$design_id]);
+            $design = $des_stmt->fetch();
+
+            if ($design) {
+                $service_name = $service_name . ' - ' . $design['name'];
+                $description  = $design['description'] ?? $description;
+                $price        = floatval($design['price'] ?? $price);
+            } else {
+                $design_id = null; // design not found, ignore it
+            }
+        }
+
+        if ($price < 0) {
+            throw new Exception("Service price cannot be negative");
+        }
+
+        $db->beginTransaction();
+
+        $stmt = $db->prepare("
+            INSERT INTO booking_services
+            (booking_id, service_id, service_name, price, description, category, added_by, quantity, design_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            $booking_id,
+            $service_id,    // actual additional_services.id; custom admin services use ADMIN_SERVICE_NO_REF_ID (0)
+            $service_name,
+            $price,
+            $description,
+            $category,
+            ADMIN_SERVICE_TYPE,
+            $quantity,
+            $design_id,
+        ]);
+        $inserted_id = $db->lastInsertId();
+
+        recalculateBookingTotals($booking_id);
+
+        $db->commit();
+        return $inserted_id;
+
+    } catch (PDOException $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        error_log("Error adding catalog service to booking: " . $e->getMessage());
+        return false;
+    } catch (Exception $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        error_log("Error adding catalog service to booking: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * Add a predefined service package to a booking.
  * The package is stored in booking_services with category = PACKAGE_SERVICE_CATEGORY
  * and added_by = ADMIN_SERVICE_TYPE so it can be managed like an admin service.
