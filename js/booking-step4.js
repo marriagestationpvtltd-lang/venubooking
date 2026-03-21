@@ -254,6 +254,30 @@ document.addEventListener('DOMContentLoaded', function () {
         cb.addEventListener('change', recalculateTotal);
     });
 
+    // ── Package category filter buttons ──────────────────────────────────────
+    document.querySelectorAll('.pkg-category-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const targetId = btn.dataset.pkgCat;
+
+            // Update button active styles
+            document.querySelectorAll('.pkg-category-btn').forEach(function (b) {
+                b.classList.remove('btn-success');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-success');
+
+            // Show the selected panel, hide others
+            document.querySelectorAll('.pkg-category-panel').forEach(function (panel) {
+                if (panel.id === targetId) {
+                    panel.classList.remove('d-none');
+                } else {
+                    panel.classList.add('d-none');
+                }
+            });
+        });
+    });
+
     // ── Design radio handlers (inline checkbox mode) ──────────────────────────
     // Update visual state for all design cards belonging to a service
     function updateDesignCardStates(serviceId) {
