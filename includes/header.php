@@ -22,8 +22,7 @@ if (!empty($meta_title)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#4CAF50">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="<?php echo BASE_URL; ?>/manifest.php">
     <title><?php echo htmlspecialchars($full_title); ?></title>
     
     <?php if (!empty($meta_description)): ?>
@@ -36,7 +35,6 @@ if (!empty($meta_title)) {
     
     <?php if (!empty($site_favicon)): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(UPLOAD_URL . $site_favicon); ?>">
-    <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars(UPLOAD_URL . $site_favicon); ?>">
     <?php endif; ?>
     
     <!-- Resource hints for faster CDN loading -->
