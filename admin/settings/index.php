@@ -505,10 +505,10 @@ Date changes are subject to availability and must be requested at least 15 days 
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Admin Email Address *</label>
+                            <label class="form-label">Admin Email Address</label>
                             <input type="email" class="form-control" name="setting_admin_email" 
-                                   value="<?php echo htmlspecialchars($settings['admin_email'] ?? $settings['contact_email'] ?? ''); ?>" required>
-                            <div class="form-text">Email address to receive booking notifications</div>
+                                   value="<?php echo htmlspecialchars(($settings['admin_email'] ?: ($settings['contact_email'] ?? ''))); ?>">
+                            <div class="form-text">Email address to receive booking notifications (defaults to contact email if left empty)</div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
@@ -1004,9 +1004,25 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Update data before form submission
+// Update data before form submission; switch to first tab with an invalid field
 document.getElementById('settingsForm').addEventListener('submit', function(e) {
     updateQuickLinksData();
+
+    // Find the first invalid field and activate its tab so the browser can show the error
+    const invalidField = this.querySelector(':invalid');
+    if (invalidField) {
+        const pane = invalidField.closest('.tab-pane');
+        if (pane && !pane.classList.contains('active')) {
+            e.preventDefault();
+            const tabId = pane.id;
+            const tabLink = document.querySelector('a[href="#' + tabId + '"]');
+            if (tabLink) {
+                tabLink.click();
+            }
+            // Trigger browser validation UI after the tab becomes visible
+            setTimeout(function() { invalidField.reportValidity(); }, 50);
+        }
+    }
 });
 
 // Wire "Send Test Email" button to the standalone test-email form
