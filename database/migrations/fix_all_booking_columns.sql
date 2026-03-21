@@ -248,6 +248,68 @@ BEGIN
         CREATE INDEX idx_booking_services_service_id ON booking_services(service_id);
     END IF;
 
+    -- ----------------------------------------------------------------
+    -- service_designs table
+    -- getServiceDesigns() queries WHERE service_id = ?.  Missing this
+    -- column throws a PDOException that prevents booking-step4 from
+    -- loading, so users cannot reach step 5 to submit a booking.
+    -- ----------------------------------------------------------------
+
+    -- service_id (direct-service design flow)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'service_designs'
+          AND column_name = 'service_id'
+    ) THEN
+        ALTER TABLE service_designs
+            ADD COLUMN service_id INT DEFAULT NULL
+                COMMENT 'References additional_services.id (direct service design flow)'
+            AFTER sub_service_id,
+            ADD CONSTRAINT fk_service_designs_service
+                FOREIGN KEY (service_id) REFERENCES additional_services(id) ON DELETE CASCADE;
+    END IF;
+
+    -- sub_service_id must be nullable (direct-service designs have no sub-service)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'service_designs'
+          AND column_name = 'sub_service_id'
+          AND is_nullable = 'NO'
+    ) THEN
+        SET @fk_sd_ss = NULL;
+        SELECT CONSTRAINT_NAME INTO @fk_sd_ss
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'service_designs'
+          AND COLUMN_NAME = 'sub_service_id'
+          AND REFERENCED_TABLE_NAME = 'service_sub_services'
+        LIMIT 1;
+
+        IF @fk_sd_ss IS NOT NULL AND @fk_sd_ss REGEXP '^[A-Za-z0-9_]+$' THEN
+            SET @drop_fk_sd = CONCAT('ALTER TABLE service_designs DROP FOREIGN KEY `', @fk_sd_ss, '`');
+            PREPARE stmt FROM @drop_fk_sd;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        END IF;
+
+        ALTER TABLE service_designs
+            MODIFY COLUMN sub_service_id INT DEFAULT NULL
+                COMMENT 'References service_sub_services.id (legacy sub-service flow)';
+
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'service_designs'
+              AND CONSTRAINT_NAME = 'fk_service_designs_sub_service'
+        ) THEN
+            ALTER TABLE service_designs
+                ADD CONSTRAINT fk_service_designs_sub_service
+                    FOREIGN KEY (sub_service_id) REFERENCES service_sub_services(id) ON DELETE CASCADE;
+        END IF;
+    END IF;
+
 END$$
 
 DELIMITER ;
@@ -259,3 +321,4 @@ DROP PROCEDURE IF EXISTS fix_all_booking_columns;
 SELECT 'Migration Complete' AS Status;
 SHOW COLUMNS FROM bookings;
 SHOW COLUMNS FROM booking_services;
+SHOW COLUMNS FROM service_designs;
