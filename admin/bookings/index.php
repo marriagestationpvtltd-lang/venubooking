@@ -41,13 +41,13 @@ if (!array_key_exists($status_filter, $filter_conditions)) {
 // Build query with filter condition (hardcoded values only, no user input)
 $base_query = "SELECT b.*, 
                     c.full_name, c.phone, c.email,
-                    h.name as hall_name, 
-                    v.name as venue_name,
+                    COALESCE(h.name, b.custom_hall_name) as hall_name, 
+                    COALESCE(v.name, b.custom_venue_name) as venue_name,
                     COALESCE((SELECT SUM(paid_amount) FROM payments WHERE booking_id = b.id AND payment_status = 'verified'), 0) as total_paid
                     FROM bookings b
                     INNER JOIN customers c ON b.customer_id = c.id
-                    INNER JOIN halls h ON b.hall_id = h.id
-                    INNER JOIN venues v ON h.venue_id = v.id"
+                    LEFT JOIN halls h ON b.hall_id = h.id
+                    LEFT JOIN venues v ON h.venue_id = v.id"
                     . $filter_conditions[$status_filter]
                     . " ORDER BY b.created_at DESC";
 
@@ -169,7 +169,11 @@ $bookings = $stmt->fetchAll();
                                 </div>
                             </td>
                             <td>
-                                <strong><?php echo htmlspecialchars($booking['venue_name']); ?></strong><br>
+                                <strong><?php echo htmlspecialchars($booking['venue_name']); ?></strong>
+                                <?php if (empty($booking['hall_id'])): ?>
+                                    <span class="badge bg-info ms-1" title="Customer's own venue"><i class="fas fa-map-marker-alt"></i> Custom</span>
+                                <?php endif; ?>
+                                <br>
                                 <small class="text-muted">
                                     <i class="fas fa-door-open"></i> <?php echo htmlspecialchars($booking['hall_name']); ?>
                                 </small>

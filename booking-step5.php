@@ -196,21 +196,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
         // (e.g. DB connection drop) sets $error instead of producing a blank page.
         try {
             $booking_result = createBooking([
-                'hall_id'          => $selected_hall['id'],
-                'event_date'       => $booking_data['event_date'],
-                'start_time'       => $booking_data['start_time'] ?? '',
-                'end_time'         => $booking_data['end_time']   ?? '',
-                'shift'            => $booking_data['shift'],
-                'event_type'       => $booking_data['event_type'],
-                'guests'           => $booking_data['guests'],
-                'menus'            => $selected_menus,
-                'services'         => $selected_services,
-                'selected_designs' => $selected_designs,
-                'full_name'        => $full_name,
-                'phone'            => $phone,
-                'email'            => $email,
-                'address'          => $address,
-                'special_requests' => $special_requests
+                'hall_id'            => $selected_hall['id'],
+                'is_custom'          => !empty($selected_hall['is_custom']),
+                'custom_venue_name'  => $selected_hall['custom_venue_name'] ?? '',
+                'custom_hall_name'   => $selected_hall['custom_hall_name']  ?? '',
+                'event_date'         => $booking_data['event_date'],
+                'start_time'         => $booking_data['start_time'] ?? '',
+                'end_time'           => $booking_data['end_time']   ?? '',
+                'shift'              => $booking_data['shift'],
+                'event_type'         => $booking_data['event_type'],
+                'guests'             => $booking_data['guests'],
+                'menus'              => $selected_menus,
+                'services'           => $selected_services,
+                'selected_designs'   => $selected_designs,
+                'full_name'          => $full_name,
+                'phone'              => $phone,
+                'email'              => $email,
+                'address'            => $address,
+                'special_requests'   => $special_requests
             ]);
         } catch (\Throwable $e) {
             error_log('Unexpected booking error: ' . $e->getMessage());
@@ -601,7 +604,12 @@ require_once __DIR__ . '/includes/header.php';
                         <h6 class="mb-2 text-success"><i class="fas fa-building me-2"></i>Venue & Hall</h6>
                         <div class="mb-2">
                             <strong><?php echo sanitize($selected_hall['venue_name']); ?></strong><br>
-                            <small class="text-muted"><?php echo sanitize($selected_hall['name']); ?> (<?php echo $selected_hall['capacity']; ?> pax)</small>
+                            <small class="text-muted">
+                                <?php echo sanitize($selected_hall['name']); ?>
+                                <?php if (!empty($selected_hall['capacity'])): ?>
+                                    (<?php echo $selected_hall['capacity']; ?> pax)
+                                <?php endif; ?>
+                            </small>
                         </div>
 
                         <hr class="my-2">

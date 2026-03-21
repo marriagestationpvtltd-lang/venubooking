@@ -130,9 +130,11 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="mb-1">
                                     <strong>Hall:</strong> <?php echo sanitize($booking['hall_name']); ?>
                                 </div>
+                                <?php if (!empty($booking['capacity'])): ?>
                                 <div class="mb-1">
                                     <strong>Capacity:</strong> <?php echo $booking['capacity']; ?> persons
                                 </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Status Information -->

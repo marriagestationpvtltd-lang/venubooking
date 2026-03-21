@@ -319,7 +319,9 @@ CREATE TABLE IF NOT EXISTS bookings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_number VARCHAR(50) UNIQUE NOT NULL,
     customer_id INT NOT NULL,
-    hall_id INT NOT NULL,
+    hall_id INT DEFAULT NULL,
+    custom_venue_name VARCHAR(255) DEFAULT NULL COMMENT 'Venue name when customer brings own venue (hall_id is NULL)',
+    custom_hall_name VARCHAR(255) DEFAULT NULL COMMENT 'Hall/location name when customer brings own venue (hall_id is NULL)',
     event_date DATE NOT NULL,
     shift ENUM('morning', 'afternoon', 'evening', 'fullday') NOT NULL,
     event_type VARCHAR(100) NOT NULL,
@@ -337,7 +339,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
-    FOREIGN KEY (hall_id) REFERENCES halls(id),
+    FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE SET NULL,
     INDEX idx_event_date (event_date),
     INDEX idx_booking_number (booking_number),
     INDEX idx_status (booking_status),
@@ -771,17 +773,8 @@ Date changes are subject to availability and must be requested at least 15 days 
 ('smtp_password', '', 'password'),
 ('smtp_encryption', 'tls', 'text'),
 ('google_review_link', '', 'url'),
+('allow_custom_venue', '1', 'boolean'),
 -- Folder page banner ad settings
-('folder_banner_a', '', 'image'),
-('folder_banner_a_link', '', 'url'),
-('folder_banner_a_enabled', '0', 'boolean'),
-('folder_banner_b', '', 'image'),
-('folder_banner_b_link', '', 'url'),
-('folder_banner_b_enabled', '0', 'boolean');
-
-
--- Insert placeholder payment methods (INACTIVE by default)
--- ⚠️ IMPORTANT: Update these details in Admin Panel → Payment Methods before activating!
 INSERT IGNORE INTO payment_methods (name, bank_details, status, display_order) VALUES
 ('Bank Transfer', 'Bank: [Your Bank Name]
 Account Name: [Account Holder Name]

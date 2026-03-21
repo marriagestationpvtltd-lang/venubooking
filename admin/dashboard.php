@@ -40,21 +40,21 @@ $stmt = $db->query("SELECT COUNT(*) as count FROM customers");
 $stats['total_customers'] = $stmt->fetch()['count'];
 
 // Get recent bookings
-$stmt = $db->query("SELECT b.*, c.full_name, h.name as hall_name, v.name as venue_name 
+$stmt = $db->query("SELECT b.*, c.full_name, COALESCE(h.name, b.custom_hall_name) as hall_name, COALESCE(v.name, b.custom_venue_name) as venue_name 
                     FROM bookings b
                     INNER JOIN customers c ON b.customer_id = c.id
-                    INNER JOIN halls h ON b.hall_id = h.id
-                    INNER JOIN venues v ON h.venue_id = v.id
+                    LEFT JOIN halls h ON b.hall_id = h.id
+                    LEFT JOIN venues v ON h.venue_id = v.id
                     ORDER BY b.created_at DESC
                     LIMIT 10");
 $recent_bookings = $stmt->fetchAll();
 
 // Get upcoming events
-$stmt = $db->query("SELECT b.*, c.full_name, h.name as hall_name, v.name as venue_name 
+$stmt = $db->query("SELECT b.*, c.full_name, COALESCE(h.name, b.custom_hall_name) as hall_name, COALESCE(v.name, b.custom_venue_name) as venue_name 
                     FROM bookings b
                     INNER JOIN customers c ON b.customer_id = c.id
-                    INNER JOIN halls h ON b.hall_id = h.id
-                    INNER JOIN venues v ON h.venue_id = v.id
+                    LEFT JOIN halls h ON b.hall_id = h.id
+                    LEFT JOIN venues v ON h.venue_id = v.id
                     WHERE b.event_date >= CURDATE()
                     AND b.booking_status != 'cancelled'
                     ORDER BY b.event_date ASC

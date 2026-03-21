@@ -47,12 +47,12 @@ try {
     $stmt = $db->prepare("SELECT b.id, b.booking_number, b.event_date, b.shift, 
                           b.event_type, b.booking_status,
                           c.full_name as customer_name,
-                          h.name as hall_name,
-                          v.name as venue_name
+                          COALESCE(h.name, b.custom_hall_name) as hall_name,
+                          COALESCE(v.name, b.custom_venue_name) as venue_name
                           FROM bookings b
                           INNER JOIN customers c ON b.customer_id = c.id
-                          INNER JOIN halls h ON b.hall_id = h.id
-                          INNER JOIN venues v ON h.venue_id = v.id
+                          LEFT JOIN halls h ON b.hall_id = h.id
+                          LEFT JOIN venues v ON h.venue_id = v.id
                           WHERE b.event_date >= ? AND b.event_date <= ?
                           ORDER BY b.event_date, b.shift");
     

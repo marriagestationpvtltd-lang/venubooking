@@ -455,7 +455,12 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                 <?php endif; ?>
                 <div class="info-row">
                     <span class="info-label">Venue:</span>
-                    <span class="info-value"><?php echo htmlspecialchars($booking['venue_name']); ?> - <?php echo htmlspecialchars($booking['hall_name']); ?></span>
+                    <span class="info-value">
+                        <?php echo htmlspecialchars($booking['venue_name']); ?> - <?php echo htmlspecialchars($booking['hall_name']); ?>
+                        <?php if (empty($booking['hall_id'])): ?>
+                            <span class="badge bg-info ms-1"><i class="fas fa-map-marker-alt"></i> Customer's Own Venue</span>
+                        <?php endif; ?>
+                    </span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Number of Guests:</span>
