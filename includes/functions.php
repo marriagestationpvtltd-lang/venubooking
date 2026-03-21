@@ -877,16 +877,28 @@ function getServiceSubServicesWithDesigns($service_id) {
 /**
  * Get active designs directly linked to a service (via service_designs.service_id).
  * Returns an array of designs ordered by display_order, name.
+ *
+ * Returns an empty array (rather than throwing) if the service_id column does
+ * not yet exist on an older installation — the caller treats "no designs" the
+ * same as a service without any designs configured, so booking-step4 still
+ * loads and users can still submit bookings.  Run the
+ * database/migrations/fix_service_designs_columns.sql migration to add the
+ * column and enable the direct-design feature.
  */
 function getServiceDesigns($service_id) {
     $db = getDB();
-    $stmt = $db->prepare(
-        "SELECT * FROM service_designs
-         WHERE service_id = ? AND status = 'active'
-         ORDER BY display_order, name"
-    );
-    $stmt->execute([$service_id]);
-    return $stmt->fetchAll();
+    try {
+        $stmt = $db->prepare(
+            "SELECT * FROM service_designs
+             WHERE service_id = ? AND status = 'active'
+             ORDER BY display_order, name"
+        );
+        $stmt->execute([$service_id]);
+        return $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('getServiceDesigns failed (service_designs.service_id column may be missing — run fix_service_designs_columns.sql migration): ' . $e->getMessage());
+        return [];
+    }
 }
 
 /**
