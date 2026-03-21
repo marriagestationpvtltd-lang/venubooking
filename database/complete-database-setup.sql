@@ -1150,6 +1150,160 @@ INSERT IGNORE INTO booking_vendor_assignments (booking_id, vendor_id, task_descr
 (37, 4, 'Videography with drone shots', 40000.00, 'Full day 4K videography with drone footage', 'assigned');
 
 -- ============================================================================
+-- SAMPLE DATA: Service Sub-Services and Designs (for booking-step4 visual flow)
+-- ============================================================================
+
+-- Sub-services under Flower Decoration (service_id=1)
+INSERT IGNORE INTO service_sub_services (service_id, name, description, display_order, status) VALUES
+(1, 'Stage Flowers', 'Floral arrangements specifically for the stage backdrop', 1, 'active'),
+(1, 'Table Centerpieces', 'Individual table floral centerpiece arrangements', 2, 'active'),
+(1, 'Entrance Arch', 'Grand floral arch for the venue entrance', 3, 'active');
+
+-- Sub-services under Stage Decoration (service_id=2)
+INSERT IGNORE INTO service_sub_services (service_id, name, description, display_order, status) VALUES
+(2, 'Traditional Theme', 'Classic Nepali traditional stage decoration', 1, 'active'),
+(2, 'Modern Minimalist', 'Clean, contemporary stage backdrop', 2, 'active'),
+(2, 'Luxury Royal', 'Opulent, royal-themed stage decoration', 3, 'active');
+
+-- Sub-services under Photography Package (service_id=3)
+INSERT IGNORE INTO service_sub_services (service_id, name, description, display_order, status) VALUES
+(3, 'Indoor Photography', 'Professional indoor event photography', 1, 'active'),
+(3, 'Outdoor Shoot', 'Outdoor location photography session', 2, 'active'),
+(3, 'Candid Album', 'Candid moments photography with premium album', 3, 'active');
+
+-- Designs directly linked to Flower Decoration service (service_id=1, no sub-service)
+INSERT IGNORE INTO service_designs (service_id, name, description, price, photo, display_order, status) VALUES
+(1, 'Classic Rose Arrangement', 'Elegant arrangement with red and white roses', 8000.00, NULL, 1, 'active'),
+(1, 'Marigold Festival Style', 'Traditional Nepali marigold and marigold-leaf garland decoration', 6000.00, NULL, 2, 'active'),
+(1, 'Orchid Premium', 'Exotic orchid and lily mixed floral display', 12000.00, NULL, 3, 'active'),
+(1, 'Pastel Garden Theme', 'Soft pastel flowers — peach, lavender, cream — for a romantic look', 10000.00, NULL, 4, 'active');
+
+-- Designs directly linked to Stage Decoration service (service_id=2, no sub-service)
+INSERT IGNORE INTO service_designs (service_id, name, description, price, photo, display_order, status) VALUES
+(2, 'Traditional Nepali Backdrop', 'Hand-painted traditional motifs with dhaka fabric and marigold drapes', 20000.00, NULL, 1, 'active'),
+(2, 'Modern Geometric Backdrop', 'Clean geometric panels with LED accent lighting', 25000.00, NULL, 2, 'active'),
+(2, 'Royal Gold Throne Setup', 'Gold-framed throne chairs, red carpet, pillar arrangements', 35000.00, NULL, 3, 'active'),
+(2, 'Floral Fantasy Stage', 'Stage fully wrapped in fresh flower panels — roses and hydrangeas', 30000.00, NULL, 4, 'active');
+
+-- Designs directly linked to Photography Package (service_id=3, no sub-service)
+INSERT IGNORE INTO service_designs (service_id, name, description, price, photo, display_order, status) VALUES
+(3, 'Classic Wedding Album (100 pages)', 'Professionally designed 100-page photo album in leather binding', 15000.00, NULL, 1, 'active'),
+(3, 'Digital Package', 'High-resolution digital photos delivered via USB and cloud link', 8000.00, NULL, 2, 'active'),
+(3, 'Drone Aerial Shots Add-on', 'Aerial photography with drone for wide-angle venue coverage', 12000.00, NULL, 3, 'active');
+
+-- ============================================================================
+-- SAMPLE DATA: Additional Bookings for Testing All Statuses
+-- ============================================================================
+
+-- Booking #50: Completed / Paid (past event)
+INSERT IGNORE INTO bookings (id, booking_number, customer_id, hall_id,
+    event_date, start_time, end_time, shift, event_type, number_of_guests,
+    hall_price, menu_total, services_total, subtotal, tax_amount, grand_total,
+    special_requests, booking_status, payment_status, advance_payment_received)
+VALUES
+(50, 'BK-20251210-0050', 4, 5, '2025-12-10', '18:00:00', '23:00:00', 'evening',
+ 'Anniversary Party', 150,
+ 200000.00, 299850.00, 50000.00, 549850.00, 71480.50, 621330.50,
+ NULL, 'completed', 'paid', 1);
+
+-- Booking #51: Pending / No Payment
+INSERT IGNORE INTO bookings (id, booking_number, customer_id, hall_id,
+    event_date, start_time, end_time, shift, event_type, number_of_guests,
+    hall_price, menu_total, services_total, subtotal, tax_amount, grand_total,
+    special_requests, booking_status, payment_status, advance_payment_received)
+VALUES
+(51, 'BK-20260410-0051', 5, 2, '2026-04-10', '12:00:00', '18:00:00', 'afternoon',
+ 'Corporate Event', 300,
+ 120000.00, 449700.00, 70000.00, 639700.00, 83161.00, 722861.00,
+ 'Require projector and presentation equipment', 'pending', 'pending', 0);
+
+-- Booking #52: Cancelled
+INSERT IGNORE INTO bookings (id, booking_number, customer_id, hall_id,
+    event_date, start_time, end_time, shift, event_type, number_of_guests,
+    hall_price, menu_total, services_total, subtotal, tax_amount, grand_total,
+    special_requests, booking_status, payment_status, advance_payment_received)
+VALUES
+(52, 'BK-20260501-0052', 6, 7, '2026-05-01', '06:00:00', '23:00:00', 'fullday',
+ 'Wedding', 450,
+ 220000.00, 674550.00, 90000.00, 984550.00, 127991.50, 1112541.50,
+ NULL, 'cancelled', 'pending', 0);
+
+-- Booking #53: Custom Venue (customer's own venue — hall_id is NULL)
+INSERT IGNORE INTO bookings (id, booking_number, customer_id, hall_id,
+    custom_venue_name, custom_hall_name,
+    event_date, start_time, end_time, shift, event_type, number_of_guests,
+    hall_price, menu_total, services_total, subtotal, tax_amount, grand_total,
+    special_requests, booking_status, payment_status, advance_payment_received)
+VALUES
+(53, 'BK-20260615-0053', 7, NULL,
+ 'Sharma Niwas', 'Home Garden Courtyard',
+ '2026-06-15', '18:00:00', '23:00:00', 'evening',
+ 'Engagement Ceremony', 100,
+ 0.00, 149900.00, 55000.00, 204900.00, 26637.00, 231537.00,
+ 'Event at customer own residence — no hall charge', 'confirmed', 'partial', 1);
+
+-- Insert menus for new bookings
+INSERT IGNORE INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES
+(50, 2, 1999.00, 150, 299850.00),
+(51, 1, 1499.00, 300, 449700.00),
+(52, 1, 1499.00, 450, 674550.00),
+(53, 3, 1499.00, 100, 149900.00);
+
+-- Insert services for new bookings
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(50, 2, 'Stage Decoration', 25000.00, 'Professional stage setup', 'Decoration', 'user', 1),
+(50, 3, 'Photography Package', 30000.00, 'Professional photography', 'Photography', 'user', 1);
+
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(51, 1, 'Flower Decoration', 15000.00, 'Floral arrangements', 'Decoration', 'user', 1),
+(51, 3, 'Photography Package', 30000.00, 'Professional photography', 'Photography', 'user', 1),
+(51, 5, 'DJ Service', 20000.00, 'Professional DJ', 'Entertainment', 'user', 1);
+
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(52, 1, 'Flower Decoration', 15000.00, 'Floral arrangements', 'Decoration', 'user', 1),
+(52, 2, 'Stage Decoration', 25000.00, 'Stage setup', 'Decoration', 'user', 1),
+(52, 4, 'Videography Package', 40000.00, 'HD video coverage', 'Videography', 'user', 1);
+
+INSERT IGNORE INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES
+(53, 1, 'Flower Decoration', 15000.00, 'Floral arrangements', 'Decoration', 'user', 1),
+(53, 3, 'Photography Package', 30000.00, 'Professional photography', 'Photography', 'user', 1),
+(53, 5, 'DJ Service', 20000.00, 'DJ with sound system', 'Entertainment', 'user', 1);
+
+-- Insert payment transactions for new bookings
+INSERT IGNORE INTO payments (booking_id, payment_method_id, transaction_id, paid_amount, payment_date, payment_status, notes) VALUES
+(50, 4, 'CASH-2025-0050', 621330.50, '2025-12-05 10:00:00', 'verified', 'Full payment received before event'),
+(53, 2, 'ESEWA-2026-0053', 57884.25, '2026-05-20 09:30:00', 'verified', 'Advance 25% via eSewa');
+
+-- ============================================================================
+-- SAMPLE DATA: Shared Folders and Photos (for photo sharing feature)
+-- ============================================================================
+
+-- Shared folders (access via download_token, e.g. /folder.php?token=RAMESH2026)
+INSERT IGNORE INTO shared_folders (id, folder_name, description, download_token, show_preview, status, created_by, created_at) VALUES
+(1, 'Wedding Album - BK-0001',      'Official wedding photos for Ramesh & Party',        'RAMESH2026',  1, 'active', 1, '2026-02-16 10:00:00'),
+(2, 'Reception Album - BK-0023',    'Wedding reception photos for booking #23',           'RECEP2026',   1, 'active', 1, '2026-04-11 09:00:00'),
+(3, 'Event Album - BK-0037',        'Wedding ceremony photos for booking #37',            'WEDCEREM37',  1, 'active', 1, '2026-05-21 08:00:00'),
+(4, 'Anniversary Album - BK-0050',  'Anniversary party photos for booking #50',           'ANNIV50',     1, 'active', 1, '2025-12-11 11:00:00');
+
+-- Sample photos in shared folders (file paths are sample references; actual files are not required for DB testing)
+INSERT IGNORE INTO shared_photos (id, folder_id, title, description, image_path, file_size, file_type, download_token, status, created_by, created_at) VALUES
+(1, 1, 'Wedding Ceremony 01',    NULL, 'shared-folders/1/wedding-ceremony-01.jpg',  2048000, 'photo', 'DL-RAMESH-001', 'active', 1, '2026-02-17 10:00:00'),
+(2, 1, 'Wedding Ceremony 02',    NULL, 'shared-folders/1/wedding-ceremony-02.jpg',  1920000, 'photo', 'DL-RAMESH-002', 'active', 1, '2026-02-17 10:01:00'),
+(3, 1, 'Wedding Couple Portrait',NULL, 'shared-folders/1/wedding-couple-01.jpg',    2500000, 'photo', 'DL-RAMESH-003', 'active', 1, '2026-02-17 10:02:00'),
+(4, 2, 'Reception Stage',        NULL, 'shared-folders/2/reception-stage-01.jpg',   2100000, 'photo', 'DL-RECEP-001',  'active', 1, '2026-04-12 09:00:00'),
+(5, 2, 'Reception Guests',       NULL, 'shared-folders/2/reception-guests-01.jpg',  1800000, 'photo', 'DL-RECEP-002',  'active', 1, '2026-04-12 09:01:00'),
+(6, 3, 'Ceremony Pheras',        NULL, 'shared-folders/3/ceremony-pheras-01.jpg',   2300000, 'photo', 'DL-WCED-001',   'active', 1, '2026-05-22 08:00:00'),
+(7, 3, 'Ceremony Couple',        NULL, 'shared-folders/3/ceremony-couple-01.jpg',   2200000, 'photo', 'DL-WCED-002',   'active', 1, '2026-05-22 08:01:00'),
+(8, 4, 'Anniversary Cake',       NULL, 'shared-folders/4/anniversary-cake-01.jpg',  1700000, 'photo', 'DL-ANNIV-001',  'active', 1, '2025-12-12 11:00:00'),
+(9, 4, 'Anniversary Dance',      NULL, 'shared-folders/4/anniversary-dance-01.jpg', 1900000, 'photo', 'DL-ANNIV-002',  'active', 1, '2025-12-12 11:01:00');
+
+-- Update photo counts on shared_folders to reflect the inserts above
+UPDATE shared_folders SET photo_count = 3 WHERE id = 1;
+UPDATE shared_folders SET photo_count = 2 WHERE id = 2;
+UPDATE shared_folders SET photo_count = 2 WHERE id = 3;
+UPDATE shared_folders SET photo_count = 2 WHERE id = 4;
+
+-- ============================================================================
 -- VERIFICATION QUERIES
 -- ============================================================================
 
@@ -1181,7 +1335,19 @@ SELECT 'TEST BOOKINGS' as '';
 SELECT '--------------' as '';
 SELECT id as 'Booking ID', booking_number as 'Booking Number', event_type as 'Event Type', 
        booking_status as 'Status', payment_status as 'Payment' 
-FROM bookings WHERE id IN (23, 37);
+FROM bookings WHERE id IN (23, 37, 50, 51, 52, 53);
+SELECT '' as '';
+
+SELECT 'DESIGN / SUB-SERVICE DATA' as '';
+SELECT '--------------------------' as '';
+SELECT COUNT(*) as 'Service Sub-Services' FROM service_sub_services;
+SELECT COUNT(*) as 'Service Designs' FROM service_designs;
+SELECT '' as '';
+
+SELECT 'SHARED FOLDERS' as '';
+SELECT '---------------' as '';
+SELECT id as 'Folder ID', folder_name as 'Folder Name', photo_count as 'Photos', status as 'Status'
+FROM shared_folders;
 SELECT '' as '';
 
 SELECT 'ADMIN LOGIN CREDENTIALS' as '';
