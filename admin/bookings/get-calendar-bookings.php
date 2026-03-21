@@ -53,7 +53,7 @@ try {
                           INNER JOIN customers c ON b.customer_id = c.id
                           LEFT JOIN halls h ON b.hall_id = h.id
                           LEFT JOIN venues v ON h.venue_id = v.id
-                          WHERE b.event_date >= ? AND b.event_date <= ?
+                          WHERE b.event_date >= ? AND b.event_date < ?
                           ORDER BY b.event_date, b.shift");
     
     $stmt->execute([$start, $end]);

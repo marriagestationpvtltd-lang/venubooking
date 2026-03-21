@@ -40,9 +40,6 @@ $db = getDB();
     </div>
 </div>
 
-<!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
-
 <style>
 #calendar {
     background: white;
@@ -220,7 +217,7 @@ $db = getDB();
 <?php
 $extra_js = '
 <!-- FullCalendar JS -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="' . BASE_URL . '/admin/vendor/fullcalendar/index.global.min.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -385,7 +382,7 @@ document.addEventListener("DOMContentLoaded", function() {
         
         // Re-apply selected date highlight
         if (selectedDate) {
-            const sel = document.querySelector(\`.fc-daygrid-day[data-date="${selectedDate}"]\`);
+            const sel = document.querySelector(`.fc-daygrid-day[data-date="${selectedDate}"]`);
             if (sel) sel.classList.add("day-selected");
         }
     }
@@ -479,11 +476,11 @@ document.addEventListener("DOMContentLoaded", function() {
     function loadBookingsForDate(date) {
         // Update selected date highlight
         if (selectedDate) {
-            const prev = document.querySelector(\`.fc-daygrid-day[data-date="${selectedDate}"]\`);
+            const prev = document.querySelector(`.fc-daygrid-day[data-date="${selectedDate}"]`);
             if (prev) prev.classList.remove("day-selected");
         }
         selectedDate = date;
-        const curr = document.querySelector(\`.fc-daygrid-day[data-date="${date}"]\`);
+        const curr = document.querySelector(`.fc-daygrid-day[data-date="${date}"]`);
         if (curr) curr.classList.add("day-selected");
         
         bookingDetailsEl.innerHTML = `
