@@ -331,10 +331,10 @@ function validatePhoneNumber($phone) {
         return ['valid' => false, 'error' => 'Phone number is required'];
     }
     // Remove spaces and special characters
-    $cleaned = preg_replace('/[\s()-]/', '', $phone);
-    // Check if 10-15 digits
-    if (!preg_match('/^\+?\d{10,15}$/', $cleaned)) {
-        return ['valid' => false, 'error' => 'Phone number must be 10-15 digits'];
+    $cleaned = preg_replace('/[\s()\-\.]/', '', $phone);
+    // Accept 7-15 digits (supports Nepali landlines from 7 digits and mobiles/international up to 15)
+    if (!preg_match('/^\+?\d{7,15}$/', $cleaned)) {
+        return ['valid' => false, 'error' => 'Please enter a valid phone number (7 or more digits)'];
     }
     return ['valid' => true];
 }
@@ -511,12 +511,18 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
 
     // Add prices from selected designs (sub-service design selections)
     if (!empty($selected_designs)) {
-        $design_ids = array_map('intval', array_values($selected_designs));
-        $placeholders = implode(',', array_fill(0, count($design_ids), '?'));
-        $stmt = $db->prepare("SELECT COALESCE(SUM(price), 0) as total FROM service_designs WHERE id IN ($placeholders)");
-        $stmt->execute($design_ids);
-        $result = $stmt->fetch();
-        $services_total += (float)($result['total'] ?? 0);
+        try {
+            $design_ids = array_map('intval', array_values($selected_designs));
+            $placeholders = implode(',', array_fill(0, count($design_ids), '?'));
+            $stmt = $db->prepare("SELECT COALESCE(SUM(price), 0) as total FROM service_designs WHERE id IN ($placeholders)");
+            $stmt->execute($design_ids);
+            $result = $stmt->fetch();
+            $services_total += (float)($result['total'] ?? 0);
+        } catch (\Throwable $designErr) {
+            // If service_designs table is missing or inaccessible, skip design prices
+            // rather than aborting the entire calculation.
+            error_log('calculateBookingTotal: design price query failed: ' . $designErr->getMessage());
+        }
     }
     
     // Calculate totals - get tax rate from database settings
@@ -1192,8 +1198,21 @@ function createBooking($data) {
         } catch (\Throwable $rollbackError) {
             error_log('Booking rollback failed: ' . $rollbackError->getMessage());
         }
-        error_log('Booking creation error: ' . $e->getMessage());
-        return ['success' => false, 'error' => 'Unable to complete your booking. Please try again or contact support.'];
+        $errMsg = $e->getMessage();
+        error_log('Booking creation error: ' . $errMsg);
+
+        // Provide a specific user-facing message for known error types
+        $userMessage = 'Unable to complete your booking. Please try again or contact support.';
+        if (stripos($errMsg, 'Duplicate entry') !== false) {
+            $userMessage = 'A booking with the same details already exists. Please check your previous bookings or contact support.';
+        } elseif (stripos($errMsg, 'no longer available') !== false) {
+            $userMessage = $errMsg; // Hall availability message is already user-friendly
+        } elseif (stripos($errMsg, "doesn't exist") !== false || stripos($errMsg, 'Unknown column') !== false || stripos($errMsg, 'Table') !== false) {
+            $userMessage = 'A system configuration error occurred. Please contact support and mention: DB schema issue.';
+        } elseif (stripos($errMsg, 'Connection') !== false || stripos($errMsg, 'connect') !== false) {
+            $userMessage = 'Unable to connect to the database. Please try again in a few minutes.';
+        }
+        return ['success' => false, 'error' => $userMessage];
     }
     
     // Send email notifications after successful commit (outside try-catch so email
@@ -1712,8 +1731,9 @@ function handleImageUpload($file, $prefix = 'image') {
     }
     
     // Validate file type using MIME type (basic check)
-    $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!in_array($file['type'], $allowed_types)) {
+    // Accept both 'image/jpg' (non-standard but common) and 'image/jpeg'
+    $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array(strtolower($file['type']), $allowed_types)) {
         $result['message'] = 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.';
         return $result;
     }

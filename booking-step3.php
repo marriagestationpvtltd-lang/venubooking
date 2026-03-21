@@ -6,6 +6,7 @@ require_once __DIR__ . '/includes/functions.php';
 
 // Check if we have booking data and hall selected
 if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
+    $_SESSION['booking_error_flash'] = 'Your booking session has expired or is incomplete. Please start again.';
     header('Location: index.php');
     exit;
 }

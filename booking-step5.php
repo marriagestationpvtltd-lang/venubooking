@@ -5,6 +5,8 @@ require_once __DIR__ . '/includes/functions.php';
 
 // Check if we have all required booking data
 if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
+    // Store a flash message so the user understands why they're being redirected
+    $_SESSION['booking_error_flash'] = 'Your booking session has expired or is incomplete. Please start again.';
     header('Location: index.php');
     exit;
 }
@@ -35,14 +37,22 @@ $selected_menus = $_SESSION['selected_menus'] ?? [];
 $selected_services = $_SESSION['selected_services'] ?? [];
 $selected_designs  = $_SESSION['selected_designs'] ?? [];
 
-// Calculate final totals — if this fails the page cannot render correctly,
-// so redirect back to the beginning rather than showing misleading zero values.
+// Calculate final totals — if this fails on a GET request the page cannot render
+// correctly, so redirect back to the beginning.  On a POST submission (final booking
+// confirmation) we keep the user on the page and surface the error so they can retry.
+$totals_error = '';
 try {
     $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs);
 } catch (\Throwable $e) {
     error_log('Failed to calculate booking totals: ' . $e->getMessage());
-    header('Location: index.php');
-    exit;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // On form submission keep the user on the page so they see the error.
+        $totals_error = 'We were unable to calculate your booking total. Please go back and try again, or contact support.';
+        $totals = ['hall_price' => 0, 'menu_total' => 0, 'services_total' => 0, 'subtotal' => 0, 'tax_amount' => 0, 'grand_total' => 0];
+    } else {
+        header('Location: index.php');
+        exit;
+    }
 }
 
 // Get menu details
@@ -123,7 +133,7 @@ try {
 $advance = calculateAdvancePayment($totals['grand_total']);
 
 // Handle form submission
-$error = '';
+$error = $totals_error; // Propagate any totals calculation error into the main error display
 // Initialize form values
 $full_name = '';
 $phone = '';
@@ -136,6 +146,16 @@ $transaction_id = '';
 $paid_amount = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
+    // If totals calculation already failed, skip submission processing
+    if (!empty($totals_error)) {
+        // $error is already set to $totals_error; just re-read POST values for display
+        $full_name = trim($_POST['full_name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $special_requests = trim($_POST['special_requests'] ?? '');
+        $payment_option = $_POST['payment_option'] ?? 'without';
+    } else {
     // Validate inputs with enhanced validation
     $full_name = trim($_POST['full_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
@@ -182,6 +202,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             $error = 'Please enter a valid paid amount.';
         } elseif (!isset($_FILES['payment_slip']) || $_FILES['payment_slip']['error'] === UPLOAD_ERR_NO_FILE) {
             $error = 'Payment slip / screenshot upload is required.';
+        } elseif ($_FILES['payment_slip']['error'] === UPLOAD_ERR_INI_SIZE || $_FILES['payment_slip']['error'] === UPLOAD_ERR_FORM_SIZE) {
+            $error = 'Payment slip file is too large. Please upload an image smaller than 5MB.';
+        } elseif ($_FILES['payment_slip']['error'] !== UPLOAD_ERR_OK) {
+            $error = 'Payment slip upload error (code ' . $_FILES['payment_slip']['error'] . '). Please try again with a different image.';
         } else {
             // Validate payment slip upload
             $upload_result = handleImageUpload($_FILES['payment_slip'], 'payment-slips');
@@ -264,6 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             $error = $booking_result['error'];
         }
     }
+    } // end else (totals were calculated successfully)
 }
 
 $page_title = 'Complete Your Booking';
@@ -312,8 +337,11 @@ require_once __DIR__ . '/includes/header.php';
                 <p class="text-muted mb-4">Follow the steps below to complete your booking</p>
                 
                 <?php if ($error): ?>
-                    <div class="alert alert-danger alert-dismissible fade show" id="errorAlert">
-                        <i class="fas fa-exclamation-circle"></i> <?php echo sanitize($error); ?>
+                    <div class="alert alert-danger alert-dismissible fade show" id="errorAlert" role="alert">
+                        <strong><i class="fas fa-exclamation-circle me-1"></i>Booking Error:</strong> <?php echo sanitize($error); ?>
+                        <div class="mt-2 small">
+                            If this problem persists, please contact us for assistance.
+                        </div>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 <?php endif; ?>
@@ -338,10 +366,10 @@ require_once __DIR__ . '/includes/header.php';
                                 <label for="phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
                                 <input type="tel" class="form-control" id="phone" name="phone" 
                                        value="<?php echo sanitize($phone); ?>" 
-                                       placeholder="Enter your phone number (10+ digits)" 
-                                       pattern="[+]?[\d\s\(\)\-]{10,}"
+                                       placeholder="Enter your phone number" 
+                                       pattern="[+]?[\d\s\(\)\-\.]{7,}"
                                        required>
-                                <div class="invalid-feedback">Please enter a valid phone number (10+ digits).</div>
+                                <div class="invalid-feedback">Please enter a valid phone number (at least 7 digits).</div>
                             </div>
 
                             <div class="mb-3">
@@ -824,9 +852,15 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('phone').classList.add('is-invalid');
             document.getElementById('phone').focus();
             return;
-        } else {
-            document.getElementById('phone').classList.remove('is-invalid');
         }
+        // Validate phone has at least 7 digits (matches server-side validation)
+        const phoneDigits = phone.replace(/[\s()\-\.]/g, '').replace(/^\+/, '');
+        if (phoneDigits.length < 7 || !/^\d+$/.test(phoneDigits)) {
+            document.getElementById('phone').classList.add('is-invalid');
+            document.getElementById('phone').focus();
+            return;
+        }
+        document.getElementById('phone').classList.remove('is-invalid');
         
         // Hide customer info section, show bill summary
         customerInfoSection.style.display = 'none';
@@ -967,6 +1001,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     firstInvalid.focus();
                     return false;
                 }
+            }
+
+            // Show loading state on submit button to prevent double-submission
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
             }
         });
     }
