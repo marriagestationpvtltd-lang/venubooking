@@ -605,6 +605,67 @@ BEGIN
         ALTER TABLE customers ADD COLUMN loyalty_points INT NOT NULL DEFAULT 0 AFTER city;
     END IF;
 
+    -- ---- bookings.custom_venue_name -------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'custom_venue_name'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN custom_venue_name VARCHAR(255) DEFAULT NULL
+                COMMENT 'Venue name when customer brings own venue (hall_id is NULL)'
+            AFTER hall_id;
+    END IF;
+
+    -- ---- bookings.custom_hall_name --------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'custom_hall_name'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN custom_hall_name VARCHAR(255) DEFAULT NULL
+                COMMENT 'Hall/location name when customer brings own venue (hall_id is NULL)'
+            AFTER custom_venue_name;
+    END IF;
+
+    -- ---- bookings.hall_id nullable (required for custom-venue bookings) -
+    -- Make hall_id nullable if it was created as NOT NULL in an older version.
+    -- We check IS_NULLABLE in information_schema and modify only when needed.
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'hall_id'
+          AND is_nullable = 'NO'
+    ) THEN
+        -- Drop any FK on hall_id before changing the column definition
+        SET @fk_hall = NULL;
+        SELECT CONSTRAINT_NAME INTO @fk_hall
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'bookings'
+          AND COLUMN_NAME = 'hall_id'
+          AND REFERENCED_TABLE_NAME = 'halls'
+        LIMIT 1;
+
+        IF @fk_hall IS NOT NULL AND @fk_hall REGEXP '^[A-Za-z0-9_]+$' THEN
+            SET @drop_fk_hall = CONCAT('ALTER TABLE bookings DROP FOREIGN KEY `', @fk_hall, '`');
+            PREPARE stmt FROM @drop_fk_hall;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
+        END IF;
+
+        ALTER TABLE bookings MODIFY COLUMN hall_id INT DEFAULT NULL;
+
+        -- Re-add FK allowing NULL (ON DELETE SET NULL keeps the booking intact)
+        ALTER TABLE bookings
+            ADD CONSTRAINT fk_bookings_hall_id
+                FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE SET NULL;
+    END IF;
+
     -- ---- bookings.start_time --------------------------------------------
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
