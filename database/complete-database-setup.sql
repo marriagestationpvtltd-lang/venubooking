@@ -179,11 +179,12 @@ CREATE TABLE IF NOT EXISTS service_sub_services (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
--- TABLE: service_designs (design photos and prices for each sub-service)
+-- TABLE: service_designs (design photos and prices for a service or sub-service)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS service_designs (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    sub_service_id INT NOT NULL COMMENT 'References service_sub_services.id',
+    sub_service_id INT DEFAULT NULL COMMENT 'References service_sub_services.id (legacy sub-service flow)',
+    service_id INT DEFAULT NULL COMMENT 'References additional_services.id (direct service design flow)',
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
@@ -192,7 +193,8 @@ CREATE TABLE IF NOT EXISTS service_designs (
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (sub_service_id) REFERENCES service_sub_services(id) ON DELETE CASCADE
+    FOREIGN KEY (sub_service_id) REFERENCES service_sub_services(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES additional_services(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================

@@ -866,6 +866,21 @@ function getServiceSubServicesWithDesigns($service_id) {
 }
 
 /**
+ * Get active designs directly linked to a service (via service_designs.service_id).
+ * Returns an array of designs ordered by display_order, name.
+ */
+function getServiceDesigns($service_id) {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT * FROM service_designs
+         WHERE service_id = ? AND status = 'active'
+         ORDER BY display_order, name"
+    );
+    $stmt->execute([$service_id]);
+    return $stmt->fetchAll();
+}
+
+/**
  * Calculate total price for a set of selected designs.
  * $selected_designs is an array of design_id values.
  */
@@ -1083,20 +1098,40 @@ function createBooking($data) {
             }
         }
 
-        // Insert selected designs into booking_services
+        // Insert selected designs into booking_services.
+        // selected_designs format: { service_id => design_id } (direct design flow)
+        // Also supports legacy { sub_service_id => design_id } for backward compatibility.
         if (!empty($data['selected_designs'])) {
-            foreach ($data['selected_designs'] as $ss_id => $design_id) {
-                $ss_id    = intval($ss_id);
+            foreach ($data['selected_designs'] as $key_id => $design_id) {
+                $key_id    = intval($key_id);
                 $design_id = intval($design_id);
+
+                // Try new direct-service design first (service_id on service_designs)
                 $stmt = $db->prepare(
-                    "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                    "SELECT d.name, d.price, d.description, d.service_id, s.category
                      FROM service_designs d
-                     JOIN service_sub_services ss ON ss.id = d.sub_service_id
-                     JOIN additional_services s ON s.id = ss.service_id
-                     WHERE d.id = ? AND d.sub_service_id = ?"
+                     JOIN additional_services s ON s.id = d.service_id
+                     WHERE d.id = ? AND d.service_id = ?"
                 );
-                $stmt->execute([$design_id, $ss_id]);
+                $stmt->execute([$design_id, $key_id]);
                 $design = $stmt->fetch();
+                $sub_service_id_val = null;
+
+                if (!$design) {
+                    // Fall back to legacy sub-service flow
+                    $stmt = $db->prepare(
+                        "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                         FROM service_designs d
+                         JOIN service_sub_services ss ON ss.id = d.sub_service_id
+                         JOIN additional_services s ON s.id = ss.service_id
+                         WHERE d.id = ? AND d.sub_service_id = ?"
+                    );
+                    $stmt->execute([$design_id, $key_id]);
+                    $design = $stmt->fetch();
+                    if ($design) {
+                        $sub_service_id_val = $key_id;
+                    }
+                }
 
                 if ($design) {
                     $insert = $db->prepare(
@@ -1114,7 +1149,7 @@ function createBooking($data) {
                         $design['category'],
                         USER_SERVICE_TYPE,
                         DEFAULT_SERVICE_QUANTITY,
-                        $ss_id,
+                        $sub_service_id_val,
                         $design_id
                     ]);
                 }

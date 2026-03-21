@@ -12,15 +12,15 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
 // Save selected services (only when coming from the services step, not the final booking form)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
     $_SESSION['selected_services'] = $_POST['services'] ?? [];
-    // Save selected designs: sub_service_id => design_id
+    // Save selected designs: service_id => design_id (or sub_service_id => design_id for legacy data)
     if (!empty($_POST['selected_designs']) && is_array($_POST['selected_designs'])) {
         $raw_designs = $_POST['selected_designs'];
         $clean_designs = [];
-        foreach ($raw_designs as $ss_id => $d_id) {
-            $ss_id_int = intval($ss_id);
-            $d_id_int  = intval($d_id);
-            if ($ss_id_int > 0 && $d_id_int > 0) {
-                $clean_designs[$ss_id_int] = $d_id_int;
+        foreach ($raw_designs as $key_id => $d_id) {
+            $key_id_int = intval($key_id);
+            $d_id_int   = intval($d_id);
+            if ($key_id_int > 0 && $d_id_int > 0) {
+                $clean_designs[$key_id_int] = $d_id_int;
             }
         }
         $_SESSION['selected_designs'] = $clean_designs;
@@ -91,11 +91,16 @@ if (!empty($selected_designs)) {
         $db = getDB();
         $design_ids = array_map('intval', array_values($selected_designs));
         $placeholders = implode(',', array_fill(0, count($design_ids), '?'));
+        // Support both new direct-service designs (service_id) and legacy sub-service designs
         $stmt = $db->prepare(
-            "SELECT d.*, ss.name AS sub_service_name, ss.service_id, s.name AS service_name, s.category
+            "SELECT d.*,
+                    COALESCE(s_direct.name, s_via_ss.name) AS service_name,
+                    COALESCE(s_direct.category, s_via_ss.category) AS category,
+                    NULL AS sub_service_name
              FROM service_designs d
-             JOIN service_sub_services ss ON ss.id = d.sub_service_id
-             JOIN additional_services s ON s.id = ss.service_id
+             LEFT JOIN additional_services s_direct ON s_direct.id = d.service_id
+             LEFT JOIN service_sub_services ss ON ss.id = d.sub_service_id
+             LEFT JOIN additional_services s_via_ss ON s_via_ss.id = ss.service_id
              WHERE d.id IN ($placeholders)"
         );
         $stmt->execute($design_ids);
@@ -626,7 +631,7 @@ require_once __DIR__ . '/includes/header.php';
                             <?php foreach ($design_details as $design): ?>
                                 <div class="mb-1">
                                     <i class="fas fa-check-circle text-success me-1"></i>
-                                    <small><strong><?php echo sanitize($design['sub_service_name']); ?>:</strong>
+                                    <small><strong><?php echo sanitize($design['service_name']); ?>:</strong>
                                         <?php echo sanitize($design['name']); ?></small>
                                     <small class="text-success ms-1"><?php echo formatCurrency($design['price']); ?></small>
                                 </div>

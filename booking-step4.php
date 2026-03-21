@@ -22,12 +22,12 @@ $booking_data = $_SESSION['booking_data'];
 $selected_hall = $_SESSION['selected_hall'];
 $selected_menus = $_SESSION['selected_menus'] ?? [];
 
-// Get all active services, enriched with sub-services and designs
+// Get all active services, enriched with direct designs
 $services = getActiveServices();
 $services_map = []; // keyed by service id
 foreach ($services as &$svc) {
-    $svc['sub_services'] = getServiceSubServicesWithDesigns($svc['id']);
-    $svc['has_sub_services'] = !empty($svc['sub_services']);
+    $svc['designs'] = getServiceDesigns($svc['id']);
+    $svc['has_designs'] = !empty($svc['designs']);
     $services_map[$svc['id']] = $svc;
 }
 unset($svc);
@@ -157,11 +157,11 @@ $current_total = $totals['subtotal'];
                                 <div class="row g-3">
                                     <?php foreach ($category_services as $service): ?>
                                         <div class="col-md-6" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                            <?php if ($service['has_sub_services']): ?>
-                                                <!-- Service with sub-services: drill-down card -->
+                                            <?php if ($service['has_designs']): ?>
+                                                <!-- Service with designs: drill-down card -->
                                                 <div class="service-card card service-drilldown-card" style="cursor:pointer;"
                                                      data-service-id="<?php echo $service['id']; ?>"
-                                                     onclick="openSubServicesView(<?php echo $service['id']; ?>)">
+                                                     onclick="openDesignsView(<?php echo $service['id']; ?>)">
                                                     <?php if (!empty($service['photo'])): ?>
                                                         <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
                                                              alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
@@ -233,7 +233,7 @@ $current_total = $totals['subtotal'];
                                     <div id="<?php echo $category_id; ?>" class="collapse <?php echo $is_first ? 'show' : ''; ?>">
                                         <div class="card-body p-2">
                                             <?php foreach ($category_services as $service): ?>
-                                                <?php if ($service['has_sub_services']): ?>
+                                                <?php if ($service['has_designs']): ?>
                                                     <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
                                                         <?php if (!empty($service['photo'])): ?>
                                                             <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
@@ -242,7 +242,7 @@ $current_total = $totals['subtotal'];
                                                         <?php endif; ?>
                                                         <div class="card-body p-3 service-drilldown-card d-flex justify-content-between align-items-center"
                                                              style="cursor:pointer;"
-                                                             onclick="openSubServicesView(<?php echo $service['id']; ?>)">
+                                                             onclick="openDesignsView(<?php echo $service['id']; ?>)">
                                                             <div>
                                                                 <strong><?php echo sanitize($service['name']); ?></strong>
                                                                 <div id="service-summary-mob-<?php echo $service['id']; ?>" class="service-design-summary-mob text-success small"></div>
@@ -304,30 +304,24 @@ $current_total = $totals['subtotal'];
         </div><!-- /#view-services -->
 
         <!-- =====================================================================
-             VIEW 2: Design Selection – Sub-Services with their Design Photos
+             VIEW 2: Design Selection – Direct designs for the selected service
              ===================================================================== -->
         <div id="view-sub-services" style="display:none;">
             <div class="d-flex align-items-center mb-1">
                 <div class="flex-grow-1">
-                    <h2 class="mb-0" id="sub-services-title">Select Sub-Service</h2>
+                    <h2 class="mb-0" id="sub-services-title">Select Design</h2>
                     <p class="text-muted mb-0 small" id="sub-services-subtitle"></p>
                 </div>
-                <span id="sub-service-progress" class="badge bg-secondary ms-3 fs-6" style="display:none;"></span>
             </div>
             <div class="alert alert-info py-2 small mb-3" id="sub-services-hint">
                 <i class="fas fa-hand-pointer me-1"></i>
-                Tap a photo to select your preferred design for each option. Tap <strong>Done</strong> when finished.
+                Tap a photo to select your preferred design. Selection saves automatically.
             </div>
             <div id="sub-services-list" class="row g-3"></div>
             <div class="row mt-4">
-                <div class="col-6">
+                <div class="col-12">
                     <button class="btn btn-outline-secondary w-100" onclick="backToServices()">
                         <i class="fas fa-arrow-left me-1"></i> Back to Services
-                    </button>
-                </div>
-                <div class="col-6">
-                    <button class="btn btn-success w-100" id="sub-services-done-btn" onclick="backToServices()" style="display:none;">
-                        <i class="fas fa-check me-1"></i> Done
                     </button>
                 </div>
             </div>
