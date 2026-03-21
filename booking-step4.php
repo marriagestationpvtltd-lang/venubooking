@@ -271,181 +271,110 @@ $current_total = $totals['grand_total'];
                         $is_first = ($category_index === 0);
                         $category_index++;
                     ?>
-                        <div class="mb-4 service-category-section">
-                            <!-- Desktop: Always show category -->
-                            <div class="d-none d-md-block">
-                                <h4 class="mb-3"><?php echo sanitize($category); ?></h4>
-                                <div class="row g-3">
-                                    <?php foreach ($category_services as $service): ?>
-                                        <div class="<?php echo $service['has_designs'] ? 'col-12' : 'col-md-6'; ?>" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                            <?php if ($service['has_designs']): ?>
-                                                <!-- Service with designs: inline checkbox design grid -->
-                                                <div class="card service-designs-inline-card p-3">
-                                                    <h5 class="mb-1"><?php echo sanitize($service['name']); ?></h5>
-                                                    <?php if (!empty($service['description'])): ?>
-                                                        <p class="text-muted small mb-3"><?php echo sanitize($service['description']); ?></p>
-                                                    <?php else: ?>
-                                                        <div class="mb-3"></div>
-                                                    <?php endif; ?>
-                                                    <div class="row g-2">
-                                                        <?php foreach ($service['designs'] as $design): ?>
-                                                            <div class="col-6 col-md-3 col-xl-2 design-col-item">
-                                                                <label class="design-select-label d-block h-100" for="design_<?php echo $design['id']; ?>">
-                                                                    <div class="card design-checkbox-card h-100 position-relative" id="design-card-<?php echo $design['id']; ?>">
-                                                                        <div class="design-check-overlay position-absolute top-0 end-0 m-1">
-                                                                            <span class="badge bg-success rounded-pill px-2 py-1"><i class="fas fa-check me-1"></i>Selected</span>
-                                                                        </div>
-                                                                        <?php if (!empty($design['photo'])): ?>
-                                                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
-                                                                                 alt="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                                 class="card-img-top design-card-img">
-                                                                        <?php else: ?>
-                                                                            <div class="d-flex align-items-center justify-content-center bg-light design-card-img-placeholder">
-                                                                                <i class="fas fa-image fa-2x text-muted"></i>
+                        <div class="mb-3 service-category-section">
+                            <div class="card">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center"
+                                     style="cursor: pointer;"
+                                     data-bs-toggle="collapse"
+                                     data-bs-target="#<?php echo $category_id; ?>"
+                                     aria-expanded="<?php echo $is_first ? 'true' : 'false'; ?>">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-tag me-2 text-success"></i>
+                                        <?php echo sanitize($category); ?>
+                                    </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-success rounded-pill"><?php echo count($category_services); ?> services</span>
+                                        <i class="fas fa-chevron-down category-toggle-icon"></i>
+                                    </div>
+                                </div>
+                                <div id="<?php echo $category_id; ?>" class="collapse <?php echo $is_first ? 'show' : ''; ?>">
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <?php foreach ($category_services as $service): ?>
+                                                <div class="<?php echo $service['has_designs'] ? 'col-12' : 'col-md-6'; ?>" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <?php if ($service['has_designs']): ?>
+                                                        <!-- Service with designs: inline checkbox design grid -->
+                                                        <div class="card service-designs-inline-card p-3">
+                                                            <h5 class="mb-1"><?php echo sanitize($service['name']); ?></h5>
+                                                            <?php if (!empty($service['description'])): ?>
+                                                                <p class="text-muted small mb-3"><?php echo sanitize($service['description']); ?></p>
+                                                            <?php else: ?>
+                                                                <div class="mb-3"></div>
+                                                            <?php endif; ?>
+                                                            <div class="row g-2">
+                                                                <?php foreach ($service['designs'] as $design): ?>
+                                                                    <div class="col-6 col-md-3 col-xl-2 design-col-item">
+                                                                        <label class="design-select-label d-block h-100" for="design_<?php echo $design['id']; ?>">
+                                                                            <div class="card design-checkbox-card h-100 position-relative" id="design-card-<?php echo $design['id']; ?>">
+                                                                                <div class="design-check-overlay position-absolute top-0 end-0 m-1">
+                                                                                    <span class="badge bg-success rounded-pill px-2 py-1"><i class="fas fa-check me-1"></i>Selected</span>
+                                                                                </div>
+                                                                                <?php if (!empty($design['photo'])): ?>
+                                                                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
+                                                                                         alt="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                         class="card-img-top design-card-img">
+                                                                                <?php else: ?>
+                                                                                    <div class="d-flex align-items-center justify-content-center bg-light design-card-img-placeholder">
+                                                                                        <i class="fas fa-image fa-2x text-muted"></i>
+                                                                                    </div>
+                                                                                <?php endif; ?>
+                                                                                <div class="card-body p-2 text-center">
+                                                                                    <input type="radio" class="design-radio visually-hidden"
+                                                                                           name="design_group_<?php echo $service['id']; ?>"
+                                                                                           id="design_<?php echo $design['id']; ?>"
+                                                                                           data-design-id="<?php echo $design['id']; ?>"
+                                                                                           data-service-id="<?php echo $service['id']; ?>"
+                                                                                           data-price="<?php echo htmlspecialchars($design['price'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                           data-name="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                           data-photo="<?php echo htmlspecialchars($design['photo'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                                                                    <div class="fw-semibold small"><?php echo sanitize($design['name']); ?></div>
+                                                                                    <div class="text-success small fw-bold"><?php echo formatCurrency($design['price']); ?></div>
+                                                                                    <?php if (!empty($design['description'])): ?>
+                                                                                        <div class="text-muted mt-1" style="font-size:0.7rem;"><?php echo sanitize($design['description']); ?></div>
+                                                                                    <?php endif; ?>
+                                                                                </div>
                                                                             </div>
-                                                                        <?php endif; ?>
-                                                                        <div class="card-body p-2 text-center">
-                                                                            <input type="radio" class="design-radio visually-hidden"
-                                                                                   name="design_group_<?php echo $service['id']; ?>"
-                                                                                   id="design_<?php echo $design['id']; ?>"
-                                                                                   data-design-id="<?php echo $design['id']; ?>"
-                                                                                   data-service-id="<?php echo $service['id']; ?>"
-                                                                                   data-price="<?php echo htmlspecialchars($design['price'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                                   data-name="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                                   data-photo="<?php echo htmlspecialchars($design['photo'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                                                                            <div class="fw-semibold small"><?php echo sanitize($design['name']); ?></div>
-                                                                            <div class="text-success small fw-bold"><?php echo formatCurrency($design['price']); ?></div>
-                                                                            <?php if (!empty($design['description'])): ?>
-                                                                                <div class="text-muted mt-1" style="font-size:0.7rem;"><?php echo sanitize($design['description']); ?></div>
-                                                                            <?php endif; ?>
-                                                                        </div>
-                                                                    </div>
-                                                                </label>
-                                                            </div>
-                                                        <?php endforeach; ?>
-                                                    </div>
-                                                </div>
-                                            <?php else: ?>
-                                                <!-- Regular service: checkbox -->
-                                                <div class="service-card card">
-                                                    <?php if (!empty($service['photo'])): ?>
-                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
-                                                             alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                             class="card-img-top" style="height:140px;object-fit:cover;">
-                                                    <?php endif; ?>
-                                                    <div class="card-body">
-                                                        <div class="d-flex justify-content-between align-items-start">
-                                                            <div class="flex-grow-1">
-                                                                <h5 class="card-title">
-                                                                    <div class="form-check">
-                                                                        <input class="form-check-input service-checkbox" 
-                                                                               type="checkbox" 
-                                                                               name="services[]" 
-                                                                               value="<?php echo $service['id']; ?>" 
-                                                                               id="service<?php echo $service['id']; ?>"
-                                                                               data-price="<?php echo $service['price']; ?>"
-                                                                               data-vendor-type-slug="<?php echo htmlspecialchars($service['vendor_type_slug'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
-                                                                               data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                                                        <label class="form-check-label" for="service<?php echo $service['id']; ?>">
-                                                                            <?php echo sanitize($service['name']); ?>
                                                                         </label>
                                                                     </div>
-                                                                </h5>
-                                                                <p class="card-text text-muted"><?php echo sanitize($service['description']); ?></p>
-                                                            </div>
-                                                            <div class="ms-3">
-                                                                <span class="h5 text-success"><?php echo formatCurrency($service['price']); ?></span>
+                                                                <?php endforeach; ?>
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                    <?php else: ?>
+                                                        <!-- Regular service: checkbox -->
+                                                        <div class="service-card card">
+                                                            <?php if (!empty($service['photo'])): ?>
+                                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                                     alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                     class="card-img-top" style="height:140px;object-fit:cover;">
+                                                            <?php endif; ?>
+                                                            <div class="card-body">
+                                                                <div class="d-flex justify-content-between align-items-start">
+                                                                    <div class="flex-grow-1">
+                                                                        <h5 class="card-title">
+                                                                            <div class="form-check">
+                                                                                <input class="form-check-input service-checkbox" 
+                                                                                       type="checkbox" 
+                                                                                       name="services[]" 
+                                                                                       value="<?php echo $service['id']; ?>" 
+                                                                                       id="service<?php echo $service['id']; ?>"
+                                                                                       data-price="<?php echo $service['price']; ?>"
+                                                                                       data-vendor-type-slug="<?php echo htmlspecialchars($service['vendor_type_slug'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                                                                                       data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                                                <label class="form-check-label" for="service<?php echo $service['id']; ?>">
+                                                                                    <?php echo sanitize($service['name']); ?>
+                                                                                </label>
+                                                                            </div>
+                                                                        </h5>
+                                                                        <p class="card-text text-muted"><?php echo sanitize($service['description']); ?></p>
+                                                                    </div>
+                                                                    <div class="ms-3">
+                                                                        <span class="h5 text-success"><?php echo formatCurrency($service['price']); ?></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                            
-                            <!-- Mobile: Collapsible category (first one expanded by default) -->
-                            <div class="d-md-none">
-                                <div class="card mb-3">
-                                    <div class="card-header bg-light" style="cursor: pointer;" 
-                                         data-bs-toggle="collapse" 
-                                         data-bs-target="#<?php echo $category_id; ?>" 
-                                         aria-expanded="<?php echo $is_first ? 'true' : 'false'; ?>">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <h5 class="mb-0"><?php echo sanitize($category); ?></h5>
-                                            <span class="badge bg-success"><?php echo count($category_services); ?> services</span>
-                                        </div>
-                                    </div>
-                                    <div id="<?php echo $category_id; ?>" class="collapse <?php echo $is_first ? 'show' : ''; ?>">
-                                        <div class="card-body p-2">
-                                            <?php foreach ($category_services as $service): ?>
-                                                <?php if ($service['has_designs']): ?>
-                                                    <div class="mb-3" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>" data-service-id="<?php echo $service['id']; ?>">
-                                                        <h6 class="fw-semibold mb-2 px-1"><?php echo sanitize($service['name']); ?></h6>
-                                                        <div class="row g-2">
-                                                            <?php foreach ($service['designs'] as $design): ?>
-                                                                <div class="col-6 design-col-item">
-                                                                    <label class="design-select-label d-block h-100" for="design_mob_<?php echo $design['id']; ?>">
-                                                                        <div class="card design-checkbox-card h-100 position-relative" id="design-card-mob-<?php echo $design['id']; ?>">
-                                                                            <div class="design-check-overlay position-absolute top-0 end-0 m-1">
-                                                                                <span class="badge bg-success rounded-pill px-2 py-1"><i class="fas fa-check me-1"></i>Selected</span>
-                                                                            </div>
-                                                                            <?php if (!empty($design['photo'])): ?>
-                                                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
-                                                                                     alt="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                                     class="card-img-top design-card-img-mob">
-                                                                            <?php else: ?>
-                                                                                <div class="d-flex align-items-center justify-content-center bg-light design-card-img-placeholder-mob">
-                                                                                    <i class="fas fa-image fa-2x text-muted"></i>
-                                                                                </div>
-                                                                            <?php endif; ?>
-                                                                            <div class="card-body p-2 text-center">
-                                                                                <input type="radio" class="design-radio visually-hidden"
-                                                                                       name="design_group_mob_<?php echo $service['id']; ?>"
-                                                                                       id="design_mob_<?php echo $design['id']; ?>"
-                                                                                       data-design-id="<?php echo $design['id']; ?>"
-                                                                                       data-service-id="<?php echo $service['id']; ?>"
-                                                                                       data-price="<?php echo htmlspecialchars($design['price'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                                       data-name="<?php echo htmlspecialchars($design['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                                       data-photo="<?php echo htmlspecialchars($design['photo'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                                                                                <div class="fw-semibold small"><?php echo sanitize($design['name']); ?></div>
-                                                                                <div class="text-success small fw-bold"><?php echo formatCurrency($design['price']); ?></div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                            <?php endforeach; ?>
-                                                        </div>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                                        <?php if (!empty($service['photo'])): ?>
-                                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
-                                                                 alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                 class="card-img-top" style="height:100px;object-fit:cover;">
-                                                        <?php endif; ?>
-                                                        <div class="card-body p-3">
-                                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                                <div class="form-check flex-grow-1">
-                                                                    <input class="form-check-input service-checkbox" 
-                                                                           type="checkbox" 
-                                                                           name="services[]" 
-                                                                           value="<?php echo $service['id']; ?>" 
-                                                                           id="service<?php echo $service['id']; ?>"
-                                                                           data-price="<?php echo $service['price']; ?>"
-                                                                           data-vendor-type-slug="<?php echo htmlspecialchars($service['vendor_type_slug'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
-                                                                           data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                                                    <label class="form-check-label" for="service<?php echo $service['id']; ?>">
-                                                                        <strong><?php echo sanitize($service['name']); ?></strong>
-                                                                    </label>
-                                                                </div>
-                                                                <span class="text-success fw-bold"><?php echo formatCurrency($service['price']); ?></span>
-                                                            </div>
-                                                            <p class="card-text text-muted small mb-0"><?php echo sanitize($service['description']); ?></p>
-                                                        </div>
-                                                    </div>
-                                                <?php endif; ?>
                                             <?php endforeach; ?>
                                         </div>
                                     </div>
@@ -545,6 +474,12 @@ $current_total = $totals['grand_total'];
 }
 .design-card-img-placeholder-mob {
     height: 100px;
+}
+.category-toggle-icon {
+    transition: transform 0.2s ease;
+}
+[aria-expanded="true"] .category-toggle-icon {
+    transform: rotate(180deg);
 }
 </style>
 

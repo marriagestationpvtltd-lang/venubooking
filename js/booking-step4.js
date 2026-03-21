@@ -329,15 +329,9 @@ document.addEventListener('DOMContentLoaded', function () {
         function filterServices() {
             const term = searchInput.value.trim().toLowerCase();
 
-            const desktopCards = Array.from(document.querySelectorAll('.d-none.d-md-block [data-service-name]'));
-            const mobileCards  = Array.from(document.querySelectorAll('.d-md-none [data-service-name]'));
+            const allCards = Array.from(document.querySelectorAll('.service-category-section [data-service-name]'));
 
-            desktopCards.forEach(function (card) {
-                const name = (card.getAttribute('data-service-name') || '').toLowerCase();
-                card.style.display = name.includes(term) ? '' : 'none';
-            });
-
-            mobileCards.forEach(function (card) {
+            allCards.forEach(function (card) {
                 const name = (card.getAttribute('data-service-name') || '').toLowerCase();
                 card.style.display = name.includes(term) ? '' : 'none';
             });
@@ -346,15 +340,19 @@ document.addEventListener('DOMContentLoaded', function () {
             let totalVisible = 0;
 
             categorySections.forEach(function (section) {
-                const visibleDesktop = section.querySelectorAll('.d-none.d-md-block [data-service-name]');
-                const anyDesktop = Array.from(visibleDesktop).some(function (c) { return c.style.display !== 'none'; });
-
-                const visibleMobile = section.querySelectorAll('.d-md-none [data-service-name]');
-                const anyMobile = Array.from(visibleMobile).some(function (c) { return c.style.display !== 'none'; });
-
-                const anyVisible = anyDesktop || anyMobile;
+                const anyVisible = Array.from(section.querySelectorAll('[data-service-name]'))
+                    .some(function (c) { return c.style.display !== 'none'; });
                 section.style.display = anyVisible ? '' : 'none';
-                if (anyVisible) totalVisible++;
+                if (anyVisible) {
+                    totalVisible++;
+                    // Auto-expand category when search narrows down results
+                    if (term) {
+                        const collapseEl = section.querySelector('.collapse');
+                        if (collapseEl && !collapseEl.classList.contains('show')) {
+                            bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+                        }
+                    }
+                }
             });
 
             if (noResults) noResults.style.display = (totalVisible === 0) ? 'block' : 'none';
