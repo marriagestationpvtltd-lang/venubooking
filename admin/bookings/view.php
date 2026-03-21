@@ -1478,46 +1478,12 @@ $available_packages_by_category = getServicePackagesByCategory();
             </div>
         </div>
 
-        <!-- Main Tabbed Content -->
-        <div class="card shadow border-0 booking-detail-tabs">
-            <!-- Tab Navigation -->
-            <div class="card-header bg-white border-bottom p-0">
-                <ul class="nav nav-tabs border-0 px-3" id="bookingDetailTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-semibold px-3" id="tab-overview-btn"
-                                data-bs-toggle="tab" data-bs-target="#tab-overview"
-                                type="button" role="tab" aria-controls="tab-overview" aria-selected="true">
-                            <i class="fas fa-id-card me-1 text-info"></i> Overview
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-semibold px-3" id="tab-services-btn"
-                                data-bs-toggle="tab" data-bs-target="#tab-services"
-                                type="button" role="tab" aria-controls="tab-services" aria-selected="false">
-                            <i class="fas fa-concierge-bell me-1 text-warning"></i> Services
-                            <?php if ($tab_services_count > 0): ?>
-                                <span class="badge bg-warning text-dark ms-1"><?php echo $tab_services_count; ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-semibold px-3" id="tab-payments-btn"
-                                data-bs-toggle="tab" data-bs-target="#tab-payments"
-                                type="button" role="tab" aria-controls="tab-payments" aria-selected="false">
-                            <i class="fas fa-credit-card me-1 text-success"></i> Payments
-                            <?php if ($tab_payments_count > 0): ?>
-                                <span class="badge bg-success ms-1"><?php echo $tab_payments_count; ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </li>
-                </ul>
+        <!-- ===== OVERVIEW SECTION ===== -->
+        <div class="card shadow-sm border-0 mb-3 booking-section-card" id="section-overview">
+            <div class="card-header booking-section-header d-flex align-items-center">
+                <i class="fas fa-id-card me-2 text-info"></i>
+                <span class="fw-bold">Overview</span>
             </div>
-
-            <!-- Tab Content -->
-            <div class="tab-content" id="bookingDetailTabContent">
-
-                <!-- ===== OVERVIEW TAB ===== -->
-                <div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
                     <div class="row g-0">
                         <!-- Customer Information -->
                         <div class="col-md-6 border-end-md">
@@ -1626,11 +1592,18 @@ $available_packages_by_category = getServicePackagesByCategory();
                             </div>
                         </div>
                     </div>
-                </div>
+        </div><!-- /section-overview -->
 
-                <!-- ===== SERVICES TAB ===== -->
-                <div class="tab-pane fade" id="tab-services" role="tabpanel">
-                    <div class="p-3">
+        <!-- ===== SERVICES SECTION ===== -->
+        <div class="card shadow-sm border-0 mb-3 booking-section-card" id="section-services">
+            <div class="card-header booking-section-header d-flex align-items-center">
+                <i class="fas fa-concierge-bell me-2 text-warning"></i>
+                <span class="fw-bold">Services</span>
+                <?php if ($tab_services_count > 0): ?>
+                    <span class="badge bg-warning text-dark ms-2"><?php echo $tab_services_count; ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="p-3">
 
                         <!-- Menus -->
                         <?php if (count($booking['menus']) > 0): ?>
@@ -1883,10 +1856,19 @@ $available_packages_by_category = getServicePackagesByCategory();
                             <?php endif; ?>
                         </div>
 
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="tab-payments" role="tabpanel">
-                    <div class="p-3">
+            </div>
+        </div><!-- /section-services -->
+
+        <!-- ===== PAYMENTS SECTION ===== -->
+        <div class="card shadow-sm border-0 mb-3 booking-section-card" id="section-payments">
+            <div class="card-header booking-section-header d-flex align-items-center">
+                <i class="fas fa-credit-card me-2 text-success"></i>
+                <span class="fw-bold">Payments</span>
+                <?php if ($tab_payments_count > 0): ?>
+                    <span class="badge bg-success ms-2"><?php echo $tab_payments_count; ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="p-3">
 
                         <!-- Payment Methods -->
                         <?php if (count($booking_payment_methods) > 0): ?>
@@ -2046,11 +2028,8 @@ $available_packages_by_category = getServicePackagesByCategory();
                         </div>
                         <?php endif; ?>
 
-                    </div>
-                </div>
-
-            </div><!-- /tab-content -->
-        </div><!-- /card -->
+            </div>
+        </div><!-- /section-payments -->
     </div><!-- /col-lg-8 -->
 
     <!-- Summary Sidebar -->
@@ -2254,53 +2233,20 @@ $available_packages_by_category = getServicePackagesByCategory();
     box-shadow: 0 0 0 .2rem rgba(13,110,253,.15);
 }
 
-/* ─── Booking Detail Tabs Card ─── */
-.booking-detail-tabs {
+/* ─── Booking Section Cards ─── */
+.booking-section-card {
     border: 1px solid #e0e6ed !important;
-    box-shadow: 0 2px 16px rgba(0,0,0,.07) !important;
-    border-radius: 12px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06) !important;
+    border-radius: 10px !important;
     overflow: hidden;
 }
 
-.booking-detail-tabs .card-header {
-    border-radius: 0 !important;
-    padding: 0 !important;
-}
-
-/* Nav tabs container: remove Bootstrap's border-bottom and reset gap */
-.booking-detail-tabs .nav-tabs {
-    border-bottom: none;
-    gap: 0;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-}
-
-/* Nav tab links: higher specificity (.card-header added) overrides Bootstrap's
-   .nav-tabs .nav-link (030) and .nav-tabs .nav-link.active (030) without !important */
-.booking-detail-tabs .card-header .nav-tabs .nav-link {
-    color: #6c757d;
-    border: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    margin-bottom: 0;           /* neutralise Bootstrap's -1px overlap trick */
-    padding: .7rem 1.25rem;
+.booking-section-header {
+    background: #fff;
+    padding: .65rem 1.1rem;
     font-size: .875rem;
-    font-weight: 500;
-    line-height: 1.4;
-    white-space: nowrap;
-    background: transparent;
-    transition: color .15s ease, border-color .15s ease;
-}
-.booking-detail-tabs .card-header .nav-tabs .nav-link:hover {
-    color: #0d6efd;
-    border-bottom-color: #b0c4de; /* muted blue — softer than the active #0d6efd */
-    background: rgba(13,110,253,.04);
-}
-.booking-detail-tabs .card-header .nav-tabs .nav-link.active {
-    color: #0d6efd;
-    font-weight: 600;
-    border-bottom: 2px solid #0d6efd;
-    background: transparent;
+    color: #495057;
+    border-bottom: 2px solid #f0f2f5;
 }
 
 /* ─── Section Label ─── */
@@ -3117,37 +3063,6 @@ $available_packages_by_category = getServicePackagesByCategory();
 </style>
 
 <script>
-// Tab persistence using URL hash or PHP-injected initial tab
-(function() {
-    'use strict';
-
-    var tabButtons = document.querySelectorAll('#bookingDetailTabs [data-bs-toggle="tab"]');
-    var initialTabId = <?php echo json_encode($initial_tab); ?>;
-
-    // Determine which tab to activate (PHP-set > hash > sessionStorage > default overview)
-    var activeTabId = initialTabId !== 'tab-overview'
-        ? initialTabId
-        : (window.location.hash.replace('#', '') || sessionStorage.getItem('bookingViewTab_<?php echo $booking_id; ?>'));
-
-    if (activeTabId && activeTabId !== 'tab-overview') {
-        var btn = document.querySelector('#bookingDetailTabs [data-bs-target="#' + activeTabId + '"]');
-        if (btn) {
-            var bsTab = new bootstrap.Tab(btn);
-            bsTab.show();
-        }
-    }
-
-    // Save active tab when switching
-    tabButtons.forEach(function(btn) {
-        btn.addEventListener('shown.bs.tab', function(e) {
-            var target = e.target.dataset.bsTarget.replace('#', '');
-            sessionStorage.setItem('bookingViewTab_<?php echo $booking_id; ?>', target);
-            history.replaceState(null, '', window.location.pathname + window.location.search + '#' + target);
-        });
-    });
-})();
-
-
 (function() {
     const WHATSAPP_REDIRECT_DELAY = 500; // milliseconds
     const whatsappForm = document.getElementById('whatsappForm');
