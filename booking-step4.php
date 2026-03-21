@@ -162,11 +162,12 @@ $current_total = $totals['subtotal'];
                                                 <div class="service-card card service-drilldown-card" style="cursor:pointer;"
                                                      data-service-id="<?php echo $service['id']; ?>"
                                                      onclick="openDesignsView(<?php echo $service['id']; ?>)">
-                                                    <?php if (!empty($service['photo'])): ?>
-                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
-                                                             alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                    <!-- Selected subcategory photo shown here after selection -->
+                                                    <div id="service-photo-<?php echo $service['id']; ?>" style="display:none;">
+                                                        <img src="" alt=""
+                                                             id="service-selected-img-<?php echo $service['id']; ?>"
                                                              class="card-img-top" style="height:140px;object-fit:cover;">
-                                                    <?php endif; ?>
+                                                    </div>
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-start">
                                                             <div class="flex-grow-1">
@@ -234,13 +235,15 @@ $current_total = $totals['subtotal'];
                                         <div class="card-body p-2">
                                             <?php foreach ($category_services as $service): ?>
                                                 <?php if ($service['has_designs']): ?>
-                                                    <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                                        <?php if (!empty($service['photo'])): ?>
-                                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
-                                                                 alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                    <div class="service-card card mb-2" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>" data-service-id="<?php echo $service['id']; ?>">
+                                                        <!-- Selected subcategory photo shown here after selection -->
+                                                        <div id="service-photo-mob-<?php echo $service['id']; ?>" style="display:none;">
+                                                            <img src="" alt=""
+                                                                 id="service-selected-img-mob-<?php echo $service['id']; ?>"
                                                                  class="card-img-top" style="height:100px;object-fit:cover;">
-                                                        <?php endif; ?>
+                                                        </div>
                                                         <div class="card-body p-3 service-drilldown-card d-flex justify-content-between align-items-center"
+                                                             data-service-id="<?php echo $service['id']; ?>"
                                                              style="cursor:pointer;"
                                                              onclick="openDesignsView(<?php echo $service['id']; ?>)">
                                                             <div>

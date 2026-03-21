@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Update service card summary text (main view) ──────────────────────────
+    // ── Update service card summary text and photo (main view) ───────────────
     function updateServiceSummary(serviceId) {
         const sel = selectedDesigns[serviceId];
         const text = sel ? (sel.name + ' (' + formatPrice(sel.price) + ')') : '';
@@ -120,6 +120,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const mobileEl  = document.getElementById('service-summary-mob-' + serviceId);
         if (mobileEl)    mobileEl.textContent  = text;
+
+        // Show the selected subcategory photo on the service card
+        const photoContainer    = document.getElementById('service-photo-'         + serviceId);
+        const photoImg          = document.getElementById('service-selected-img-'  + serviceId);
+        const photoContainerMob = document.getElementById('service-photo-mob-'     + serviceId);
+        const photoImgMob       = document.getElementById('service-selected-img-mob-' + serviceId);
+
+        if (sel && sel.photo) {
+            const photoSrc = uploadUrl + '/' + sel.photo;
+            if (photoContainer && photoImg) {
+                photoImg.src = photoSrc;
+                photoImg.alt = sel.name;
+                photoContainer.style.display = '';
+            }
+            if (photoContainerMob && photoImgMob) {
+                photoImgMob.src = photoSrc;
+                photoImgMob.alt = sel.name;
+                photoContainerMob.style.display = '';
+            }
+        } else {
+            if (photoContainer)    photoContainer.style.display    = 'none';
+            if (photoContainerMob) photoContainerMob.style.display = 'none';
+        }
 
         // Highlight drilldown card if a design is selected
         const card = document.querySelector('.service-drilldown-card[data-service-id="' + serviceId + '"]');
@@ -201,7 +224,8 @@ document.addEventListener('DOMContentLoaded', function () {
             design_id  : d.id,
             price      : parseFloat(d.price) || 0,
             name       : d.name,
-            service_id : d.service_id
+            service_id : d.service_id,
+            photo      : d.photo || ''
         };
 
         syncDesignInputs();
