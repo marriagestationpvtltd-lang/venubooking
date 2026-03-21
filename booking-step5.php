@@ -860,11 +860,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function togglePaymentSection() {
         if (paymentWithRadio && paymentWithRadio.checked) {
             paymentDetailsSection.style.display = 'block';
-            // Make payment fields required
-            document.getElementById('payment_method_id').required = true;
-            document.getElementById('transaction_id').required = true;
-            document.getElementById('paid_amount').required = true;
-            document.getElementById('payment_slip').required = true;
+            // Make payment fields required (guard against missing elements when no payment methods configured)
+            if (document.getElementById('payment_method_id')) {
+                document.getElementById('payment_method_id').required = true;
+            }
+            if (document.getElementById('transaction_id')) {
+                document.getElementById('transaction_id').required = true;
+            }
+            if (document.getElementById('paid_amount')) {
+                document.getElementById('paid_amount').required = true;
+            }
+            if (document.getElementById('payment_slip')) {
+                document.getElementById('payment_slip').required = true;
+            }
             submitBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Booking & Submit Payment';
         } else {
             paymentDetailsSection.style.display = 'none';
@@ -925,22 +933,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 let firstInvalid = null;
 
-                if (!paymentMethodEl.value) {
+                if (paymentMethodEl && !paymentMethodEl.value) {
                     e.preventDefault();
                     paymentMethodEl.classList.add('is-invalid');
                     if (!firstInvalid) firstInvalid = paymentMethodEl;
                 }
-                if (!transactionIdEl.value.trim()) {
+                if (transactionIdEl && !transactionIdEl.value.trim()) {
                     e.preventDefault();
                     transactionIdEl.classList.add('is-invalid');
                     if (!firstInvalid) firstInvalid = transactionIdEl;
                 }
-                if (!paidAmountEl.value || parseFloat(paidAmountEl.value) <= 0) {
+                if (paidAmountEl && (!paidAmountEl.value || parseFloat(paidAmountEl.value) <= 0)) {
                     e.preventDefault();
                     paidAmountEl.classList.add('is-invalid');
                     if (!firstInvalid) firstInvalid = paidAmountEl;
                 }
-                if (!paymentSlipEl.files || paymentSlipEl.files.length === 0) {
+                if (paymentSlipEl && (!paymentSlipEl.files || paymentSlipEl.files.length === 0)) {
                     e.preventDefault();
                     paymentSlipEl.classList.add('is-invalid');
                     if (!firstInvalid) firstInvalid = paymentSlipEl;

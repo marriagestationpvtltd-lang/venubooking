@@ -135,6 +135,36 @@ CREATE TABLE IF NOT EXISTS additional_services (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS service_sub_services (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    service_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    photo VARCHAR(255) COMMENT 'Filename in uploads/ directory',
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (service_id) REFERENCES additional_services(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Sub-services under additional_services for visual selection flow';
+
+CREATE TABLE IF NOT EXISTS service_designs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    sub_service_id INT DEFAULT NULL COMMENT 'References service_sub_services.id (legacy sub-service flow)',
+    service_id INT DEFAULT NULL COMMENT 'Direct parent service (additional_services.id)',
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    photo VARCHAR(255) COMMENT 'Filename in uploads/ directory',
+    display_order INT DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (sub_service_id) REFERENCES service_sub_services(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES additional_services(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Design photos and prices for a service or sub-service';
+
 CREATE TABLE IF NOT EXISTS service_categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -244,9 +274,12 @@ CREATE TABLE IF NOT EXISTS booking_services (
     category VARCHAR(100),
     added_by ENUM('user', 'admin') DEFAULT 'user' COMMENT 'Who added the service: user during booking or admin later',
     quantity INT DEFAULT 1 COMMENT 'Quantity of service',
+    sub_service_id INT DEFAULT NULL COMMENT 'References service_sub_services.id if this is a design selection',
+    design_id INT DEFAULT NULL COMMENT 'References service_designs.id if this is a design selection',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    INDEX idx_booking_services_added_by (added_by)
+    INDEX idx_booking_services_added_by (added_by),
+    INDEX idx_booking_services_service_id (service_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS payment_methods (
@@ -668,6 +701,32 @@ BEGIN
                 COMMENT 'Quantity of service'
             AFTER added_by;
         UPDATE booking_services SET quantity = 1 WHERE quantity IS NULL;
+    END IF;
+
+    -- ---- booking_services.sub_service_id --------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'sub_service_id'
+    ) THEN
+        ALTER TABLE booking_services
+            ADD COLUMN sub_service_id INT DEFAULT NULL
+                COMMENT 'References service_sub_services.id if this is a design selection'
+            AFTER quantity;
+    END IF;
+
+    -- ---- booking_services.design_id -------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_services'
+          AND column_name = 'design_id'
+    ) THEN
+        ALTER TABLE booking_services
+            ADD COLUMN design_id INT DEFAULT NULL
+                COMMENT 'References service_designs.id if this is a design selection'
+            AFTER sub_service_id;
     END IF;
 
     -- ---- site_images.card_id --------------------------------------------

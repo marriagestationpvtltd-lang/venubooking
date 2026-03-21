@@ -1101,57 +1101,69 @@ function createBooking($data) {
         // Insert selected designs into booking_services.
         // selected_designs format: { service_id => design_id } (direct design flow)
         // Also supports legacy { sub_service_id => design_id } for backward compatibility.
+        // Each design insertion is wrapped in its own try-catch so that a schema
+        // mismatch (e.g. missing sub_service_id / design_id columns on an older
+        // database that hasn't been migrated) does NOT roll back the whole booking.
+        // The basic booking record is always preserved; missing designs are logged.
         if (!empty($data['selected_designs'])) {
             foreach ($data['selected_designs'] as $key_id => $design_id) {
                 $key_id    = intval($key_id);
                 $design_id = intval($design_id);
 
-                // Try new direct-service design first (service_id on service_designs)
-                $stmt = $db->prepare(
-                    "SELECT d.name, d.price, d.description, d.service_id, s.category
-                     FROM service_designs d
-                     JOIN additional_services s ON s.id = d.service_id
-                     WHERE d.id = ? AND d.service_id = ?"
-                );
-                $stmt->execute([$design_id, $key_id]);
-                $design = $stmt->fetch();
-                $sub_service_id_val = null;
-
-                if (!$design) {
-                    // Fall back to legacy sub-service flow
+                try {
+                    // Try new direct-service design first (service_id on service_designs)
                     $stmt = $db->prepare(
-                        "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                        "SELECT d.name, d.price, d.description, d.service_id, s.category
                          FROM service_designs d
-                         JOIN service_sub_services ss ON ss.id = d.sub_service_id
-                         JOIN additional_services s ON s.id = ss.service_id
-                         WHERE d.id = ? AND d.sub_service_id = ?"
+                         JOIN additional_services s ON s.id = d.service_id
+                         WHERE d.id = ? AND d.service_id = ?"
                     );
                     $stmt->execute([$design_id, $key_id]);
                     $design = $stmt->fetch();
-                    if ($design) {
-                        $sub_service_id_val = $key_id;
-                    }
-                }
+                    $sub_service_id_val = null;
 
-                if ($design) {
-                    $insert = $db->prepare(
-                        "INSERT INTO booking_services
-                             (booking_id, service_id, service_name, price, description, category,
-                              added_by, quantity, sub_service_id, design_id)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                    );
-                    $insert->execute([
-                        $booking_id,
-                        $design['service_id'],
-                        $design['name'],
-                        $design['price'],
-                        $design['description'],
-                        $design['category'],
-                        USER_SERVICE_TYPE,
-                        DEFAULT_SERVICE_QUANTITY,
-                        $sub_service_id_val,
-                        $design_id
-                    ]);
+                    if (!$design) {
+                        // Fall back to legacy sub-service flow
+                        $stmt = $db->prepare(
+                            "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                             FROM service_designs d
+                             JOIN service_sub_services ss ON ss.id = d.sub_service_id
+                             JOIN additional_services s ON s.id = ss.service_id
+                             WHERE d.id = ? AND d.sub_service_id = ?"
+                        );
+                        $stmt->execute([$design_id, $key_id]);
+                        $design = $stmt->fetch();
+                        if ($design) {
+                            $sub_service_id_val = $key_id;
+                        }
+                    }
+
+                    if ($design) {
+                        $insert = $db->prepare(
+                            "INSERT INTO booking_services
+                                 (booking_id, service_id, service_name, price, description, category,
+                                  added_by, quantity, sub_service_id, design_id)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                        );
+                        $insert->execute([
+                            $booking_id,
+                            $design['service_id'],
+                            $design['name'],
+                            $design['price'],
+                            $design['description'],
+                            $design['category'],
+                            USER_SERVICE_TYPE,
+                            DEFAULT_SERVICE_QUANTITY,
+                            $sub_service_id_val,
+                            $design_id
+                        ]);
+                    }
+                } catch (\Throwable $designErr) {
+                    // Log the error but do not abort the booking — the core booking
+                    // record was already inserted.  Run the fix_booking_step5_submission
+                    // migration (database/migrations/fix_booking_step5_submission.sql)
+                    // to add the missing columns and prevent this fallback.
+                    error_log("Design insertion skipped for booking {$booking_id}, design_id={$design_id}: " . $designErr->getMessage());
                 }
             }
         }

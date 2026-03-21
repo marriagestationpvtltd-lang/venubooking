@@ -16,7 +16,7 @@ CREATE PROCEDURE fix_booking_services_columns()
 BEGIN
     -- Add 'description' column if missing
     IF NOT EXISTS (
-        SELECT * FROM information_schema.columns
+        SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE()
         AND table_name = 'booking_services'
         AND column_name = 'description'
@@ -27,7 +27,7 @@ BEGIN
 
     -- Add 'category' column if missing
     IF NOT EXISTS (
-        SELECT * FROM information_schema.columns
+        SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE()
         AND table_name = 'booking_services'
         AND column_name = 'category'
@@ -38,7 +38,7 @@ BEGIN
 
     -- Add 'added_by' column if missing
     IF NOT EXISTS (
-        SELECT * FROM information_schema.columns
+        SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE()
         AND table_name = 'booking_services'
         AND column_name = 'added_by'
@@ -51,7 +51,7 @@ BEGIN
 
     -- Add 'quantity' column if missing
     IF NOT EXISTS (
-        SELECT * FROM information_schema.columns
+        SELECT 1 FROM information_schema.columns
         WHERE table_schema = DATABASE()
         AND table_name = 'booking_services'
         AND column_name = 'quantity'
@@ -60,6 +60,32 @@ BEGIN
         ADD COLUMN quantity INT DEFAULT 1
         COMMENT 'Quantity of service'
         AFTER added_by;
+    END IF;
+
+    -- Add 'sub_service_id' column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'booking_services'
+        AND column_name = 'sub_service_id'
+    ) THEN
+        ALTER TABLE booking_services
+        ADD COLUMN sub_service_id INT DEFAULT NULL
+        COMMENT 'References service_sub_services.id if this is a design selection'
+        AFTER quantity;
+    END IF;
+
+    -- Add 'design_id' column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'booking_services'
+        AND column_name = 'design_id'
+    ) THEN
+        ALTER TABLE booking_services
+        ADD COLUMN design_id INT DEFAULT NULL
+        COMMENT 'References service_designs.id if this is a design selection'
+        AFTER sub_service_id;
     END IF;
 
     -- Remove foreign key on service_id if it exists
@@ -87,7 +113,7 @@ BEGIN
 
     -- Create index on added_by if missing
     IF NOT EXISTS (
-        SELECT * FROM information_schema.statistics
+        SELECT 1 FROM information_schema.statistics
         WHERE table_schema = DATABASE()
         AND table_name = 'booking_services'
         AND index_name = 'idx_booking_services_added_by'
@@ -97,7 +123,7 @@ BEGIN
 
     -- Create index on service_id if missing
     IF NOT EXISTS (
-        SELECT * FROM information_schema.statistics
+        SELECT 1 FROM information_schema.statistics
         WHERE table_schema = DATABASE()
         AND table_name = 'booking_services'
         AND index_name = 'idx_booking_services_service_id'
