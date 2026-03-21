@@ -323,6 +323,8 @@ CREATE TABLE IF NOT EXISTS bookings (
     custom_venue_name VARCHAR(255) DEFAULT NULL COMMENT 'Venue name when customer brings own venue (hall_id is NULL)',
     custom_hall_name VARCHAR(255) DEFAULT NULL COMMENT 'Hall/location name when customer brings own venue (hall_id is NULL)',
     event_date DATE NOT NULL,
+    start_time TIME DEFAULT NULL,
+    end_time TIME DEFAULT NULL,
     shift ENUM('morning', 'afternoon', 'evening', 'fullday') NOT NULL,
     event_type VARCHAR(100) NOT NULL,
     number_of_guests INT NOT NULL,
@@ -977,3 +979,50 @@ DELIMITER ;
 
 CALL add_pano_image_columns();
 DROP PROCEDURE IF EXISTS add_pano_image_columns;
+
+-- ============================================================================
+-- SCHEMA UPGRADE: Add booking start_time and end_time columns if missing
+-- Required by createBooking() in includes/functions.php
+-- Safe to run on both fresh and existing databases (idempotent)
+-- ============================================================================
+
+DROP PROCEDURE IF EXISTS add_booking_time_columns;
+
+DELIMITER $$
+CREATE PROCEDURE add_booking_time_columns()
+BEGIN
+    -- Add start_time to bookings if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'start_time'
+    ) THEN
+        ALTER TABLE bookings ADD COLUMN start_time TIME DEFAULT NULL AFTER event_date;
+        -- Back-fill from shift for any existing bookings
+        UPDATE bookings SET start_time = '06:00:00' WHERE shift = 'morning'   AND start_time IS NULL;
+        UPDATE bookings SET start_time = '12:00:00' WHERE shift = 'afternoon' AND start_time IS NULL;
+        UPDATE bookings SET start_time = '18:00:00' WHERE shift = 'evening'   AND start_time IS NULL;
+        UPDATE bookings SET start_time = '06:00:00' WHERE shift = 'fullday'   AND start_time IS NULL;
+    END IF;
+
+    -- Add end_time to bookings if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'end_time'
+    ) THEN
+        ALTER TABLE bookings ADD COLUMN end_time TIME DEFAULT NULL AFTER start_time;
+        -- Back-fill from shift for any existing bookings
+        UPDATE bookings SET end_time = '12:00:00' WHERE shift = 'morning'   AND end_time IS NULL;
+        UPDATE bookings SET end_time = '18:00:00' WHERE shift = 'afternoon' AND end_time IS NULL;
+        UPDATE bookings SET end_time = '23:00:00' WHERE shift = 'evening'   AND end_time IS NULL;
+        UPDATE bookings SET end_time = '23:00:00' WHERE shift = 'fullday'   AND end_time IS NULL;
+    END IF;
+END$$
+
+DELIMITER ;
+
+CALL add_booking_time_columns();
+DROP PROCEDURE IF EXISTS add_booking_time_columns;
