@@ -1596,12 +1596,24 @@ $available_services = getActiveServices();
                     </div>
                     <?php endif; ?>
 
-                    <!-- Select from Catalog Form -->
+                    <!-- Add Service (unified tabbed section) -->
                     <div class="border-top pt-2">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-list text-info me-1" style="font-size:.8rem;"></i>
-                            <span class="fw-semibold text-muted" style="font-size:.78rem;">Select from Catalog</span>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="fw-semibold text-muted" style="font-size:.78rem;">Add Service:</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-info active" id="tab-catalog-btn"
+                                        onclick="switchAddServiceTab('catalog')">
+                                    <i class="fas fa-list me-1"></i>From Catalog
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" id="tab-manual-btn"
+                                        onclick="switchAddServiceTab('manual')">
+                                    <i class="fas fa-pen me-1"></i>Manual Entry
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- Catalog Pane -->
+                        <div id="add-service-catalog-pane">
                         <?php if (!empty($available_services)): ?>
                         <form method="POST" action="" id="add-catalog-service-form">
                             <input type="hidden" name="action" value="add_catalog_service">
@@ -1713,19 +1725,15 @@ $available_services = getActiveServices();
                         })();
                         </script>
                         <?php else: ?>
-                        <p class="text-muted small mb-2">
+                        <p class="text-muted small mb-0">
                             <i class="fas fa-info-circle me-1 text-info"></i>
                             No active services in catalog. <a href="<?php echo BASE_URL; ?>/admin/services/index.php">Manage services</a> to add catalog entries.
                         </p>
                         <?php endif; ?>
-                    </div>
+                        </div><!-- /#add-service-catalog-pane -->
 
-                    <!-- Manual Add Form -->
-                    <div class="border-top pt-2 mt-2">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-pen text-warning me-1" style="font-size:.8rem;"></i>
-                            <span class="fw-semibold text-muted" style="font-size:.78rem;">Manual Entry</span>
-                        </div>
+                        <!-- Manual Entry Pane -->
+                        <div id="add-service-manual-pane" style="display:none;">
                         <form method="POST" action="">
                             <input type="hidden" name="action" value="add_admin_service">
                             <div class="row g-1 align-items-end">
@@ -1754,6 +1762,27 @@ $available_services = getActiveServices();
                                 </div>
                             </div>
                         </form>
+                        </div><!-- /#add-service-manual-pane -->
+
+                        <script>
+                        function switchAddServiceTab(tab) {
+                            var catalogPane = document.getElementById('add-service-catalog-pane');
+                            var manualPane  = document.getElementById('add-service-manual-pane');
+                            var catalogBtn  = document.getElementById('tab-catalog-btn');
+                            var manualBtn   = document.getElementById('tab-manual-btn');
+                            if (tab === 'catalog') {
+                                catalogPane.style.display = 'block';
+                                manualPane.style.display  = 'none';
+                                catalogBtn.classList.add('active');
+                                manualBtn.classList.remove('active');
+                            } else {
+                                catalogPane.style.display = 'none';
+                                manualPane.style.display  = 'block';
+                                manualBtn.classList.add('active');
+                                catalogBtn.classList.remove('active');
+                            }
+                        }
+                        </script>
                     </div>
                 </div>
 
