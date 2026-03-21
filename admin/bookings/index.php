@@ -51,8 +51,14 @@ $base_query = "SELECT b.*,
                     . $filter_conditions[$status_filter]
                     . " ORDER BY b.created_at DESC";
 
-$stmt = $db->query($base_query);
-$bookings = $stmt->fetchAll();
+try {
+    $stmt = $db->query($base_query);
+    $bookings = $stmt->fetchAll();
+} catch (PDOException $e) {
+    error_log('Bookings index query failed: ' . $e->getMessage());
+    $error_message = 'Unable to load bookings due to a database error. Please run the upgrade script (<code>database/upgrade.sql</code>) via MySQL client or phpMyAdmin, then reload this page. If the problem persists, contact your administrator.';
+    $bookings = [];
+}
 ?>
 
 <?php if ($success_message): ?>
