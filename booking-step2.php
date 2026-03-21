@@ -309,7 +309,6 @@ $extra_js = '
 <script>
 const bookingData = ' . json_encode($booking_data) . ';
 const preferredVenueId = ' . ($preferred_venue_id ? $preferred_venue_id : 'null') . ';
-const allowCustomVenue = ' . ($allow_custom_venue ? 'true' : 'false') . ';
 </script>
 <script src="' . BASE_URL . '/js/booking-flow.js"></script>
 <script src="' . BASE_URL . '/js/booking-step2.js"></script>

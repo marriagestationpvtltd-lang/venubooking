@@ -809,6 +809,14 @@ Date changes are subject to availability and must be requested at least 15 days 
 ('google_review_link', '', 'url'),
 ('allow_custom_venue', '1', 'boolean'),
 -- Folder page banner ad settings
+('folder_banner_a', '', 'image'),
+('folder_banner_a_link', '', 'url'),
+('folder_banner_a_enabled', '0', 'boolean'),
+('folder_banner_b', '', 'image'),
+('folder_banner_b_link', '', 'url'),
+('folder_banner_b_enabled', '0', 'boolean');
+
+-- Insert Venues
 INSERT IGNORE INTO venues (name, location, address, description, image, contact_phone, contact_email) VALUES
 ('Royal Palace', 'Kathmandu', 'Durbar Marg, Kathmandu', 'Luxury venue in the heart of Kathmandu with traditional architecture and modern amenities.', 'royal-palace.jpg', '+977 1-4234567', 'info@royalpalace.com'),
 ('Garden View Hall', 'Lalitpur', 'Jawalakhel, Lalitpur', 'Beautiful garden venue perfect for outdoor events with stunning greenery.', 'garden-view.jpg', '+977 1-5234567', 'contact@gardenview.com'),
