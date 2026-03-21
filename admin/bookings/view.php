@@ -302,7 +302,8 @@ if (isset($_POST['action'])) {
                 $_SESSION['flash_error'] = 'Failed to add vendor assignment. Please try again.';
             }
         }
-        header('Location: view.php?id=' . urlencode($booking_id) . '#vendor-assignments');
+        $_SESSION['flash_section'] = 'admin_services';
+        header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
         exit;
     } elseif ($action === 'update_vendor_assignment_status') {
         $assignment_id     = intval($_POST['assignment_id'] ?? 0);
@@ -314,7 +315,8 @@ if (isset($_POST['action'])) {
         } else {
             $_SESSION['flash_error'] = 'Failed to update vendor assignment status.';
         }
-        header('Location: view.php?id=' . urlencode($booking_id) . '#vendor-assignments');
+        $_SESSION['flash_section'] = 'admin_services';
+        header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
         exit;
     } elseif ($action === 'delete_vendor_assignment') {
         $assignment_id = intval($_POST['assignment_id'] ?? 0);
@@ -325,7 +327,8 @@ if (isset($_POST['action'])) {
         } else {
             $_SESSION['flash_error'] = 'Failed to remove vendor assignment.';
         }
-        header('Location: view.php?id=' . urlencode($booking_id) . '#vendor-assignments');
+        $_SESSION['flash_section'] = 'admin_services';
+        header('Location: view.php?id=' . urlencode($booking_id) . '#admin-added-services');
         exit;
     }
 }
@@ -1167,7 +1170,6 @@ $available_services = getActiveServices();
 
                 </div>
 
-                <!-- Vendor Assignments -->
                 <?php
                 // Build grouped vendor data for JS two-step selection (only types with available vendors)
                 $vendors_by_type = [];
@@ -1185,275 +1187,6 @@ $available_services = getActiveServices();
                     return isset($vendors_by_type[$vt['slug']]);
                 });
                 ?>
-                <div class="border-top mt-3 pt-2" id="vendor-assignments">
-                    <!-- Section Header -->
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-user-tie text-secondary" style="font-size:.85rem;"></i>
-                            <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.06em;">Vendor Assignments</span>
-                            <?php if (!empty($vendor_assignments)): ?>
-                                <span class="badge bg-secondary" style="font-size:.65rem;"><?php echo count($vendor_assignments); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <?php if ($is_vendor_flash && $success_message): ?>
-                    <div class="alert alert-success alert-dismissible fade show py-2 px-3 small" id="vendor-flash-success-alert" role="alert">
-                        <i class="fas fa-check-circle me-1"></i><?php echo $success_message; ?>
-                        <?php if (!empty($new_vendor_wa_url)): ?>
-                            <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
-                               class="btn btn-sm btn-success ms-2 py-0 px-2">
-                                <i class="fab fa-whatsapp me-1"></i>Notify
-                            </a>
-                        <?php endif; ?>
-                        <?php if ($new_vendor_email_sent): ?>
-                            <span class="badge bg-info ms-1"><i class="fas fa-envelope me-1"></i>Email sent</span>
-                        <?php endif; ?>
-                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-                    </div>
-                    <?php endif; ?>
-                    <?php if ($is_vendor_flash && $error_message): ?>
-                    <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small" id="vendor-flash-error-alert" role="alert">
-                        <i class="fas fa-exclamation-circle me-1"></i><?php echo $error_message; ?>
-                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($vendor_assignments)): ?>
-                    <div class="table-responsive mb-2">
-                        <table class="table table-sm table-bordered mb-0 align-middle" style="font-size:.8rem;">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="text-nowrap">Vendor</th>
-                                    <th class="text-nowrap">Type</th>
-                                    <th>Task</th>
-                                    <th class="text-nowrap">Amt (<?php echo htmlspecialchars(getSetting('currency', 'NPR')); ?>)</th>
-                                    <th>Status</th>
-                                    <th class="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($vendor_assignments as $assignment): ?>
-                                <tr>
-                                    <td class="text-nowrap">
-                                        <?php $va_photo_url = $vendor_primary_photos[$assignment['vendor_id']] ?? ''; ?>
-                                        <?php if (!empty($va_photo_url)): ?>
-                                            <img src="<?php echo htmlspecialchars($va_photo_url); ?>"
-                                                 alt="<?php echo htmlspecialchars($assignment['vendor_name']); ?>"
-                                                 style="width:32px;height:32px;object-fit:cover;border-radius:50%;margin-right:5px;vertical-align:middle;">
-                                        <?php else: ?>
-                                            <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded-circle me-1"
-                                                  style="width:32px;height:32px;font-size:.8rem;vertical-align:middle;">
-                                                <i class="fas fa-user"></i>
-                                            </span>
-                                        <?php endif; ?>
-                                        <span class="fw-semibold"><?php echo htmlspecialchars($assignment['vendor_name']); ?></span>
-                                        <?php if (!empty($assignment['vendor_phone'])): ?>
-                                            <span class="text-muted ms-1" style="font-size:.75rem;"><i class="fas fa-phone"></i> <?php echo htmlspecialchars($assignment['vendor_phone']); ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-nowrap text-muted"><?php echo htmlspecialchars(getVendorTypeLabel($assignment['vendor_type'])); ?></td>
-                                    <td>
-                                        <?php echo htmlspecialchars($assignment['task_description']); ?>
-                                        <?php if (!empty($assignment['notes'])): ?>
-                                            <span class="text-muted ms-1" title="<?php echo htmlspecialchars($assignment['notes']); ?>"><i class="fas fa-sticky-note" style="font-size:.7rem;"></i></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-nowrap"><?php echo formatCurrency($assignment['assigned_amount']); ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php echo getVendorAssignmentStatusColor($assignment['status']); ?>" style="font-size:.7rem;">
-                                            <?php echo ucfirst($assignment['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-center text-nowrap">
-                                        <?php if (!empty($assignment['vendor_phone'])): ?>
-                                        <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($assignment['vendor_name'], $assignment['vendor_phone'], $booking); ?>
-                                        <?php if (!empty($va_wa_url)): ?>
-                                        <a href="<?php echo htmlspecialchars($va_wa_url); ?>" target="_blank" rel="noopener noreferrer"
-                                           class="btn btn-sm btn-outline-success py-0 px-1 me-1" title="Notify via WhatsApp" style="font-size:.75rem;">
-                                            <i class="fab fa-whatsapp"></i>
-                                        </a>
-                                        <?php endif; ?>
-                                        <?php endif; ?>
-                                        <form method="POST" style="display:inline-block;" class="me-1">
-                                            <input type="hidden" name="action" value="update_vendor_assignment_status">
-                                            <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
-                                            <select name="assignment_status" class="form-select form-select-sm d-inline-block w-auto py-0"
-                                                    style="font-size:.75rem;" onchange="this.form.submit()">
-                                                <?php foreach (['assigned', 'confirmed', 'completed', 'cancelled'] as $s): ?>
-                                                    <option value="<?php echo $s; ?>" <?php echo ($assignment['status'] === $s) ? 'selected' : ''; ?>>
-                                                        <?php echo ucfirst($s); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </form>
-                                        <form method="POST" style="display:inline-block;"
-                                              onsubmit="return confirm('Remove this vendor assignment?');">
-                                            <input type="hidden" name="action" value="delete_vendor_assignment">
-                                            <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Remove" style="font-size:.75rem;">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php else: ?>
-                    <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i>No vendors assigned yet.</p>
-                    <?php endif; ?>
-
-                    <!-- Add Vendor Assignment Form -->
-                    <?php if (!empty($all_vendors)): ?>
-                    <div class="border-top pt-2">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-plus-circle text-success me-1" style="font-size:.8rem;"></i>
-                            <span class="fw-semibold text-muted" style="font-size:.78rem;">Assign a Vendor</span>
-                        </div>
-                        <form id="addVendorAssignmentForm" method="POST" action="">
-                            <input type="hidden" name="action" value="add_vendor_assignment">
-                            <div class="row g-2 align-items-end">
-                                <div class="col-auto">
-                                    <label class="form-label mb-1 small fw-semibold">Type <span class="text-danger">*</span></label>
-                                    <select id="vendorTypeSelect" class="form-select form-select-sm" style="min-width:130px;">
-                                        <option value="">— Type —</option>
-                                        <?php foreach ($vendor_types_available as $vt): ?>
-                                            <option value="<?php echo htmlspecialchars($vt['slug']); ?>">
-                                                <?php echo htmlspecialchars($vt['label']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-auto d-none" id="vendorSelectWrapper">
-                                    <label class="form-label mb-1 small fw-semibold">Vendor <span class="text-danger">*</span></label>
-                                    <div>
-                                        <select name="vendor_id" id="vendorSelect" class="form-select form-select-sm" style="min-width:150px;">
-                                            <option value="">— Vendor —</option>
-                                        </select>
-                                        <div id="vendorInfoDisplay" class="d-none mt-1">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <img id="vendorPhotoPreview" src="" alt=""
-                                                     class="d-none rounded-circle"
-                                                     style="width:40px;height:40px;object-fit:cover;">
-                                                <small id="vendorLocationInfo" class="text-muted" style="font-size:.72rem;"></small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label mb-1 small fw-semibold">Task</label>
-                                    <input type="text" name="task_description" id="taskDescriptionInput" class="form-control form-control-sm"
-                                           style="min-width:140px;" placeholder="e.g., Photography">
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label mb-1 small fw-semibold">Amount</label>
-                                    <input type="number" name="assigned_amount" class="form-control form-control-sm"
-                                           style="width:90px;" min="0" step="0.01" placeholder="0.00" value="0">
-                                </div>
-                                <div class="col-auto">
-                                    <label class="form-label mb-1 small fw-semibold">Notes</label>
-                                    <input type="text" name="assignment_notes" class="form-control form-control-sm"
-                                           style="min-width:130px;" placeholder="Instructions…">
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-sm btn-success">
-                                        <i class="fas fa-plus me-1"></i>Assign
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <script>
-                    (function() {
-                        var vendorsByType = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-                        var typeSelect    = document.getElementById('vendorTypeSelect');
-                        var vendorWrapper = document.getElementById('vendorSelectWrapper');
-                        var vendorSelect  = document.getElementById('vendorSelect');
-                        var assignForm    = document.getElementById('addVendorAssignmentForm');
-                        var taskDescInput = document.getElementById('taskDescriptionInput');
-                        var vendorInfoDiv = document.getElementById('vendorInfoDisplay');
-                        var vendorLocInfo = document.getElementById('vendorLocationInfo');
-                        var vendorPhoto   = document.getElementById('vendorPhotoPreview');
-
-                        typeSelect.addEventListener('change', function() {
-                            var type = this.value;
-                            vendorSelect.innerHTML = '<option value="">— Vendor —</option>';
-                            vendorWrapper.classList.add('d-none');
-                            vendorInfoDiv.classList.add('d-none');
-                            vendorLocInfo.textContent = '';
-                            vendorPhoto.classList.add('d-none');
-                            vendorPhoto.src = '';
-                            taskDescInput.value = '';
-
-                            if (type && vendorsByType[type]) {
-                                vendorsByType[type].forEach(function(v) {
-                                    var opt = document.createElement('option');
-                                    opt.value = v.id;
-                                    opt.textContent = v.name;
-                                    opt.dataset.description = v.description || '';
-                                    opt.dataset.city = v.city || '';
-                                    opt.dataset.photo = v.photo || '';
-                                    vendorSelect.appendChild(opt);
-                                });
-                                vendorWrapper.classList.remove('d-none');
-                            }
-                        });
-
-                        vendorSelect.addEventListener('change', function() {
-                            var selectedOpt = this.options[this.selectedIndex];
-                            var description = selectedOpt.dataset.description || '';
-                            var city        = selectedOpt.dataset.city || '';
-                            var photo       = selectedOpt.dataset.photo || '';
-
-                            taskDescInput.value = description || '';
-
-                            if (photo) {
-                                vendorPhoto.src = photo;
-                                vendorPhoto.classList.remove('d-none');
-                            } else {
-                                vendorPhoto.classList.add('d-none');
-                                vendorPhoto.src = '';
-                            }
-
-                            if (city) {
-                                vendorLocInfo.textContent = '';
-                                var icon2 = document.createElement('i');
-                                icon2.className = 'fas fa-map-marker-alt me-1';
-                                vendorLocInfo.appendChild(icon2);
-                                vendorLocInfo.appendChild(document.createTextNode(city));
-                                vendorInfoDiv.classList.remove('d-none');
-                            } else if (photo) {
-                                vendorInfoDiv.classList.remove('d-none');
-                            } else {
-                                vendorInfoDiv.classList.add('d-none');
-                                vendorLocInfo.textContent = '';
-                            }
-                        });
-
-                        assignForm.addEventListener('submit', function(e) {
-                            if (!typeSelect.value) {
-                                e.preventDefault();
-                                typeSelect.focus();
-                                alert('Please select a vendor type first.');
-                                return;
-                            }
-                            if (!vendorSelect.value) {
-                                e.preventDefault();
-                                vendorSelect.focus();
-                                alert('Please select a vendor.');
-                            }
-                        });
-                    })();
-                    </script>
-                    <?php else: ?>
-                    <p class="text-muted small mb-0">
-                        <i class="fas fa-exclamation-triangle me-1 text-warning"></i>
-                        No active vendors found. <a href="<?php echo BASE_URL; ?>/admin/vendors/add.php">Add a vendor</a> first.
-                    </p>
-                    <?php endif; ?>
-                </div>
 
                 <!-- Packages -->
                 <div class="border-top mt-3 pt-2" id="packages">
@@ -1620,13 +1353,22 @@ $available_services = getActiveServices();
                         </div>
                     </div>
 
-                    <?php if ($is_admin_services_flash && $success_message): ?>
+                    <?php if (($is_admin_services_flash || $is_vendor_flash) && $success_message): ?>
                     <div class="alert alert-success alert-dismissible fade show py-2 px-3 small" role="alert">
                         <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message); ?>
+                        <?php if (!empty($new_vendor_wa_url)): ?>
+                            <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-sm btn-success ms-2 py-0 px-2">
+                                <i class="fab fa-whatsapp me-1"></i>Notify
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($new_vendor_email_sent): ?>
+                            <span class="badge bg-info ms-1"><i class="fas fa-envelope me-1"></i>Email sent</span>
+                        <?php endif; ?>
                         <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
                     </div>
                     <?php endif; ?>
-                    <?php if ($is_admin_services_flash && $error_message): ?>
+                    <?php if (($is_admin_services_flash || $is_vendor_flash) && $error_message): ?>
                     <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small" role="alert">
                         <i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($error_message); ?>
                         <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
@@ -1642,6 +1384,9 @@ $available_services = getActiveServices();
                                     <th class="text-center">Qty</th>
                                     <th class="text-end">Price</th>
                                     <th class="text-end">Total</th>
+                                    <?php if (!empty($vendor_types_available)): ?>
+                                    <th class="text-center" title="Assign a vendor for this service"></th>
+                                    <?php endif; ?>
                                     <th class="text-center">Remove</th>
                                 </tr>
                             </thead>
@@ -1662,6 +1407,20 @@ $available_services = getActiveServices();
                                     <td class="text-center"><span class="badge bg-info"><?php echo $svc_qty; ?></span></td>
                                     <td class="text-end fw-bold text-primary"><?php echo formatCurrency($svc_price); ?></td>
                                     <td class="text-end fw-bold text-success"><?php echo formatCurrency($svc_total); ?></td>
+                                    <?php if (!empty($vendor_types_available)): ?>
+                                    <td class="text-center">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary py-0 px-1 assign-vendor-from-service-btn"
+                                                title="Assign vendor for this service"
+                                                data-service-name="<?php echo htmlspecialchars($service['service_name']); ?>"
+                                                data-service-category="<?php echo htmlspecialchars($service['category'] ?? ''); ?>"
+                                                data-service-price="<?php echo $svc_price; ?>"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#assignVendorFromServiceModal">
+                                            <i class="fas fa-user-plus" style="font-size:.7rem;"></i>
+                                        </button>
+                                    </td>
+                                    <?php endif; ?>
                                     <td class="text-center">
                                         <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this service from the booking?');">
                                             <input type="hidden" name="action" value="delete_admin_service">
@@ -1674,19 +1433,85 @@ $available_services = getActiveServices();
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
-                            <?php if (!empty($admin_services)): ?>
                             <tfoot>
                                 <tr class="table-light">
                                     <td colspan="3" class="text-end fw-bold small">Total:</td>
                                     <td class="text-end"><strong class="text-success"><?php echo formatCurrency($admin_services_total); ?></strong></td>
+                                    <?php if (!empty($vendor_types_available)): ?>
+                                    <td></td>
+                                    <?php endif; ?>
                                     <td></td>
                                 </tr>
                             </tfoot>
-                            <?php endif; ?>
                         </table>
                     </div>
                     <?php else: ?>
                     <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i>No admin services added yet.</p>
+                    <?php endif; ?>
+
+                    <!-- Assigned Vendors (compact) -->
+                    <?php if (!empty($vendor_assignments)): ?>
+                    <div class="border rounded p-2 mb-2 bg-light" style="font-size:.8rem;">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fas fa-user-tie text-secondary" style="font-size:.8rem;"></i>
+                            <span class="fw-semibold text-muted text-uppercase" style="font-size:.72rem;letter-spacing:.06em;">Assigned Vendors</span>
+                            <span class="badge bg-secondary" style="font-size:.65rem;"><?php echo count($vendor_assignments); ?></span>
+                        </div>
+                        <?php foreach ($vendor_assignments as $assignment):
+                            $is_last_va = ($assignment === end($vendor_assignments));
+                        ?>
+                        <div class="d-flex align-items-center gap-2 py-1 flex-wrap<?php echo $is_last_va ? '' : ' border-bottom'; ?>">
+                            <?php $va_photo_url = $vendor_primary_photos[$assignment['vendor_id']] ?? ''; ?>
+                            <?php if (!empty($va_photo_url)): ?>
+                                <img src="<?php echo htmlspecialchars($va_photo_url); ?>"
+                                     alt="<?php echo htmlspecialchars($assignment['vendor_name']); ?>"
+                                     class="rounded-circle flex-shrink-0"
+                                     style="width:26px;height:26px;object-fit:cover;">
+                            <?php else: ?>
+                                <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded-circle flex-shrink-0"
+                                      style="width:26px;height:26px;font-size:.7rem;">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                            <?php endif; ?>
+                            <span class="fw-semibold"><?php echo htmlspecialchars($assignment['vendor_name']); ?></span>
+                            <span class="badge bg-light text-secondary border" style="font-size:.65rem;"><?php echo htmlspecialchars(getVendorTypeLabel($assignment['vendor_type'])); ?></span>
+                            <?php if (!empty($assignment['task_description'])): ?>
+                                <span class="text-muted" title="<?php echo htmlspecialchars($assignment['notes'] ?? ''); ?>"><?php echo htmlspecialchars($assignment['task_description']); ?></span>
+                            <?php endif; ?>
+                            <div class="ms-auto d-flex align-items-center gap-1 flex-shrink-0">
+                                <form method="POST" style="display:inline-block;">
+                                    <input type="hidden" name="action" value="update_vendor_assignment_status">
+                                    <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
+                                    <select name="assignment_status" class="form-select form-select-sm py-0 d-inline-block w-auto"
+                                            style="font-size:.72rem;" onchange="this.form.submit()">
+                                        <?php foreach (['assigned', 'confirmed', 'completed', 'cancelled'] as $s): ?>
+                                            <option value="<?php echo $s; ?>" <?php echo ($assignment['status'] === $s) ? 'selected' : ''; ?>>
+                                                <?php echo ucfirst($s); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </form>
+                                <?php if (!empty($assignment['vendor_phone'])): ?>
+                                    <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($assignment['vendor_name'], $assignment['vendor_phone'], $booking); ?>
+                                    <?php if (!empty($va_wa_url)): ?>
+                                    <a href="<?php echo htmlspecialchars($va_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+                                       class="btn btn-sm btn-outline-success py-0 px-1" title="Notify via WhatsApp" style="font-size:.72rem;">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <form method="POST" style="display:inline-block;"
+                                      onsubmit="return confirm('Remove this vendor assignment?');">
+                                    <input type="hidden" name="action" value="delete_vendor_assignment">
+                                    <input type="hidden" name="assignment_id" value="<?php echo $assignment['id']; ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Remove" style="font-size:.72rem;">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                     <?php endif; ?>
 
                     <!-- Select from Catalog Form -->
