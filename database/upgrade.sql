@@ -1138,6 +1138,13 @@ INSERT IGNORE INTO settings (setting_key, setting_value, setting_type) VALUES
 ('timezone', 'Asia/Kathmandu', 'text'),
 ('google_review_link', '', 'url'),
 ('allow_custom_venue', '1', 'boolean'),
+-- Booking settings
+('booking_min_advance_days', '1', 'number'),
+('booking_cancellation_hours', '24', 'number'),
+('default_booking_status', 'pending', 'text'),
+('enable_online_payment', '0', 'boolean'),
+-- Analytics
+('google_analytics_id', '', 'text'),
 -- Folder page banner ad settings
 ('folder_banner_a', '', 'image'),
 ('folder_banner_a_link', '', 'url'),
