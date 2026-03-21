@@ -12,8 +12,13 @@ if ($service_id <= 0) {
     exit;
 }
 
-// Fetch service details
-$stmt = $db->prepare("SELECT * FROM additional_services WHERE id = ?");
+// Fetch service details (JOIN vendor_types for proper category label)
+$stmt = $db->prepare(
+    "SELECT s.*, COALESCE(vt.label, s.category) AS vendor_type_label
+     FROM additional_services s
+     LEFT JOIN vendor_types vt ON vt.id = s.vendor_type_id
+     WHERE s.id = ?"
+);
 $stmt->execute([$service_id]);
 $service = $stmt->fetch();
 
@@ -78,7 +83,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     </div>
                     <div class="col-md-6 mb-3">
                         <strong>Category:</strong><br>
-                        <?php echo $service['category'] ? htmlspecialchars($service['category']) : '<em class="text-muted">Not categorized</em>'; ?>
+                        <?php echo $service['vendor_type_label'] ? htmlspecialchars($service['vendor_type_label']) : '<em class="text-muted">Not categorized</em>'; ?>
                     </div>
                 </div>
 

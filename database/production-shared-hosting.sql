@@ -192,10 +192,13 @@ CREATE TABLE IF NOT EXISTS additional_services (
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     category VARCHAR(100),
+    vendor_type_id INT DEFAULT NULL COMMENT 'FK → vendor_types.id; replaces free-text category field',
     photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional service photo filename in uploads/ directory',
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_additional_services_vendor_type_id (vendor_type_id),
+    FOREIGN KEY (vendor_type_id) REFERENCES vendor_types(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
@@ -1313,3 +1316,43 @@ DELIMITER ;
 
 CALL upgrade_service_designs_columns();
 DROP PROCEDURE IF EXISTS upgrade_service_designs_columns;
+
+-- ---- additional_services.vendor_type_id (proper FK to vendor_types) --------
+-- Adds a vendor_type_id integer FK column to additional_services so that the
+-- service ↔ vendor-type relationship is a proper reference instead of a
+-- free-text label copy.  Safe to run multiple times (idempotent).
+
+DROP PROCEDURE IF EXISTS upgrade_additional_services_vendor_type_id;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_additional_services_vendor_type_id()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'additional_services'
+          AND column_name  = 'vendor_type_id'
+    ) THEN
+        ALTER TABLE additional_services
+            ADD COLUMN vendor_type_id INT DEFAULT NULL
+                COMMENT 'FK → vendor_types.id; replaces free-text category field'
+            AFTER category;
+        ALTER TABLE additional_services
+            ADD INDEX idx_additional_services_vendor_type_id (vendor_type_id);
+        ALTER TABLE additional_services
+            ADD CONSTRAINT fk_additional_services_vendor_type
+                FOREIGN KEY (vendor_type_id) REFERENCES vendor_types(id) ON DELETE SET NULL;
+    END IF;
+
+    -- Populate vendor_type_id for rows that still have only a category label
+    UPDATE additional_services s
+    JOIN vendor_types vt ON LOWER(TRIM(vt.label)) = LOWER(TRIM(s.category))
+    SET s.vendor_type_id = vt.id
+    WHERE s.vendor_type_id IS NULL
+      AND s.category IS NOT NULL
+      AND s.category <> '';
+END$$
+DELIMITER ;
+
+CALL upgrade_additional_services_vendor_type_id();
+DROP PROCEDURE IF EXISTS upgrade_additional_services_vendor_type_id;

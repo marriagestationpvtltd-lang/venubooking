@@ -157,10 +157,13 @@ CREATE TABLE IF NOT EXISTS additional_services (
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     category VARCHAR(100),
+    vendor_type_id INT DEFAULT NULL COMMENT 'FK → vendor_types.id; replaces free-text category field',
     photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional service photo filename in uploads/ directory',
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_additional_services_vendor_type_id (vendor_type_id),
+    FOREIGN KEY (vendor_type_id) REFERENCES vendor_types(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
@@ -950,12 +953,20 @@ INSERT IGNORE INTO hall_menus (hall_id, menu_id) VALUES
 INSERT IGNORE INTO additional_services (name, description, price, category) VALUES
 ('Flower Decoration', 'Beautiful floral arrangements throughout the venue', 15000.00, 'Decoration'),
 ('Stage Decoration', 'Professional stage setup with backdrop and lighting', 25000.00, 'Decoration'),
-('Photography Package', 'Professional photography services for the entire event', 30000.00, 'Photography'),
-('Videography Package', 'HD video coverage with edited highlights', 40000.00, 'Videography'),
-('DJ Service', 'Professional DJ with sound system and lighting', 20000.00, 'Entertainment'),
-('Live Band', 'Live music performance by professional band', 50000.00, 'Entertainment'),
-('Transportation', 'Guest transportation service with comfortable vehicles', 35000.00, 'Logistics'),
-('Valet Parking', 'Professional valet parking service for guests', 10000.00, 'Logistics');
+('Photography Package', 'Professional photography services for the entire event', 30000.00, 'Photographer'),
+('Videography Package', 'HD video coverage with edited highlights', 40000.00, 'Videographer'),
+('DJ Service', 'Professional DJ with sound system and lighting', 20000.00, 'Other'),
+('Live Band', 'Live music performance by professional band', 50000.00, 'Baje (Music/Band)'),
+('Transportation', 'Guest transportation service with comfortable vehicles', 35000.00, 'Other'),
+('Valet Parking', 'Professional valet parking service for guests', 10000.00, 'Other');
+
+-- Populate vendor_type_id for the inserted services
+UPDATE additional_services s
+JOIN vendor_types vt ON LOWER(TRIM(vt.label)) = LOWER(TRIM(s.category))
+SET s.vendor_type_id = vt.id
+WHERE s.vendor_type_id IS NULL
+  AND s.category IS NOT NULL
+  AND s.category <> '';
 
 -- Insert Sample Service Categories
 INSERT IGNORE INTO service_categories (name, description, display_order, status) VALUES

@@ -4,11 +4,13 @@ require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 $stmt = $db->query(
     "SELECT s.*,
+            COALESCE(vt.label, s.category) AS vendor_type_label,
             COUNT(DISTINCT sd_direct.id) AS direct_design_count
      FROM additional_services s
+     LEFT JOIN vendor_types vt ON vt.id = s.vendor_type_id
      LEFT JOIN service_designs sd_direct ON sd_direct.service_id = s.id AND sd_direct.status = 'active'
      GROUP BY s.id
-     ORDER BY s.category, s.name"
+     ORDER BY COALESCE(vt.display_order, 9999), vendor_type_label, s.name"
 );
 $services = $stmt->fetchAll();
 
@@ -76,7 +78,7 @@ unset($_SESSION['error_message']);
                                 <?php endif; ?>
                             </td>
                             <td><?php echo htmlspecialchars($service['name']); ?></td>
-                            <td><?php echo htmlspecialchars($service['category']); ?></td>
+                            <td><?php echo htmlspecialchars($service['vendor_type_label']); ?></td>
                             <td><?php echo formatCurrency($service['price']); ?></td>
                             <td>
                                 <?php if ($service['direct_design_count'] > 0): ?>

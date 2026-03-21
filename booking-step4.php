@@ -258,7 +258,8 @@ $current_total = $totals['grand_total'];
                     <?php
                     $grouped_services = [];
                     foreach ($services as $service) {
-                        $category = $service['category'] ?: 'Other';
+                        // Use vendor_type_label from JOIN when available, fall back to legacy category string
+                        $category = !empty($service['vendor_type_label']) ? $service['vendor_type_label'] : (!empty($service['category']) ? $service['category'] : 'Other');
                         $grouped_services[$category][] = $service;
                     }
                     ?>
