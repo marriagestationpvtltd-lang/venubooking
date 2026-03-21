@@ -17,8 +17,15 @@ $venues = $db->query("SELECT id, name FROM venues WHERE status = 'active' ORDER 
 // Fetch halls
 $halls = $db->query("SELECT h.id, h.name, v.name as venue_name, h.capacity FROM halls h INNER JOIN venues v ON h.venue_id = v.id WHERE h.status = 'active' ORDER BY v.name, h.name")->fetchAll();
 
-// Fetch services
-$services = $db->query("SELECT id, name, price, category, photo FROM additional_services WHERE status = 'active' ORDER BY category, name")->fetchAll();
+// Fetch services with designs (same as frontend booking-step4.php)
+$services = getActiveServices();
+$services_map = [];
+foreach ($services as &$svc) {
+    $svc['designs'] = getServiceDesigns($svc['id']);
+    $svc['has_designs'] = !empty($svc['designs']);
+    $services_map[$svc['id']] = $svc;
+}
+unset($svc);
 
 // Fetch active payment methods
 $payment_methods = getActivePaymentMethods();
@@ -45,6 +52,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $special_requests = trim($_POST['special_requests']);
     $selected_menus = isset($_POST['menus']) ? $_POST['menus'] : [];
     $selected_services = isset($_POST['services']) ? $_POST['services'] : [];
+    $selected_designs = [];
+    if (isset($_POST['selected_designs']) && is_array($_POST['selected_designs'])) {
+        foreach ($_POST['selected_designs'] as $k => $v) {
+            $ki = intval($k);
+            $vi = intval($v);
+            if ($ki > 0 && $vi > 0) {
+                $selected_designs[$ki] = $vi;
+            }
+        }
+    }
     $selected_payment_methods = isset($_POST['payment_methods']) ? $_POST['payment_methods'] : [];
     $booking_status = $_POST['booking_status'];
     $payment_status = $_POST['payment_status'];
@@ -68,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $customer_id = getOrCreateCustomer($full_name, $phone, $email, $address);
                 
                 // Calculate totals
-                $totals = calculateBookingTotal($hall_id, $selected_menus, $number_of_guests, $selected_services);
+                $totals = calculateBookingTotal($hall_id, $selected_menus, $number_of_guests, $selected_services, $selected_designs);
                 
                 // Insert booking
                 $sql = "INSERT INTO bookings (
@@ -130,6 +147,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($service) {
                             $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES (?, ?, ?, ?, ?, ?)");
                             $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
+                        }
+                    }
+                }
+
+                // Insert booking service designs (services selected via design drilldown)
+                if (!empty($selected_designs)) {
+                    foreach ($selected_designs as $key_id => $design_id) {
+                        $key_id    = intval($key_id);
+                        $design_id = intval($design_id);
+                        if ($design_id <= 0) continue;
+                        try {
+                            // Try direct-service design first
+                            $stmt = $db->prepare(
+                                "SELECT d.name, d.price, d.description, d.service_id, s.category
+                                 FROM service_designs d
+                                 JOIN additional_services s ON s.id = d.service_id
+                                 WHERE d.id = ? AND d.service_id = ?"
+                            );
+                            $stmt->execute([$design_id, $key_id]);
+                            $design = $stmt->fetch();
+                            $sub_service_id_val = null;
+
+                            if (!$design) {
+                                // Fall back to legacy sub-service flow
+                                $stmt = $db->prepare(
+                                    "SELECT d.name, d.price, d.description, ss.service_id, s.category
+                                     FROM service_designs d
+                                     JOIN service_sub_services ss ON ss.id = d.sub_service_id
+                                     JOIN additional_services s ON s.id = ss.service_id
+                                     WHERE d.id = ? AND d.sub_service_id = ?"
+                                );
+                                $stmt->execute([$design_id, $key_id]);
+                                $design = $stmt->fetch();
+                                if ($design) {
+                                    $sub_service_id_val = $key_id;
+                                }
+                            }
+
+                            if ($design) {
+                                $insert = $db->prepare(
+                                    "INSERT INTO booking_services
+                                         (booking_id, service_id, service_name, price, description, category,
+                                          added_by, quantity, sub_service_id, design_id)
+                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                                );
+                                $insert->execute([
+                                    $booking_id,
+                                    $design['service_id'],
+                                    $design['name'],
+                                    $design['price'],
+                                    $design['description'],
+                                    $design['category'],
+                                    USER_SERVICE_TYPE,
+                                    DEFAULT_SERVICE_QUANTITY,
+                                    $sub_service_id_val,
+                                    $design_id
+                                ]);
+                            }
+                        } catch (\Throwable $designErr) {
+                            error_log("Admin booking design insertion skipped for booking {$booking_id}, design_id={$design_id}: " . $designErr->getMessage());
                         }
                     }
                 }
@@ -344,45 +421,112 @@ require_once __DIR__ . '/../includes/header.php';
                                         <i class="fas fa-info-circle"></i> No additional services available.
                                     </div>
                                 <?php else: ?>
-                                <!-- Category filter -->
-                                <select class="form-select form-select-sm mb-2" id="service-category-filter">
-                                    <option value="">— All Categories —</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                    <option value="<?php echo htmlspecialchars($cat, ENT_QUOTES); ?>"><?php echo htmlspecialchars($cat); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <!-- Services list grouped by category -->
-                                <div class="border rounded p-2" style="max-height:320px;overflow-y:auto;">
-                                    <?php foreach ($services_by_category as $cat => $cat_services): ?>
-                                    <div class="svc-category-group mb-2" data-category="<?php echo htmlspecialchars($cat, ENT_QUOTES); ?>">
-                                        <small class="text-muted fw-semibold d-block mb-1"><?php echo htmlspecialchars($cat); ?></small>
-                                        <?php foreach ($cat_services as $service): ?>
-                                        <div class="form-check d-flex align-items-center gap-2 mb-2">
-                                            <input class="form-check-input flex-shrink-0" type="checkbox" name="services[]" value="<?php echo $service['id']; ?>"
-                                                   id="service_<?php echo $service['id']; ?>"
-                                                   <?php echo (isset($_POST['services']) && in_array($service['id'], $_POST['services'])) ? 'checked' : ''; ?>>
-                                            <label class="form-check-label d-flex align-items-center gap-2" for="service_<?php echo $service['id']; ?>" style="cursor:pointer;">
-                                                <?php if (!empty($service['photo'])): ?>
-                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
-                                                     alt="<?php echo htmlspecialchars($service['name']); ?>"
-                                                     class="rounded flex-shrink-0"
-                                                     style="width:48px;height:48px;object-fit:cover;">
+
+                                <!-- ── View 1: Services list ── -->
+                                <div id="admin-view-services">
+                                    <!-- Category filter -->
+                                    <select class="form-select form-select-sm mb-2" id="service-category-filter">
+                                        <option value="">— All Categories —</option>
+                                        <?php foreach ($categories as $cat): ?>
+                                        <option value="<?php echo htmlspecialchars($cat, ENT_QUOTES); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <!-- Services grouped by category as visual cards -->
+                                    <div class="border rounded p-2" style="max-height:480px;overflow-y:auto;" id="admin-services-scroll">
+                                        <?php foreach ($services_by_category as $cat => $cat_services): ?>
+                                        <div class="svc-category-group mb-3" data-category="<?php echo htmlspecialchars($cat, ENT_QUOTES); ?>">
+                                            <small class="text-muted fw-semibold d-block mb-2"><?php echo htmlspecialchars($cat); ?></small>
+                                            <div class="row g-2">
+                                            <?php foreach ($cat_services as $service): ?>
+                                                <div class="col-6">
+                                                <?php if ($service['has_designs']): ?>
+                                                    <!-- Service with designs: drilldown card -->
+                                                    <div class="card h-100 admin-svc-drilldown-card border"
+                                                         data-service-id="<?php echo $service['id']; ?>"
+                                                         onclick="adminOpenDesignsView(<?php echo intval($service['id']); ?>)"
+                                                         style="cursor:pointer;">
+                                                        <div id="admin-svc-photo-<?php echo $service['id']; ?>" style="display:none;">
+                                                            <img src="" alt=""
+                                                                 id="admin-svc-selected-img-<?php echo $service['id']; ?>"
+                                                                 class="card-img-top" style="height:90px;object-fit:cover;">
+                                                        </div>
+                                                        <?php if (!empty($service['photo'])): ?>
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                             alt="<?php echo htmlspecialchars($service['name']); ?>"
+                                                             class="card-img-top admin-svc-default-img-<?php echo $service['id']; ?>"
+                                                             style="height:90px;object-fit:cover;">
+                                                        <?php else: ?>
+                                                        <div class="d-flex align-items-center justify-content-center bg-light admin-svc-default-img-<?php echo $service['id']; ?>"
+                                                             style="height:90px;">
+                                                            <i class="fas fa-images fa-2x text-muted"></i>
+                                                        </div>
+                                                        <?php endif; ?>
+                                                        <div class="card-body p-2">
+                                                            <div class="fw-medium small"><?php echo htmlspecialchars($service['name']); ?></div>
+                                                            <div id="admin-svc-summary-<?php echo $service['id']; ?>" class="text-success small"></div>
+                                                            <div class="text-end mt-1"><i class="fas fa-chevron-right text-muted small"></i></div>
+                                                        </div>
+                                                    </div>
                                                 <?php else: ?>
-                                                <span class="rounded bg-light border d-flex align-items-center justify-content-center flex-shrink-0"
-                                                      style="width:48px;height:48px;">
-                                                    <i class="fas fa-concierge-bell text-muted" style="font-size:1.2rem;"></i>
-                                                </span>
+                                                    <!-- Regular service: checkbox card -->
+                                                    <div class="card h-100 border" style="cursor:pointer;"
+                                                         onclick="document.getElementById('admin_service_<?php echo intval($service['id']); ?>').click()">
+                                                        <?php if (!empty($service['photo'])): ?>
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                             alt="<?php echo htmlspecialchars($service['name']); ?>"
+                                                             class="card-img-top"
+                                                             style="height:90px;object-fit:cover;">
+                                                        <?php else: ?>
+                                                        <div class="d-flex align-items-center justify-content-center bg-light"
+                                                             style="height:90px;">
+                                                            <i class="fas fa-concierge-bell fa-2x text-muted"></i>
+                                                        </div>
+                                                        <?php endif; ?>
+                                                        <div class="card-body p-2">
+                                                            <div class="form-check mb-0">
+                                                                <input class="form-check-input admin-service-checkbox" type="checkbox"
+                                                                       name="services[]" value="<?php echo $service['id']; ?>"
+                                                                       id="admin_service_<?php echo $service['id']; ?>"
+                                                                       data-price="<?php echo $service['price']; ?>"
+                                                                       <?php echo (isset($_POST['services']) && in_array($service['id'], $_POST['services'])) ? 'checked' : ''; ?>
+                                                                       onclick="event.stopPropagation()">
+                                                                <label class="form-check-label small fw-medium" for="admin_service_<?php echo $service['id']; ?>" onclick="event.stopPropagation()">
+                                                                    <?php echo htmlspecialchars($service['name']); ?>
+                                                                </label>
+                                                            </div>
+                                                            <div class="text-success small fw-semibold"><?php echo formatCurrency($service['price']); ?></div>
+                                                        </div>
+                                                    </div>
                                                 <?php endif; ?>
-                                                <span>
-                                                    <span class="fw-medium"><?php echo htmlspecialchars($service['name']); ?></span><br>
-                                                    <small class="text-success fw-semibold"><?php echo formatCurrency($service['price']); ?></small>
-                                                </span>
-                                            </label>
+                                                </div>
+                                            <?php endforeach; ?>
+                                            </div>
                                         </div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <?php endforeach; ?>
-                                </div>
+                                </div><!-- /#admin-view-services -->
+
+                                <!-- ── View 2: Design selection grid ── -->
+                                <div id="admin-view-designs" style="display:none;">
+                                    <div class="d-flex align-items-center mb-2 gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="adminBackToServices()">
+                                            <i class="fas fa-arrow-left"></i>
+                                        </button>
+                                        <div>
+                                            <div class="fw-semibold" id="admin-designs-title"></div>
+                                            <div class="text-muted small" id="admin-designs-subtitle"></div>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info py-2 small mb-2">
+                                        <i class="fas fa-hand-pointer me-1"></i> Click a photo to select your preferred design.
+                                    </div>
+                                    <div id="admin-designs-grid" class="row g-2" style="max-height:420px;overflow-y:auto;"></div>
+                                </div><!-- /#admin-view-designs -->
+
+                                <!-- Hidden inputs for selected designs (populated by JS) -->
+                                <div id="admin-selected-designs-inputs"></div>
+
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -478,6 +622,13 @@ require_once __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
+<!-- JSON data for admin service/design selection (mirrors booking-step4.php) -->
+<script>
+const adminServicesData = <?php echo json_encode(array_values($services_map)); ?>;
+const adminUploadUrl    = <?php echo json_encode(rtrim(UPLOAD_URL, '/')); ?>;
+const adminCurrency     = <?php echo json_encode(getSetting('currency', 'NPR')); ?>;
+</script>
+
 <script>
 // Dynamic menu loading based on hall selection
 document.addEventListener('DOMContentLoaded', function() {
@@ -540,12 +691,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Helper function to escape HTML
     function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
-    // Service category filter
+    // ── Service category filter ──────────────────────────────────────────────
     const serviceCategoryFilter = document.getElementById('service-category-filter');
     if (serviceCategoryFilter) {
         serviceCategoryFilter.addEventListener('change', function() {
@@ -559,6 +711,153 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // ── Admin service/design selection (mirrors booking-step4.js) ────────────
+    const adminSelectedDesigns = {};  // { service_id: { design_id, price, name, photo, service_id } }
+    let adminCurrentServiceId = null;
+
+    // Build lookup maps from PHP-injected JSON
+    const adminServicesById = {};
+    const adminDesignsById  = {};
+    if (typeof adminServicesData !== 'undefined') {
+        adminServicesData.forEach(function(svc) {
+            adminServicesById[svc.id] = svc;
+            if (svc.designs) {
+                svc.designs.forEach(function(d) {
+                    adminDesignsById[d.id] = d;
+                    d.service_id = svc.id;
+                });
+            }
+        });
+    }
+
+    // Currency formatter
+    function adminFormatPrice(amount) {
+        const num = parseFloat(amount) || 0;
+        const cur = (typeof adminCurrency !== 'undefined') ? adminCurrency : 'NPR';
+        return cur + ' ' + num.toLocaleString('en-NP', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Update hidden inputs so form submits selected designs
+    function adminSyncDesignInputs() {
+        const container = document.getElementById('admin-selected-designs-inputs');
+        if (!container) return;
+        container.innerHTML = '';
+        Object.values(adminSelectedDesigns).forEach(function(d) {
+            const input = document.createElement('input');
+            input.type  = 'hidden';
+            input.name  = 'selected_designs[' + d.service_id + ']';
+            input.value = d.design_id;
+            container.appendChild(input);
+        });
+    }
+
+    // Update drilldown service card summary + selected photo
+    function adminUpdateServiceSummary(serviceId) {
+        const sel = adminSelectedDesigns[serviceId];
+        const text = sel ? (sel.name + ' (' + adminFormatPrice(sel.price) + ')') : '';
+
+        const summaryEl = document.getElementById('admin-svc-summary-' + serviceId);
+        if (summaryEl) summaryEl.textContent = text;
+
+        const photoContainer = document.getElementById('admin-svc-photo-'        + serviceId);
+        const photoImg       = document.getElementById('admin-svc-selected-img-' + serviceId);
+
+        // Default placeholder images (service photo or icon div)
+        const defaultImgs = document.querySelectorAll('.admin-svc-default-img-' + serviceId);
+
+        if (sel && sel.photo) {
+            if (photoImg) {
+                photoImg.src = adminUploadUrl + '/' + sel.photo;
+                photoImg.alt = sel.name;
+            }
+            if (photoContainer) photoContainer.style.display = '';
+            defaultImgs.forEach(function(el) { el.style.display = 'none'; });
+        } else {
+            if (photoContainer) photoContainer.style.display = 'none';
+            defaultImgs.forEach(function(el) { el.style.display = ''; });
+        }
+
+        // Highlight card if a design is selected
+        const card = document.querySelector('.admin-svc-drilldown-card[data-service-id="' + serviceId + '"]');
+        if (card) {
+            card.classList.toggle('border-success', !!sel);
+        }
+    }
+
+    // Build design photo grid HTML for a service
+    function adminBuildDesignGrid(svc) {
+        if (!svc.designs || svc.designs.length === 0) {
+            return '<div class="col-12"><div class="alert alert-info small py-2 mb-0">'
+                + '<i class="fas fa-info-circle me-1"></i>No designs available.</div></div>';
+        }
+        const sel = adminSelectedDesigns[svc.id];
+        let html = '';
+        svc.designs.forEach(function(d) {
+            const isChosen = sel && sel.design_id === d.id;
+            const photoHtml = d.photo
+                ? '<img src="' + escapeHtml(adminUploadUrl + '/' + d.photo) + '" '
+                    + 'alt="' + escapeHtml(d.name) + '" '
+                    + 'class="card-img-top" style="height:120px;object-fit:cover;">'
+                : '<div class="d-flex align-items-center justify-content-center bg-light" style="height:120px;">'
+                    + '<i class="fas fa-image fa-2x text-muted"></i></div>';
+
+            html += '<div class="col-6 col-md-4">';
+            html += '<div class="card h-100 ' + (isChosen ? 'border-success border-3' : 'border') + '"'
+                  + ' style="cursor:pointer;" onclick="adminSelectDesign(' + d.id + ')">';
+            html += photoHtml;
+            html += '<div class="card-body p-2 text-center">';
+            if (isChosen) html += '<i class="fas fa-check-circle text-success me-1"></i>';
+            html += '<div class="fw-semibold small">' + escapeHtml(d.name) + '</div>';
+            html += '<div class="text-success small fw-bold">' + escapeHtml(adminFormatPrice(d.price)) + '</div>';
+            if (d.description) {
+                html += '<div class="text-muted small mt-1">' + escapeHtml(d.description) + '</div>';
+            }
+            html += '</div></div></div>';
+        });
+        return html;
+    }
+
+    // Open design view for a service
+    window.adminOpenDesignsView = function(serviceId) {
+        adminCurrentServiceId = serviceId;
+        const svc = adminServicesById[serviceId];
+        if (!svc) return;
+
+        const titleEl    = document.getElementById('admin-designs-title');
+        const subtitleEl = document.getElementById('admin-designs-subtitle');
+        const gridEl     = document.getElementById('admin-designs-grid');
+        if (titleEl)    titleEl.textContent    = svc.name;
+        if (subtitleEl) subtitleEl.textContent = svc.description || '';
+        if (gridEl)     gridEl.innerHTML = adminBuildDesignGrid(svc);
+
+        document.getElementById('admin-view-services').style.display = 'none';
+        document.getElementById('admin-view-designs').style.display  = '';
+    };
+
+    // Go back to services view
+    window.adminBackToServices = function() {
+        if (adminCurrentServiceId !== null) {
+            adminUpdateServiceSummary(adminCurrentServiceId);
+        }
+        document.getElementById('admin-view-designs').style.display  = 'none';
+        document.getElementById('admin-view-services').style.display = '';
+    };
+
+    // Select a design and auto-return to services view
+    window.adminSelectDesign = function(designId) {
+        const d = adminDesignsById[designId];
+        if (!d) return;
+        adminSelectedDesigns[d.service_id] = {
+            design_id  : d.id,
+            price      : parseFloat(d.price) || 0,
+            name       : d.name,
+            service_id : d.service_id,
+            photo      : d.photo || ''
+        };
+        adminSyncDesignInputs();
+        adminBackToServices();
+    };
 });
 </script>
 
