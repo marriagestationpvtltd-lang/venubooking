@@ -27,9 +27,8 @@ if (!$service) {
     exit;
 }
 
-// Check if Visual Design Flow is active (service has sub-services)
-$sub_services_with_designs = getServiceSubServicesWithDesigns($service_id);
-$is_visual_design_flow = !empty($sub_services_with_designs);
+// Check if Visual Design Flow is active (service has direct designs)
+$is_visual_design_flow = !empty(getServiceDesigns($service_id));
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

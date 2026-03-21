@@ -42,9 +42,6 @@ $bookings_stmt = $db->prepare("SELECT b.*, c.full_name, bs.price as service_pric
 $bookings_stmt->execute([$service_id]);
 $recent_bookings = $bookings_stmt->fetchAll();
 
-// Fetch sub-services with their designs
-$sub_services_with_designs = getServiceSubServicesWithDesigns($service_id);
-
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
 $error_message   = isset($_SESSION['error_message'])   ? $_SESSION['error_message']   : '';
 unset($_SESSION['success_message'], $_SESSION['error_message']);
@@ -88,7 +85,10 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <strong>Price:</strong><br>
-                        <?php if (!empty($sub_services_with_designs)): ?>
+                        <?php
+                        // Check if this service has direct designs (price managed per design)
+                        $has_direct_designs = !empty(getServiceDesigns($service_id));
+                        if ($has_direct_designs): ?>
                             <span class="text-muted small">
                                 <i class="fas fa-info-circle"></i>
                                 Price is managed per design in Visual Design Flow mode.
@@ -185,16 +185,18 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             </div>
         </div>
 
-        <!-- Sub-Services & Designs -->
+        <!-- Designs -->
         <div class="card mb-3">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <div>
                     <h5 class="mb-0 d-inline">
-                        <i class="fas fa-layer-group"></i> Sub-Services &amp; Designs
+                        <i class="fas fa-images"></i> Designs
                     </h5>
-                    <?php if (!empty($sub_services_with_designs)): ?>
+                    <?php
+                    $direct_designs = getServiceDesigns($service_id);
+                    if (!empty($direct_designs)): ?>
                         <span class="badge bg-success ms-2">
-                            <i class="fas fa-images"></i> Visual Design Flow Active
+                            <i class="fas fa-check-circle"></i> Visual Design Flow Active
                         </span>
                     <?php else: ?>
                         <span class="badge bg-secondary ms-2">
@@ -202,8 +204,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         </span>
                     <?php endif; ?>
                 </div>
-                <a href="sub-service-add.php?service_id=<?php echo $service_id; ?>" class="btn btn-success btn-sm">
-                    <i class="fas fa-plus"></i> Add Sub-Service
+                <a href="service-design-add.php?service_id=<?php echo $service_id; ?>" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus"></i> Add Design
                 </a>
             </div>
             <div class="card-body">
@@ -221,93 +223,51 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <?php endif; ?>
 
                 <p class="text-muted small mb-3">
-                    Sub-services enable a visual photo-based design selection flow for customers.
-                    E.g. <em>Decoration</em> &rarr; <em>Mandap</em> &rarr; Design photos with prices.
+                    Add design photos with prices. Customers will see a photo gallery and select one design when booking this service.
                 </p>
 
-                <?php if (empty($sub_services_with_designs)): ?>
+                <?php if (empty($direct_designs)): ?>
                     <div class="alert alert-warning mb-3">
-                        <strong><i class="fas fa-exclamation-triangle"></i> Visual Design Flow: Not Configured</strong><br>
+                        <strong><i class="fas fa-exclamation-triangle"></i> No Designs Yet</strong><br>
                         This service currently shows as a <strong>plain checkbox</strong> to customers during booking.<br>
-                        To enable the visual photo-based design selection flow:<br>
-                        <ol class="mb-0 mt-2" aria-label="Steps to enable the visual design selection flow">
-                            <li>Click <strong>"Add Sub-Service"</strong> above to create a sub-service (e.g. <em>Mandap</em>, <em>Stage Decoration</em>).</li>
-                            <li>Inside each sub-service, add <strong>design photos</strong> with names and prices.</li>
-                            <li>Once at least one sub-service with designs exists, customers will see a photo gallery to choose from instead of a checkbox.</li>
-                        </ol>
+                        Click <strong>"Add Design"</strong> above to add design photos (e.g. Royal Mandap, Classic Stage).<br>
+                        Once at least one design exists, customers will see a photo gallery to choose from.
                     </div>
                 <?php else: ?>
-                    <?php foreach ($sub_services_with_designs as $ss): ?>
-                        <div class="card mb-3 border">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
-                                <div>
-                                    <strong><?php echo htmlspecialchars($ss['name']); ?></strong>
-                                    <span class="badge bg-<?php echo $ss['status'] === 'active' ? 'success' : 'secondary'; ?> ms-2">
-                                        <?php echo ucfirst($ss['status']); ?>
-                                    </span>
-                                    <small class="text-muted ms-2"><?php echo count($ss['designs']); ?> design(s)</small>
-                                </div>
-                                <div>
-                                    <a href="design-add.php?sub_service_id=<?php echo $ss['id']; ?>" class="btn btn-sm btn-success me-1">
-                                        <i class="fas fa-plus"></i> Add Design
-                                    </a>
-                                    <a href="sub-service-edit.php?id=<?php echo $ss['id']; ?>" class="btn btn-sm btn-warning me-1">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="sub-service-delete.php?id=<?php echo $ss['id']; ?>"
-                                       class="btn btn-sm btn-danger"
-                                       onclick="return confirm('Delete this sub-service and ALL its designs?');">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            <?php if (!empty($ss['description'])): ?>
-                                <div class="px-3 pt-2 pb-0 text-muted small"><?php echo nl2br(htmlspecialchars($ss['description'])); ?></div>
-                            <?php endif; ?>
-                            <?php if (!empty($ss['designs'])): ?>
-                                <div class="card-body p-2">
-                                    <div class="row g-2">
-                                        <?php foreach ($ss['designs'] as $design): ?>
-                                            <div class="col-6 col-md-3">
-                                                <div class="card border h-100">
-                                                    <?php if (!empty($design['photo'])): ?>
-                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
-                                                             alt="<?php echo htmlspecialchars($design['name']); ?>"
-                                                             class="card-img-top" style="height:100px;object-fit:cover;">
-                                                    <?php else: ?>
-                                                        <div class="bg-light d-flex align-items-center justify-content-center" style="height:100px;">
-                                                            <i class="fas fa-image fa-2x text-muted"></i>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="card-body p-2">
-                                                        <div class="fw-semibold small"><?php echo htmlspecialchars($design['name']); ?></div>
-                                                        <div class="text-success small"><?php echo formatCurrency($design['price']); ?></div>
-                                                        <span class="badge bg-<?php echo $design['status'] === 'active' ? 'success' : 'secondary'; ?> small">
-                                                            <?php echo ucfirst($design['status']); ?>
-                                                        </span>
-                                                    </div>
-                                                    <div class="card-footer p-1 d-flex justify-content-end gap-1">
-                                                        <a href="design-edit.php?id=<?php echo $design['id']; ?>" class="btn btn-xs btn-warning py-0 px-1">
-                                                            <i class="fas fa-edit fa-xs"></i>
-                                                        </a>
-                                                        <a href="design-delete.php?id=<?php echo $design['id']; ?>"
-                                                           class="btn btn-xs btn-danger py-0 px-1"
-                                                           onclick="return confirm('Delete this design?');">
-                                                            <i class="fas fa-trash fa-xs"></i>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
+                    <div class="row g-2">
+                        <?php foreach ($direct_designs as $design): ?>
+                            <div class="col-6 col-md-3">
+                                <div class="card border h-100">
+                                    <?php if (!empty($design['photo'])): ?>
+                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
+                                             alt="<?php echo htmlspecialchars($design['name']); ?>"
+                                             class="card-img-top" style="height:100px;object-fit:cover;">
+                                    <?php else: ?>
+                                        <div class="bg-light d-flex align-items-center justify-content-center" style="height:100px;">
+                                            <i class="fas fa-image fa-2x text-muted"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="card-body p-2">
+                                        <div class="fw-semibold small"><?php echo htmlspecialchars($design['name']); ?></div>
+                                        <div class="text-success small"><?php echo formatCurrency($design['price']); ?></div>
+                                        <span class="badge bg-<?php echo $design['status'] === 'active' ? 'success' : 'secondary'; ?> small">
+                                            <?php echo ucfirst($design['status']); ?>
+                                        </span>
+                                    </div>
+                                    <div class="card-footer p-1 d-flex justify-content-end gap-1">
+                                        <a href="service-design-edit.php?id=<?php echo $design['id']; ?>" class="btn btn-xs btn-warning py-0 px-1">
+                                            <i class="fas fa-edit fa-xs"></i>
+                                        </a>
+                                        <a href="service-design-delete.php?id=<?php echo $design['id']; ?>"
+                                           class="btn btn-xs btn-danger py-0 px-1"
+                                           onclick="return confirm('Delete this design?');">
+                                            <i class="fas fa-trash fa-xs"></i>
+                                        </a>
                                     </div>
                                 </div>
-                            <?php else: ?>
-                                <div class="card-body text-muted small">
-                                    No designs yet. <a href="design-add.php?sub_service_id=<?php echo $ss['id']; ?>">Add a design</a>.
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
