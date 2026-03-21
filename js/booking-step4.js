@@ -168,11 +168,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const photoHtml = d.photo
                 ? '<img src="' + escapeHtml(uploadUrl + '/' + d.photo) + '" '
                     + 'alt="' + escapeHtml(d.name) + '" '
-                    + 'class="card-img-top" style="height:120px;object-fit:cover;">'
-                : '<div class="d-flex align-items-center justify-content-center bg-light" style="height:120px;">'
-                    + '<i class="fas fa-image fa-2x text-muted"></i></div>';
+                    + 'class="card-img-top" style="height:200px;object-fit:cover;">'
+                : '<div class="d-flex align-items-center justify-content-center bg-light" style="height:200px;">'
+                    + '<i class="fas fa-image fa-3x text-muted"></i></div>';
 
-            html += '<div class="col-6 col-md-3">';
+            html += '<div class="col-6 col-md-4">';
             html += '<div class="card h-100 design-card '
                   + (isChosen ? 'border-success border-3 selected-design' : '')
                   + '" style="cursor:pointer;" onclick="selectDesign(' + d.id + ')">';
