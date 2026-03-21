@@ -34,7 +34,8 @@ unset($svc);
 
 // Calculate current totals (no services/designs selected yet in initial load)
 $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests']);
-$current_total = $totals['subtotal'];
+$tax_rate = floatval(getSetting('tax_rate', '13'));
+$current_total = $totals['grand_total'];
 ?>
 
 <!-- Booking Progress -->
@@ -335,7 +336,8 @@ $current_total = $totals['subtotal'];
 
 <!-- JSON data for JS -->
 <script>
-const baseTotal    = <?php echo json_encode($current_total); ?>;
+const baseTotal    = <?php echo json_encode($totals['subtotal']); ?>;
+const taxRate      = <?php echo json_encode($tax_rate); ?>;
 const servicesData = <?php echo json_encode(array_values($services_map)); ?>;
 const uploadUrl    = <?php echo json_encode(rtrim(UPLOAD_URL, '/')); ?>;
 const currency     = <?php echo json_encode(getSetting('currency', 'NPR')); ?>;

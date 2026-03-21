@@ -22,9 +22,10 @@ $hall_id = intval($input['hall_id']);
 $guests = intval($input['guests']);
 $menus = $input['menus'] ?? [];
 $services = $input['services'] ?? [];
+$designs = $input['selected_designs'] ?? [];
 
 try {
-    $totals = calculateBookingTotal($hall_id, $menus, $guests, $services);
+    $totals = calculateBookingTotal($hall_id, $menus, $guests, $services, $designs);
     
     echo json_encode([
         'success' => true,

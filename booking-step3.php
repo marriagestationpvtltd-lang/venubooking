@@ -29,7 +29,8 @@ if (!empty($selected_menus)) {
     $menu_total = $totals['menu_total'];
 }
 
-$current_total = $hall_price + $menu_total;
+$tax_rate = floatval(getSetting('tax_rate', '13'));
+$current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
 ?>
 
 <!-- Booking Progress -->
@@ -256,6 +257,7 @@ $extra_js = '
 const bookingData = ' . json_encode($booking_data) . ';
 const hallPrice = ' . $hall_price . ';
 const guestsCount = ' . $booking_data['guests'] . ';
+const taxRate = ' . $tax_rate . ';
 </script>
 <script src="' . BASE_URL . '/js/booking-step3.js"></script>
 ';
