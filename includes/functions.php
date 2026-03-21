@@ -3570,6 +3570,49 @@ function getServicePrimaryPhotoUrls(array $service_ids) {
 }
 
 /**
+ * Get the primary photo URL for multiple service_packages at once (avoids N+1 queries).
+ * Fetches from the service_package_photos table ordered by display_order / id.
+ *
+ * @param int[] $package_ids  Values of service_packages.id (booking_services.service_id for package rows)
+ * @return array Associative array keyed by package_id with the photo URL string.
+ */
+function getPackagePrimaryPhotoUrls(array $package_ids) {
+    if (empty($package_ids)) {
+        return [];
+    }
+    $db = getDB();
+    $ids = array_filter(array_map('intval', $package_ids), fn($id) => $id > 0);
+    if (empty($ids)) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    try {
+        $stmt = $db->prepare(
+            "SELECT package_id, image_path FROM service_package_photos
+             WHERE package_id IN ($placeholders)
+             ORDER BY package_id, display_order ASC, id ASC"
+        );
+        $stmt->execute(array_values($ids));
+        $rows = $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+    $result = [];
+    foreach ($rows as $row) {
+        $pid = (int)$row['package_id'];
+        if (isset($result[$pid])) {
+            continue; // keep first (lowest display_order) photo per package
+        }
+        $safe = !empty($row['image_path']) ? basename($row['image_path']) : '';
+        if (!empty($safe) && preg_match(SAFE_FILENAME_PATTERN, $safe)
+            && file_exists(UPLOAD_PATH . $safe)) {
+            $result[$pid] = UPLOAD_URL . $safe;
+        }
+    }
+    return $result;
+}
+
+/**
  * Get vendor assignments for a booking
  *
  * @param int $booking_id
