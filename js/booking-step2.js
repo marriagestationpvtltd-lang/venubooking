@@ -490,3 +490,50 @@ function openPanoViewer(panoUrl, hallName) {
         }
     }, { once: true });
 }
+
+// ── Custom / Own Venue entry ────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('useCustomVenueBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+        const venueNameInput = document.getElementById('customVenueName');
+        const hallNameInput  = document.getElementById('customHallName');
+        const errorEl        = document.getElementById('customVenueNameError');
+
+        const venueName = venueNameInput ? venueNameInput.value.trim() : '';
+        const hallName  = hallNameInput  ? hallNameInput.value.trim()  : '';
+
+        // Validate required field
+        if (!venueName) {
+            if (venueNameInput) venueNameInput.classList.add('is-invalid');
+            return;
+        }
+        if (venueNameInput) venueNameInput.classList.remove('is-invalid');
+
+        showLoading();
+
+        fetch(baseUrl + '/api/set-custom-venue.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ venue_name: venueName, hall_name: hallName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                window.location.href = baseUrl + '/booking-step3.php';
+            } else {
+                showError(data.message || 'Failed to save venue. Please try again.');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            if (typeof logError === 'function') {
+                logError('Custom venue save failed', error);
+            }
+            showError('An error occurred. Please try again.');
+        });
+    });
+});

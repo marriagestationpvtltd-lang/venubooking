@@ -37,12 +37,12 @@ try {
                           c.full_name as customer_name,
                           c.phone as customer_phone,
                           c.email as customer_email,
-                          h.name as hall_name,
-                          v.name as venue_name
+                          COALESCE(h.name, b.custom_hall_name) as hall_name,
+                          COALESCE(v.name, b.custom_venue_name) as venue_name
                           FROM bookings b
                           INNER JOIN customers c ON b.customer_id = c.id
-                          INNER JOIN halls h ON b.hall_id = h.id
-                          INNER JOIN venues v ON h.venue_id = v.id
+                          LEFT JOIN halls h ON b.hall_id = h.id
+                          LEFT JOIN venues v ON h.venue_id = v.id
                           WHERE b.event_date = ?
                           ORDER BY 
                             CASE b.shift

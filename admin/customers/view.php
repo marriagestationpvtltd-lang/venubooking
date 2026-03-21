@@ -23,10 +23,10 @@ if (!$customer) {
 }
 
 // Fetch booking history
-$bookings_stmt = $db->prepare("SELECT b.*, h.name as hall_name, v.name as venue_name
+$bookings_stmt = $db->prepare("SELECT b.*, COALESCE(h.name, b.custom_hall_name) as hall_name, COALESCE(v.name, b.custom_venue_name) as venue_name
                                 FROM bookings b
-                                INNER JOIN halls h ON b.hall_id = h.id
-                                INNER JOIN venues v ON h.venue_id = v.id
+                                LEFT JOIN halls h ON b.hall_id = h.id
+                                LEFT JOIN venues v ON h.venue_id = v.id
                                 WHERE b.customer_id = ?
                                 ORDER BY b.event_date DESC");
 $bookings_stmt->execute([$customer_id]);

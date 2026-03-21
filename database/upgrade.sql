@@ -226,7 +226,9 @@ CREATE TABLE IF NOT EXISTS bookings (
     id INT PRIMARY KEY AUTO_INCREMENT,
     booking_number VARCHAR(50) UNIQUE NOT NULL,
     customer_id INT NOT NULL,
-    hall_id INT NOT NULL,
+    hall_id INT DEFAULT NULL,
+    custom_venue_name VARCHAR(255) DEFAULT NULL COMMENT 'Venue name when customer brings own venue (hall_id is NULL)',
+    custom_hall_name VARCHAR(255) DEFAULT NULL COMMENT 'Hall/location name when customer brings own venue (hall_id is NULL)',
     event_date DATE NOT NULL,
     start_time TIME DEFAULT NULL,
     end_time TIME DEFAULT NULL,
@@ -246,7 +248,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
-    FOREIGN KEY (hall_id) REFERENCES halls(id),
+    FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE SET NULL,
     INDEX idx_event_date (event_date),
     INDEX idx_status (booking_status),
     INDEX idx_advance_payment_received (advance_payment_received)
@@ -1074,6 +1076,7 @@ INSERT IGNORE INTO settings (setting_key, setting_value, setting_type) VALUES
 ('booking_confirmation_email', '1', 'boolean'),
 ('timezone', 'Asia/Kathmandu', 'text'),
 ('google_review_link', '', 'url'),
+('allow_custom_venue', '1', 'boolean'),
 -- Folder page banner ad settings
 ('folder_banner_a', '', 'image'),
 ('folder_banner_a_link', '', 'url'),

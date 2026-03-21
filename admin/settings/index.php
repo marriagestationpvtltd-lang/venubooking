@@ -648,6 +648,15 @@ Date changes are subject to availability and must be requested at least 15 days 
                             </select>
                             <div class="form-text">Allow customers to pay online</div>
                         </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Allow Custom Venue Entry</label>
+                            <select class="form-select" name="setting_allow_custom_venue">
+                                <option value="1" <?php echo ($settings['allow_custom_venue'] ?? '1') == '1' ? 'selected' : ''; ?>>Enabled (Default)</option>
+                                <option value="0" <?php echo ($settings['allow_custom_venue'] ?? '1') == '0' ? 'selected' : ''; ?>>Disabled</option>
+                            </select>
+                            <div class="form-text">Allow customers to enter their own venue details when it is not listed</div>
+                        </div>
                     </div>
                 </div>
 

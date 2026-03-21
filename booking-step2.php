@@ -40,6 +40,9 @@ $booking_data = $_SESSION['booking_data'];
 $city_id = isset($booking_data['city_id']) ? $booking_data['city_id'] : null;
 $venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift'], $city_id);
 
+// Check if custom venue entry is allowed
+$allow_custom_venue = getSetting('allow_custom_venue', '1') === '1';
+
 // Check if there's a preferred venue from query string
 $preferred_venue_id = null;
 if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
@@ -255,6 +258,50 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
         </div>
     </div>
 </section>
+
+<?php if ($allow_custom_venue): ?>
+<!-- Custom / Own Venue Section -->
+<section class="py-4 bg-light" id="customVenueSection">
+    <div class="container">
+        <div class="card border-success">
+            <div class="card-header bg-success bg-opacity-10 border-success">
+                <h5 class="mb-0 text-success">
+                    <i class="fas fa-map-marker-alt me-2"></i>Using Your Own Venue?
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    If your venue is not listed above, you can enter its details manually. Our team will coordinate with you after the booking is confirmed.
+                </p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="customVenueName" class="form-label fw-semibold">
+                            Venue Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="customVenueName"
+                               placeholder="e.g. Home Garden, Community Hall…"
+                               maxlength="255">
+                        <div class="invalid-feedback" id="customVenueNameError">Please enter the venue name.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="customHallName" class="form-label fw-semibold">
+                            Hall / Area Name <span class="text-muted">(Optional)</span>
+                        </label>
+                        <input type="text" class="form-control" id="customHallName"
+                               placeholder="e.g. Main Hall, Rooftop, Lawn…"
+                               maxlength="255">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="button" class="btn btn-success" id="useCustomVenueBtn">
+                        <i class="fas fa-arrow-right me-2"></i>Continue with This Venue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <?php
 $extra_js = '

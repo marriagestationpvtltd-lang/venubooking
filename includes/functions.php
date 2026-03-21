@@ -479,11 +479,14 @@ function generateBookingNumber() {
 function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = []) {
     $db = getDB();
     
-    // Get hall price
-    $stmt = $db->prepare("SELECT base_price FROM halls WHERE id = ?");
-    $stmt->execute([$hall_id]);
-    $hall = $stmt->fetch();
-    $hall_price = $hall ? $hall['base_price'] : 0;
+    // Get hall price (custom venues have id=0 and no price in DB)
+    $hall_price = 0;
+    if (!empty($hall_id)) {
+        $stmt = $db->prepare("SELECT base_price FROM halls WHERE id = ?");
+        $stmt->execute([$hall_id]);
+        $hall = $stmt->fetch();
+        $hall_price = $hall ? $hall['base_price'] : 0;
+    }
     
     // Calculate menu total
     $menu_total = 0;
@@ -1004,10 +1007,14 @@ function createBooking($data) {
     $booking_number = null;
 
     try {
-        // Check hall availability inside the try-catch so any DB exception is
-        // caught and handled gracefully rather than producing a fatal error.
-        if (!checkHallAvailability($data['hall_id'], $data['event_date'], $data['shift'])) {
-            return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and shift. Please select a different date or hall.'];
+        // For custom venues (customer's own venue), skip the hall availability check
+        $is_custom = !empty($data['is_custom']);
+        if (!$is_custom) {
+            // Check hall availability inside the try-catch so any DB exception is
+            // caught and handled gracefully rather than producing a fatal error.
+            if (!checkHallAvailability($data['hall_id'], $data['event_date'], $data['shift'])) {
+                return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and shift. Please select a different date or hall.'];
+            }
         }
 
         $db->beginTransaction();
@@ -1023,9 +1030,12 @@ function createBooking($data) {
             $data['address'] ?? ''
         );
         
+        // Resolve hall_id — NULL for custom venues
+        $hall_id_value = $is_custom ? null : ($data['hall_id'] ?: null);
+
         // Calculate totals
         $totals = calculateBookingTotal(
-            $data['hall_id'],
+            $hall_id_value,
             $data['menus'] ?? [],
             $data['guests'],
             $data['services'] ?? [],
@@ -1039,17 +1049,20 @@ function createBooking($data) {
         $end_time   = !empty($data['end_time'])   ? $data['end_time']   : $shift_times['end'];
 
         $sql = "INSERT INTO bookings (
-                    booking_number, customer_id, hall_id, event_date, start_time, end_time, shift,
+                    booking_number, customer_id, hall_id, custom_venue_name, custom_hall_name,
+                    event_date, start_time, end_time, shift,
                     event_type, number_of_guests, hall_price, menu_total, 
                     services_total, subtotal, tax_amount, grand_total, 
                     special_requests, booking_status, payment_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
         
         $stmt = $db->prepare($sql);
         $stmt->execute([
             $booking_number,
             $customer_id,
-            $data['hall_id'],
+            $hall_id_value,
+            $is_custom ? ($data['custom_venue_name'] ?? '') : null,
+            $is_custom ? ($data['custom_hall_name']  ?? '') : null,
             $data['event_date'],
             $start_time ?: null,
             $end_time   ?: null,
@@ -1202,14 +1215,18 @@ function getBookingDetails($booking_id) {
         $db = getDB();
         
         $sql = "SELECT b.*, c.full_name, c.phone, c.email, c.address,
-                       h.name as hall_name, h.capacity,
-                       v.name as venue_name, v.location, v.address as venue_address, v.map_link,
+                       COALESCE(h.name, b.custom_hall_name) as hall_name,
+                       h.capacity,
+                       COALESCE(v.name, b.custom_venue_name) as venue_name,
+                       COALESCE(v.location, '') as location,
+                       COALESCE(v.address, '') as venue_address,
+                       v.map_link,
                        v.contact_phone as venue_contact_phone,
                        ci.name as city_name
                 FROM bookings b
                 INNER JOIN customers c ON b.customer_id = c.id
-                INNER JOIN halls h ON b.hall_id = h.id
-                INNER JOIN venues v ON h.venue_id = v.id
+                LEFT JOIN halls h ON b.hall_id = h.id
+                LEFT JOIN venues v ON h.venue_id = v.id
                 LEFT JOIN cities ci ON v.city_id = ci.id
                 WHERE b.id = ?";
         
