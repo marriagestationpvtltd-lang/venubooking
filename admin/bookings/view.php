@@ -2070,6 +2070,9 @@ $available_services = getActiveServices();
                                             <th class="fw-semibold text-center">Qty</th>
                                             <th class="fw-semibold text-end">Price</th>
                                             <th class="fw-semibold text-end">Total</th>
+                                            <?php if (!empty($vendor_types_available)): ?>
+                                            <th class="fw-semibold text-center" title="Assign a vendor for this service"></th>
+                                            <?php endif; ?>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -2092,13 +2095,27 @@ $available_services = getActiveServices();
                                             <td class="text-center"><?php echo $service_qty; ?></td>
                                             <td class="text-end fw-bold text-primary service-price-cell"><?php echo formatCurrency($service_price); ?></td>
                                             <td class="text-end fw-bold text-success"><?php echo formatCurrency($service_total); ?></td>
+                                            <?php if (!empty($vendor_types_available)): ?>
+                                            <td class="text-center">
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-success py-0 px-1 assign-vendor-from-service-btn"
+                                                        title="Assign vendor for this service"
+                                                        data-service-name="<?php echo htmlspecialchars($service['service_name']); ?>"
+                                                        data-service-category="<?php echo htmlspecialchars($service['category'] ?? ''); ?>"
+                                                        data-service-price="<?php echo $service_price; ?>"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#assignVendorFromServiceModal">
+                                                    <i class="fas fa-plus" style="font-size:.7rem;"></i>
+                                                </button>
+                                            </td>
+                                            <?php endif; ?>
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                     <?php if ($user_services_count > 1): ?>
                                     <tfoot>
                                         <tr class="table-light">
-                                            <td colspan="3" class="text-end fw-bold small">Total:</td>
+                                            <td colspan="<?php echo !empty($vendor_types_available) ? 4 : 3; ?>" class="text-end fw-bold small">Total:</td>
                                             <td class="text-end"><strong class="text-success"><?php echo formatCurrency($user_services_total); ?></strong></td>
                                         </tr>
                                     </tfoot>
@@ -3503,5 +3520,226 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 </script>
+
+<!-- Assign Vendor from Service Modal -->
+<?php if (!empty($vendor_types_available)): ?>
+<div class="modal fade" id="assignVendorFromServiceModal" tabindex="-1" aria-labelledby="assignVendorFromServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title fw-bold" id="assignVendorFromServiceModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>Assign Vendor for Service
+                </h6>
+                <button type="button" class="btn-close btn-close-white btn-close-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="" id="assignVendorFromServiceForm">
+                <input type="hidden" name="action" value="add_vendor_assignment">
+                <div class="modal-body py-3">
+                    <p class="mb-3 small">
+                        <span class="text-muted">Service:</span>
+                        <strong id="avsModalServiceName" class="ms-1 text-dark"></strong>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Vendor Type <span class="text-danger">*</span></label>
+                        <select id="avsTypeSelect" class="form-select form-select-sm">
+                            <option value="">— Select Type —</option>
+                            <?php foreach ($vendor_types_available as $vt): ?>
+                                <option value="<?php echo htmlspecialchars($vt['slug']); ?>"
+                                        data-label="<?php echo htmlspecialchars($vt['label']); ?>">
+                                    <?php echo htmlspecialchars($vt['label']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="avsVendorWrapper">
+                        <label class="form-label small fw-semibold">Vendor <span class="text-danger">*</span></label>
+                        <select name="vendor_id" id="avsVendorSelect" class="form-select form-select-sm">
+                            <option value="">— Select Vendor —</option>
+                        </select>
+                        <div id="avsVendorInfo" class="d-none mt-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <img id="avsVendorPhoto" src="" alt="" class="d-none rounded-circle" style="width:36px;height:36px;object-fit:cover;">
+                                <small id="avsVendorLocation" class="text-muted" style="font-size:.72rem;"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Task Description</label>
+                        <input type="text" name="task_description" id="avsTaskDescription" class="form-control form-control-sm"
+                               placeholder="e.g., Photography">
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Amount (<?php echo htmlspecialchars(getSetting('currency', 'NPR')); ?>)</label>
+                            <input type="number" name="assigned_amount" id="avsAmount" class="form-control form-control-sm"
+                                   min="0" step="0.01" placeholder="0.00" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Notes</label>
+                            <input type="text" name="assignment_notes" class="form-control form-control-sm" placeholder="Instructions…">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success">
+                        <i class="fas fa-user-plus me-1"></i>Assign Vendor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var vendorsByType   = <?php echo json_encode($vendors_by_type, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    var modalEl         = document.getElementById('assignVendorFromServiceModal');
+    var typeSelect      = document.getElementById('avsTypeSelect');
+    var vendorWrapper   = document.getElementById('avsVendorWrapper');
+    var vendorSelect    = document.getElementById('avsVendorSelect');
+    var taskDesc        = document.getElementById('avsTaskDescription');
+    var amountInput     = document.getElementById('avsAmount');
+    var vendorInfo      = document.getElementById('avsVendorInfo');
+    var vendorPhoto     = document.getElementById('avsVendorPhoto');
+    var vendorLocation  = document.getElementById('avsVendorLocation');
+    var serviceNameEl   = document.getElementById('avsModalServiceName');
+
+    // Populate vendor dropdown when type changes
+    typeSelect.addEventListener('change', function() {
+        var type = this.value;
+        vendorSelect.innerHTML = '<option value="">— Select Vendor —</option>';
+        vendorWrapper.classList.add('d-none');
+        vendorInfo.classList.add('d-none');
+        vendorPhoto.classList.add('d-none');
+        vendorPhoto.src = '';
+        vendorLocation.textContent = '';
+
+        if (type && vendorsByType[type]) {
+            vendorsByType[type].forEach(function(v) {
+                var opt = document.createElement('option');
+                opt.value = v.id;
+                opt.textContent = v.name;
+                opt.dataset.description = v.description || '';
+                opt.dataset.city = v.city || '';
+                opt.dataset.photo = v.photo || '';
+                vendorSelect.appendChild(opt);
+            });
+            vendorWrapper.classList.remove('d-none');
+        }
+    });
+
+    // Show vendor photo/location and auto-fill task when vendor selected
+    vendorSelect.addEventListener('change', function() {
+        var opt   = this.options[this.selectedIndex];
+        var desc  = opt.dataset.description || '';
+        var city  = opt.dataset.city || '';
+        var photo = opt.dataset.photo || '';
+
+        if (desc && !taskDesc.value) {
+            taskDesc.value = desc;
+        }
+
+        if (photo) {
+            vendorPhoto.src = photo;
+            vendorPhoto.classList.remove('d-none');
+        } else {
+            vendorPhoto.classList.add('d-none');
+            vendorPhoto.src = '';
+        }
+
+        if (city) {
+            vendorLocation.textContent = '';
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-map-marker-alt me-1';
+            vendorLocation.appendChild(icon);
+            vendorLocation.appendChild(document.createTextNode(city));
+            vendorInfo.classList.remove('d-none');
+        } else if (photo) {
+            vendorInfo.classList.remove('d-none');
+        } else {
+            vendorInfo.classList.add('d-none');
+        }
+    });
+
+    // When modal opens: pre-fill service name, task description, and try to match vendor type
+    if (modalEl) {
+        modalEl.addEventListener('show.bs.modal', function(event) {
+            var btn          = event.relatedTarget;
+            var serviceName  = btn ? (btn.dataset.serviceName || '') : '';
+            var serviceCategory = btn ? (btn.dataset.serviceCategory || '') : '';
+            var servicePrice = btn ? parseFloat(btn.dataset.servicePrice || 0) : 0;
+
+            // Update modal service name label
+            if (serviceNameEl) serviceNameEl.textContent = serviceName;
+
+            // Pre-fill task description with service name
+            taskDesc.value = serviceName;
+
+            // Pre-fill amount with service price
+            amountInput.value = servicePrice > 0 ? servicePrice : 0;
+
+            // Reset vendor dropdowns
+            typeSelect.value = '';
+            vendorSelect.innerHTML = '<option value="">— Select Vendor —</option>';
+            vendorWrapper.classList.add('d-none');
+            vendorInfo.classList.add('d-none');
+            vendorPhoto.classList.add('d-none');
+            vendorPhoto.src = '';
+            vendorLocation.textContent = '';
+
+            // Try to auto-select vendor type based on service category (case-insensitive match)
+            if (serviceCategory) {
+                var catLower = serviceCategory.toLowerCase();
+                var options  = typeSelect.options;
+                var matchedVal = '';
+                // First pass: exact match on label or slug
+                for (var i = 0; i < options.length; i++) {
+                    var optLabel = (options[i].dataset.label || options[i].textContent || '').trim().toLowerCase();
+                    var optVal   = (options[i].value || '').toLowerCase();
+                    if (optLabel === catLower || optVal === catLower) {
+                        matchedVal = options[i].value;
+                        break;
+                    }
+                }
+                // Second pass: slug starts with category (e.g., category "photo" matches slug "photographer")
+                if (!matchedVal) {
+                    for (var j = 0; j < options.length; j++) {
+                        var jLabel = (options[j].dataset.label || options[j].textContent || '').trim().toLowerCase();
+                        var jVal   = (options[j].value || '').toLowerCase();
+                        if (jVal.indexOf(catLower) === 0 || catLower.indexOf(jVal) === 0 ||
+                            jLabel.indexOf(catLower) === 0 || catLower.indexOf(jLabel) === 0) {
+                            matchedVal = options[j].value;
+                            break;
+                        }
+                    }
+                }
+                if (matchedVal) {
+                    typeSelect.value = matchedVal;
+                    typeSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+    }
+
+    // Form validation on submit
+    var form = document.getElementById('assignVendorFromServiceForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!typeSelect.value) {
+                e.preventDefault();
+                typeSelect.focus();
+                alert('Please select a vendor type first.');
+                return;
+            }
+            if (!vendorSelect.value) {
+                e.preventDefault();
+                vendorSelect.focus();
+                alert('Please select a vendor.');
+            }
+        });
+    }
+})();
+</script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
