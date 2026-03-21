@@ -161,7 +161,7 @@ if (isset($_POST['action'])) {
             // If admin also selected a vendor for this service, create the assignment linked to the service row
             $catalog_vendor_id = intval($_POST['catalog_vendor_id'] ?? 0);
             if ($catalog_vendor_id > 0) {
-                $va_id = addVendorAssignment($booking_id, $catalog_vendor_id, $catalog_svc['name'], $final_price, '', $new_service_id);
+                $va_id = addVendorAssignment($booking_id, $catalog_vendor_id, $catalog_svc['name'], 0, '', $new_service_id);
                 if ($va_id) {
                     logActivity($current_user['id'], 'Auto-assigned vendor for catalog service', 'booking_vendor_assignments', $booking_id, "Vendor ID {$catalog_vendor_id} assigned for: {$catalog_svc['name']}");
                     $_SESSION['flash_success'] = 'Service added and vendor assigned successfully!';
@@ -495,6 +495,28 @@ unset($_svc_ids_for_photos);
 $_pkg_ids_for_photos = array_filter(array_unique(array_column($package_services, 'service_id')), fn($id) => intval($id) > 0);
 $package_primary_photos = getPackagePrimaryPhotoUrls(array_values($_pkg_ids_for_photos));
 unset($_pkg_ids_for_photos);
+
+// Batch-fetch design info (name + photo) for services that have a selected design
+$service_design_info = []; // keyed by design_id → ['name' => ..., 'photo' => ...]
+$_all_services_for_design = array_merge($user_services, $admin_services);
+$_design_ids = array_filter(array_unique(array_column($_all_services_for_design, 'design_id')), fn($id) => intval($id) > 0);
+if (!empty($_design_ids)) {
+    try {
+        $_db_conn = getDB();
+        $_ph_d = implode(',', array_fill(0, count($_design_ids), '?'));
+        $_design_stmt = $_db_conn->prepare("SELECT id, name, photo FROM service_designs WHERE id IN ($_ph_d)");
+        $_design_stmt->execute(array_values(array_map('intval', $_design_ids)));
+        foreach ($_design_stmt->fetchAll() as $_design_row) {
+            $service_design_info[(int)$_design_row['id']] = [
+                'name'  => $_design_row['name'] ?? '',
+                'photo' => !empty($_design_row['photo']) ? (rtrim(UPLOAD_URL, '/') . '/' . $_design_row['photo']) : '',
+            ];
+        }
+    } catch (Exception $e) {
+        // Non-fatal; design photo will simply not display
+    }
+}
+unset($_all_services_for_design, $_design_ids, $_db_conn, $_ph_d, $_design_stmt, $_design_row);
 
 // Batch-fetch vendor_type_slug for user services (join additional_services → vendor_types at once)
 $service_vendor_type_slugs = []; // keyed by booking_services.id → vendor_type_slug
@@ -1697,7 +1719,10 @@ unset($_avail_svc);
                                 $service_total   = $service_price * $service_qty;
                                 $svc_id          = (int)$service['id'];
                                 $svc_master_id   = (int)($service['service_id'] ?? 0);
-                                $svc_photo_url   = ($svc_master_id > 0) ? ($service_primary_photos[$svc_master_id] ?? '') : '';
+                                $svc_design_id   = (int)($service['design_id'] ?? 0);
+                                $svc_design      = ($svc_design_id > 0) ? ($service_design_info[$svc_design_id] ?? null) : null;
+                                // Use design photo when available, otherwise fall back to service primary photo
+                                $svc_photo_url   = ($svc_design && !empty($svc_design['photo'])) ? $svc_design['photo'] : (($svc_master_id > 0) ? ($service_primary_photos[$svc_master_id] ?? '') : '');
                                 $svc_vt_slug     = $service_vendor_type_slugs[$svc_id] ?? '';
                                 $svc_vendors     = $vendor_assignments_by_service[$svc_id] ?? [];
                                 $svc_is_admin    = $service['_is_admin'];
@@ -1725,6 +1750,9 @@ unset($_avail_svc);
                                     <div class="flex-grow-1 min-width-0">
                                         <div class="d-flex align-items-center flex-wrap gap-1">
                                             <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
+                                            <?php if ($svc_design): ?>
+                                                <span class="badge bg-success" style="font-size:.65rem;" title="Selected design"><i class="fas fa-palette me-1"></i><?php echo htmlspecialchars($svc_design['name']); ?></span>
+                                            <?php endif; ?>
                                             <?php if (!empty($service['category'])): ?>
                                                 <span class="badge bg-secondary" style="font-size:.65rem;"><?php echo htmlspecialchars($service['category']); ?></span>
                                             <?php endif; ?>
@@ -1791,7 +1819,7 @@ unset($_avail_svc);
                                                 <div class="col-auto">
                                                     <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Amount</label>
                                                     <input type="number" name="assigned_amount" class="form-control form-control-sm"
-                                                           value="<?php echo $service_price; ?>" min="0" step="0.01"
+                                                           value="0" min="0" step="0.01"
                                                            style="width:90px;font-size:.78rem;">
                                                 </div>
                                                 <div class="col-auto">

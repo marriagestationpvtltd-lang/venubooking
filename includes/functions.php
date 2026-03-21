@@ -1423,6 +1423,7 @@ function getBookingDetails($booking_id) {
             $stmt = $db->prepare("
                 SELECT bs.id, bs.booking_id, bs.service_id, bs.service_name, bs.price, 
                        bs.description, bs.category, bs.quantity, bs.added_by,
+                       bs.design_id,
                        (bs.price * bs.quantity) as total_price
                 FROM booking_services bs 
                 WHERE bs.booking_id = ?
