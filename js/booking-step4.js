@@ -269,6 +269,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 card.classList.toggle('selected-design', isSelected);
                 const overlay = card.querySelector('.design-check-overlay');
                 if (overlay) overlay.style.display = isSelected ? '' : 'none';
+                // Hide wrapper column for non-selected designs when a design is selected;
+                // show all wrappers when nothing is selected (deselected state)
+                const wrapper = card.closest('.design-col-item');
+                if (wrapper) {
+                    wrapper.classList.toggle('design-col-hidden', !!(sel && !isSelected));
+                }
             });
         });
     }
