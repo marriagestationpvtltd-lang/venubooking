@@ -381,10 +381,13 @@ CREATE TABLE IF NOT EXISTS site_images (
 
 CREATE TABLE IF NOT EXISTS vendor_types (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    slug VARCHAR(100) NOT NULL UNIQUE,
-    label VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE COMMENT 'Stored in vendors.type column',
+    label VARCHAR(255) NOT NULL COMMENT 'Human-readable display name',
+    status ENUM('active', 'inactive') DEFAULT 'active',
     display_order INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
     INDEX idx_display_order (display_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -914,6 +917,31 @@ BEGIN
             ADD COLUMN show_preview TINYINT(1) DEFAULT 1
             COMMENT 'Show photo previews to users. If 0, only ZIP download is shown'
             AFTER allow_zip_download;
+    END IF;
+
+    -- ---- vendor_types.status --------------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'vendor_types'
+          AND column_name = 'status'
+    ) THEN
+        ALTER TABLE vendor_types
+            ADD COLUMN status ENUM('active', 'inactive') DEFAULT 'active'
+            AFTER label;
+        ALTER TABLE vendor_types ADD INDEX idx_status (status);
+    END IF;
+
+    -- ---- vendor_types.updated_at ----------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'vendor_types'
+          AND column_name = 'updated_at'
+    ) THEN
+        ALTER TABLE vendor_types
+            ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            AFTER created_at;
     END IF;
 
 END$$
