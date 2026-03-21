@@ -133,7 +133,9 @@ CREATE TABLE IF NOT EXISTS additional_services (
     photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional service photo filename in uploads/ directory',
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_additional_services_vendor_type_id (vendor_type_id),
+    FOREIGN KEY (vendor_type_id) REFERENCES vendor_types(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS service_sub_services (
@@ -1094,6 +1096,19 @@ BEGIN
     WHERE s.vendor_type_id IS NULL
       AND s.category IS NOT NULL
       AND s.category <> '';
+
+    -- ---- additional_services.photo (optional service photo) ---------------
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'additional_services'
+          AND column_name  = 'photo'
+    ) THEN
+        ALTER TABLE additional_services
+            ADD COLUMN photo VARCHAR(255) DEFAULT NULL
+                COMMENT 'Optional service photo filename in uploads/ directory'
+            AFTER vendor_type_id;
+    END IF;
 
 END$$
 
