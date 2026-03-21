@@ -490,6 +490,11 @@ $_svc_ids_for_photos = array_filter(array_unique(array_merge(
 $service_primary_photos = getServicePrimaryPhotoUrls(array_values($_svc_ids_for_photos));
 unset($_svc_ids_for_photos);
 
+// Batch-fetch primary photo URLs for package services from service_package_photos
+$_pkg_ids_for_photos = array_filter(array_unique(array_column($package_services, 'service_id')), fn($id) => intval($id) > 0);
+$package_primary_photos = getPackagePrimaryPhotoUrls(array_values($_pkg_ids_for_photos));
+unset($_pkg_ids_for_photos);
+
 // Batch-fetch vendor_type_slug for user services (join additional_services → vendor_types at once)
 $service_vendor_type_slugs = []; // keyed by booking_services.id → vendor_type_slug
 if (!empty($user_services) || !empty($admin_services)) {
@@ -1290,6 +1295,7 @@ unset($_avail_svc);
                         <table class="table table-sm table-bordered mb-0 align-middle" style="font-size:.8rem;">
                             <thead class="table-light">
                                 <tr>
+                                    <th style="width:46px;"></th>
                                     <th>Package</th>
                                     <th class="text-center">Qty</th>
                                     <th class="text-end">Price</th>
@@ -1303,10 +1309,29 @@ unset($_avail_svc);
                                     $pkg_qty   = intval($service['quantity'] ?? 1);
                                     $pkg_total = $pkg_price * $pkg_qty;
                                     $pkg_is_admin_added = isset($service['added_by']) && $service['added_by'] === 'admin';
+                                    $pkg_photo_url = ($service['service_id'] > 0) ? ($package_primary_photos[$service['service_id']] ?? '') : '';
                                 ?>
                                 <tr>
+                                    <td class="text-center align-middle">
+                                        <?php if (!empty($pkg_photo_url)): ?>
+                                        <div class="photo-zoom-wrap mx-auto" style="width:36px;height:36px;">
+                                            <img src="<?php echo htmlspecialchars($pkg_photo_url); ?>"
+                                                 alt="<?php echo htmlspecialchars($service['service_name']); ?>"
+                                                 class="rounded"
+                                                 style="width:36px;height:36px;object-fit:cover;">
+                                            <div class="photo-zoom-popup">
+                                                <img src="<?php echo htmlspecialchars($pkg_photo_url); ?>"
+                                                     alt="<?php echo htmlspecialchars($service['service_name']); ?>">
+                                            </div>
+                                        </div>
+                                        <?php else: ?>
+                                        <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded"
+                                              style="width:36px;height:36px;font-size:.85rem;">
+                                            <i class="fas fa-box-open"></i>
+                                        </span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
-                                        <i class="fas fa-box-open text-primary me-1"></i>
                                         <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
                                         <?php if (!$pkg_is_admin_added): ?>
                                             <span class="badge bg-success ms-1" style="font-size:.65rem;" title="Selected by customer during booking">Customer</span>
@@ -1338,7 +1363,7 @@ unset($_avail_svc);
                             <?php if (count($package_services) > 1): ?>
                             <tfoot>
                                 <tr class="table-light">
-                                    <td colspan="3" class="text-end fw-bold small">Total:</td>
+                                    <td colspan="4" class="text-end fw-bold small">Total:</td>
                                     <td class="text-end"><strong class="text-success"><?php echo formatCurrency($package_services_total); ?></strong></td>
                                     <td></td>
                                 </tr>
@@ -1680,10 +1705,16 @@ unset($_avail_svc);
                                 <!-- Service header row -->
                                 <div class="d-flex align-items-start gap-2 p-2 bg-light">
                                     <?php if (!empty($svc_photo_url)): ?>
-                                    <img src="<?php echo htmlspecialchars($svc_photo_url); ?>"
-                                         alt="<?php echo htmlspecialchars($service['service_name']); ?>"
-                                         class="rounded flex-shrink-0"
-                                         style="width:48px;height:48px;object-fit:cover;">
+                                    <div class="photo-zoom-wrap flex-shrink-0" style="width:48px;height:48px;">
+                                        <img src="<?php echo htmlspecialchars($svc_photo_url); ?>"
+                                             alt="<?php echo htmlspecialchars($service['service_name']); ?>"
+                                             class="rounded"
+                                             style="width:48px;height:48px;object-fit:cover;">
+                                        <div class="photo-zoom-popup">
+                                            <img src="<?php echo htmlspecialchars($svc_photo_url); ?>"
+                                                 alt="<?php echo htmlspecialchars($service['service_name']); ?>">
+                                        </div>
+                                    </div>
                                     <?php else: ?>
                                     <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded flex-shrink-0"
                                           style="width:48px;height:48px;font-size:1.1rem;">
@@ -1781,10 +1812,16 @@ unset($_avail_svc);
                                     ?>
                                     <div class="d-flex align-items-center gap-2 py-1 flex-wrap<?php echo $is_last_va ? '' : ' border-bottom'; ?>" style="font-size:.8rem;">
                                         <?php if (!empty($va_photo_url)): ?>
-                                            <img src="<?php echo htmlspecialchars($va_photo_url); ?>"
-                                                 alt="<?php echo htmlspecialchars($va['vendor_name']); ?>"
-                                                 class="rounded-circle flex-shrink-0"
-                                                 style="width:30px;height:30px;object-fit:cover;">
+                                            <div class="photo-zoom-wrap vendor-zoom flex-shrink-0" style="width:30px;height:30px;">
+                                                <img src="<?php echo htmlspecialchars($va_photo_url); ?>"
+                                                     alt="<?php echo htmlspecialchars($va['vendor_name']); ?>"
+                                                     class="rounded-circle"
+                                                     style="width:30px;height:30px;object-fit:cover;">
+                                                <div class="photo-zoom-popup rounded-circle">
+                                                    <img src="<?php echo htmlspecialchars($va_photo_url); ?>"
+                                                         alt="<?php echo htmlspecialchars($va['vendor_name']); ?>">
+                                                </div>
+                                            </div>
                                         <?php else: ?>
                                             <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded-circle flex-shrink-0"
                                                   style="width:30px;height:30px;font-size:.7rem;">
@@ -3434,6 +3471,44 @@ unset($_avail_svc);
     .payment-breakdown {
         font-size: 0.9rem;
     }
+}
+
+/* ─── Photo Zoom / Lens Effect ─── */
+.photo-zoom-wrap {
+    position: relative;
+    display: inline-flex;
+    cursor: zoom-in;
+    flex-shrink: 0;
+}
+.photo-zoom-wrap .photo-zoom-popup {
+    display: none;
+    position: absolute;
+    z-index: 9999;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 200px;
+    height: 200px;
+    border: 3px solid #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.35);
+    overflow: hidden;
+    background: #f8f9fa;
+    pointer-events: none;
+}
+.photo-zoom-wrap:hover .photo-zoom-popup {
+    display: block;
+}
+.photo-zoom-wrap .photo-zoom-popup img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+/* Vendor circular zoom popup */
+.photo-zoom-wrap.vendor-zoom .photo-zoom-popup {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
 }
 </style>
 
