@@ -29,8 +29,10 @@ $db = getDB();
             <div class="col-md-4">
                 <div id="booking-details">
                     <div class="text-center text-muted py-5">
-                        <i class="fas fa-calendar-day fa-3x mb-3"></i>
-                        <p>Click on a date to view bookings</p>
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading today's bookings...</p>
                     </div>
                 </div>
             </div>
@@ -50,10 +52,10 @@ $db = getDB();
 
 .fc-event {
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     border: none;
-    padding: 2px 5px;
-    margin-bottom: 2px;
+    padding: 1px 4px;
+    margin-bottom: 1px;
 }
 
 .fc-daygrid-day-number {
@@ -67,16 +69,38 @@ $db = getDB();
     background-color: #fff3cd !important;
 }
 
-.booking-count-badge {
-    display: inline-block;
-    background: #4CAF50;
-    color: white;
-    border-radius: 12px;
-    padding: 2px 8px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    margin-left: 5px;
+/* Selected day highlight */
+.fc-daygrid-day.day-selected {
+    box-shadow: inset 0 0 0 2px #0d6efd;
+    border-radius: 4px;
 }
+
+/* Booking count badge - prominently displayed on each date cell */
+.booking-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #198754;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-top: 2px;
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+/* Heat-map coloring for days with many bookings */
+.fc-daygrid-day.has-bookings-1 { background-color: rgba(25, 135, 84, 0.08) !important; }
+.fc-daygrid-day.has-bookings-2 { background-color: rgba(25, 135, 84, 0.16) !important; }
+.fc-daygrid-day.has-bookings-3 { background-color: rgba(25, 135, 84, 0.24) !important; }
+.fc-daygrid-day.has-bookings-many { background-color: rgba(25, 135, 84, 0.32) !important; }
+.fc-day-today.has-bookings-1,
+.fc-day-today.has-bookings-2,
+.fc-day-today.has-bookings-3,
+.fc-day-today.has-bookings-many { background-color: rgba(255, 193, 7, 0.4) !important; }
 
 .nepali-date-cell {
     display: block;
@@ -118,6 +142,78 @@ $db = getDB();
     padding: 15px;
     margin-bottom: 15px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Hover tooltip for quick booking preview */
+.booking-hover-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    padding: 0;
+    min-width: 200px;
+    max-width: 280px;
+    pointer-events: none;
+    font-size: 0.85rem;
+}
+
+.bht-header {
+    background: #0d6efd;
+    color: #fff;
+    padding: 7px 12px;
+    border-radius: 7px 7px 0 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.bht-body {
+    padding: 8px 12px 6px;
+}
+
+.bht-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.bht-item:last-child {
+    border-bottom: none;
+}
+
+.bht-customer {
+    font-weight: 500;
+    color: #212529;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bht-shift {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-left: 6px;
+    text-transform: capitalize;
+}
+
+.bht-more {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.8rem;
+    padding-top: 4px;
+}
+
+.bht-hint {
+    color: #0d6efd;
+    font-size: 0.78rem;
+    text-align: center;
+    padding: 5px 0 2px;
+    border-top: 1px solid #e9ecef;
+    margin-top: 4px;
 }
 </style>
 
@@ -181,31 +277,120 @@ document.addEventListener("DOMContentLoaded", function() {
         return year + "-" + month + "-" + day;
     }
     
-    // Pre-calculated booking counts for performance
+    // Pre-calculated booking counts and event details for tooltip previews
     let bookingCounts = {};
+    let allEventsData = {}; // keyed by date -> array of event extendedProps
+    let hasLoadedInitialDate = false;
+    let selectedDate = null;
+    let activeTooltip = null;
     
-    // Function to add booking count badges to date cells
-    function updateDateCellBadges() {
-        // Remove existing badges first to avoid duplicates
-        document.querySelectorAll(".booking-count-badge").forEach(el => el.remove());
+    // --- Hover tooltip functions ---
+    function showBookingTooltip(cellEl, dateStr) {
+        hideBookingTooltip();
         
-        // Add badges to each date cell
-        document.querySelectorAll(".fc-daygrid-day").forEach(cell => {
+        const count = bookingCounts[dateStr] || 0;
+        if (count === 0) return;
+        
+        const events = allEventsData[dateStr] || [];
+        
+        const tooltip = document.createElement("div");
+        tooltip.className = "booking-hover-tooltip";
+        
+        let bodyHtml = "";
+        events.slice(0, 5).forEach(function(e) {
+            const customer = e.customer_name || "-";
+            const shift = e.shift || "";
+            bodyHtml += `<div class="bht-item">
+                <span class="bht-customer">${customer}</span>
+                <span class="bht-shift">${shift}</span>
+            </div>`;
+        });
+        if (count > 5) {
+            bodyHtml += `<div class="bht-more">+${count - 5} more booking${count - 5 !== 1 ? "s" : ""}...</div>`;
+        }
+        
+        tooltip.innerHTML = `
+            <div class="bht-header">${count} Booking${count !== 1 ? "s" : ""}</div>
+            <div class="bht-body">
+                ${bodyHtml}
+                <div class="bht-hint"><i class="fas fa-hand-pointer"></i> Click to view details</div>
+            </div>
+        `;
+        
+        document.body.appendChild(tooltip);
+        
+        // Position tooltip near the cell, avoiding viewport edges
+        const rect = cellEl.getBoundingClientRect();
+        const tw = tooltip.offsetWidth;
+        const th = tooltip.offsetHeight;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        
+        let left = rect.right + 6;
+        if (left + tw > vw - 8) {
+            left = rect.left - tw - 6;
+        }
+        let top = rect.top;
+        if (top + th > vh - 8) {
+            top = vh - th - 8;
+        }
+        if (top < 8) top = 8;
+        if (left < 8) left = 8;
+        
+        tooltip.style.left = left + "px";
+        tooltip.style.top = top + "px";
+        
+        activeTooltip = tooltip;
+    }
+    
+    function hideBookingTooltip() {
+        if (activeTooltip) {
+            activeTooltip.remove();
+            activeTooltip = null;
+        }
+    }
+    
+    // --- Badge & heat-map update ---
+    function updateDateCellBadges() {
+        // Remove existing badges and heat-map classes
+        document.querySelectorAll(".booking-count-badge").forEach(function(el) { el.remove(); });
+        document.querySelectorAll(".fc-daygrid-day").forEach(function(cell) {
+            cell.classList.remove("has-bookings-1", "has-bookings-2", "has-bookings-3", "has-bookings-many");
+        });
+        
+        // Add badges and heat-map classes to each date cell
+        document.querySelectorAll(".fc-daygrid-day").forEach(function(cell) {
             const dateStr = cell.getAttribute("data-date");
             if (!dateStr) return;
             
             const count = bookingCounts[dateStr] || 0;
-            const dayNumberEl = cell.querySelector(".fc-daygrid-day-number");
+            if (count === 0) return;
             
-            if (count > 0 && dayNumberEl) {
+            // Heat-map background
+            if (count === 1) cell.classList.add("has-bookings-1");
+            else if (count === 2) cell.classList.add("has-bookings-2");
+            else if (count === 3) cell.classList.add("has-bookings-3");
+            else cell.classList.add("has-bookings-many");
+            
+            // Count badge
+            const dayNumberEl = cell.querySelector(".fc-daygrid-day-number");
+            if (dayNumberEl) {
                 const badge = document.createElement("span");
                 badge.className = "booking-count-badge";
+                badge.title = count + " booking" + (count !== 1 ? "s" : "");
                 badge.textContent = count;
                 dayNumberEl.appendChild(badge);
             }
         });
+        
+        // Re-apply selected date highlight
+        if (selectedDate) {
+            const sel = document.querySelector(\`.fc-daygrid-day[data-date="${selectedDate}"]\`);
+            if (sel) sel.classList.add("day-selected");
+        }
     }
     
+    // --- FullCalendar setup ---
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         headerToolbar: {
@@ -213,53 +398,61 @@ document.addEventListener("DOMContentLoaded", function() {
             center: "title",
             right: "dayGridMonth,dayGridWeek"
         },
+        dayMaxEvents: 3,
         events: function(info, successCallback, failureCallback) {
-            // Fetch booking events from API
             fetch("get-calendar-bookings.php?start=" + info.startStr + "&end=" + info.endStr)
-                .then(response => response.json())
-                .then(data => {
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
                     if (data.success) {
-                        // Pre-calculate booking counts
+                        // Reset per-date data
                         bookingCounts = {};
-                        data.events.forEach(event => {
+                        allEventsData = {};
+                        
+                        data.events.forEach(function(event) {
                             const dateStr = event.start;
                             bookingCounts[dateStr] = (bookingCounts[dateStr] || 0) + 1;
+                            if (!allEventsData[dateStr]) allEventsData[dateStr] = [];
+                            allEventsData[dateStr].push(event.extendedProps || {});
                         });
                         successCallback(data.events);
                     } else {
                         failureCallback(data.message || "Failed to load bookings");
                     }
                 })
-                .catch(error => {
+                .catch(function(error) {
                     console.error("Error loading bookings:", error);
                     failureCallback(error);
                 });
         },
-        // Called when events are rendered/updated - update badges after FullCalendar finishes
         eventsSet: function() {
             updateDateCellBadges();
+            
+            // Auto-load today\'s bookings on the very first render
+            if (!hasLoadedInitialDate) {
+                hasLoadedInitialDate = true;
+                const today = formatDateStr(new Date());
+                if (today) {
+                    loadBookingsForDate(today);
+                }
+            }
         },
         dateClick: function(info) {
             loadBookingsForDate(info.dateStr);
         },
         eventClick: function(info) {
             info.jsEvent.preventDefault();
-            // formatDateStr handles both Date objects and strings
             const dateStr = formatDateStr(info.event.start);
             if (dateStr) {
                 loadBookingsForDate(dateStr);
             }
         },
         dayCellDidMount: function(info) {
-            // Add Nepali date to each cell (badges added separately after events load)
-            // Use local date components to avoid UTC timezone conversion issues
             const dateStr = formatDateStr(info.date);
             const dayNumberEl = info.el.querySelector(".fc-daygrid-day-number");
             
             // Add Nepali date
             const nepaliDate = convertToNepaliDate(dateStr);
             if (nepaliDate && dayNumberEl) {
-                // Get just the day and month for compact display
                 const bsParts = nepaliDate.split(" ");
                 if (bsParts.length >= 2 && bsParts[1].length >= 3) {
                     const nepaliSpan = document.createElement("div");
@@ -269,13 +462,30 @@ document.addEventListener("DOMContentLoaded", function() {
                     dayNumberEl.appendChild(nepaliSpan);
                 }
             }
+            
+            // Hover tooltip for quick booking preview
+            info.el.addEventListener("mouseenter", function() {
+                showBookingTooltip(info.el, dateStr);
+            });
+            info.el.addEventListener("mouseleave", function() {
+                hideBookingTooltip();
+            });
         }
     });
     
     calendar.render();
     
-    // Function to load bookings for a specific date
+    // --- Load & display bookings for a date ---
     function loadBookingsForDate(date) {
+        // Update selected date highlight
+        if (selectedDate) {
+            const prev = document.querySelector(\`.fc-daygrid-day[data-date="${selectedDate}"]\`);
+            if (prev) prev.classList.remove("day-selected");
+        }
+        selectedDate = date;
+        const curr = document.querySelector(\`.fc-daygrid-day[data-date="${date}"]\`);
+        if (curr) curr.classList.add("day-selected");
+        
         bookingDetailsEl.innerHTML = `
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
@@ -285,8 +495,8 @@ document.addEventListener("DOMContentLoaded", function() {
         `;
         
         fetch("get-date-bookings.php?date=" + date)
-            .then(response => response.json())
-            .then(data => {
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
                 if (data.success) {
                     displayBookings(date, data.bookings);
                 } else {
@@ -297,7 +507,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     `;
                 }
             })
-            .catch(error => {
+            .catch(function(error) {
                 console.error("Error:", error);
                 bookingDetailsEl.innerHTML = `
                     <div class="alert alert-danger">
@@ -307,9 +517,8 @@ document.addEventListener("DOMContentLoaded", function() {
             });
     }
     
-    // Function to display bookings for a date
+    // --- Render bookings list ---
     function displayBookings(date, bookings) {
-        // Parse date without timezone issues by adding midnight time
         const dateObj = new Date(date + "T00:00:00");
         const formattedDate = dateObj.toLocaleDateString("en-US", {
             weekday: "long",
@@ -318,7 +527,6 @@ document.addEventListener("DOMContentLoaded", function() {
             day: "numeric"
         });
         
-        // Get Nepali date
         const nepaliDate = convertToNepaliDate(date);
         const nepaliDateHtml = nepaliDate ? `<div class="text-success small mt-1"><i class="fas fa-calendar"></i> ${nepaliDate} (BS)</div>` : "";
         
@@ -340,7 +548,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 </div>
             `;
         } else {
-            bookings.forEach(booking => {
+            bookings.forEach(function(booking) {
                 const statusColors = {
                     "confirmed": "success",
                     "pending": "warning",
