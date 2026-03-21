@@ -74,19 +74,17 @@ $db = getDB();
 
 /* Booking count badge - prominently displayed on each date cell */
 .booking-count-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
     background: #198754;
     color: white;
-    border-radius: 50%;
-    width: 22px;
-    height: 22px;
-    font-size: 0.72rem;
+    border-radius: 10px;
+    padding: 2px 7px;
+    font-size: 0.70rem;
     font-weight: 700;
-    margin-top: 2px;
-    line-height: 1;
+    margin-top: 3px;
+    line-height: 1.4;
     box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    white-space: nowrap;
 }
 
 /* Heat-map coloring for days with many bookings */
@@ -374,8 +372,8 @@ document.addEventListener("DOMContentLoaded", function() {
             if (dayNumberEl) {
                 const badge = document.createElement("span");
                 badge.className = "booking-count-badge";
-                badge.title = count + " booking" + (count !== 1 ? "s" : "");
-                badge.textContent = count;
+                badge.title = count + " booking" + (count !== 1 ? "s" : "") + " on this date";
+                badge.textContent = count + (count !== 1 ? " bookings" : " booking");
                 dayNumberEl.appendChild(badge);
             }
         });
