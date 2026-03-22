@@ -1208,6 +1208,38 @@ unset($_avail_svc);
                             $show_confirmation = ($booking['advance_payment_received'] === 1 && strtolower($booking['payment_status']) === 'partial');
                             // Show "Payment Request" when payment status is pending or advance payment not yet received
                             $show_payment_request = (!$show_thankyou && !$show_confirmation);
+                            // Build "Send to All" combo WhatsApp URL list (customer + venue provider + all vendors)
+                            $_cust_wa_url_all = '';
+                            if (!empty($clean_phone)) {
+                                if ($show_thankyou) {
+                                    $_cust_text_all = $thankyou_text;
+                                } elseif ($show_confirmation) {
+                                    $_cust_text_all = $confirmation_text;
+                                } else {
+                                    $_cust_text_all = $whatsapp_text;
+                                }
+                                $_cust_wa_url_all = 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($_cust_text_all);
+                                unset($_cust_text_all);
+                            }
+                            $all_combo_wa_urls = [];
+                            $_combo_has_customer = false;
+                            $_combo_has_venue = false;
+                            $_combo_vendor_count = 0;
+                            if (!empty($_cust_wa_url_all)) {
+                                $all_combo_wa_urls[] = $_cust_wa_url_all;
+                                $_combo_has_customer = true;
+                            }
+                            if (!empty($venue_provider_wa_url)) {
+                                $all_combo_wa_urls[] = $venue_provider_wa_url;
+                                $_combo_has_venue = true;
+                            }
+                            foreach ($combo_wa_urls as $_vwa_all) {
+                                $all_combo_wa_urls[] = $_vwa_all;
+                                $_combo_vendor_count++;
+                            }
+                            unset($_cust_wa_url_all, $_vwa_all);
+                            // "Send to All" button enabled only when booking is confirmed (advance payment received)
+                            $send_all_whatsapp_enabled = ($booking['advance_payment_received'] === 1);
                             ?>
                             <!-- Thank You Message (shown after full payment - payment status is paid) -->
                             <div id="thankyou-section" <?php echo $show_thankyou ? '' : 'style="display:none"'; ?>>
@@ -1326,6 +1358,46 @@ unset($_avail_svc);
                                 <small class="text-muted d-block mt-2">
                                     <i class="fas fa-phone me-1"></i>
                                     <?php echo htmlspecialchars($booking['venue_contact_phone']); ?>
+                                </small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Send WhatsApp to All (combo: customer + venue provider + all vendors) -->
+                    <div class="col-12">
+                        <div class="quick-check-item">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fab fa-whatsapp text-success me-2" style="font-size:1.1rem;"></i>
+                                    <span class="fw-bold small text-uppercase text-muted">Send WhatsApp to All</span>
+                                </div>
+                                <button type="button"
+                                    class="btn btn-success btn-sm"
+                                    id="send-all-whatsapp-btn"
+                                    onclick="sendAllWhatsApp()"
+                                    <?php echo (!$send_all_whatsapp_enabled || empty($all_combo_wa_urls)) ? 'disabled' : ''; ?>>
+                                    <i class="fab fa-whatsapp me-1"></i> Send to All
+                                </button>
+                            </div>
+                            <?php if (!$send_all_whatsapp_enabled): ?>
+                                <small class="text-danger d-block mt-2">
+                                    <i class="fas fa-lock me-1"></i> Available only after advance payment is received (booking confirmed).
+                                </small>
+                            <?php elseif (empty($all_combo_wa_urls)): ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> No contact information available to send messages.
+                                </small>
+                            <?php else: ?>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-users me-1"></i> Sends to:
+                                    <?php
+                                    $_all_recipients = [];
+                                    if ($_combo_has_customer) $_all_recipients[] = 'Customer';
+                                    if ($_combo_has_venue) $_all_recipients[] = 'Venue Provider';
+                                    if ($_combo_vendor_count > 0) $_all_recipients[] = $_combo_vendor_count . ' Vendor' . ($_combo_vendor_count > 1 ? 's' : '');
+                                    echo htmlspecialchars(implode(', ', $_all_recipients));
+                                    unset($_all_recipients);
+                                    ?>
                                 </small>
                             <?php endif; ?>
                         </div>
@@ -3908,5 +3980,36 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 <?php endif; ?>
+
+<script>
+(function() {
+    var allComboWaUrls = <?php echo json_encode($all_combo_wa_urls ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    var WHATSAPP_OPEN_DELAY_MS = 1500;
+
+    window.sendAllWhatsApp = function() {
+        if (!allComboWaUrls || allComboWaUrls.length === 0) return;
+        var btn = document.getElementById('send-all-whatsapp-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Opening...';
+        }
+        var total = allComboWaUrls.length;
+        var idx = 0;
+        function openNext() {
+            if (idx >= total) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i> Send to All';
+                }
+                return;
+            }
+            window.open(allComboWaUrls[idx], '_blank');
+            idx++;
+            setTimeout(openNext, idx < total ? WHATSAPP_OPEN_DELAY_MS : 0);
+        }
+        openNext();
+    };
+})();
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
