@@ -1127,7 +1127,8 @@ function createBooking($data) {
                 $data['menus'] ?? [],
                 $data['guests'],
                 $data['services'] ?? [],
-                $data['selected_designs'] ?? []
+                $data['selected_designs'] ?? [],
+                $data['packages'] ?? []
             );
 
             // Insert booking

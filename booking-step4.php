@@ -244,6 +244,13 @@ $current_total = $totals['grand_total'];
                             Continue <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
+                    <div class="col-12 mt-2 text-center">
+                        <button type="submit" name="skip_packages" value="1"
+                                id="skipPackagesBtn"
+                                class="btn btn-link text-muted">
+                            <i class="fas fa-forward me-1"></i> Skip Packages &rarr;
+                        </button>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -256,6 +263,17 @@ $current_total = $totals['grand_total'];
 const baseTotal = <?php echo json_encode($totals['subtotal']); ?>;
 const taxRate   = <?php echo json_encode($tax_rate); ?>;
 const currency  = <?php echo json_encode(getSetting('currency', 'NPR')); ?>;
+// Uncheck all packages when the Skip button is clicked
+document.addEventListener('DOMContentLoaded', function() {
+    var skipBtn = document.getElementById('skipPackagesBtn');
+    if (skipBtn) {
+        skipBtn.addEventListener('click', function() {
+            document.querySelectorAll('.package-checkbox').forEach(function(c) {
+                c.checked = false;
+            });
+        });
+    }
+});
 </script>
 <?php
 $extra_js = '<script src="' . BASE_URL . '/js/booking-step4.js"></script>';
