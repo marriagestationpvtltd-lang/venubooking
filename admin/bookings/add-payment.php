@@ -24,14 +24,15 @@ $current_user = getCurrentUser();
 $db = getDB();
 
 /**
- * Recalculate and apply booking payment_status, booking_status, and
- * advance_payment_received based on the sum of verified payments.
+ * Recalculate and apply booking payment_status, booking_status,
+ * advance_payment_received, and advance_amount_received based on the
+ * sum of verified payments.
  * Must be called inside an active transaction.
  *
  * @param PDO $db
  * @param int $booking_id
  * @param float $grand_total
- * @return array ['payment_status', 'booking_status', 'advance_payment_received', 'total_verified']
+ * @return array ['payment_status', 'booking_status', 'advance_payment_received', 'advance_amount_received', 'total_verified']
  */
 function applyVerifiedPaymentStatus($db, $booking_id, $grand_total) {
     $stmt = $db->prepare(
@@ -52,15 +53,30 @@ function applyVerifiedPaymentStatus($db, $booking_id, $grand_total) {
 
     $auto = getAutoStatusByPaymentStatus($new_payment_status);
 
+    // Fetch current advance_amount_received so we only update it if not already set
+    $stmtAdv = $db->prepare("SELECT advance_amount_received FROM bookings WHERE id = ?");
+    $stmtAdv->execute([$booking_id]);
+    $current = $stmtAdv->fetch();
+    $current_advance = floatval($current['advance_amount_received'] ?? 0);
+
+    // Set advance_amount_received to total verified when status first becomes partial/paid
+    // and the field has not yet been manually set by admin
+    if ($current_advance <= 0 && $total_verified > 0) {
+        $new_advance_amount = $total_verified;
+    } else {
+        $new_advance_amount = $current_advance;
+    }
+
     $stmt = $db->prepare(
-        "UPDATE bookings SET payment_status = ?, booking_status = ?, advance_payment_received = ? WHERE id = ?"
+        "UPDATE bookings SET payment_status = ?, booking_status = ?, advance_payment_received = ?, advance_amount_received = ? WHERE id = ?"
     );
-    $stmt->execute([$new_payment_status, $auto['booking_status'], $auto['advance_payment_received'], $booking_id]);
+    $stmt->execute([$new_payment_status, $auto['booking_status'], $auto['advance_payment_received'], $new_advance_amount, $booking_id]);
 
     return [
         'payment_status'           => $new_payment_status,
         'booking_status'           => $auto['booking_status'],
         'advance_payment_received' => $auto['advance_payment_received'],
+        'advance_amount_received'  => $new_advance_amount,
         'total_verified'           => $total_verified,
     ];
 }
@@ -147,6 +163,7 @@ try {
             'new_payment_status'       => $result['payment_status'],
             'booking_status'           => $result['booking_status'],
             'advance_payment_received' => $result['advance_payment_received'],
+            'advance_amount_received'  => $result['advance_amount_received'],
             'total_verified'           => $result['total_verified'],
         ]);
 
@@ -205,6 +222,7 @@ try {
             'new_payment_status'       => $result['payment_status'],
             'booking_status'           => $result['booking_status'],
             'advance_payment_received' => $result['advance_payment_received'],
+            'advance_amount_received'  => $result['advance_amount_received'],
             'total_verified'           => $result['total_verified'],
         ]);
 

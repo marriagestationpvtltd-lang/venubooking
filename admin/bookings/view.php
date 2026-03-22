@@ -419,6 +419,8 @@ $advance = [
     'amount' => $payment_summary['advance_amount'],
     'percentage' => $payment_summary['advance_percentage']
 ];
+// Actual advance amount received (manually entered by admin; 0 means not yet set)
+$advance_amount_received = $payment_summary['advance_amount_received'];
 
 // Calculate vendors total for display in the payment breakdown
 $vendors_total = $payment_summary['vendors_total'];
@@ -915,14 +917,7 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                 </tr>
                 <tr>
                     <td class="payment-label">Advance Payment Received:</td>
-                    <td class="payment-value"><?php 
-                        // Display advance amount only if marked as received by admin
-                        if ($booking['advance_payment_received'] === 1) {
-                            echo formatCurrency($advance['amount']);
-                        } else {
-                            echo formatCurrency(0);
-                        }
-                    ?></td>
+                    <td class="payment-value"><?php echo formatCurrency($advance_amount_received); ?></td>
                 </tr>
                 <?php if ($booking['payment_status'] !== 'paid'): ?>
                 <tr class="due-amount-row">
@@ -1021,8 +1016,8 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
 // Prepare WhatsApp data
 $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking['phone']) : '';
 
-// Calculate advance payment based on configured percentage
-$advance = calculateAdvancePayment($booking['grand_total']);
+// $advance (percentage-based required advance) and $advance_amount_received (actual received)
+// were already computed above from calculatePaymentSummary().
 
 // Get payment methods for this booking
 $whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
@@ -1173,14 +1168,25 @@ unset($_avail_svc);
                                     <span class="badge bg-danger ms-auto" id="advance-payment-badge"><i class="fas fa-times-circle me-1"></i>Not Received</span>
                                 <?php endif; ?>
                             </div>
+                            <?php if ($booking['advance_payment_received'] === 1 && $advance_amount_received > 0): ?>
+                                <div class="mt-1">
+                                    <span class="fw-semibold text-success small" id="advance-amount-display">
+                                        <i class="fas fa-check me-1"></i><?php echo formatCurrency($advance_amount_received); ?>
+                                    </span>
+                                </div>
+                            <?php else: ?>
+                                <div class="mt-1" id="advance-amount-display-wrapper">
+                                    <span class="text-muted small" id="advance-amount-display">—</span>
+                                </div>
+                            <?php endif; ?>
                             <small class="text-muted d-block mt-1">
-                                <i class="fas fa-lock me-1"></i>
-                                <strong>Updated – Read Only.</strong> Auto-managed by Payment Status.
+                                <i class="fas fa-info-circle me-1"></i>
+                                Auto-managed by Payment Status. Enter amount below when recording.
                             </small>
                         </div>
                     </div>
 
-                    <!-- Payment Status -->
+                    <!-- Payment Status + Advance Amount Entry (unified) -->
                     <div class="col-md-6">
                         <div class="quick-check-item h-100">
                             <div class="d-flex align-items-center mb-2">
@@ -1200,6 +1206,21 @@ unset($_avail_svc);
                                     <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
                                     <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                                 </select>
+                                <!-- Advance amount input: shown when status is partial or paid -->
+                                <div id="advance-amount-input-wrapper" class="mt-2"
+                                    style="<?php echo in_array($booking['payment_status'], ['partial', 'paid']) ? '' : 'display:none'; ?>">
+                                    <label for="advance-amount-input" class="form-label form-label-sm fw-semibold mb-1 small">
+                                        <i class="fas fa-money-bill-wave text-success me-1"></i>Advance Amount Received
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <input type="number" class="form-control form-control-sm" id="advance-amount-input"
+                                            name="advance_amount" min="0" step="0.01" placeholder="0.00"
+                                            value="<?php echo ($advance_amount_received > 0) ? htmlspecialchars(number_format($advance_amount_received, 2, '.', ''), ENT_QUOTES, 'UTF-8') : ''; ?>">
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Actual advance amount received from customer.</small>
+                                </div>
                                 <small class="text-muted d-block mt-1">Flow: Pending → Partial → Paid. Auto-updates Booking &amp; Advance Payment.</small>
                             </div>
                         </div>
@@ -2872,7 +2893,7 @@ unset($_avail_svc);
                                         Advance Payment Received
                                     </small>
                                 </div>
-                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency($advance['amount']); ?></h5>
+                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency($advance_amount_received > 0 ? $advance_amount_received : $advance['amount']); ?></h5>
                             </div>
                         </div>
                         <?php else: ?>
@@ -3952,22 +3973,66 @@ unset($_avail_svc);
     // Handle payment status change from the View Details dropdown
     const paymentStatusSelect = document.getElementById('payment-status-select');
     if (paymentStatusSelect) {
+        const advanceAmountWrapper = document.getElementById('advance-amount-input-wrapper');
+        const advanceAmountInput   = document.getElementById('advance-amount-input');
+        const csrfTokenVal = <?php echo json_encode($csrf_token_value); ?>;
+
+        // Show/hide advance amount field based on selected status
+        function updateAdvanceFieldVisibility(status) {
+            if (advanceAmountWrapper) {
+                if (status === 'partial' || status === 'paid') {
+                    advanceAmountWrapper.style.display = '';
+                } else {
+                    advanceAmountWrapper.style.display = 'none';
+                }
+            }
+        }
+
+        // Keep advance field visible on page load if already partial/paid
+        updateAdvanceFieldVisibility(paymentStatusSelect.value);
+
         paymentStatusSelect.addEventListener('change', function() {
             const bookingId = this.dataset.bookingId;
             const newStatus = this.value;
             const oldStatus = this.dataset.currentStatus;
             const selectElement = this;
 
+            // Update advance field visibility immediately so user can enter amount before confirming
+            updateAdvanceFieldVisibility(newStatus);
+
+            // When changing to partial, validate advance amount
+            if (newStatus === 'partial') {
+                const advAmt = advanceAmountInput ? parseFloat(advanceAmountInput.value) : NaN;
+                if (isNaN(advAmt) || advAmt <= 0) {
+                    if (!confirm('No advance amount entered. Continue anyway to set status to "Partial" without recording an advance amount?')) {
+                        this.value = oldStatus;
+                        updateAdvanceFieldVisibility(oldStatus);
+                        return;
+                    }
+                }
+            }
+
             if (!confirm('Are you sure you want to change payment status from "' + oldStatus + '" to "' + newStatus + '"?')) {
                 this.value = oldStatus;
+                updateAdvanceFieldVisibility(oldStatus);
                 return;
             }
 
             selectElement.disabled = true;
+            if (advanceAmountInput) advanceAmountInput.disabled = true;
 
             const formData = new FormData();
             formData.append('booking_id', bookingId);
             formData.append('payment_status', newStatus);
+            formData.append('csrf_token', csrfTokenVal);
+
+            // Include advance amount when setting to partial or paid
+            if ((newStatus === 'partial' || newStatus === 'paid') && advanceAmountInput) {
+                const advAmt = advanceAmountInput.value.trim();
+                if (advAmt !== '' && parseFloat(advAmt) >= 0) {
+                    formData.append('advance_amount', advAmt);
+                }
+            }
 
             fetch('update-payment-status.php', {
                 method: 'POST',
@@ -3976,6 +4041,7 @@ unset($_avail_svc);
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 selectElement.disabled = false;
+                if (advanceAmountInput) advanceAmountInput.disabled = false;
 
                 if (data.success) {
                     selectElement.dataset.currentStatus = newStatus;
@@ -4012,6 +4078,18 @@ unset($_avail_svc);
                         }
                     }
 
+                    // Update the advance amount display
+                    const advanceDisplay = document.getElementById('advance-amount-display');
+                    if (advanceDisplay && typeof data.advance_amount_received !== 'undefined') {
+                        if (data.advance_amount_received > 0) {
+                            advanceDisplay.className = 'fw-semibold text-success small';
+                            advanceDisplay.innerHTML = '<i class="fas fa-check me-1"></i>' + '<?php echo addslashes(getSetting('currency', 'NPR')); ?> ' + parseFloat(data.advance_amount_received).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        } else {
+                            advanceDisplay.className = 'text-muted small';
+                            advanceDisplay.textContent = '—';
+                        }
+                    }
+
                     // Update button sections based on new payment status
                     // Show "Thank You" when payment status is paid
                     // Show "Booking Confirmation" when advance payment is received AND status is partial
@@ -4033,6 +4111,12 @@ unset($_avail_svc);
                         requestSection.style.display = showPaymentRequest ? '' : 'none';
                     }
 
+                    // Update "Send to All" button state
+                    const sendAllBtn = document.getElementById('send-all-whatsapp-btn');
+                    if (sendAllBtn) {
+                        sendAllBtn.disabled = !newAdvanceReceived;
+                    }
+
                     var successMsg = 'Payment status updated successfully.';
                     if (data.is_backward) {
                         successMsg += '\n\nNote: You moved the payment status backward in the flow.';
@@ -4040,13 +4124,16 @@ unset($_avail_svc);
                     alert(successMsg);
                 } else {
                     selectElement.value = oldStatus;
+                    updateAdvanceFieldVisibility(oldStatus);
                     // Use a safe static message to avoid displaying unescaped server content
                     alert('Failed to update payment status. Please try again.');
                 }
             })
             .catch(function(error) {
                 selectElement.disabled = false;
+                if (advanceAmountInput) advanceAmountInput.disabled = false;
                 selectElement.value = oldStatus;
+                updateAdvanceFieldVisibility(oldStatus);
                 alert('An error occurred. Please try again.');
                 console.error('Error:', error);
             });
