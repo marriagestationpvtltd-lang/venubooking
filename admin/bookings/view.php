@@ -4061,7 +4061,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 (function() {
     var recipients = <?php echo json_encode($all_combo_wa_data ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    var COUNTDOWN_SECONDS = 30;
+    var COUNTDOWN_SECONDS = 5;
     var countdownTimer = null;
     var currentIdx = 0;
 
