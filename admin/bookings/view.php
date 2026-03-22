@@ -981,28 +981,38 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
 <!-- Page Header -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card shadow-sm border-0">
-            <div class="card-body py-3">
+        <div class="card shadow-sm border-0" style="background:#1e3a5f;">
+            <div class="card-body py-3 px-4">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
-                        <h3 class="mb-1 text-primary">
-                            <i class="fas fa-calendar-check me-2"></i>
-                            Booking #<?php echo htmlspecialchars($booking['booking_number']); ?>
-                        </h3>
-                        <p class="text-muted mb-0 small">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <h3 class="mb-0 text-white fw-bold">
+                                <i class="fas fa-calendar-check me-2 opacity-75"></i>
+                                Booking <span class="opacity-75">#</span><?php echo htmlspecialchars($booking['booking_number']); ?>
+                            </h3>
+                            <span class="badge bg-<?php echo $booking_status_color; ?> fs-6 px-3 py-2">
+                                <?php echo $booking_status_display; ?>
+                            </span>
+                            <span class="badge bg-<?php echo $payment_status_color; ?> fs-6 px-3 py-2">
+                                <i class="fas <?php echo $payment_status_icon; ?> me-1"></i><?php echo $payment_status_display; ?>
+                            </span>
+                        </div>
+                        <p class="text-white mb-0 mt-1 small opacity-75">
                             <i class="far fa-clock me-1"></i>
                             Created on <?php echo date('F d, Y \a\t h:i A', strtotime($booking['created_at'])); ?>
+                            &nbsp;·&nbsp;
+                            <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($booking['full_name']); ?>
                         </p>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
-                        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                        <button onclick="window.print()" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-print me-1"></i> Print
                         </button>
-                        <a href="index.php" class="btn btn-outline-secondary btn-sm">
+                        <a href="index.php" class="btn btn-outline-light btn-sm">
                             <i class="fas fa-arrow-left me-1"></i> Back
                         </a>
-                        <a href="edit.php?id=<?php echo $booking_id; ?>" class="btn btn-warning btn-sm">
-                            <i class="fas fa-edit me-1"></i> Edit
+                        <a href="edit.php?id=<?php echo $booking_id; ?>" class="btn btn-warning btn-sm fw-semibold">
+                            <i class="fas fa-edit me-1"></i> Edit Booking
                         </a>
                     </div>
                 </div>
@@ -1132,9 +1142,9 @@ unset($_avail_svc);
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Quick Check</h5>
-                <small class="opacity-75">Manage statuses &amp; send requests in one place</small>
+            <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-semibold"><i class="fas fa-sliders me-2 opacity-75"></i> Quick Actions</h5>
+                <small class="opacity-75 d-none d-sm-inline">Update status &amp; send messages</small>
             </div>
             <div class="card-body p-3">
                 <div class="row g-3">
@@ -1482,7 +1492,7 @@ unset($_avail_svc);
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="d-flex align-items-center gap-2">
                             <i class="fas fa-box-open text-secondary" style="font-size:.85rem;"></i>
-                            <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.06em;">Packages</span>
+                            <span class="fw-bold text-uppercase text-muted" >Packages</span>
                             <?php if (!empty($package_services)): ?>
                                 <span class="badge bg-primary" style="font-size:.65rem;"><?php echo count($package_services); ?></span>
                             <?php endif; ?>
@@ -1654,8 +1664,8 @@ unset($_avail_svc);
         </div>
         <div class="card shadow-sm border-0 mb-3 booking-section-card" id="section-overview">
             <div class="card-header booking-section-header d-flex align-items-center">
-                <i class="fas fa-id-card me-2 text-info"></i>
-                <span class="fw-bold">Overview</span>
+                <i class="fas fa-address-card me-2 text-primary"></i>
+                <span class="fw-bold">Booking Overview</span>
             </div>
                     <div class="row g-0">
                         <!-- Customer Information -->
@@ -1663,7 +1673,7 @@ unset($_avail_svc);
                             <div class="p-4">
                                 <div class="section-label-premium mb-3">
                                     <span class="section-dot bg-info"></span>
-                                    <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Customer Information</span>
+                                    <span class="fw-bold text-uppercase text-muted" >Customer Information</span>
                                 </div>
                                 <div class="compact-field">
                                     <span class="compact-field-label"><i class="fas fa-user-circle text-primary me-1"></i> Name</span>
@@ -1707,7 +1717,7 @@ unset($_avail_svc);
                             <div class="p-4">
                                 <div class="section-label-premium mb-3">
                                     <span class="section-dot bg-success"></span>
-                                    <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Event Details</span>
+                                    <span class="fw-bold text-uppercase text-muted" >Event Details</span>
                                 </div>
                                 <div class="compact-field">
                                     <span class="compact-field-label"><i class="fas fa-building text-primary me-1"></i> Venue</span>
@@ -1783,7 +1793,7 @@ unset($_avail_svc);
                         <div class="mb-4">
                             <div class="section-label-premium mb-2">
                                 <span class="section-dot bg-warning"></span>
-                                <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Selected Menus</span>
+                                <span class="fw-bold text-uppercase text-muted" >Selected Menus</span>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover mb-0 border rounded">
@@ -1872,7 +1882,7 @@ unset($_avail_svc);
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <div class="section-label-premium mb-0">
                                     <span class="section-dot bg-secondary"></span>
-                                    <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Services</span>
+                                    <span class="fw-bold text-uppercase text-muted" >Services</span>
                                     <?php if ($all_display_services_count > 0): ?>
                                         <span class="badge bg-secondary ms-1" style="font-size:.65rem;"><?php echo $all_display_services_count; ?></span>
                                     <?php endif; ?>
@@ -2528,7 +2538,7 @@ unset($_avail_svc);
                         <div class="mb-4">
                             <div class="section-label-premium mb-3">
                                 <span class="section-dot bg-primary"></span>
-                                <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Payment Methods</span>
+                                <span class="fw-bold text-uppercase text-muted" >Payment Methods</span>
                             </div>
                             <?php foreach ($booking_payment_methods as $method): ?>
                             <div class="payment-method-item mb-3 pb-3 <?php echo ($method !== end($booking_payment_methods)) ? 'border-bottom' : ''; ?>">
@@ -2563,7 +2573,7 @@ unset($_avail_svc);
                         <?php if ($tab_payments_count > 0): ?>
                         <div class="section-label-premium mb-3">
                             <span class="section-dot bg-success"></span>
-                            <span class="fw-bold text-uppercase text-muted" style="font-size:.72rem;letter-spacing:.09em;">Payment Transactions</span>
+                            <span class="fw-bold text-uppercase text-muted" >Payment Transactions</span>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover mb-0 border rounded">
@@ -2793,12 +2803,12 @@ unset($_avail_svc);
     <div class="col-lg-4">
         <!-- Booking Overview Card -->
         <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 20px;">
-            <div class="card-header bg-gradient-info text-white">
-                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Booking Overview</h5>
+            <div class="card-header bg-gradient-info text-white py-3">
+                <h5 class="mb-0 fw-semibold"><i class="fas fa-receipt me-2 opacity-75"></i> Payment Summary</h5>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-3">
                 <!-- Status Summary Row -->
-                <div class="mb-3 pb-3 border-bottom">
+                <div class="mb-3 pb-2 border-bottom">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="small text-muted fw-semibold">Booking Status</span>
                         <span class="badge bg-<?php echo $booking_status_color; ?>">
@@ -2823,125 +2833,85 @@ unset($_avail_svc);
 
                 <!-- Payment Summary -->
                 <div>
-                    <h6 class="fw-bold mb-3 text-dark">
-                        <i class="fas fa-calculator text-primary me-2"></i>
-                        Payment Summary
-                    </h6>
-                    
                     <div class="payment-breakdown">
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Hall Price:</span>
-                            <strong class="text-dark"><?php echo formatCurrency($booking['hall_price']); ?></strong>
+                        <div class="d-flex justify-content-between py-1 align-items-center">
+                            <span class="text-muted small">Hall Price</span>
+                            <strong class="text-dark small"><?php echo formatCurrency($booking['hall_price']); ?></strong>
                         </div>
                         <?php if ($booking['menu_total'] > 0): ?>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Menu Total:</span>
-                            <strong class="text-dark"><?php echo formatCurrency($booking['menu_total']); ?></strong>
+                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
+                            <span class="text-muted small">Menu Total</span>
+                            <strong class="text-dark small"><?php echo formatCurrency($booking['menu_total']); ?></strong>
                         </div>
                         <?php endif; ?>
                         <?php if ($booking['services_total'] > 0): ?>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Services Total:</span>
-                            <strong class="text-dark"><?php echo formatCurrency($booking['services_total']); ?></strong>
+                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
+                            <span class="text-muted small">Services Total</span>
+                            <strong class="text-dark small"><?php echo formatCurrency($booking['services_total']); ?></strong>
                         </div>
                         <?php endif; ?>
                         <?php if ($vendors_total > 0): ?>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Vendors Total:</span>
-                            <strong class="text-dark"><?php echo formatCurrency($vendors_total); ?></strong>
+                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
+                            <span class="text-muted small">Vendors Total</span>
+                            <strong class="text-dark small"><?php echo formatCurrency($vendors_total); ?></strong>
                         </div>
                         <?php endif; ?>
-                        <hr class="my-2">
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted">Subtotal:</span>
-                            <strong class="text-dark"><?php echo formatCurrency($booking['subtotal']); ?></strong>
+                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
+                            <span class="text-muted small">Subtotal</span>
+                            <strong class="text-dark small"><?php echo formatCurrency($booking['subtotal']); ?></strong>
                         </div>
                         <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
-                        <div class="d-flex justify-content-between mb-3 align-items-center">
-                            <span class="text-muted">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
-                            <strong class="text-dark"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
+                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
+                            <span class="text-muted small">Tax (<?php echo getSetting('tax_rate', '13'); ?>%)</span>
+                            <strong class="text-dark small"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
                         </div>
                         <?php endif; ?>
-                        <hr class="my-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0 fw-bold">Grand Total:</h5>
-                            <h4 class="mb-0 text-success fw-bold"><?php echo formatCurrency($booking['grand_total']); ?></h4>
+                        <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
+                            <span class="fw-bold text-dark">Grand Total</span>
+                            <span class="fw-bold text-success fs-5"><?php echo formatCurrency($booking['grand_total']); ?></span>
                         </div>
-                        
-                        <?php 
-                        // $advance already calculated before the Quick Check Panel section
-                        ?>
-                        <div class="alert alert-warning mb-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="d-block fw-semibold mb-1">
-                                        <i class="fas fa-hand-holding-usd me-1"></i>
-                                        Advance Required
-                                    </small>
-                                    <small class="text-muted">(<?php echo htmlspecialchars($advance['percentage']); ?>%)</small>
-                                </div>
-                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency($advance['amount']); ?></h5>
-                            </div>
+                    </div>
+
+                    <!-- Advance & Balance rows -->
+                    <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
+                        <?php // $advance already calculated before the Quick Check Panel section ?>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-warning bg-opacity-10 border-bottom">
+                            <span class="fw-semibold text-warning-emphasis">
+                                <i class="fas fa-hand-holding-usd me-2"></i>Advance Required
+                                <small class="fw-normal text-muted ms-1">(<?php echo htmlspecialchars($advance['percentage']); ?>%)</small>
+                            </span>
+                            <strong><?php echo formatCurrency($advance['amount']); ?></strong>
                         </div>
-                        
                         <?php if ($booking['advance_payment_received'] === 1): ?>
-                        <div class="alert alert-success mt-2 mb-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="d-block fw-semibold mb-1">
-                                        <i class="fas fa-check-circle me-1"></i>
-                                        Advance Payment Received
-                                    </small>
-                                </div>
-                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency($advance_amount_received > 0 ? $advance_amount_received : $advance['amount']); ?></h5>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-success bg-opacity-10 border-bottom">
+                            <span class="fw-semibold text-success">
+                                <i class="fas fa-check-circle me-2"></i>Advance Received
+                            </span>
+                            <strong class="text-success"><?php echo formatCurrency($advance_amount_received > 0 ? $advance_amount_received : $advance['amount']); ?></strong>
                         </div>
                         <?php else: ?>
-                        <div class="alert alert-danger mt-2 mb-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="d-block fw-semibold mb-1">
-                                        <i class="fas fa-times-circle me-1"></i>
-                                        Advance Payment Not Received
-                                    </small>
-                                </div>
-                                <h5 class="mb-0 fw-bold"><?php echo formatCurrency(0); ?></h5>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-danger bg-opacity-10 border-bottom">
+                            <span class="fw-semibold text-danger">
+                                <i class="fas fa-times-circle me-2"></i>Advance Not Received
+                            </span>
+                            <strong class="text-danger"><?php echo formatCurrency(0); ?></strong>
                         </div>
                         <?php endif; ?>
-                        
-                        <!-- Balance Due Amount -->
+                        <!-- Balance Due / Fully Paid -->
                         <?php if ($booking['payment_status'] !== 'paid'): ?>
-                        <div class="alert alert-info mt-2 mb-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="d-block fw-semibold mb-1">
-                                        <i class="fas fa-dollar-sign me-1"></i>
-                                        Balance Due Amount
-                                    </small>
-                                    <small class="text-muted">
-                                        <?php if ($booking['advance_payment_received'] === 1): ?>
-                                            (After advance deduction)
-                                        <?php else: ?>
-                                            (Full amount)
-                                        <?php endif; ?>
-                                    </small>
-                                </div>
-                                <h5 class="mb-0 fw-bold text-danger"><?php echo formatCurrency($balance_due); ?></h5>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-primary bg-opacity-10">
+                            <div>
+                                <span class="fw-bold text-primary"><i class="fas fa-money-bill-wave me-2"></i>Balance Due</span>
+                                <small class="text-muted d-block ms-4">
+                                    <?php echo $booking['advance_payment_received'] === 1 ? 'After advance deduction' : 'Full amount outstanding'; ?>
+                                </small>
                             </div>
+                            <strong class="text-danger fs-5"><?php echo formatCurrency($balance_due); ?></strong>
                         </div>
                         <?php else: ?>
-                        <div class="alert alert-success mt-2 mb-0">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="d-block fw-semibold mb-1">
-                                        <i class="fas fa-check-circle me-1"></i>
-                                        Payment Status
-                                    </small>
-                                    <small class="text-muted">All accounts cleared</small>
-                                </div>
-                                <h5 class="mb-0 fw-bold text-success">Fully Paid</h5>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-success bg-opacity-10">
+                            <span class="fw-bold text-success"><i class="fas fa-check-double me-2"></i>Fully Paid</span>
+                            <span class="badge bg-success px-3 py-2">All Cleared</span>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -2953,64 +2923,75 @@ unset($_avail_svc);
 
 <style>
 /* ====================================================
-   PREMIUM BOOKING DETAIL - Enhanced Styles
+   BOOKING DETAIL — Professional Design System
    ==================================================== */
 
-/* Gradient Utilities */
-.bg-gradient-primary  { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.bg-gradient-success  { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-.bg-gradient-info     { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-.bg-gradient-warning  { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-.bg-gradient-secondary{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+/* Header Colour Utilities (clean, muted tones) */
+.bg-gradient-primary   { background: #1e3a5f; }
+.bg-gradient-success   { background: #155a35; }
+.bg-gradient-info      { background: #0c4a6e; }
+.bg-gradient-warning   { background: #92400e; }
+.bg-gradient-secondary { background: #374151; }
 
 /* Cards */
-.card { transition: box-shadow 0.2s ease; }
-.shadow-sm { box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,.075) !important; }
+.card { transition: box-shadow 0.2s ease; border-radius: 10px !important; }
+.shadow-sm { box-shadow: 0 1px 4px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04) !important; }
 
 /* Quick Check */
 .quick-check-item {
-    padding: .875rem 1rem;
-    background: #f8f9fa;
+    padding: 1rem 1.1rem;
+    background: #fff;
     border-radius: 8px;
-    border: 1px solid #e9ecef;
-    transition: background .15s ease, border-color .15s ease;
+    border: 1px solid #e2e8f0;
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 .quick-check-item:hover {
-    background: #f1f3f5;
-    border-color: #ced4da;
+    background: #f8fafc;
+    border-color: #c7d3df;
+    box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+/* Quick check section titles */
+.quick-check-item .fw-bold.small.text-uppercase.text-muted {
+    font-size: .75rem;
+    letter-spacing: .05em;
 }
 
 /* Status Update Form */
 .status-update-form .form-select {
-    border: 2px solid #dee2e6;
-    font-size: .85rem;
+    border: 1.5px solid #dee2e6;
+    font-size: .875rem;
 }
 .status-update-form .form-select:focus {
     border-color: #86b7fe;
-    box-shadow: 0 0 0 .2rem rgba(13,110,253,.15);
+    box-shadow: 0 0 0 .2rem rgba(13,110,253,.12);
 }
 
 /* ─── Booking Section Cards ─── */
 .booking-section-card {
-    border: 1px solid #e0e6ed !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,.06) !important;
+    border: 1px solid #dde3ea !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06) !important;
     border-radius: 10px !important;
     overflow: hidden;
 }
 
 .booking-section-header {
-    background: #fff;
-    padding: .65rem 1.1rem;
-    font-size: .875rem;
-    color: #495057;
-    border-bottom: 2px solid #f0f2f5;
+    background: #f7f9fc;
+    padding: .75rem 1.1rem;
+    font-size: .9rem;
+    color: #374151;
+    border-bottom: 1px solid #e5eaf0;
+    font-weight: 600;
 }
 
 /* ─── Section Label ─── */
 .section-label-premium {
     display: flex;
     align-items: center;
-    gap: .45rem;
+    gap: .5rem;
+}
+.section-label-premium .fw-bold {
+    font-size: .78rem;
+    letter-spacing: .06em;
 }
 .section-dot {
     display: inline-block;
@@ -3024,27 +3005,28 @@ unset($_avail_svc);
 .compact-field {
     display: flex;
     align-items: flex-start;
-    gap: .5rem;
-    padding: .42rem 0;
-    border-bottom: 1px solid #f0f2f5;
+    gap: .75rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid #f0f4f8;
     font-size: .875rem;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 .compact-field:last-child { border-bottom: none; }
 .compact-field-label {
-    flex: 0 0 80px;
-    color: #8a93a2;
-    font-size: .75rem;
+    flex: 0 0 110px;
+    color: #64748b;
+    font-size: .78rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: .04em;
     white-space: nowrap;
-    padding-top: .05rem;
+    padding-top: .1rem;
 }
 .compact-field-value {
     flex: 1;
-    color: #1a202c;
+    color: #1e293b;
     word-break: break-word;
+    font-weight: 500;
 }
 
 /* Border between two columns on md+ */
@@ -3054,9 +3036,10 @@ unset($_avail_svc);
 
 /* ─── Payment Breakdown in Sidebar ─── */
 .payment-breakdown {
-    background: #f8f9fa;
-    padding: .875rem 1rem;
+    background: #f8fafc;
+    padding: 1rem 1.1rem;
     border-radius: 8px;
+    border: 1px solid #e8edf2;
 }
 
 /* ─── Service Description ─── */
@@ -3076,10 +3059,21 @@ unset($_avail_svc);
 .payment-method-item:hover { background: #f8f9fa; border-radius: 8px; }
 
 /* ─── Badges ─── */
-.badge { font-weight: 500; letter-spacing: .04em; }
+.badge { font-weight: 500; letter-spacing: .03em; }
 
 /* ─── Table tweaks ─── */
 .table-hover tbody tr { transition: background .15s ease; }
+.table th { font-size: .8rem; letter-spacing: .03em; }
+
+/* ─── Service card row ─── */
+.border.rounded.mb-2 { border-color: #e2e8f0 !important; }
+.border.rounded.mb-2 .bg-light { background-color: #f8fafc !important; }
+
+/* ─── Form controls sizing ─── */
+.form-select-sm, .form-control-sm { font-size: .85rem; }
+
+/* ─── Payment status select ─── */
+.payment-status-select { font-size: .875rem; }
 
 /* Print styles */
 .print-invoice-only { display: none; }
@@ -3808,13 +3802,18 @@ unset($_avail_svc);
     .quick-action-section {
         margin-bottom: 1rem;
     }
-    
-    .status-update-form .col-md-4 {
-        margin-top: 0.5rem;
+    .compact-field-label {
+        flex: 0 0 90px;
     }
-    
     .payment-breakdown {
-        font-size: 0.9rem;
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .compact-field-label {
+        flex: 0 0 80px;
+        font-size: .72rem;
     }
 }
 
