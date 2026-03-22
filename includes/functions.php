@@ -2673,17 +2673,26 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <span>Grand Total:</span>
                         <span><?php echo formatCurrency($booking['grand_total']); ?></span>
                     </div>
-                    <?php if ($type === 'payment_request'): ?>
+                    <?php if ($type === 'payment_request' || $type === 'confirmed'): ?>
                         <?php 
                         $adv_info2 = getAdvanceDisplayInfo(
                             floatval($booking['grand_total']),
                             floatval($booking['advance_amount_received'] ?? 0)
                         );
+                        if ($adv_info2['amount'] > 0):
                         ?>
+                        <?php if ($type === 'payment_request'): ?>
                         <div class="cost-row" style="margin-top: 10px; border-top: 1px solid #ddd; background-color: #fff3cd; padding: 10px; border-radius: 3px;">
                             <span><strong>Advance Payment Required<?php echo ($adv_info2['label'] ? ' ' . $adv_info2['label'] : ''); ?>:</strong></span>
                             <span style="color: #856404; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($adv_info2['amount']); ?></span>
                         </div>
+                        <?php else: ?>
+                        <div class="cost-row" style="margin-top: 10px; border-top: 1px solid #ddd; background-color: #d4edda; padding: 10px; border-radius: 3px;">
+                            <span><strong>Advance Received<?php echo ($adv_info2['label'] ? ' ' . $adv_info2['label'] : ''); ?>:</strong></span>
+                            <span style="color: #155724; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($adv_info2['amount']); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 

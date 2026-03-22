@@ -1074,6 +1074,14 @@ if (!empty($booking['venue_address'])) {
 if (!empty($booking['map_link'])) {
     $confirmation_text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
 }
+$confirmation_adv_info = getAdvanceDisplayInfo(
+    floatval($booking['grand_total']),
+    floatval($booking['advance_amount_received'] ?? 0)
+);
+if ($confirmation_adv_info['amount'] > 0) {
+    $adv_label = $confirmation_adv_info['label'] ? ' ' . $confirmation_adv_info['label'] : '';
+    $confirmation_text .= "\n💰 *Advance Received" . $adv_label . ":* " . formatCurrency($confirmation_adv_info['amount']) . "\n";
+}
 if (!empty($booking_confirmation_vendors)) {
     $confirmation_text .= "\n👥 *Your Team*\n";
     foreach ($booking_confirmation_vendors as $va) {
