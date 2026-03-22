@@ -1824,12 +1824,12 @@ unset($_avail_svc);
                                         <span class="badge bg-secondary ms-1" style="font-size:.65rem;"><?php echo $all_display_services_count; ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <?php if ($combo_all_assigned && !empty($combo_wa_urls)): ?>
+                                <?php if (!empty($combo_wa_urls)): ?>
                                 <div class="d-flex gap-1">
                                     <button type="button" class="btn btn-sm btn-success py-0 px-2" id="combo-wa-btn"
                                             onclick="sendAllVendorWhatsApp()"
                                             title="Send WhatsApp message to all assigned vendors one by one">
-                                        <i class="fab fa-whatsapp me-1"></i>WhatsApp All
+                                        <i class="fab fa-whatsapp me-1"></i>WhatsApp All (<?php echo count($combo_wa_urls); ?>)
                                     </button>
                                     <?php if (!empty($combo_email_list)): ?>
                                     <form method="POST" style="display:inline;">
@@ -3958,22 +3958,23 @@ document.addEventListener('DOMContentLoaded', function() {
     window.sendAllVendorWhatsApp = function() {
         if (!comboWaUrls || comboWaUrls.length === 0) return;
         var btn = document.getElementById('combo-wa-btn');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Opening...';
-        }
+        var total = comboWaUrls.length;
         var idx = 0;
         function openNext() {
-            if (idx >= comboWaUrls.length) {
+            if (idx >= total) {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i>WhatsApp All';
+                    btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i>WhatsApp All (' + total + ')';
                 }
                 return;
             }
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Opening ' + (idx + 1) + '/' + total + '...';
+            }
             window.open(comboWaUrls[idx], '_blank');
             idx++;
-            setTimeout(openNext, idx < comboWaUrls.length ? 1500 : 0);
+            setTimeout(openNext, idx < total ? 1500 : 0);
         }
         openNext();
     };
@@ -3989,10 +3990,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.sendAllWhatsApp = function() {
         if (!allComboWaUrls || allComboWaUrls.length === 0) return;
         var btn = document.getElementById('send-all-whatsapp-btn');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Opening...';
-        }
         var total = allComboWaUrls.length;
         var idx = 0;
         function openNext() {
@@ -4002,6 +3999,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i> Send to All';
                 }
                 return;
+            }
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Opening ' + (idx + 1) + '/' + total + '...';
             }
             window.open(allComboWaUrls[idx], '_blank');
             idx++;
