@@ -1233,22 +1233,47 @@ unset($_avail_svc);
                                 unset($_cust_text_all);
                             }
                             $all_combo_wa_urls = [];
+                            $all_combo_wa_data = [];
                             $_combo_has_customer = false;
                             $_combo_has_venue = false;
                             $_combo_vendor_count = 0;
                             if (!empty($_cust_wa_url_all)) {
                                 $all_combo_wa_urls[] = $_cust_wa_url_all;
+                                $all_combo_wa_data[] = [
+                                    'url'   => $_cust_wa_url_all,
+                                    'label' => 'Customer',
+                                    'name'  => $booking['full_name'],
+                                    'phone' => $booking['phone'],
+                                ];
                                 $_combo_has_customer = true;
                             }
                             if (!empty($venue_provider_wa_url)) {
                                 $all_combo_wa_urls[] = $venue_provider_wa_url;
+                                $all_combo_wa_data[] = [
+                                    'url'   => $venue_provider_wa_url,
+                                    'label' => 'Venue Provider',
+                                    'name'  => $booking['venue_name'],
+                                    'phone' => $booking['venue_contact_phone'],
+                                ];
                                 $_combo_has_venue = true;
                             }
-                            foreach ($combo_wa_urls as $_vwa_all) {
-                                $all_combo_wa_urls[] = $_vwa_all;
-                                $_combo_vendor_count++;
+                            foreach ($vendor_assignments as $_vwa_va) {
+                                if (!empty($_vwa_va['vendor_phone'])) {
+                                    $_vwa_url = buildVendorAssignmentWhatsAppUrl($_vwa_va['vendor_name'], $_vwa_va['vendor_phone'], $booking);
+                                    if (!empty($_vwa_url)) {
+                                        $all_combo_wa_urls[] = $_vwa_url;
+                                        $_vwa_type_label = getVendorTypeLabel($_vwa_va['vendor_type'] ?? '');
+                                        $all_combo_wa_data[] = [
+                                            'url'   => $_vwa_url,
+                                            'label' => $_vwa_type_label ?: 'Vendor',
+                                            'name'  => $_vwa_va['vendor_name'],
+                                            'phone' => $_vwa_va['vendor_phone'],
+                                        ];
+                                        $_combo_vendor_count++;
+                                    }
+                                }
                             }
-                            unset($_cust_wa_url_all, $_vwa_all);
+                            unset($_cust_wa_url_all, $_vwa_va, $_vwa_url, $_vwa_type_label);
                             // "Send to All" button enabled only when booking is confirmed (advance payment received)
                             $send_all_whatsapp_enabled = ($booking['advance_payment_received'] === 1);
                             ?>
@@ -3707,6 +3732,46 @@ unset($_avail_svc);
 }
 </style>
 
+<!-- Sequential WhatsApp Sender Modal -->
+<div class="modal fade" id="sendAllWaModal" tabindex="-1" aria-labelledby="sendAllWaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
+        <div class="modal-content">
+            <div class="modal-header py-2" style="background:#25D366;">
+                <h6 class="modal-title text-white mb-0" id="sendAllWaModalLabel">
+                    <i class="fab fa-whatsapp me-2"></i>Send WhatsApp to All
+                </h6>
+                <span class="badge bg-white text-success fw-bold ms-2" id="wa-step-counter" style="font-size:.8rem;"></span>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pb-2">
+                <!-- Progress bar -->
+                <div class="progress mb-3" style="height:5px;">
+                    <div class="progress-bar" id="wa-progress-bar"
+                         style="width:0%;background:#25D366;transition:width .4s ease;"></div>
+                </div>
+                <!-- Current recipient card -->
+                <div id="wa-current-card" class="rounded border p-3 mb-3" style="background:#f0fdf4;">
+                    <!-- populated by JS -->
+                </div>
+                <!-- Recipients list -->
+                <div class="border rounded small" id="wa-recipients-list"
+                     style="max-height:160px;overflow-y:auto;background:#fff;">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+            <div class="modal-footer py-2 gap-2 justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="wa-skip-btn">
+                    <i class="fas fa-forward me-1"></i>Skip
+                </button>
+                <button type="button" class="btn btn-sm text-white fw-bold" id="wa-next-btn"
+                        style="background:#25D366;" disabled>
+                    Next <i class="fas fa-arrow-right ms-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     const WHATSAPP_REDIRECT_DELAY = 500; // milliseconds
@@ -3995,31 +4060,193 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 (function() {
-    var allComboWaUrls = <?php echo json_encode($all_combo_wa_urls ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    var WHATSAPP_OPEN_DELAY_MS = 1500;
+    var recipients = <?php echo json_encode($all_combo_wa_data ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    var COUNTDOWN_SECONDS = 30;
+    var countdownTimer = null;
+    var currentIdx = 0;
 
-    window.sendAllWhatsApp = function() {
-        if (!allComboWaUrls || allComboWaUrls.length === 0) return;
-        var btn = document.getElementById('send-all-whatsapp-btn');
-        var total = allComboWaUrls.length;
-        var idx = 0;
-        function openNext() {
-            if (idx >= total) {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i> Send to All';
-                }
+    function esc(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function buildRecipientsList(activeIdx) {
+        if (!recipients.length) return '';
+        var html = '';
+        for (var i = 0; i < recipients.length; i++) {
+            var r = recipients[i];
+            var icon, rowClass;
+            if (i < activeIdx) {
+                icon = '<i class="fas fa-check-circle" style="color:#25D366;"></i>';
+                rowClass = 'text-muted';
+            } else if (i === activeIdx) {
+                icon = '<i class="fas fa-arrow-right text-primary"></i>';
+                rowClass = 'fw-semibold';
+            } else {
+                icon = '<i class="far fa-circle text-secondary"></i>';
+                rowClass = 'text-muted';
+            }
+            html += '<div class="d-flex align-items-center px-3 py-1' + (i === activeIdx ? ' bg-light' : '') + '">' +
+                '<span class="me-2" style="width:16px;text-align:center;">' + icon + '</span>' +
+                '<span class="' + rowClass + ' flex-grow-1 text-truncate">' +
+                '<span class="badge bg-secondary me-1" style="font-size:.6rem;">' + esc(r.label) + '</span>' +
+                esc(r.name) + '</span>' +
+                '<small class="text-muted ms-2" style="white-space:nowrap;">' + esc(r.phone) + '</small>' +
+                '</div>';
+        }
+        return html;
+    }
+
+    function buildCurrentCard(r) {
+        return '<div class="d-flex align-items-center gap-3">' +
+            '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white" ' +
+            'style="width:46px;height:46px;font-size:1.3rem;background:#25D366;">' +
+            '<i class="fab fa-whatsapp"></i></div>' +
+            '<div class="flex-grow-1 overflow-hidden">' +
+            '<div class="mb-1"><span class="badge bg-primary">' + esc(r.label) + '</span></div>' +
+            '<div class="fw-bold text-truncate">' + esc(r.name) + '</div>' +
+            '<div class="small text-muted"><i class="fas fa-phone me-1"></i>' + esc(r.phone) + '</div>' +
+            '</div></div>' +
+            '<div class="mt-3 d-grid">' +
+            '<button type="button" class="btn btn-sm text-white fw-bold" id="wa-open-btn" ' +
+            'style="background:#25D366;">' +
+            '<i class="fab fa-whatsapp me-1"></i>Open WhatsApp</button></div>' +
+            '<div id="wa-countdown-row" class="text-center mt-2 small text-muted" style="min-height:1.2em;"></div>';
+    }
+
+    function getEl(id) { return document.getElementById(id); }
+
+    function updateModal(idx, waOpened) {
+        var r = recipients[idx];
+        var total = recipients.length;
+        getEl('wa-step-counter').textContent = (idx + 1) + ' / ' + total;
+        var pb = getEl('wa-progress-bar');
+        if (pb) pb.style.width = Math.round((idx / total) * 100) + '%';
+        getEl('wa-current-card').innerHTML = buildCurrentCard(r);
+        getEl('wa-recipients-list').innerHTML = buildRecipientsList(idx);
+        getEl('wa-next-btn').disabled = !waOpened;
+        getEl('wa-skip-btn').innerHTML = '<i class="fas fa-forward me-1"></i>Skip';
+
+        getEl('wa-open-btn').onclick = function() {
+            window.open(r.url, '_blank');
+            getEl('wa-open-btn').innerHTML = '<i class="fas fa-check me-1"></i>Opened ✓';
+            getEl('wa-open-btn').disabled = true;
+            getEl('wa-next-btn').disabled = false;
+            startCountdown(idx);
+        };
+    }
+
+    function startCountdown(idx) {
+        clearCountdown();
+        var remaining = COUNTDOWN_SECONDS;
+        var cdRow = getEl('wa-countdown-row');
+        function tick() {
+            if (!cdRow) { clearCountdown(); return; }
+            if (remaining <= 0) {
+                clearCountdown();
+                goNext(idx);
                 return;
             }
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Opening ' + (idx + 1) + '/' + total + '...';
-            }
-            window.open(allComboWaUrls[idx], '_blank');
-            idx++;
-            setTimeout(openNext, idx < total ? WHATSAPP_OPEN_DELAY_MS : 0);
+            cdRow.innerHTML = '<i class="fas fa-clock me-1"></i>Auto-advancing in <strong>' + remaining + 's</strong>…';
+            remaining--;
+            countdownTimer = setTimeout(tick, 1000);
         }
-        openNext();
+        tick();
+    }
+
+    function clearCountdown() {
+        if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
+    }
+
+    function goNext(idx) {
+        clearCountdown();
+        var nextIdx = idx + 1;
+        if (nextIdx >= recipients.length) {
+            showDone();
+        } else {
+            currentIdx = nextIdx;
+            updateModal(nextIdx, false);
+        }
+    }
+
+    function showDone() {
+        clearCountdown();
+        var total = recipients.length;
+        getEl('wa-step-counter').textContent = '✓ Done';
+        var pb = getEl('wa-progress-bar');
+        if (pb) pb.style.width = '100%';
+
+        var doneList = '';
+        for (var i = 0; i < recipients.length; i++) {
+            var r = recipients[i];
+            doneList += '<div class="d-flex align-items-center px-3 py-1">' +
+                '<span class="me-2" style="width:16px;text-align:center;">' +
+                '<i class="fas fa-check-circle" style="color:#25D366;"></i></span>' +
+                '<span class="text-muted flex-grow-1 text-truncate">' +
+                '<span class="badge bg-secondary me-1" style="font-size:.6rem;">' + esc(r.label) + '</span>' +
+                esc(r.name) + '</span>' +
+                '<small class="text-muted ms-2">' + esc(r.phone) + '</small></div>';
+        }
+        getEl('wa-recipients-list').innerHTML = doneList;
+
+        getEl('wa-current-card').innerHTML =
+            '<div class="text-center py-3">' +
+            '<i class="fas fa-check-circle" style="font-size:2.8rem;color:#25D366;"></i>' +
+            '<h6 class="mt-2 fw-bold" style="color:#25D366;">All ' + total + ' sent!</h6>' +
+            '<p class="text-muted small mb-0">WhatsApp was opened for all recipients.</p></div>';
+
+        getEl('wa-skip-btn').innerHTML = '<i class="fas fa-times me-1"></i>Close';
+        getEl('wa-next-btn').style.display = 'none';
+
+        var mainBtn = getEl('send-all-whatsapp-btn');
+        if (mainBtn) {
+            mainBtn.disabled = false;
+            mainBtn.innerHTML = '<i class="fab fa-whatsapp me-1"></i> Send to All';
+        }
+    }
+
+    window.sendAllWhatsApp = function() {
+        if (!recipients || recipients.length === 0) return;
+        var modalEl = getEl('sendAllWaModal');
+        if (!modalEl) return;
+
+        currentIdx = 0;
+        clearCountdown();
+
+        // Reset next button visibility in case showDone() hid it
+        var nextBtn = getEl('wa-next-btn');
+        if (nextBtn) nextBtn.style.display = '';
+
+        updateModal(0, false);
+
+        // Attach Next button handler (once; uses currentIdx closure variable)
+        getEl('wa-next-btn').onclick = function() {
+            goNext(currentIdx);
+        };
+
+        // Skip advances to next recipient; when already in done state it closes the modal
+        getEl('wa-skip-btn').onclick = function() {
+            var inDoneState = (getEl('wa-next-btn').style.display === 'none');
+            if (inDoneState) {
+                bootstrap.Modal.getInstance(modalEl).hide();
+            } else {
+                goNext(currentIdx);
+            }
+        };
+
+        // Attach cleanup listener before showing so it is never missed
+        modalEl.addEventListener('hidden.bs.modal', function onHide() {
+            modalEl.removeEventListener('hidden.bs.modal', onHide);
+            clearCountdown();
+            var mainBtn = getEl('send-all-whatsapp-btn');
+            if (mainBtn) {
+                mainBtn.disabled = false;
+                mainBtn.innerHTML = '<i class="fab fa-whatsapp me-1"></i> Send to All';
+            }
+        });
+
+        var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        bsModal.show();
     };
 })();
 </script>
