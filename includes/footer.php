@@ -1,7 +1,8 @@
     <!-- Footer -->
-    <footer class="bg-dark text-white py-4 mt-5">
+    <footer class="footer-pro text-white mt-5">
+        <div class="footer-top">
         <div class="container">
-            <div class="row">
+            <div class="row g-4 py-5">
                 <div class="col-md-4 mb-3">
                     <h5><?php echo htmlspecialchars(getSetting('site_name', 'Venue Booking System')); ?></h5>
                     <p><?php echo htmlspecialchars(getSetting('footer_about', 'Your perfect venue for every occasion')); ?></p>
@@ -142,10 +143,14 @@
                         </p>
                     <?php endif; ?>
                 </div>
-            </div>
-            <hr class="bg-white">
-            <div class="text-center">
-                <p class="mb-0">
+            </div><!-- /.row -->
+        </div><!-- /.container -->
+        </div><!-- /.footer-top -->
+        <div class="footer-bottom">
+            <div class="container">
+            <hr class="footer-divider">
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-2 py-2">
+                <p class="mb-0 footer-copy">
                     <?php 
                     $copyright_text = getSetting('footer_copyright', '');
                     if (!empty($copyright_text)) {
@@ -155,6 +160,10 @@
                     }
                     ?>
                 </p>
+                <p class="mb-0 footer-copy">
+                    <i class="fas fa-heart text-danger me-1"></i> Made with love in Nepal
+                </p>
+            </div>
             </div>
         </div>
     </footer>

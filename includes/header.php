@@ -81,26 +81,53 @@ if (!empty($meta_title)) {
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success" id="mainNavbar">
         <div class="container">
             <a class="navbar-brand fw-bold" href="<?php echo BASE_URL; ?>/index.php">
                 <?php if (!empty($site_logo)): ?>
                     <img src="<?php echo htmlspecialchars(UPLOAD_URL . $site_logo); ?>" 
                          alt="<?php echo htmlspecialchars($site_name); ?>" 
-                         style="max-height: 40px; max-width: 200px;">
+                         style="max-height: 42px; max-width: 200px;">
                 <?php else: ?>
-                    <i class="fas fa-building"></i> <?php echo htmlspecialchars($site_name); ?>
+                    <i class="fas fa-building me-1"></i><?php echo htmlspecialchars($site_name); ?>
                 <?php endif; ?>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
                     <li class="nav-item">
-                        <a class="nav-link" href="<?php echo BASE_URL; ?>/index.php">Home</a>
+                        <a class="nav-link px-3" href="<?php echo BASE_URL; ?>/index.php">
+                            <i class="fas fa-home me-1 d-lg-none"></i>Home
+                        </a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
+    <script>
+    // Glassmorphism effect: add .navbar-glass class when user scrolls past hero
+    (function() {
+        var nav = document.getElementById('mainNavbar');
+        if (!nav) return;
+        var threshold = 80;
+        var ticking   = false;
+        function update() {
+            if (window.scrollY > threshold) {
+                nav.classList.add('navbar-glass');
+            } else {
+                nav.classList.remove('navbar-glass');
+            }
+            ticking = false;
+        }
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                requestAnimationFrame(update);
+                ticking = true;
+            }
+        }, { passive: true });
+        update();
+    }());
+    </script>

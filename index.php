@@ -20,6 +20,10 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 
 <!-- Hero Section -->
 <section class="hero-section<?php if (!empty($banner_images)): ?> with-banner-image<?php endif; ?>" id="bookingSection">
+    <!-- Decorative floating shapes -->
+    <div class="hero-deco hero-deco-1" aria-hidden="true"></div>
+    <div class="hero-deco hero-deco-2" aria-hidden="true"></div>
+    <div class="hero-deco hero-deco-3" aria-hidden="true"></div>
     <?php if (count($banner_images) > 1): ?>
     <!-- Multi-image banner carousel (fills entire hero as background, auto-plays) -->
     <div id="heroBannerCarousel" class="carousel slide hero-banner-carousel" data-bs-ride="carousel" data-bs-interval="5000">
@@ -40,18 +44,37 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
         <div class="container">
             <div class="row align-items-center py-5 py-lg-0 min-vh-lg-100">
                 <div class="col-lg-6 order-lg-1 order-2 mt-4 mt-lg-0">
-                    <h1 class="display-4 text-white fw-bold mb-4">
+                    <div class="hero-eyebrow">
+                        <span class="eyebrow-dot" aria-hidden="true"></span>
+                        Premium Venue Booking
+                    </div>
+                    <h1 class="display-4 text-white fw-bold mb-3">
                         Book Your Perfect Venue
                     </h1>
-                    <p class="lead text-white mb-5">
-                        Find and book the ideal venue for your wedding, birthday party, corporate event, or any special occasion.
+                    <p class="lead text-white mb-4">
+                        Find and book the ideal venue for your wedding, birthday party, corporate event, or any special occasion. Trusted by 1,000+ happy clients.
                     </p>
+                    <div class="d-flex flex-wrap gap-3 mb-2">
+                        <div class="hero-trust-badge">
+                            <i class="fas fa-shield-alt"></i> Verified Venues
+                        </div>
+                        <div class="hero-trust-badge">
+                            <i class="fas fa-bolt"></i> Instant Confirmation
+                        </div>
+                        <div class="hero-trust-badge">
+                            <i class="fas fa-headset"></i> 24/7 Support
+                        </div>
+                    </div>
                 </div>
                 <div class="col-lg-6 order-lg-2 order-1">
                     <div class="booking-card">
-                        <h4 class="text-center mb-3 text-success">
-                            <i class="fas fa-calendar-check"></i> Start Your Booking
-                        </h4>
+                        <div class="text-center mb-3">
+                            <div class="booking-card-icon mx-auto mb-2">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <h4 class="text-success mb-0">Start Your Booking</h4>
+                            <p class="text-muted small mt-1 mb-0">Fill in your event details to begin</p>
+                        </div>
                         <?php if (!empty($_SESSION['booking_error_flash'])): ?>
                             <div class="alert alert-warning alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-triangle me-2"></i><?php echo sanitize($_SESSION['booking_error_flash']); ?>
@@ -154,16 +177,96 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
                                 <div class="invalid-feedback">Please select an event type.</div>
                             </div>
 
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="fas fa-arrow-right"></i> ONLINE BOOKING
+                            <button type="submit" class="btn btn-success w-100 py-3" style="font-size:1rem;letter-spacing:0.05em;">
+                                <i class="fas fa-calendar-check me-2"></i> ONLINE BOOKING
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
+        <!-- Scroll-down indicator -->
+        <a href="#mainContentStart" class="hero-scroll-down" aria-label="Scroll down to explore">
+            <div class="scroll-arrow-ring"><i class="fas fa-chevron-down" style="font-size:0.8rem;"></i></div>
+            <span>Explore</span>
+        </a>
     </div>
 </section>
+
+<!-- Anchor for scroll-down -->
+<div id="mainContentStart"></div>
+
+<!-- Stats Section -->
+<section class="stats-section reveal" aria-label="Key statistics">
+    <div class="container">
+        <div class="row g-0 justify-content-center">
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-icon-wrap"><i class="fas fa-building"></i></div>
+                    <span class="stat-number"><span class="counter" data-target="10">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-label">Premium Venues</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-icon-wrap"><i class="fas fa-calendar-check"></i></div>
+                    <span class="stat-number"><span class="counter" data-target="500">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-label">Events Done</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-icon-wrap"><i class="fas fa-smile"></i></div>
+                    <span class="stat-number"><span class="counter" data-target="1000">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-label">Happy Clients</span>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-icon-wrap"><i class="fas fa-star"></i></div>
+                    <span class="stat-number"><span class="counter" data-target="5">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-label">Years of Service</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+// Animate stat counters when section enters viewport
+(function() {
+    var counters = document.querySelectorAll('.counter');
+    if (!counters.length) return;
+
+    function animateCounter(el) {
+        var target = parseInt(el.getAttribute('data-target'), 10) || 0;
+        var duration = 1800;
+        var startTime = null;
+        function step(ts) {
+            if (!startTime) startTime = ts;
+            var progress = Math.min((ts - startTime) / duration, 1);
+            var ease = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
+            el.textContent = Math.round(ease * target);
+            if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+
+    var section = document.querySelector('.stats-section');
+    if (!section || !('IntersectionObserver' in window)) {
+        counters.forEach(function(c) { c.textContent = c.getAttribute('data-target'); });
+        return;
+    }
+
+    var triggered = false;
+    var obs = new IntersectionObserver(function(entries) {
+        if (!entries.length || triggered || !entries[0].isIntersecting) return;
+        triggered = true;
+        counters.forEach(animateCounter);
+        obs.disconnect();
+    }, { threshold: 0.3 });
+    obs.observe(section);
+}());
+</script>
 
 <?php
 // Collect all packages from all categories into a single flat list
@@ -184,8 +287,11 @@ if (!empty($service_categories)) {
 <!-- Service Packages Section -->
 <section class="service-packages-section">
     <div class="container">
-        <h2 class="text-center section-title mb-1">हाम्रा सेवा प्याकेजहरू</h2>
-        <p class="text-center section-subtitle mb-4">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+        <div class="text-center mb-4 reveal">
+            <span class="section-eyebrow">Service Packages</span>
+            <h2 class="section-title">हाम्रा सेवा प्याकेजहरू</h2>
+            <p class="section-subtitle mt-2">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+        </div>
 
         <?php if (count($pkg_categories_present) > 1): ?>
         <!-- Package Category Filter Buttons -->
@@ -342,42 +448,46 @@ if (!empty($service_categories)) {
 <!-- Features Section -->
 <section class="features-section py-5">
     <div class="container">
-        <h2 class="text-center section-title mb-5">Why Choose Us</h2>
-        <div class="row g-4">
+        <div class="text-center mb-5 reveal">
+            <span class="section-eyebrow">Why Choose Us</span>
+            <h2 class="section-title">हामीलाई किन छान्ने?</h2>
+            <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">हाम्रो प्रिमियम सेवाले तपाईंको हरेक अनुष्ठानलाई अविस्मरणीय बनाउँछ।</p>
+        </div>
+        <div class="row g-4 reveal-stagger">
             <div class="col-6 col-md-3">
-                <div class="feature-card text-center p-4">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-building fa-3x text-success"></i>
+                <div class="pro-feature-card pfc-green">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-building"></i>
                     </div>
                     <h5>Multiple Venues</h5>
-                    <p>Choose from our premium venues across the city</p>
+                    <p>Choose from our premium venues across the city for every occasion</p>
                 </div>
             </div>
             <div class="col-6 col-md-3">
-                <div class="feature-card text-center p-4">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-utensils fa-3x text-success"></i>
+                <div class="pro-feature-card pfc-orange">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-utensils"></i>
                     </div>
                     <h5>Delicious Menus</h5>
-                    <p>Wide variety of menu options to suit every taste</p>
+                    <p>Wide variety of menu options to suit every taste and budget</p>
                 </div>
             </div>
             <div class="col-6 col-md-3">
-                <div class="feature-card text-center p-4">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-dollar-sign fa-3x text-success"></i>
+                <div class="pro-feature-card pfc-purple">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-tags"></i>
                     </div>
                     <h5>Transparent Pricing</h5>
-                    <p>No hidden charges, clear pricing structure</p>
+                    <p>No hidden charges — clear and upfront pricing for all services</p>
                 </div>
             </div>
             <div class="col-6 col-md-3">
-                <div class="feature-card text-center p-4">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-headset fa-3x text-success"></i>
+                <div class="pro-feature-card pfc-teal">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-headset"></i>
                     </div>
                     <h5>24/7 Support</h5>
-                    <p>Our team is always here to help you</p>
+                    <p>Our dedicated team is always here to help you at every step</p>
                 </div>
             </div>
         </div>
@@ -392,8 +502,11 @@ if (!empty($venues)):
 <!-- Venues Section -->
 <section class="venues-section py-5">
     <div class="container">
-        <h2 class="text-center section-title mb-2">Our Venues</h2>
-        <p class="text-center text-muted mb-4">Explore our premium venues and start booking</p>
+        <div class="text-center mb-4 reveal">
+            <span class="section-eyebrow">Our Venues</span>
+            <h2 class="section-title">हाम्रा प्रिमियम स्थानहरू</h2>
+            <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
+        </div>
 
         <!-- City filter bar — auto-updates from booking form selection -->
         <div class="venues-filter-bar mb-4 d-flex flex-wrap justify-content-center gap-2" id="venueCityFilters">
@@ -532,8 +645,11 @@ if (!empty($gallery_cards)):
 <!-- Gallery Section – Photo Cards -->
 <section class="gallery-section py-5 bg-light">
     <div class="container">
-        <h2 class="text-center section-title mb-2">Our Gallery</h2>
-        <p class="text-center text-muted mb-5">Moments we are proud to capture</p>
+        <div class="text-center mb-5 reveal">
+            <span class="section-eyebrow">Our Gallery</span>
+            <h2 class="section-title">हाम्रा यादगार पलहरू</h2>
+            <p class="text-muted mt-2">Moments we are proud to capture</p>
+        </div>
 
         <div class="photo-cards-grid">
             <?php foreach ($gallery_cards as $ci => $card):
@@ -932,8 +1048,11 @@ if (!empty($work_categories)):
 <!-- Our Work – Folder Gallery Section -->
 <section class="work-photos-section py-5">
     <div class="container">
-        <h2 class="text-center section-title mb-2">Our Work</h2>
-        <p class="text-center text-muted mb-5">Browse our events by category</p>
+        <div class="text-center mb-5 reveal">
+            <span class="section-eyebrow">Portfolio</span>
+            <h2 class="section-title">हाम्रो काम</h2>
+            <p class="text-muted mt-2">Browse our events by category</p>
+        </div>
 
         <!-- Marquee wrapper: cards scroll continuously; hovering pauses the animation -->
         <div class="work-folder-marquee">
@@ -1532,8 +1651,11 @@ if (!empty($vendors)):
 <!-- Vendors Section -->
 <section class="vendors-section py-5">
     <div class="container">
-        <h2 class="text-center section-title mb-2">Our Vendors</h2>
-        <p class="text-center text-muted mb-5">Meet the professionals who make your event special</p>
+        <div class="text-center mb-5 reveal">
+            <span class="section-eyebrow">Our Team</span>
+            <h2 class="section-title">हाम्रा विशेषज्ञहरू</h2>
+            <p class="text-muted mt-2">Meet the professionals who make your event special</p>
+        </div>
 
         <?php if (count($present_vendor_types) > 1): ?>
         <!-- Vendor Category Filter Buttons -->
@@ -1683,8 +1805,11 @@ if (!empty($testimonial_images)):
 <!-- Testimonials Section -->
 <section class="testimonials-section py-5 bg-light">
     <div class="container">
-        <h2 class="text-center section-title mb-2">What Our Clients Say</h2>
-        <p class="text-center text-muted mb-5">Memories made, moments cherished</p>
+        <div class="text-center mb-5 reveal">
+            <span class="section-eyebrow">Testimonials</span>
+            <h2 class="section-title">हाम्रा ग्राहकहरूका विचार</h2>
+            <p class="text-muted mt-2">Memories made, moments cherished</p>
+        </div>
 
         <div id="testimonialsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
             <div class="carousel-inner">
@@ -1751,7 +1876,7 @@ if (!empty($about_images)):
 <section class="about-section py-5">
     <div class="container">
         <div class="row align-items-center g-5">
-            <div class="col-lg-5">
+            <div class="col-lg-5 reveal">
                 <?php if (count($about_images) > 1): ?>
                     <div id="aboutCarousel" class="carousel slide about-carousel" data-bs-ride="carousel" data-bs-interval="4000">
                         <div class="carousel-inner">
@@ -1786,8 +1911,9 @@ if (!empty($about_images)):
                          loading="lazy">
                 <?php endif; ?>
             </div>
-            <div class="col-lg-7">
-                <h2 class="section-title mb-3">About Us</h2>
+            <div class="col-lg-7 reveal">
+                <span class="section-eyebrow">About Us</span>
+                <h2 class="section-title mb-3">हाम्रो बारेमा</h2>
                 <?php
                 $about_desc = '';
                 foreach ($about_images as $aimg) {
@@ -2133,6 +2259,24 @@ if (!empty($about_images)):
     });
 }());
 </script>
+
+<!-- Floating WhatsApp Button -->
+<?php if (!empty($clean_office_whatsapp)): ?>
+<a href="https://wa.me/<?php echo htmlspecialchars($clean_office_whatsapp, ENT_QUOTES, 'UTF-8'); ?>?text=<?php echo rawurlencode('Hello! I would like to book a venue. Please help me.'); ?>"
+   class="floating-wa-btn"
+   target="_blank" rel="noopener noreferrer"
+   aria-label="Contact us on WhatsApp"
+   title="Chat on WhatsApp">
+    <span class="floating-wa-pulse" aria-hidden="true"></span>
+    <i class="fab fa-whatsapp wa-fab-icon"></i>
+    <span class="wa-fab-text">Chat with Us</span>
+</a>
+<?php endif; ?>
+
+<!-- Scroll to Top Button -->
+<button class="scroll-top-fab" id="scrollTopFab" aria-label="Scroll to top" title="Back to top">
+    <i class="fas fa-chevron-up"></i>
+</button>
 
 <?php
 $extra_js = '
@@ -2531,6 +2675,52 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 })();
+</script>
+<script>
+// ── Reveal / entrance animations via IntersectionObserver ──
+(function() {
+    if (!("IntersectionObserver" in window)) {
+        document.querySelectorAll(".reveal, .reveal-stagger").forEach(function(el) {
+            el.classList.add("revealed");
+        });
+        return;
+    }
+    var revealEls = document.querySelectorAll(".reveal, .reveal-stagger");
+    var revealed  = 0;
+    var total     = revealEls.length;
+    var obs = new IntersectionObserver(function(entries) {
+        if (!entries.length) return;
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add("revealed");
+                obs.unobserve(entry.target);
+                revealed++;
+                if (revealed >= total) { obs.disconnect(); }
+            }
+        });
+    }, { threshold: 0.12 });
+    revealEls.forEach(function(el) { obs.observe(el); });
+}());
+</script>
+<script>
+// ── Scroll-to-top button (RAF-throttled) ──
+(function() {
+    var btn = document.getElementById("scrollTopFab");
+    if (!btn) return;
+    var ticking = false;
+    window.addEventListener("scroll", function() {
+        if (!ticking) {
+            requestAnimationFrame(function() {
+                btn.classList.toggle("visible", window.scrollY > 400);
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+    btn.addEventListener("click", function() {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+}());
 </script>
 
 ';
