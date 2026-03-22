@@ -1117,6 +1117,8 @@ foreach ($user_services as $_svc) {
     $user_services_total += floatval($_svc['price'] ?? 0) * intval($_svc['quantity'] ?? 1);
 }
 $booking_payment_methods = getBookingPaymentMethods($booking_id);
+$active_payment_methods  = getActivePaymentMethods();
+$csrf_token_value        = generateCSRFToken();
 // Services tab count: menus, user services, admin services, and packages
 $tab_services_count = count($user_services) + count($admin_services) + count($booking['menus'] ?? []) + count($package_services);
 $tab_payments_count = count($payment_transactions);
@@ -2493,6 +2495,10 @@ unset($_avail_svc);
                 <?php if ($tab_payments_count > 0): ?>
                     <span class="badge bg-success ms-2"><?php echo $tab_payments_count; ?></span>
                 <?php endif; ?>
+                <button type="button" class="btn btn-success btn-sm ms-auto"
+                        data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+                    <i class="fas fa-plus me-1"></i> Record Payment
+                </button>
             </div>
             <div class="p-3">
 
@@ -2548,11 +2554,12 @@ unset($_avail_svc);
                                         <th class="fw-semibold text-end">Amount</th>
                                         <th class="fw-semibold text-center">Status</th>
                                         <th class="fw-semibold text-center">Slip</th>
+                                        <th class="fw-semibold text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($payment_transactions as $payment): ?>
-                                    <tr>
+                                    <tr id="payment-row-<?php echo (int)$payment['id']; ?>">
                                         <td>
                                             <span class="fw-semibold small"><?php echo date('M d, Y', strtotime($payment['payment_date'])); ?></span>
                                             <br><small class="text-muted"><?php echo convertToNepaliDate($payment['payment_date']); ?></small>
@@ -2570,7 +2577,7 @@ unset($_avail_svc);
                                         <td class="text-end">
                                             <strong class="text-success"><?php echo formatCurrency($payment['paid_amount']); ?></strong>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center" id="payment-status-cell-<?php echo (int)$payment['id']; ?>">
                                             <span class="badge bg-<?php
                                                 echo $payment['payment_status'] == 'verified' ? 'success' :
                                                     ($payment['payment_status'] == 'pending' ? 'warning' : 'danger');
@@ -2613,33 +2620,59 @@ unset($_avail_svc);
                                                 <span class="text-muted">—</span>
                                             <?php endif; ?>
                                         </td>
+                                        <td class="text-center" style="white-space:nowrap;">
+                                            <?php if ($payment['payment_status'] !== 'verified'): ?>
+                                                <button type="button" class="btn btn-success btn-sm py-0 px-1 me-1 payment-action-btn"
+                                                        data-payment-id="<?php echo (int)$payment['id']; ?>"
+                                                        data-action-status="verified"
+                                                        title="Verify Payment">
+                                                    <i class="fas fa-check small"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <?php if ($payment['payment_status'] !== 'rejected'): ?>
+                                                <button type="button" class="btn btn-danger btn-sm py-0 px-1 payment-action-btn"
+                                                        data-payment-id="<?php echo (int)$payment['id']; ?>"
+                                                        data-action-status="rejected"
+                                                        title="Reject Payment">
+                                                    <i class="fas fa-times small"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <?php if ($payment['payment_status'] === 'rejected'): ?>
+                                                <button type="button" class="btn btn-warning btn-sm py-0 px-1 payment-action-btn"
+                                                        data-payment-id="<?php echo (int)$payment['id']; ?>"
+                                                        data-action-status="pending"
+                                                        title="Reset to Pending">
+                                                    <i class="fas fa-undo small"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-light border-top border-2">
                                         <td colspan="3" class="text-end fw-bold small">Total Paid:</td>
-                                        <td colspan="3" class="text-end">
+                                        <td colspan="4" class="text-end">
                                             <strong class="text-success fs-6"><?php echo formatCurrency($total_paid); ?></strong>
                                         </td>
                                     </tr>
                                     <tr class="table-light">
                                         <td colspan="3" class="text-end small">Grand Total:</td>
-                                        <td colspan="3" class="text-end">
+                                        <td colspan="4" class="text-end">
                                             <strong><?php echo formatCurrency($booking['grand_total']); ?></strong>
                                         </td>
                                     </tr>
                                     <?php if ($booking['payment_status'] !== 'paid'): ?>
                                     <tr class="table-light">
                                         <td colspan="3" class="text-end small">Balance Due:</td>
-                                        <td colspan="3" class="text-end">
+                                        <td colspan="4" class="text-end">
                                             <strong class="text-danger"><?php echo formatCurrency($balance_due); ?></strong>
                                         </td>
                                     </tr>
                                     <?php else: ?>
                                     <tr class="table-light">
                                         <td colspan="3" class="text-end small">Payment Status:</td>
-                                        <td colspan="3" class="text-end">
+                                        <td colspan="4" class="text-end">
                                             <strong class="text-success"><i class="fas fa-check-circle me-1"></i>Fully Paid</strong>
                                         </td>
                                     </tr>
@@ -2657,6 +2690,83 @@ unset($_avail_svc);
             </div>
         </div><!-- /section-payments -->
     </div><!-- /col-lg-8 -->
+
+<!-- Record Payment Modal -->
+<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-labelledby="recordPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="recordPaymentModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i> Record Payment Received
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="recordPaymentForm" enctype="multipart/form-data" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="record">
+                    <input type="hidden" name="booking_id" value="<?php echo (int)$booking_id; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token_value, ENT_QUOTES, 'UTF-8'); ?>">
+
+                    <div id="recordPaymentAlert" class="alert d-none mb-3" role="alert"></div>
+
+                    <!-- Amount -->
+                    <div class="mb-3">
+                        <label for="rp_paid_amount" class="form-label fw-semibold">
+                            Amount Received <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
+                            <input type="number" class="form-control" id="rp_paid_amount" name="paid_amount"
+                                   min="0.01" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <?php if ($balance_due > 0): ?>
+                            <div class="form-text">Balance due: <strong class="text-danger"><?php echo formatCurrency($balance_due); ?></strong></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="mb-3">
+                        <label for="rp_payment_method_id" class="form-label fw-semibold">Payment Method</label>
+                        <select class="form-select" id="rp_payment_method_id" name="payment_method_id">
+                            <option value="">— Select method (optional) —</option>
+                            <?php foreach ($active_payment_methods as $pm): ?>
+                                <option value="<?php echo (int)$pm['id']; ?>"><?php echo htmlspecialchars($pm['name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- Transaction ID -->
+                    <div class="mb-3">
+                        <label for="rp_transaction_id" class="form-label fw-semibold">Transaction ID / Reference</label>
+                        <input type="text" class="form-control" id="rp_transaction_id" name="transaction_id"
+                               placeholder="e.g. TXN123456 (optional)">
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label for="rp_notes" class="form-label fw-semibold">Notes</label>
+                        <textarea class="form-control" id="rp_notes" name="notes" rows="2"
+                                  placeholder="Optional notes about this payment"></textarea>
+                    </div>
+
+                    <!-- Payment Slip -->
+                    <div class="mb-1">
+                        <label for="rp_payment_slip" class="form-label fw-semibold">Payment Slip / Screenshot</label>
+                        <input type="file" class="form-control" id="rp_payment_slip" name="payment_slip"
+                               accept="image/*">
+                        <div class="form-text">Optional. JPEG, PNG, GIF, WebP — max 5 MB.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="recordPaymentSubmitBtn">
+                        <i class="fas fa-save me-1"></i> Save Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div><!-- /recordPaymentModal -->
 
     <!-- Summary Sidebar -->
     <div class="col-lg-4">
@@ -4242,6 +4352,112 @@ document.addEventListener('DOMContentLoaded', function() {
         var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
         bsModal.show();
     };
+})();
+
+// ---- Record Payment Modal ----
+(function () {
+    var form = document.getElementById('recordPaymentForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        var alertBox  = document.getElementById('recordPaymentAlert');
+        var submitBtn = document.getElementById('recordPaymentSubmitBtn');
+        var amountVal = document.getElementById('rp_paid_amount').value.trim();
+
+        alertBox.className = 'alert d-none mb-3';
+        alertBox.textContent = '';
+
+        if (!amountVal || parseFloat(amountVal) <= 0) {
+            alertBox.className = 'alert alert-danger mb-3';
+            alertBox.textContent = 'Please enter a valid payment amount.';
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving…';
+
+        var formData = new FormData(form);
+
+        fetch('add-payment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Payment';
+
+            if (data.success) {
+                // Reload the page to reflect the new payment and updated statuses
+                window.location.reload();
+            } else {
+                alertBox.className = 'alert alert-danger mb-3';
+                alertBox.textContent = data.message || 'Failed to record payment. Please try again.';
+            }
+        })
+        .catch(function () {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Payment';
+            alertBox.className = 'alert alert-danger mb-3';
+            alertBox.textContent = 'A network error occurred. Please try again.';
+        });
+    });
+
+    // Reset form and alert when modal is closed
+    var modalEl = document.getElementById('recordPaymentModal');
+    if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            form.reset();
+            var alertBox = document.getElementById('recordPaymentAlert');
+            alertBox.className = 'alert d-none mb-3';
+            alertBox.textContent = '';
+        });
+    }
+})();
+
+// ---- Verify / Reject individual payment transactions ----
+(function () {
+    var csrfToken = <?php echo json_encode($csrf_token_value); ?>;
+
+    document.querySelectorAll('.payment-action-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var paymentId    = btn.dataset.paymentId;
+            var actionStatus = btn.dataset.actionStatus;
+            var labelMap     = { verified: 'Verify', rejected: 'Reject', pending: 'Reset to Pending' };
+            var label        = labelMap[actionStatus] || actionStatus;
+
+            if (!confirm('Are you sure you want to ' + label + ' this payment?')) return;
+
+            btn.disabled = true;
+
+            var formData = new FormData();
+            formData.append('action',         'update_status');
+            formData.append('payment_id',     paymentId);
+            formData.append('payment_status', actionStatus);
+            formData.append('csrf_token',     csrfToken);
+
+            fetch('add-payment.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                btn.disabled = false;
+                if (data.success) {
+                    // Reload to reflect updated statuses and balances
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to update payment status.'));
+                }
+            })
+            .catch(function () {
+                btn.disabled = false;
+                alert('A network error occurred. Please try again.');
+            });
+        });
+    });
 })();
 </script>
 
