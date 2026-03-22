@@ -1197,31 +1197,23 @@ unset($_avail_svc);
                                 </span>
                             </div>
                             <div class="payment-status-container">
-                                <select class="form-select form-select-sm payment-status-select"
-                                    id="payment-status-select"
-                                    data-booking-id="<?php echo (int)$booking['id']; ?>"
-                                    data-current-status="<?php echo htmlspecialchars($booking['payment_status'], ENT_QUOTES, 'UTF-8'); ?>">
-                                    <option value="pending" <?php echo ($booking['payment_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="partial" <?php echo ($booking['payment_status'] == 'partial') ? 'selected' : ''; ?>>Partial</option>
-                                    <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
-                                    <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                </select>
-                                <!-- Advance amount input: shown when status is partial or paid -->
-                                <div id="advance-amount-input-wrapper" class="mt-2"
-                                    style="<?php echo in_array($booking['payment_status'], ['partial', 'paid']) ? '' : 'display:none'; ?>">
-                                    <label for="advance-amount-input" class="form-label form-label-sm fw-semibold mb-1 small">
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Auto-updated when payments are recorded.
+                                </p>
+                                <?php if (in_array($booking['payment_status'], ['partial', 'paid']) && $advance_amount_received > 0): ?>
+                                <!-- Advance amount received: read-only display -->
+                                <div class="mt-2">
+                                    <label class="form-label form-label-sm fw-semibold mb-1 small">
                                         <i class="fas fa-money-bill-wave text-success me-1"></i>Advance Amount Received
-                                        <span class="text-danger">*</span>
                                     </label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <input type="number" class="form-control form-control-sm" id="advance-amount-input"
-                                            name="advance_amount" min="0" step="0.01" placeholder="0.00"
-                                            value="<?php echo ($advance_amount_received > 0) ? htmlspecialchars(number_format($advance_amount_received, 2, '.', ''), ENT_QUOTES, 'UTF-8') : ''; ?>">
+                                        <input type="text" class="form-control form-control-sm" readonly
+                                            value="<?php echo htmlspecialchars(number_format($advance_amount_received, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>">
                                     </div>
-                                    <small class="text-muted d-block mt-1">Actual advance amount received from customer.</small>
                                 </div>
-                                <small class="text-muted d-block mt-1">Flow: Pending → Partial → Paid. Auto-updates Booking &amp; Advance Payment.</small>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -3970,177 +3962,7 @@ unset($_avail_svc);
         });
     }
 
-    // Handle payment status change from the View Details dropdown
-    const paymentStatusSelect = document.getElementById('payment-status-select');
-    if (paymentStatusSelect) {
-        const advanceAmountWrapper = document.getElementById('advance-amount-input-wrapper');
-        const advanceAmountInput   = document.getElementById('advance-amount-input');
-        const csrfTokenVal = <?php echo json_encode($csrf_token_value); ?>;
 
-        // Show/hide advance amount field based on selected status
-        function updateAdvanceFieldVisibility(status) {
-            if (advanceAmountWrapper) {
-                if (status === 'partial' || status === 'paid') {
-                    advanceAmountWrapper.style.display = '';
-                } else {
-                    advanceAmountWrapper.style.display = 'none';
-                }
-            }
-        }
-
-        // Keep advance field visible on page load if already partial/paid
-        updateAdvanceFieldVisibility(paymentStatusSelect.value);
-
-        paymentStatusSelect.addEventListener('change', function() {
-            const bookingId = this.dataset.bookingId;
-            const newStatus = this.value;
-            const oldStatus = this.dataset.currentStatus;
-            const selectElement = this;
-
-            // Update advance field visibility immediately so user can enter amount before confirming
-            updateAdvanceFieldVisibility(newStatus);
-
-            // When changing to partial, validate advance amount
-            if (newStatus === 'partial') {
-                const advAmt = advanceAmountInput ? parseFloat(advanceAmountInput.value) : NaN;
-                if (isNaN(advAmt) || advAmt <= 0) {
-                    if (!confirm('No advance amount entered. Continue anyway to set status to "Partial" without recording an advance amount?')) {
-                        this.value = oldStatus;
-                        updateAdvanceFieldVisibility(oldStatus);
-                        return;
-                    }
-                }
-            }
-
-            if (!confirm('Are you sure you want to change payment status from "' + oldStatus + '" to "' + newStatus + '"?')) {
-                this.value = oldStatus;
-                updateAdvanceFieldVisibility(oldStatus);
-                return;
-            }
-
-            selectElement.disabled = true;
-            if (advanceAmountInput) advanceAmountInput.disabled = true;
-
-            const formData = new FormData();
-            formData.append('booking_id', bookingId);
-            formData.append('payment_status', newStatus);
-            formData.append('csrf_token', csrfTokenVal);
-
-            // Include advance amount when setting to partial or paid
-            if ((newStatus === 'partial' || newStatus === 'paid') && advanceAmountInput) {
-                const advAmt = advanceAmountInput.value.trim();
-                if (advAmt !== '' && parseFloat(advAmt) >= 0) {
-                    formData.append('advance_amount', advAmt);
-                }
-            }
-
-            fetch('update-payment-status.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                selectElement.disabled = false;
-                if (advanceAmountInput) advanceAmountInput.disabled = false;
-
-                if (data.success) {
-                    selectElement.dataset.currentStatus = newStatus;
-
-                    // Update the badge color and label
-                    const badge = document.getElementById('payment-status-badge');
-                    if (badge) {
-                        const colorMap = {paid: 'success', partial: 'warning', pending: 'danger', cancelled: 'secondary'};
-                        const labelMap = {paid: 'Paid', partial: 'Partial', pending: 'Pending', cancelled: 'Cancelled'};
-                        badge.className = 'badge bg-' + (colorMap[newStatus] || 'secondary') + ' ms-auto';
-                        badge.textContent = labelMap[newStatus] || newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-                    }
-
-                    // Auto-update Booking Status badge
-                    if (data.booking_status) {
-                        const bookingBadge = document.getElementById('booking-status-badge');
-                        if (bookingBadge) {
-                            const bsColorMap = {pending: 'warning', confirmed: 'success', cancelled: 'danger', completed: 'primary', payment_submitted: 'info'};
-                            const bsLabelMap = {pending: 'Pending', confirmed: 'Confirmed', cancelled: 'Cancelled', completed: 'Order Complete', payment_submitted: 'Payment Submitted'};
-                            bookingBadge.className = 'badge bg-' + (bsColorMap[data.booking_status] || 'info') + ' ms-auto';
-                            bookingBadge.textContent = bsLabelMap[data.booking_status] || data.booking_status;
-                        }
-                    }
-
-                    // Auto-update Advance Payment badge
-                    const advanceBadge = document.getElementById('advance-payment-badge');
-                    if (advanceBadge && typeof data.advance_payment_received !== 'undefined') {
-                        if (data.advance_payment_received === 1) {
-                            advanceBadge.className = 'badge bg-success ms-auto';
-                            advanceBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Received';
-                        } else {
-                            advanceBadge.className = 'badge bg-danger ms-auto';
-                            advanceBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i>Not Received';
-                        }
-                    }
-
-                    // Update the advance amount display
-                    const advanceDisplay = document.getElementById('advance-amount-display');
-                    if (advanceDisplay && typeof data.advance_amount_received !== 'undefined') {
-                        if (data.advance_amount_received > 0) {
-                            var currencyLabel = <?php echo json_encode(getSetting('currency', 'NPR')); ?>;
-                            advanceDisplay.className = 'fw-semibold text-success small';
-                            advanceDisplay.innerHTML = '<i class="fas fa-check me-1"></i>';
-                            advanceDisplay.appendChild(document.createTextNode(currencyLabel + ' ' + parseFloat(data.advance_amount_received).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})));
-                        } else {
-                            advanceDisplay.className = 'text-muted small';
-                            advanceDisplay.textContent = '—';
-                        }
-                    }
-
-                    // Update button sections based on new payment status
-                    // Show "Thank You" when payment status is paid
-                    // Show "Booking Confirmation" when advance payment is received AND status is partial
-                    // Show "Payment Request" otherwise
-                    const newAdvanceReceived = (typeof data.advance_payment_received !== 'undefined')
-                        ? (data.advance_payment_received === 1)
-                        : <?php echo ($booking['advance_payment_received'] === 1) ? 'true' : 'false'; ?>;
-                    const thankyouSection = document.getElementById('thankyou-section');
-                    const confirmSection = document.getElementById('booking-confirmation-section');
-                    const requestSection = document.getElementById('payment-request-section');
-                    if (thankyouSection && confirmSection && requestSection) {
-                        const statusLower = newStatus.toLowerCase();
-                        const showThankyou = (statusLower === 'paid');
-                        const showConfirmation = !showThankyou && newAdvanceReceived && statusLower === 'partial';
-                        const showPaymentRequest = !showThankyou && !showConfirmation;
-
-                        thankyouSection.style.display = showThankyou ? '' : 'none';
-                        confirmSection.style.display = showConfirmation ? '' : 'none';
-                        requestSection.style.display = showPaymentRequest ? '' : 'none';
-                    }
-
-                    // Update "Send to All" button state
-                    const sendAllBtn = document.getElementById('send-all-whatsapp-btn');
-                    if (sendAllBtn) {
-                        sendAllBtn.disabled = !newAdvanceReceived;
-                    }
-
-                    var successMsg = 'Payment status updated successfully.';
-                    if (data.is_backward) {
-                        successMsg += '\n\nNote: You moved the payment status backward in the flow.';
-                    }
-                    alert(successMsg);
-                } else {
-                    selectElement.value = oldStatus;
-                    updateAdvanceFieldVisibility(oldStatus);
-                    // Use a safe static message to avoid displaying unescaped server content
-                    alert('Failed to update payment status. Please try again.');
-                }
-            })
-            .catch(function(error) {
-                selectElement.disabled = false;
-                if (advanceAmountInput) advanceAmountInput.disabled = false;
-                selectElement.value = oldStatus;
-                updateAdvanceFieldVisibility(oldStatus);
-                alert('An error occurred. Please try again.');
-                console.error('Error:', error);
-            });
-        });
-    }
 })();
 
 <?php if ($initial_tab === 'tab-services'): ?>
