@@ -92,7 +92,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
     <div class="container">
         <div class="row align-items-center">
             <div class="col-md-8 col-12">
-                <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?>
+                <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?> <small class="opacity-75">(<?php echo convertToNepaliDate($booking_data['event_date']); ?>)</small>
                 <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
                     <i class="fas fa-clock"></i> <?php echo ucfirst($booking_data['shift']); ?>

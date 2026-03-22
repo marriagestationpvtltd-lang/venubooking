@@ -2827,6 +2827,7 @@ unset($_avail_svc);
                         </span>
                         <span class="small fw-semibold">
                             <?php echo date('M d, Y', strtotime($booking['created_at'])); ?>
+                            <br><small class="text-muted"><?php echo convertToNepaliDate($booking['created_at']); ?></small>
                         </span>
                     </div>
                 </div>

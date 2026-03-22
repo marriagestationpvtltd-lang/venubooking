@@ -289,7 +289,7 @@ $filter_labels = [
                         <!-- Booking Number -->
                         <td>
                             <div class="bm-booking-num"><?php echo htmlspecialchars($booking['booking_number']); ?></div>
-                            <div class="bm-row-sub"><i class="far fa-calendar-alt"></i> <?php echo date('M d, Y', strtotime($booking['created_at'])); ?></div>
+                            <div class="bm-row-sub"><i class="far fa-calendar-alt"></i> <?php echo date('M d, Y', strtotime($booking['created_at'])); ?> <small>(<?php echo convertToNepaliDate($booking['created_at']); ?>)</small></div>
                         </td>
 
                         <!-- Customer -->
@@ -320,6 +320,7 @@ $filter_labels = [
                         <!-- Event Date -->
                         <td>
                             <div class="bm-event-date"><?php echo date('M d, Y', strtotime($booking['event_date'])); ?></div>
+                            <div class="bm-row-sub"><?php echo convertToNepaliDate($booking['event_date']); ?></div>
                             <div class="bm-row-sub">
                                 <i class="fas fa-sun"></i> <?php echo ucfirst($booking['shift']); ?>
                                 <?php if (!empty($booking['start_time']) && !empty($booking['end_time'])): ?>

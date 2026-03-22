@@ -44,7 +44,7 @@ $monthly_data = $stmt->fetchAll();
                     <tbody>
                         <?php foreach ($monthly_data as $data): ?>
                             <tr>
-                                <td><?php echo date('F Y', strtotime($data['month'] . '-01')); ?></td>
+                                <td><?php echo date('F Y', strtotime($data['month'] . '-01')); ?> <small class="text-muted">(<?php echo convertToNepaliDate($data['month'] . '-01'); ?>)</small></td>
                                 <td><?php echo $data['bookings']; ?></td>
                                 <td><?php echo formatCurrency($data['revenue']); ?></td>
                             </tr>

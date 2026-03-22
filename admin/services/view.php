@@ -128,10 +128,12 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <div class="col-md-6 mb-3">
                         <strong>Created:</strong><br>
                         <?php echo date('M d, Y', strtotime($service['created_at'])); ?>
+                        <br><small class="text-muted"><?php echo convertToNepaliDate($service['created_at']); ?></small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <strong>Last Updated:</strong><br>
                         <?php echo date('M d, Y', strtotime($service['updated_at'])); ?>
+                        <br><small class="text-muted"><?php echo convertToNepaliDate($service['updated_at']); ?></small>
                     </div>
                 </div>
             </div>
@@ -161,7 +163,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                     <tr>
                                         <td><?php echo htmlspecialchars($booking['booking_number']); ?></td>
                                         <td><?php echo htmlspecialchars($booking['full_name']); ?></td>
-                                        <td><?php echo date('M d, Y', strtotime($booking['event_date'])); ?></td>
+                                        <td><?php echo date('M d, Y', strtotime($booking['event_date'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($booking['event_date']); ?></small></td>
                                         <td><?php echo formatCurrency($booking['service_price']); ?></td>
                                         <td>
                                             <span class="badge bg-<?php 

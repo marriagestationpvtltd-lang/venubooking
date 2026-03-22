@@ -406,7 +406,7 @@ if ($view_section === 'work_photos' && $view_category === ''):
                                 </div>
                                 <div class="text-muted" style="font-size:.7rem;">
                                     Order: <?php echo $image['display_order']; ?>
-                                    &nbsp;·&nbsp; <?php echo date('M d, Y', strtotime($image['created_at'])); ?>
+                                    &nbsp;·&nbsp; <?php echo date('M d, Y', strtotime($image['created_at'])); ?> (<?php echo convertToNepaliDate($image['created_at']); ?>)
                                 </div>
                                 <!-- Action buttons -->
                                 <div class="d-flex gap-1 mt-2">

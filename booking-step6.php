@@ -658,6 +658,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="mb-2">
                             <small class="text-muted">Date & Time:</small><br>
                             <strong><?php echo date('F d, Y', strtotime($booking_data['event_date'])); ?></strong><br>
+                            <small class="text-muted"><?php echo convertToNepaliDate($booking_data['event_date']); ?></small><br>
                             <small class="text-success">
                                 <?php echo ucfirst($booking_data['shift']); ?>
                                 <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>
@@ -801,7 +802,7 @@ require_once __DIR__ . '/includes/header.php';
                             <div class="mb-3">
                                 <small class="text-muted d-block mb-1"><i class="fas fa-calendar-check me-1"></i>Event</small>
                                 <div><strong><?php echo sanitize($booking_data['event_type']); ?></strong></div>
-                                <div><small><?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?> • <?php echo ucfirst($booking_data['shift']); ?>
+                                <div><small><?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?> (<?php echo convertToNepaliDate($booking_data['event_date']); ?>) • <?php echo ucfirst($booking_data['shift']); ?>
                                 <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>
                                     (<?php echo formatBookingTime($booking_data['start_time']); ?> – <?php echo formatBookingTime($booking_data['end_time']); ?>)
                                 <?php endif; ?></small></div>
