@@ -226,6 +226,7 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         }
     }
+    }
 }
 ?>
 
