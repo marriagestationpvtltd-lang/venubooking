@@ -283,13 +283,10 @@ foreach ($sections as $key => $label) {
         autoUpload: true, // Start upload immediately after file selection
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {
-            console.log('Upload started');
         },
         onUploadProgress: function(percent) {
-            console.log('Upload progress: ' + percent + '%');
         },
         onUploadComplete: function(result) {
-            console.log('Upload complete:', result);
             if (result.uploadedCount > 0 && result.errorCount === 0) {
                 // Redirect to image list after successful upload
                 setTimeout(function() {

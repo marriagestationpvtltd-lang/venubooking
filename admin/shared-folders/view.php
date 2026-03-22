@@ -590,13 +590,10 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         uploadUrl: 'ajax-upload.php',
         chunkUploadUrl: 'ajax-chunk-upload.php',
         onUploadStart: function() {
-            console.log('Upload started');
         },
         onUploadProgress: function(percent) {
-            console.log('Upload progress: ' + percent + '%');
         },
         onUploadComplete: function(result) {
-            console.log('Upload complete:', result);
             if (result.uploadedCount > 0 && result.errorCount === 0) {
                 setTimeout(function() {
                     window.location.href = 'view.php?id=' + <?php echo $folder_id; ?> + '&success=' + result.uploadedCount;
