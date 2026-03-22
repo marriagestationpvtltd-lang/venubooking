@@ -1391,6 +1391,7 @@ function getBookingDetails($booking_id) {
             // Cast numeric fields to proper types to ensure strict comparisons work correctly
             // advance_payment_received is TINYINT(1) DEFAULT 0, so it will never be NULL
             $booking['advance_payment_received'] = (int)$booking['advance_payment_received'];
+            $booking['advance_amount_received'] = floatval($booking['advance_amount_received'] ?? 0);
 
             // Use city name as location when the legacy location field is empty
             if (empty($booking['location']) && !empty($booking['city_name'])) {
@@ -1655,6 +1656,31 @@ function calculateAdvancePayment($total_amount) {
     return [
         'percentage' => $advance_percentage,
         'amount' => $advance_amount
+    ];
+}
+
+/**
+ * Determine the advance payment amount and label to display.
+ *
+ * Returns the actual advance_amount_received if it has been set (> 0),
+ * otherwise falls back to the percentage-calculated advance amount.
+ *
+ * @param float $grand_total          Grand total of the booking
+ * @param float $advance_amount_received Actual advance already received (0 = not yet set)
+ * @return array ['amount' => float, 'label' => string]  label is empty string when using actual amount
+ */
+function getAdvanceDisplayInfo($grand_total, $advance_amount_received) {
+    $advance_amount_received = floatval($advance_amount_received);
+    if ($advance_amount_received > 0) {
+        return [
+            'amount' => $advance_amount_received,
+            'label'  => '',
+        ];
+    }
+    $calc = calculateAdvancePayment($grand_total);
+    return [
+        'amount' => $calc['amount'],
+        'label'  => '(' . htmlspecialchars($calc['percentage'], ENT_QUOTES, 'UTF-8') . '%)',
     ];
 }
 
@@ -2455,14 +2481,17 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <?php elseif ($type === 'payment_request'): ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <?php 
-                        // Calculate advance payment for display in notice
-                        $advance = calculateAdvancePayment($booking['grand_total']);
+                        $adv_info = getAdvanceDisplayInfo(
+                            floatval($booking['grand_total']),
+                            floatval($booking['advance_amount_received'] ?? 0)
+                        );
+                        $advance_display_label = 'Advance Payment Required' . ($adv_info['label'] ? ' ' . $adv_info['label'] : '');
                         ?>
                         <div class="payment-notice">
                             <strong>Payment Request</strong><br>
                             Your booking for <?php echo htmlspecialchars($booking['venue_name']); ?> on <?php echo convertToNepaliDate($booking['event_date']); ?> is almost confirmed.<br><br>
                             <strong>Total Amount:</strong> <?php echo formatCurrency($booking['grand_total']); ?><br>
-                            <strong>Advance Payment (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong> <?php echo formatCurrency($advance['amount']); ?><br><br>
+                            <strong><?php echo $advance_display_label; ?>:</strong> <?php echo formatCurrency($adv_info['amount']); ?><br><br>
                             Please complete the advance payment at your earliest convenience to confirm your booking.
                         </div>
                     <?php elseif ($type === 'confirmed'): ?>
@@ -2646,12 +2675,14 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     </div>
                     <?php if ($type === 'payment_request'): ?>
                         <?php 
-                        // Calculate advance payment based on configured percentage
-                        $advance = calculateAdvancePayment($booking['grand_total']);
+                        $adv_info2 = getAdvanceDisplayInfo(
+                            floatval($booking['grand_total']),
+                            floatval($booking['advance_amount_received'] ?? 0)
+                        );
                         ?>
                         <div class="cost-row" style="margin-top: 10px; border-top: 1px solid #ddd; background-color: #fff3cd; padding: 10px; border-radius: 3px;">
-                            <span><strong>Advance Payment Required (<?php echo htmlspecialchars($advance['percentage']); ?>%):</strong></span>
-                            <span style="color: #856404; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($advance['amount']); ?></span>
+                            <span><strong>Advance Payment Required<?php echo ($adv_info2['label'] ? ' ' . $adv_info2['label'] : ''); ?>:</strong></span>
+                            <span style="color: #856404; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($adv_info2['amount']); ?></span>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -2915,7 +2946,7 @@ function getBookingPayments($booking_id) {
  * - Due Amount = max(0, Grand Total - Paid Amount)
  * 
  * @param int $booking_id Booking ID
- * @return array Payment summary with keys: subtotal, tax_amount, grand_total, total_paid, due_amount, advance_amount, advance_percentage
+ * @return array Payment summary with keys: subtotal, tax_amount, grand_total, total_paid, due_amount, advance_amount, advance_percentage, advance_amount_received
  * @throws Exception if booking_id is invalid or booking not found
  */
 function calculatePaymentSummary($booking_id) {
@@ -2927,8 +2958,9 @@ function calculatePaymentSummary($booking_id) {
     
     $db = getDB();
     
-    // Get booking totals and advance payment status from database
-    $stmt = $db->prepare("SELECT hall_price, menu_total, services_total, subtotal, tax_amount, grand_total, advance_payment_received 
+    // Get booking totals, advance payment status and actual received amount from database
+    $stmt = $db->prepare("SELECT hall_price, menu_total, services_total, subtotal, tax_amount, grand_total,
+                                  advance_payment_received, advance_amount_received
                           FROM bookings WHERE id = ?");
     $stmt->execute([$booking_id]);
     $booking = $stmt->fetch();
@@ -2951,21 +2983,18 @@ function calculatePaymentSummary($booking_id) {
     $vendor_result = $stmt->fetch();
     $vendors_total = floatval($vendor_result['vendors_total']);
 
-    // Calculate due amount
+    // Calculate grand total
     $grand_total = floatval($booking['grand_total']);
-    $due_amount = $grand_total - $total_paid;
+
+    // Actual advance amount received (manually entered by admin)
+    $advance_amount_received = floatval($booking['advance_amount_received'] ?? 0);
+
+    // Due amount = grand total minus all verified payments recorded
+    // (advance is already included in total_paid if recorded via Record Payment)
+    $due_amount = max(0.0, $grand_total - $total_paid);
     
-    // Calculate advance payment info for reference
+    // Calculate advance payment info (percentage-based, for reference display only)
     $advance = calculateAdvancePayment($grand_total);
-    
-    // If advance payment is marked as received, subtract it from balance due
-    // Cast to int for strict type comparison reliability
-    if (isset($booking['advance_payment_received']) && intval($booking['advance_payment_received']) === 1) {
-        $due_amount -= $advance['amount'];
-    }
-    
-    // Ensure due amount is never negative
-    $due_amount = max(0, $due_amount);
     
     return [
         'subtotal' => floatval($booking['subtotal']),
@@ -2975,7 +3004,8 @@ function calculatePaymentSummary($booking_id) {
         'total_paid' => $total_paid,
         'due_amount' => $due_amount,
         'advance_amount' => $advance['amount'],
-        'advance_percentage' => $advance['percentage']
+        'advance_percentage' => $advance['percentage'],
+        'advance_amount_received' => $advance_amount_received,
     ];
 }
 

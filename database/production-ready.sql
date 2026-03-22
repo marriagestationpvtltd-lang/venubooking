@@ -310,6 +310,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     booking_status ENUM('pending', 'payment_submitted', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
     payment_status ENUM('pending', 'partial', 'paid', 'cancelled') DEFAULT 'pending',
     advance_payment_received TINYINT(1) DEFAULT 0 COMMENT 'Whether advance payment has been received (0=No, 1=Yes)',
+    advance_amount_received DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'Actual advance payment amount received from customer (manually entered by admin)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
@@ -319,15 +320,6 @@ CREATE TABLE IF NOT EXISTS bookings (
     INDEX idx_status (booking_status),
     INDEX idx_advance_payment_received (advance_payment_received)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ============================================================================
--- TABLE: booking_menus (link bookings with selected menus)
--- ============================================================================
-CREATE TABLE IF NOT EXISTS booking_menus (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    booking_id INT NOT NULL,
-    menu_id INT NOT NULL,
-    price_per_person DECIMAL(10, 2) NOT NULL,
     number_of_guests INT NOT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
