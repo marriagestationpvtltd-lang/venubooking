@@ -91,7 +91,7 @@ $task_categories = [
                     </span>
                     <span class="text-muted"><i class="fas fa-tag"></i> <?php echo htmlspecialchars($plan['event_type']); ?></span>
                     <?php if ($plan['event_date']): ?>
-                        <span class="text-muted"><i class="fas fa-calendar"></i> <?php echo date('F d, Y', strtotime($plan['event_date'])); ?></span>
+                        <span class="text-muted"><i class="fas fa-calendar"></i> <?php echo date('F d, Y', strtotime($plan['event_date'])); ?> <small>(<?php echo convertToNepaliDate($plan['event_date']); ?>)</small></span>
                     <?php endif; ?>
                     <?php if ($plan['customer_name']): ?>
                         <span class="text-muted"><i class="fas fa-user"></i> <?php echo htmlspecialchars($plan['customer_name']); ?></span>
@@ -228,7 +228,7 @@ $task_categories = [
                         $due     = strtotime($task['due_date']);
                         $today   = strtotime('today');
                         $overdue = $due < $today && $task['status'] !== 'completed';
-                        $due_str = date('M d, Y', $due);
+                        $due_str = date('M d, Y', $due) . ' (' . convertToNepaliDate(date('Y-m-d', $due)) . ')';
                     }
                     $pri_colors = ['low' => 'success', 'medium' => 'warning', 'high' => 'danger'];
                     $pc = $pri_colors[$task['priority']] ?? 'secondary';

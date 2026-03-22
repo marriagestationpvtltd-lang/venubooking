@@ -95,6 +95,7 @@ foreach ($bookings as $booking) {
                     <div class="col-md-6 mb-3">
                         <strong>Customer Since:</strong><br>
                         <?php echo date('M d, Y', strtotime($customer['created_at'])); ?>
+                        <br><small class="text-muted"><?php echo convertToNepaliDate($customer['created_at']); ?></small>
                     </div>
                 </div>
 
@@ -146,6 +147,7 @@ foreach ($bookings as $booking) {
                                         </td>
                                         <td>
                                             <?php echo date('M d, Y', strtotime($booking['event_date'])); ?><br>
+                                            <small class="text-muted"><?php echo convertToNepaliDate($booking['event_date']); ?></small><br>
                                             <small class="text-muted"><?php echo ucfirst($booking['shift']); ?></small>
                                         </td>
                                         <td><?php echo $booking['number_of_guests']; ?></td>

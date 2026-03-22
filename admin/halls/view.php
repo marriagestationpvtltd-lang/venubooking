@@ -140,10 +140,10 @@ $recent_bookings = $bookings_stmt->fetchAll();
 
                 <div class="row">
                     <div class="col-md-6">
-                        <small class="text-muted">Created: <?php echo date('M d, Y', strtotime($hall['created_at'])); ?></small>
+                        <small class="text-muted">Created: <?php echo date('M d, Y', strtotime($hall['created_at'])); ?> (<?php echo convertToNepaliDate($hall['created_at']); ?>)</small>
                     </div>
                     <div class="col-md-6 text-end">
-                        <small class="text-muted">Updated: <?php echo date('M d, Y', strtotime($hall['updated_at'])); ?></small>
+                        <small class="text-muted">Updated: <?php echo date('M d, Y', strtotime($hall['updated_at'])); ?> (<?php echo convertToNepaliDate($hall['updated_at']); ?>)</small>
                     </div>
                 </div>
             </div>
@@ -280,6 +280,7 @@ $recent_bookings = $bookings_stmt->fetchAll();
                                         <strong><?php echo htmlspecialchars($booking['full_name']); ?></strong><br>
                                         <small class="text-muted">
                                             <?php echo date('M d, Y', strtotime($booking['event_date'])); ?><br>
+                                            <span class="text-muted"><?php echo convertToNepaliDate($booking['event_date']); ?></span><br>
                                             <?php echo ucfirst($booking['shift']); ?>
                                         </small>
                                     </div>

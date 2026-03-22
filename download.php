@@ -480,7 +480,7 @@ $whatsapp_number = getSetting('whatsapp_number');
                         <div class="col-6 text-end">
                             <?php if ($photo['expires_at']): ?>
                                 <i class="fas fa-clock"></i>
-                                Expires: <?php echo date('M d, Y', strtotime($photo['expires_at'])); ?>
+                                Expires: <?php echo date('M d, Y', strtotime($photo['expires_at'])); ?> (<?php echo convertToNepaliDate($photo['expires_at']); ?>)
                             <?php else: ?>
                                 <i class="fas fa-infinity"></i>
                                 No expiry

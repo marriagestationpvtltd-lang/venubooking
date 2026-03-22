@@ -132,7 +132,7 @@ $stats = $db->query(
                                 </a>
                             </td>
                             <td><?php echo htmlspecialchars($plan['event_type']); ?></td>
-                            <td><?php echo $plan['event_date'] ? date('M d, Y', strtotime($plan['event_date'])) : '—'; ?></td>
+                            <td><?php if ($plan['event_date']): ?><?php echo date('M d, Y', strtotime($plan['event_date'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($plan['event_date']); ?></small><?php else: ?>—<?php endif; ?></td>
                             <td>
                                 <?php if ($plan['customer_name']): ?>
                                     <?php echo htmlspecialchars($plan['customer_name']); ?>

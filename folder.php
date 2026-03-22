@@ -1300,7 +1300,7 @@ if ($whatsapp_number) {
                             <?php if ($folder['expires_at']): ?>
                                 <span class="stats-badge">
                                     <i class="fas fa-clock text-warning"></i> 
-                                    Expires: <?php echo date('M d, Y', strtotime($folder['expires_at'])); ?>
+                                    Expires: <?php echo date('M d, Y', strtotime($folder['expires_at'])); ?> (<?php echo convertToNepaliDate($folder['expires_at']); ?>)
                                 </span>
                             <?php endif; ?>
                         </div>

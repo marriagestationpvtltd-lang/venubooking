@@ -382,7 +382,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                 <?php endif; ?>
                 
                 <?php if ($folder['expires_at']): ?>
-                    <br><small class="text-muted">Expires: <?php echo date('M d, Y', strtotime($folder['expires_at'])); ?></small>
+                    <br><small class="text-muted">Expires: <?php echo date('M d, Y', strtotime($folder['expires_at'])); ?> (<?php echo convertToNepaliDate($folder['expires_at']); ?>)</small>
                 <?php endif; ?>
             </div>
         </div>

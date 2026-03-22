@@ -92,7 +92,7 @@ $current_total = $totals['grand_total'];
                 <strong><?php echo sanitize($selected_hall['venue_name']); ?> - <?php echo sanitize($selected_hall['name']); ?></strong>
                 <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
-                    <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?>
+                    <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?> <small class="opacity-75">(<?php echo convertToNepaliDate($booking_data['event_date']); ?>)</small>
                     <span class="mx-1">&bull;</span>
                     <i class="fas fa-clock"></i> <?php echo ucfirst($booking_data['shift']); ?>
                     <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>

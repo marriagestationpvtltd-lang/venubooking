@@ -899,7 +899,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="receipt-row"><span class="r-label">Transaction ID</span><span class="r-val" style="font-family:monospace"><?php echo sanitize($payment['transaction_id']); ?></span></div>
                                 <?php endif; ?>
                                 <div class="receipt-row"><span class="r-label">Paid Amount</span><span class="r-val text-success fw-bold"><?php echo formatCurrency($payment['paid_amount']); ?></span></div>
-                                <div class="receipt-row"><span class="r-label">Date</span><span class="r-val"><?php echo date('d M Y, g:i A', strtotime($payment['payment_date'])); ?></span></div>
+                                <div class="receipt-row"><span class="r-label">Date</span><span class="r-val"><?php echo date('d M Y, g:i A', strtotime($payment['payment_date'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($payment['payment_date']); ?></small></span></div>
                                 <div class="receipt-row"><span class="r-label">Status</span>
                                     <span class="status-pill payment" style="font-size:0.72rem;"><?php echo ucfirst($payment['payment_status']); ?></span>
                                 </div>

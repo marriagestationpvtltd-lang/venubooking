@@ -621,7 +621,7 @@ function dashBadge($status) {
 ════════════════════════════════════════════════════════════ -->
 <div class="db-today-banner">
     <div>
-        <div class="today-label">Today — <?php echo date('l, F j, Y'); ?></div>
+        <div class="today-label">Today — <?php echo date('l, F j, Y'); ?> <small class="opacity-75">(<?php echo convertToNepaliDate(date('Y-m-d')); ?>)</small></div>
         <div class="today-val"><?php echo $stats['today_events']; ?></div>
         <div class="today-sub">Event<?php echo $stats['today_events'] != 1 ? 's' : ''; ?> scheduled today</div>
     </div>
@@ -852,7 +852,7 @@ function dashBadge($status) {
                                     </td>
                                     <td><div class="db-customer-name" title="<?php echo htmlspecialchars($bk['full_name']); ?>"><?php echo htmlspecialchars($bk['full_name']); ?></div></td>
                                     <td><div class="db-venue-text" title="<?php echo htmlspecialchars($bk['venue_name'] . ' / ' . $bk['hall_name']); ?>"><?php echo htmlspecialchars($bk['venue_name'] ?? '—'); ?></div></td>
-                                    <td class="db-nowrap"><?php echo date('d M Y', strtotime($bk['event_date'])); ?></td>
+                                    <td class="db-nowrap"><?php echo date('d M Y', strtotime($bk['event_date'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($bk['event_date']); ?></small></td>
                                     <td class="db-amount"><?php echo formatCurrency($bk['grand_total']); ?></td>
                                     <td><?php echo dashBadge($bk['booking_status']); ?></td>
                                 </tr>
@@ -888,6 +888,7 @@ function dashBadge($status) {
                                 <div class="db-event-info">
                                     <div class="db-event-customer"><?php echo htmlspecialchars($ev['full_name']); ?></div>
                                     <div class="db-event-venue"><i class="fas fa-location-dot me-1 db-icon-xs"></i><?php echo htmlspecialchars($ev['venue_name'] ?? '—'); ?><?php if (!empty($ev['hall_name'])): ?> · <?php echo htmlspecialchars($ev['hall_name']); ?><?php endif; ?></div>
+                                    <div style="font-size:0.68rem;color:#6c757d;"><?php echo convertToNepaliDate($ev['event_date']); ?></div>
                                     <?php if (!empty($ev['event_type'])): ?>
                                         <span class="db-event-type"><?php echo htmlspecialchars($ev['event_type']); ?></span>
                                     <?php endif; ?>

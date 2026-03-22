@@ -131,6 +131,7 @@ try {
                     <div class="col-md-6 mb-3">
                         <strong>Created:</strong><br>
                         <?php echo date('M d, Y', strtotime($venue['created_at'])); ?>
+                        <br><small class="text-muted"><?php echo convertToNepaliDate($venue['created_at']); ?></small>
                     </div>
                 </div>
 

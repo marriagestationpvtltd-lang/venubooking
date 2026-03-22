@@ -165,7 +165,7 @@ $folder_url = BASE_URL . '/folder.php?token=' . urlencode($folder['download_toke
                                     <option value="365">Extend 1 Year</option>
                                 </select>
                                 <?php if ($folder['expires_at']): ?>
-                                    <small class="text-muted">Current: <?php echo date('M d, Y H:i', strtotime($folder['expires_at'])); ?></small>
+                                    <small class="text-muted">Current: <?php echo date('M d, Y H:i', strtotime($folder['expires_at'])); ?> (<?php echo convertToNepaliDate($folder['expires_at']); ?>)</small>
                                 <?php else: ?>
                                     <small class="text-muted">Current: Never expires</small>
                                 <?php endif; ?>

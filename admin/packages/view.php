@@ -100,6 +100,7 @@ try {
                     <div class="col-md-6 mb-3">
                         <strong>Created:</strong><br>
                         <?php echo date('M d, Y', strtotime($package['created_at'])); ?>
+                        <br><small class="text-muted"><?php echo convertToNepaliDate($package['created_at']); ?></small>
                     </div>
                 </div>
             </div>

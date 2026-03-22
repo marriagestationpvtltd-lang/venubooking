@@ -191,12 +191,12 @@ $folder_base_url = BASE_URL . '/folder.php?token=';
                                     
                                     <?php if ($folder['expires_at']): ?>
                                         <br><small class="text-muted">
-                                            Expires: <?php echo date('M d, Y', strtotime($folder['expires_at'])); ?>
+                                            Expires: <?php echo date('M d, Y', strtotime($folder['expires_at'])); ?> (<?php echo convertToNepaliDate($folder['expires_at']); ?>)
                                         </small>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo htmlspecialchars($folder['created_by_name'] ?? 'Unknown'); ?></td>
-                                <td><?php echo date('M d, Y H:i', strtotime($folder['created_at'])); ?></td>
+                                <td><?php echo date('M d, Y H:i', strtotime($folder['created_at'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($folder['created_at']); ?></small></td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a href="view.php?id=<?php echo $folder['id']; ?>" class="btn btn-outline-primary" title="View & Upload Photos">

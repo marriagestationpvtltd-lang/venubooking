@@ -118,10 +118,12 @@ $linked_halls = $halls_stmt->fetchAll();
                     <div class="col-md-6 mb-3">
                         <strong>Created:</strong><br>
                         <?php echo date('M d, Y', strtotime($menu['created_at'])); ?>
+                        <br><small class="text-muted"><?php echo convertToNepaliDate($menu['created_at']); ?></small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <strong>Last Updated:</strong><br>
                         <?php echo date('M d, Y', strtotime($menu['updated_at'])); ?>
+                        <br><small class="text-muted"><?php echo convertToNepaliDate($menu['updated_at']); ?></small>
                     </div>
                 </div>
             </div>
