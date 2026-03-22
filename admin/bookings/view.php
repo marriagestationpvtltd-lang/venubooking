@@ -4080,7 +4080,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 (function() {
     var recipients = <?php echo json_encode($all_combo_wa_data ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    var COUNTDOWN_SECONDS = 5;
+    var COUNTDOWN_SECONDS = 10;
     var AUTO_OPEN_DELAY_MS = 1500; // delay between opening each recipient's WhatsApp
     var AUTO_DONE_DELAY_MS = 500;  // delay before showing the done state
     var DONE_REDIRECT_SECONDS = 3; // seconds before auto-redirecting to home after all sent
