@@ -3825,26 +3825,25 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
         return '';
     }
 
-    $text  = "Dear " . strip_tags($vendor_name) . ",\n\n";
-    $text .= "We would like to inform you that you have been officially assigned to the following event. Please find the details below:\n\n";
-    $text .= "Event Date: " . convertToNepaliDate($booking['event_date']) . "\n";
-    $text .= "Shift / Time: " . getBookingShiftTimeDisplay($booking) . "\n";
-    $text .= "Event Type / Service: " . strip_tags($booking['event_type']) . "\n";
-    $text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
-    $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+    $text  = "📋 *Assignment Notice*\n\n";
+    $text .= "Dear " . strip_tags($vendor_name) . ",\n\n";
+    $text .= "You have been assigned to the following event.\n\n";
+    $text .= "📅 " . convertToNepaliDate($booking['event_date']) . "\n";
+    $text .= "🕐 " . getBookingShiftTimeDisplay($booking) . "\n";
+    $text .= "🎉 " . strip_tags($booking['event_type']) . "\n";
+    $text .= "🏛️ *" . strip_tags($booking['venue_name']) . "*\n";
+    $text .= "📍 " . strip_tags($booking['location']) . "\n";
     if (!empty($booking['venue_address'])) {
-        $text .= "Venue Full Address: " . strip_tags($booking['venue_address']) . "\n";
+        $text .= "🏠 " . strip_tags($booking['venue_address']) . "\n";
     }
     if (!empty($booking['map_link'])) {
-        $text .= "Venue Location (Map): " . strip_tags($booking['map_link']) . "\n";
+        $text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
     }
-    $text .= "\nKindly confirm your availability and ensure your presence at the venue as per the schedule. For any clarification, please contact us.\n\n";
-    $text .= "Thank you for your cooperation.\n\n";
-    $text .= "Regards,\n";
-    $text .= strip_tags(getSetting('company_name', 'Booking Team')) . "\n";
+    $text .= "\nPlease confirm your availability.\n\n";
+    $text .= "*" . strip_tags(getSetting('company_name', 'Booking Team')) . "*\n";
     $contact_phone = getSetting('contact_phone', '');
     if (!empty($contact_phone)) {
-        $text .= $contact_phone;
+        $text .= "📞 " . $contact_phone;
     }
 
     return 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($text);
@@ -3866,25 +3865,21 @@ function buildVenueProviderWhatsAppUrl($booking) {
     $company_name  = getSetting('company_name', getSetting('site_name', 'Booking Team'));
     $contact_phone = getSetting('contact_phone', '');
 
-    $text  = "🏛️ *Booking Confirmation – Venue Provider Notice*\n\n";
+    $text  = "🏛️ *Booking Notice – " . strip_tags($booking['venue_name']) . "*\n\n";
     $text .= "Dear " . strip_tags($booking['venue_name']) . " Team,\n\n";
-    $text .= "We would like to inform you that a booking has been *confirmed* at your venue. Please find the full details below:\n\n";
-
-    $text .= "📋 *Booking Details*\n";
-    $text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
-    $text .= "Event Date (BS): " . $nepali_date . "\n";
-    $text .= "Event Date (AD): " . date('F d, Y', strtotime($booking['event_date'])) . "\n";
-    $text .= "Shift / Time: " . getBookingShiftTimeDisplay($booking) . "\n";
-    $text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
-    $text .= "Hall: " . strip_tags($booking['hall_name']) . "\n";
-    $text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+    $text .= "A confirmed booking has been scheduled at your venue.\n\n";
+    $text .= "🔖 Ref: *" . strip_tags($booking['booking_number']) . "*\n";
+    $text .= "📅 " . $nepali_date . " (" . date('d M Y', strtotime($booking['event_date'])) . ")\n";
+    $text .= "🕐 " . getBookingShiftTimeDisplay($booking) . "\n";
+    $text .= "🎉 " . strip_tags($booking['event_type']) . "\n";
+    $text .= "🏠 " . strip_tags($booking['hall_name']) . "\n";
+    $text .= "👥 Guests: " . intval($booking['number_of_guests']) . "\n";
     if (!empty($booking['venue_address'])) {
-        $text .= "Venue Full Address: " . strip_tags($booking['venue_address']) . "\n";
+        $text .= "📍 " . strip_tags($booking['venue_address']) . "\n";
     }
-    $text .= "Number of Guests: " . intval($booking['number_of_guests']) . "\n\n";
 
     if (!empty($booking['menus'])) {
-        $text .= "🍽️ *Selected Menus*\n";
+        $text .= "\n🍽️ *Menu(s)*\n";
         foreach ($booking['menus'] as $menu) {
             $menu_name = str_replace(['*', '_'], ['\*', '\_'], strip_tags($menu['menu_name']));
             $text .= "• *" . $menu_name . "*\n";
@@ -3906,22 +3901,16 @@ function buildVenueProviderWhatsAppUrl($booking) {
                 }
             }
         }
-        $text .= "\n";
     }
 
     if (!empty($booking['special_requests'])) {
-        $text .= "📝 *Special Requests*\n" . strip_tags($booking['special_requests']) . "\n\n";
+        $text .= "\n📝 *Special Requests*\n" . strip_tags($booking['special_requests']) . "\n";
     }
 
-    $text .= "Please ensure the venue and all necessary arrangements are prepared accordingly.\n\n";
-    $text .= "For any queries, please contact us:\n";
+    $text .= "\n*" . strip_tags($company_name) . "*\n";
     if (!empty($contact_phone)) {
-        $text .= "📞 " . $contact_phone . "\n\n";
-    } else {
-        $text .= strip_tags($company_name) . "\n\n";
+        $text .= "📞 " . $contact_phone;
     }
-    $text .= "Thank you!\n";
-    $text .= "Regards,\n*" . strip_tags($company_name) . "*";
 
     return 'https://wa.me/' . $clean_phone . '?text=' . rawurlencode($text);
 }

@@ -1028,85 +1028,79 @@ $advance = calculateAdvancePayment($booking['grand_total']);
 $whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
 
 $whatsapp_shift_time = getBookingShiftTimeDisplay($booking);
-$whatsapp_text = "Dear " . $booking['full_name'] . ",\n\n" .
-    "Your booking (ID: " . $booking['booking_number'] . ") for " . $booking['venue_name'] . " on " . convertToNepaliDate($booking['event_date']) . " is almost confirmed.\n\n" .
-    "🕐 Shift / Time: " . $whatsapp_shift_time . "\n" .
-    "💰 Total Amount: " . formatCurrency($booking['grand_total']) . "\n" .
-    "💵 Advance Payment (" . $advance['percentage'] . "%): " . formatCurrency($advance['amount']) . "\n\n" .
-    "📍 Venue Location: " . strip_tags($booking['location']) . "\n";
+$whatsapp_text  = "*Payment Request – Booking #" . $booking['booking_number'] . "*\n\n";
+$whatsapp_text .= "Dear " . $booking['full_name'] . ",\n\n";
+$whatsapp_text .= "Please complete your advance payment to confirm your booking.\n\n";
+$whatsapp_text .= "📅 " . convertToNepaliDate($booking['event_date']) . "\n";
+$whatsapp_text .= "🏛️ " . strip_tags($booking['venue_name']) . "\n";
+$whatsapp_text .= "🕐 " . $whatsapp_shift_time . "\n";
+$whatsapp_text .= "💰 Total: " . formatCurrency($booking['grand_total']) . "\n";
+$whatsapp_text .= "💵 Advance (" . $advance['percentage'] . "%): *" . formatCurrency($advance['amount']) . "*\n";
+if (!empty($booking['location'])) {
+    $whatsapp_text .= "📍 " . strip_tags($booking['location']) . "\n";
+}
 if (!empty($booking['venue_address'])) {
-    $whatsapp_text .= "🏠 Full Address: " . strip_tags($booking['venue_address']) . "\n";
+    $whatsapp_text .= "🏠 " . strip_tags($booking['venue_address']) . "\n";
 }
 if (!empty($booking['map_link'])) {
-    $whatsapp_text .= "🗺️ Google Map: " . strip_tags($booking['map_link']) . "\n";
+    $whatsapp_text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
 }
-$whatsapp_text .= "\n";
 
 if (!empty($whatsapp_payment_methods)) {
-    $whatsapp_text .= "📱 Payment Methods:\n\n";
+    $whatsapp_text .= "\n*Payment Options:*\n";
     foreach ($whatsapp_payment_methods as $idx => $method) {
-        $whatsapp_text .= ($idx + 1) . ". " . $method['name'] . "\n";
+        $whatsapp_text .= ($idx + 1) . ". *" . $method['name'] . "*\n";
         if (!empty($method['bank_details'])) {
             $whatsapp_text .= $method['bank_details'] . "\n";
         }
-        $whatsapp_text .= "\n";
     }
-    $whatsapp_text .= "After making payment, please contact us with your booking number to confirm.\n\n";
+    $whatsapp_text .= "\nAfter payment, reply with your booking number *" . $booking['booking_number'] . "* to confirm.\n";
 } else {
-    $whatsapp_text .= "Please contact us for payment details.\n\n";
+    $whatsapp_text .= "\nPlease contact us to complete your payment.\n";
 }
 
-$whatsapp_text .= "Thank you!\n\nWarm regards,\n*" . strip_tags($company_name) . "*";
+$whatsapp_text .= "\n*" . strip_tags($company_name) . "*";
 
 // Build booking confirmation WhatsApp message (shown after advance payment is received)
 $booking_confirmation_vendors = $vendor_assignments;
 $site_name_wa = !empty($company_name) ? $company_name : getSetting('site_name', 'Venue Booking System');
 
-$confirmation_text = "✅ *Booking Confirmation*\n\n";
+$confirmation_text  = "✅ *Booking Confirmed – #" . strip_tags($booking['booking_number']) . "*\n\n";
 $confirmation_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
-$confirmation_text .= "We are pleased to confirm your booking with " . strip_tags($site_name_wa) . ". Please find your booking details below:\n\n";
-$confirmation_text .= "Booking Status: *Confirmed* ✅\n";
-$confirmation_text .= "Booking Number: " . strip_tags($booking['booking_number']) . "\n";
-$confirmation_text .= "Booking Date: " . convertToNepaliDate($booking['created_at']) . "\n";
-$confirmation_text .= "Program Date: " . convertToNepaliDate($booking['event_date']) . "\n";
-$confirmation_text .= "Shift / Time: " . getBookingShiftTimeDisplay($booking) . "\n";
-$confirmation_text .= "Event Type: " . strip_tags($booking['event_type']) . "\n\n";
-$confirmation_text .= "🏛️ *Venue Details*\n";
-$confirmation_text .= "Venue Name: " . strip_tags($booking['venue_name']) . "\n";
-$confirmation_text .= "Venue Location: " . strip_tags($booking['location']) . "\n";
+$confirmation_text .= "Your booking with *" . strip_tags($site_name_wa) . "* is confirmed.\n\n";
+$confirmation_text .= "📅 " . convertToNepaliDate($booking['event_date']) . "\n";
+$confirmation_text .= "🕐 " . getBookingShiftTimeDisplay($booking) . "\n";
+$confirmation_text .= "🎉 " . strip_tags($booking['event_type']) . "\n\n";
+$confirmation_text .= "🏛️ *" . strip_tags($booking['venue_name']) . "*\n";
+$confirmation_text .= "📍 " . strip_tags($booking['location']) . "\n";
 if (!empty($booking['venue_address'])) {
-    $confirmation_text .= "Full Address: " . strip_tags($booking['venue_address']) . "\n";
+    $confirmation_text .= "🏠 " . strip_tags($booking['venue_address']) . "\n";
 }
 if (!empty($booking['map_link'])) {
-    $confirmation_text .= "Google Map: " . strip_tags($booking['map_link']) . "\n";
+    $confirmation_text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
 }
 if (!empty($booking_confirmation_vendors)) {
-    $confirmation_text .= "\n👥 *Assigned Vendors*\n";
+    $confirmation_text .= "\n👥 *Your Team*\n";
     foreach ($booking_confirmation_vendors as $va) {
-        $confirmation_text .= getVendorTypeLabel($va['vendor_type']) . " Name: " . strip_tags($va['vendor_name']) . "\n";
+        $label = getVendorTypeLabel($va['vendor_type']);
+        $confirmation_text .= "• " . $label . ": *" . strip_tags($va['vendor_name']) . "*";
         if (!empty($va['vendor_phone'])) {
-            $confirmation_text .= getVendorTypeLabel($va['vendor_type']) . " Phone: " . strip_tags($va['vendor_phone']) . "\n";
+            $confirmation_text .= " – " . strip_tags($va['vendor_phone']);
         }
+        $confirmation_text .= "\n";
     }
 }
-$confirmation_text .= "\nWarm regards,\n*" . strip_tags($site_name_wa) . "*";
+$confirmation_text .= "\n*" . strip_tags($site_name_wa) . "*";
 
 // Build thank you WhatsApp message (shown after payment is fully paid)
 $google_review_link = getSetting('google_review_link', 'https://g.page/r/CXn4LyBY3iY7EBM/review');
-$thankyou_text = "🙏 *Thank You for Choosing " . strip_tags($site_name_wa) . "!*\n\n";
-$thankyou_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
-$thankyou_text .= "We sincerely thank you for trusting *" . strip_tags($site_name_wa) . "* to be a part of your special event!\n\n";
-$thankyou_text .= "📋 *Event Details*\n";
-$thankyou_text .= "Event Date: " . convertToNepaliDate($booking['event_date']) . "\n";
-$thankyou_text .= "Venue: " . strip_tags($booking['venue_name']) . "\n";
-$thankyou_text .= "Event Type: " . strip_tags($booking['event_type']) . "\n";
-$thankyou_text .= "Payment Status: *Paid* ✅\n\n";
-$thankyou_text .= "We hope you had a wonderful experience with our services! 🎉\n\n";
-$thankyou_text .= "⭐ *We'd love your feedback!*\n";
-$thankyou_text .= "Your review helps us improve and serve you better. Please take a moment to share your experience:\n\n";
-$thankyou_text .= "📝 *Write a Google Review:*\n" . $google_review_link . "\n\n";
-$thankyou_text .= "Thank you once again for choosing us. We look forward to serving you in the future!\n\n";
-$thankyou_text .= "Warm regards,\n*" . strip_tags($site_name_wa) . "*";
+$thankyou_text  = "🙏 *Thank You, " . strip_tags($booking['full_name']) . "!*\n\n";
+$thankyou_text .= "It was a pleasure to host your *" . strip_tags($booking['event_type']) . "* at *" . strip_tags($booking['venue_name']) . "*.\n\n";
+$thankyou_text .= "📅 " . convertToNepaliDate($booking['event_date']) . " | ✅ Paid\n\n";
+$thankyou_text .= "We hope everything was wonderful! 🎉\n\n";
+$thankyou_text .= "⭐ *Share Your Experience*\n";
+$thankyou_text .= $google_review_link . "\n\n";
+$thankyou_text .= "*" . strip_tags($site_name_wa) . "*";
 $contact_phone_wa = getSetting('contact_phone', '');
 if (!empty($contact_phone_wa)) {
     $thankyou_text .= "\n📞 " . strip_tags($contact_phone_wa);
