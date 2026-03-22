@@ -63,7 +63,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                     </div>
                     <div class="step active">
                         <span class="step-number">2</span>
-                        <span class="step-label">Venue & Hall</span>
+                        <span class="step-label">Venue &amp; Hall</span>
                     </div>
                     <div class="step">
                         <span class="step-number">3</span>
@@ -71,10 +71,14 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                     </div>
                     <div class="step">
                         <span class="step-number">4</span>
-                        <span class="step-label">Services</span>
+                        <span class="step-label">Packages</span>
                     </div>
                     <div class="step">
                         <span class="step-number">5</span>
+                        <span class="step-label">Services</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">6</span>
                         <span class="step-label">Confirm</span>
                     </div>
                 </div>
