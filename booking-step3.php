@@ -105,9 +105,23 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
         <p class="lead text-muted mb-4">Choose one or more menus for your event</p>
 
         <?php if (empty($menus)): ?>
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle"></i> No menus available for this hall.
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle"></i> No menus are assigned to this hall. You can continue to the next step.
             </div>
+            <form method="POST" action="booking-step4.php">
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <a href="booking-step2.php" class="btn btn-outline-secondary btn-lg w-100">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            Continue <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
         <?php else: ?>
             <form id="menuForm" method="POST" action="booking-step4.php">
                 <div class="mb-4" id="menuSearchWrapper">

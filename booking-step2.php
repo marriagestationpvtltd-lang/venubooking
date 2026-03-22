@@ -264,7 +264,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
     </div>
 </section>
 
-<?php if ($allow_custom_venue): ?>
+<?php if ($allow_custom_venue && !$preferred_venue_id): ?>
 <!-- Custom / Own Venue Section -->
 <section class="py-4 bg-light" id="customVenueSection">
     <div class="container">
