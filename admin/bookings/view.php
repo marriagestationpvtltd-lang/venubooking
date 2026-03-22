@@ -4166,8 +4166,11 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
     var recipients = <?php echo json_encode($all_combo_wa_data ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     var COUNTDOWN_SECONDS = 5;
+    var AUTO_OPEN_DELAY_MS = 1500; // delay between opening each recipient's WhatsApp
+    var AUTO_DONE_DELAY_MS = 500;  // delay before showing the done state
     var countdownTimer = null;
     var currentIdx = 0;
+    var autoMode = false;
 
     function esc(str) {
         if (!str) return '';
@@ -4202,6 +4205,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function buildCurrentCard(r) {
+        var openBtnHtml = autoMode
+            ? '<div class="mt-3 text-center"><span class="badge bg-success px-3 py-2" style="font-size:.85rem;"><i class="fab fa-whatsapp me-1"></i>Opening automatically…</span></div>'
+            : '<div class="mt-3 d-grid"><button type="button" class="btn btn-sm text-white fw-bold" id="wa-open-btn" style="background:#25D366;"><i class="fab fa-whatsapp me-1"></i>Open WhatsApp</button></div>';
         return '<div class="d-flex align-items-center gap-3">' +
             '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white" ' +
             'style="width:46px;height:46px;font-size:1.3rem;background:#25D366;">' +
@@ -4211,10 +4217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '<div class="fw-bold text-truncate">' + esc(r.name) + '</div>' +
             '<div class="small text-muted"><i class="fas fa-phone me-1"></i>' + esc(r.phone) + '</div>' +
             '</div></div>' +
-            '<div class="mt-3 d-grid">' +
-            '<button type="button" class="btn btn-sm text-white fw-bold" id="wa-open-btn" ' +
-            'style="background:#25D366;">' +
-            '<i class="fab fa-whatsapp me-1"></i>Open WhatsApp</button></div>' +
+            openBtnHtml +
             '<div id="wa-countdown-row" class="text-center mt-2 small text-muted" style="min-height:1.2em;"></div>';
     }
 
@@ -4231,13 +4234,16 @@ document.addEventListener('DOMContentLoaded', function() {
         getEl('wa-next-btn').disabled = !waOpened;
         getEl('wa-skip-btn').innerHTML = '<i class="fas fa-forward me-1"></i>Skip';
 
-        getEl('wa-open-btn').onclick = function() {
-            window.open(r.url, '_blank');
-            getEl('wa-open-btn').innerHTML = '<i class="fas fa-check me-1"></i>Opened ✓';
-            getEl('wa-open-btn').disabled = true;
-            getEl('wa-next-btn').disabled = false;
-            startCountdown(idx);
-        };
+        var openBtn = getEl('wa-open-btn');
+        if (openBtn) {
+            openBtn.onclick = function() {
+                window.open(r.url, '_blank');
+                openBtn.innerHTML = '<i class="fas fa-check me-1"></i>Opened ✓';
+                openBtn.disabled = true;
+                getEl('wa-next-btn').disabled = false;
+                startCountdown(idx);
+            };
+        }
     }
 
     function startCountdown(idx) {
@@ -4316,32 +4322,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         currentIdx = 0;
         clearCountdown();
+        autoMode = true;
 
-        // Reset next button visibility in case showDone() hid it
+        // Hide manual Next button – not needed in auto mode
         var nextBtn = getEl('wa-next-btn');
-        if (nextBtn) nextBtn.style.display = '';
+        if (nextBtn) nextBtn.style.display = 'none';
 
-        updateModal(0, false);
-
-        // Attach Next button handler (once; uses currentIdx closure variable)
-        getEl('wa-next-btn').onclick = function() {
-            goNext(currentIdx);
-        };
-
-        // Skip advances to next recipient; when already in done state it closes the modal
+        // Skip/Close button closes the modal
         getEl('wa-skip-btn').onclick = function() {
-            var inDoneState = (getEl('wa-next-btn').style.display === 'none');
-            if (inDoneState) {
-                bootstrap.Modal.getInstance(modalEl).hide();
-            } else {
-                goNext(currentIdx);
-            }
+            bootstrap.Modal.getInstance(modalEl).hide();
         };
 
         // Attach cleanup listener before showing so it is never missed
         modalEl.addEventListener('hidden.bs.modal', function onHide() {
             modalEl.removeEventListener('hidden.bs.modal', onHide);
             clearCountdown();
+            autoMode = false;
+            if (nextBtn) nextBtn.style.display = '';
             var mainBtn = getEl('send-all-whatsapp-btn');
             if (mainBtn) {
                 mainBtn.disabled = false;
@@ -4349,8 +4346,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        updateModal(0, true);
         var bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
         bsModal.show();
+
+        // Auto-open each recipient's WhatsApp URL in sequence.
+        // First call is synchronous (within the user-click event) to satisfy
+        // browser popup policies; subsequent calls use a 1.5 s delay.
+        var autoIdx = 0;
+        var total = recipients.length;
+
+        function autoOpenNext() {
+            if (!autoMode) return; // cancelled (modal closed)
+            if (autoIdx >= total) {
+                showDone();
+                return;
+            }
+            currentIdx = autoIdx;
+            updateModal(autoIdx, true);
+            window.open(recipients[autoIdx].url, '_blank');
+            autoIdx++;
+            setTimeout(autoOpenNext, autoIdx < total ? AUTO_OPEN_DELAY_MS : AUTO_DONE_DELAY_MS);
+        }
+
+        autoOpenNext();
     };
 })();
 
