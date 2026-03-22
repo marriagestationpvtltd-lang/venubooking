@@ -632,6 +632,8 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
 
 <div class="print-invoice-only" style="display: none;">
     <div class="invoice-container">
+        <!-- Decorative top stripe -->
+        <div class="invoice-top-stripe"></div>
         <!-- Header Section -->
         <div class="invoice-header">
             <div class="header-content">
@@ -3077,53 +3079,90 @@ unset($_avail_svc);
 .payment-status-select { font-size: .875rem; }
 
 /* Print styles */
+/* ============================================================
+   PREMIUM INVOICE STYLES — Professional Luxury Design
+   ============================================================ */
+
 .print-invoice-only { display: none; }
 
-/* Print Invoice Styles */
-.service-description-print { font-weight: 500; color: #666; font-size: 8.5px; line-height: 1.2; }
-.service-category-print    { font-weight: 600; color: #444; font-size: 9px; margin-left: 4px; }
-.menu-items-print          { font-weight: normal; color: #555; font-size: 8pt; line-height: 1.2; }
-
-.invoice-container {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #000;
-    line-height: 1.2;
-    font-weight: 500;
+/* ── Typography helpers ─────────────────────────────────────── */
+.service-description-print {
+    font-weight: 400;
+    color: #5A7265;
+    font-size: 8pt;
+    line-height: 1.35;
+    font-style: italic;
+}
+.service-category-print {
+    font-weight: 700;
+    color: #1B4332;
+    font-size: 8.5px;
+    margin-left: 5px;
+    background: rgba(27,67,50,0.09);
+    padding: 0 4px;
+    border-radius: 2px;
+}
+.menu-items-print {
+    font-weight: 400;
+    color: #4A5D55;
+    font-size: 8pt;
+    line-height: 1.3;
 }
 
+/* ── Decorative top stripe ──────────────────────────────────── */
+.invoice-top-stripe {
+    height: 7px;
+    background: linear-gradient(90deg, #1B4332 0%, #B7950B 40%, #F4D03F 50%, #B7950B 60%, #1B4332 100%);
+    margin-bottom: 0;
+}
+
+/* ── Main Container ─────────────────────────────────────────── */
+.invoice-container {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #1A1A1A;
+    line-height: 1.4;
+    background: #FEFDF7;
+}
+
+/* ── Invoice Header ─────────────────────────────────────────── */
 .invoice-header {
-    border-bottom: 3px solid #4CAF50;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
+    padding-bottom: 0;
+    margin-bottom: 7px;
 }
 
 .header-content {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 3px;
+    align-items: center;
+    padding: 8px 12px 6px;
+    background: #fff;
+    border-left: 5px solid #1B4332;
+    border-right: 5px solid #1B4332;
+    border-top: 5px solid #1B4332;
 }
 
 .company-logo-space {
     text-align: right;
     flex-shrink: 0;
-    margin-left: 10px;
+    margin-left: 12px;
 }
 
 .company-logo-img {
-    max-width: 150px;
-    max-height: 50px;
+    max-width: 155px;
+    max-height: 58px;
     object-fit: contain;
 }
 
 .logo-placeholder {
-    border: 2px solid #4CAF50;
-    padding: 8px 20px;
+    border: 2px solid #B7950B;
+    padding: 9px 22px;
     display: inline-block;
     font-weight: 900;
-    font-size: 14px;
-    color: #2E7D32;
-    background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+    font-size: 13.5px;
+    color: #1B4332;
+    background: linear-gradient(135deg, #FEFDF7 0%, #F4E9C0 100%);
+    letter-spacing: 1px;
+    font-family: Georgia, serif;
 }
 
 .company-info {
@@ -3132,76 +3171,94 @@ unset($_avail_svc);
 }
 
 .company-name {
-    font-size: 18px;
+    font-size: 21px;
     font-weight: 900;
     margin: 0;
     text-transform: uppercase;
-    letter-spacing: 0px;
-    color: #1B5E20;
+    letter-spacing: 2.5px;
+    color: #1B4332;
     line-height: 1.2;
+    font-family: Georgia, serif;
 }
 
 .company-details {
-    font-size: 10px;
-    margin: 2px 0;
-    font-weight: 600;
-    color: #2E7D32;
-    line-height: 1.3;
+    font-size: 9.5px;
+    margin: 3px 0 0;
+    font-weight: 500;
+    color: #2D6A4F;
+    line-height: 1.45;
+    letter-spacing: 0.2px;
 }
 
+/* Invoice Title Bar — dark green with gold text */
 .invoice-title {
     text-align: center;
-    border-top: 2px solid #4CAF50;
-    border-bottom: 2px solid #4CAF50;
-    padding: 3px 0;
-    margin-top: 3px;
-    background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+    padding: 6px 0;
+    margin-top: 0;
+    background: linear-gradient(135deg, #1B4332 0%, #0D2B1F 100%);
+    border-left: 5px solid #1B4332;
+    border-right: 5px solid #1B4332;
+    border-bottom: 5px solid #1B4332;
 }
 
 .invoice-title h2 {
-    font-size: 12px;
-    font-weight: 900;
+    font-size: 11.5px;
+    font-weight: 700;
     margin: 0;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #1B5E20;
+    letter-spacing: 2.5px;
+    color: #F4D03F;
+    font-family: Georgia, serif;
 }
 
+/* ── Invoice Details Bar ────────────────────────────────────── */
 .invoice-details-bar {
     display: flex;
     justify-content: space-between;
-    background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
-    padding: 4px 8px;
-    margin-bottom: 5px;
-    border: 1px solid #F57C00;
+    background: linear-gradient(135deg, #F5E9BE 0%, #EDD98A 100%);
+    padding: 5px 10px;
+    margin-bottom: 6px;
+    border-left: 4px solid #B7950B;
+    border-top: 1px solid #B7950B;
+    border-right: 1px solid #B7950B;
+    border-bottom: 1px solid #B7950B;
 }
 
 .invoice-detail-item {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
-    color: #E65100;
+    color: #1B4332;
 }
 
 .invoice-detail-item strong {
     font-weight: 900;
+    color: #7D6608;
 }
 
+.invoice-detail-item small {
+    color: #6B5520;
+    font-size: 8.5pt;
+}
+
+/* ── Customer Section ───────────────────────────────────────── */
 .customer-section {
-    margin-bottom: 5px;
-    border: 1px solid #42A5F5;
-    padding: 5px;
-    background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+    margin-bottom: 6px;
+    border: 1px solid #A8C5B5;
+    border-left: 4px solid #1B4332;
+    padding: 6px 8px;
+    background: #fff;
 }
 
 .customer-section h3 {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 900;
-    margin: 0 0 4px 0;
-    padding-bottom: 2px;
-    border-bottom: 1px solid #1976D2;
+    margin: 0 0 5px 0;
+    padding-bottom: 3px;
+    border-bottom: 2px solid #B7950B;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: #0D47A1;
+    letter-spacing: 1.5px;
+    color: #1B4332;
+    font-family: Georgia, serif;
 }
 
 .customer-info-grid {
@@ -3212,84 +3269,96 @@ unset($_avail_svc);
 
 .info-row {
     display: flex;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 500;
-    line-height: 1.3;
+    line-height: 1.45;
 }
 
 .info-label {
-    font-weight: 900;
-    min-width: 90px;
-    color: #0D47A1;
+    font-weight: 700;
+    min-width: 92px;
+    color: #1B4332;
 }
 
 .info-value {
     flex: 1;
-    font-weight: 600;
-    color: #000;
+    font-weight: 500;
+    color: #1A1A1A;
 }
 
+/* ── Booking Table ──────────────────────────────────────────── */
 .booking-table-section {
-    margin-bottom: 5px;
+    margin-bottom: 6px;
 }
 
 .invoice-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1.3;
+    font-size: 9.5px;
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 .invoice-table th {
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-    color: #fff;
-    padding: 3px 4px;
+    background: linear-gradient(135deg, #1B4332 0%, #0D2B1F 100%);
+    color: #F4D03F;
+    padding: 5px 7px;
     text-align: left;
-    font-weight: 900;
-    border: 1px solid #2E7D32;
-    font-size: 10px;
+    font-weight: 700;
+    border: 1px solid #0D2B1F;
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .invoice-table td {
-    padding: 3px 4px;
-    border: 1px solid #2E7D32;
-    font-weight: 600;
-    color: #000;
+    padding: 4px 7px;
+    border: 1px solid #C5D8CC;
+    font-weight: 500;
+    color: #1A1A1A;
+}
+
+.invoice-table tr:nth-child(even) td {
+    background: #F2F9F5;
+}
+
+.invoice-table tr:nth-child(odd) td {
+    background: #FFFFFF;
 }
 
 .invoice-table td strong {
-    font-weight: 900;
+    font-weight: 800;
+    color: #1B4332;
 }
 
-.invoice-table .text-center {
-    text-align: center;
-}
-
-.invoice-table .text-right {
-    text-align: right;
-}
+.invoice-table .text-center { text-align: center; }
+.invoice-table .text-right  { text-align: right; }
 
 .invoice-table .subtotal-row td {
-    background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
+    background: linear-gradient(135deg, #F5E9BE 0%, #EDD98A 100%);
     font-weight: 900;
     font-size: 10px;
-    color: #E65100;
+    color: #5A3E00;
+    border-top: 2px solid #B7950B;
+    border-bottom: 1px solid #B7950B;
 }
 
 .invoice-table .total-row td {
-    background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);
-    color: #fff;
+    background: linear-gradient(135deg, #1B4332 0%, #0D2B1F 100%);
+    color: #F4D03F;
     font-weight: 900;
-    font-size: 10px;
-    padding: 4px;
+    font-size: 11px;
+    padding: 5px 7px;
+    letter-spacing: 0.4px;
 }
 
+/* ── Payment Calculation Section ────────────────────────────── */
 .payment-calculation-section {
-    margin-bottom: 5px;
-    border: 2px solid #7E57C2;
-    padding: 5px;
-    background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
+    margin-bottom: 6px;
+    border: 1px solid #A8C5B5;
+    border-left: 4px solid #B7950B;
+    padding: 6px 8px;
+    background: linear-gradient(135deg, #FEFDF7 0%, #FAF5EB 100%);
 }
 
 .payment-table {
@@ -3298,70 +3367,87 @@ unset($_avail_svc);
 }
 
 .payment-table td {
-    padding: 2px 0;
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1.3;
+    padding: 2.5px 0;
+    font-size: 9.5px;
+    font-weight: 600;
+    line-height: 1.45;
 }
 
 .payment-label {
-    width: 50%;
-    font-weight: 900;
-    color: #4A148C;
+    width: 55%;
+    font-weight: 700;
+    color: #1B4332;
 }
 
 .payment-value {
     text-align: right;
-    font-size: 10px;
-    font-weight: 900;
-    color: #6A1B9A;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #1A1A1A;
 }
 
 .payment-value-words {
     text-align: right;
     font-style: italic;
-    font-weight: 700;
+    font-weight: 600;
+    color: #4A4A4A;
+    font-size: 9px;
 }
 
 .due-amount-row td {
-    border-top: 2px solid #7E57C2;
-    padding-top: 4px;
-    font-size: 10px;
+    border-top: 2px solid #B7950B;
+    padding-top: 5px;
+    font-size: 11px;
     font-weight: 900;
 }
 
+.due-amount-row .payment-label { color: #1B4332; }
+.due-amount-row .payment-value { color: #0D2B1F; font-size: 11px; }
+
+/* ── Cancellation Policy Section ────────────────────────────── */
 .note-section {
-    background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
-    border: 1px solid #EF6C00;
-    padding: 4px;
-    margin-bottom: 5px;
+    background: linear-gradient(135deg, #FFF9F2 0%, #FFF3E0 100%);
+    border: 1px solid #D0834A;
+    border-left: 4px solid #C0392B;
+    padding: 5px 8px;
+    margin-bottom: 6px;
 }
 
 .note-section h3 {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 900;
-    margin: 0 0 3px 0;
+    margin: 0 0 4px 0;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: #E65100;
+    letter-spacing: 1px;
+    color: #922B21;
+    font-family: Georgia, serif;
 }
 
 .note-section ul {
     margin: 0;
-    padding-left: 12px;
-    font-size: 8.5px;
-    line-height: 1.3;
-    font-weight: 600;
-    color: #BF360C;
+    padding-left: 14px;
+    font-size: 8pt;
+    line-height: 1.45;
+    font-weight: 500;
+    color: #6B3010;
 }
 
 .note-section li {
-    margin-bottom: 1px;
+    margin-bottom: 2px;
 }
 
+/* ── Invoice Footer ─────────────────────────────────────────── */
 .invoice-footer {
-    border-top: 2px solid #4CAF50;
-    padding-top: 4px;
+    border-top: none;
+    padding-top: 0;
+}
+
+.invoice-footer::before {
+    content: '';
+    display: block;
+    height: 3px;
+    background: linear-gradient(90deg, #1B4332 0%, #B7950B 40%, #F4D03F 50%, #B7950B 60%, #1B4332 100%);
+    margin-bottom: 7px;
 }
 
 .signature-section {
@@ -3371,53 +3457,56 @@ unset($_avail_svc);
 .signature-line {
     text-align: right;
     font-size: 9px;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .signature-line p {
-    margin: 1px 0;
+    margin: 2px 0;
+    line-height: 1.35;
 }
 
 .signature-line strong {
     font-weight: 900;
+    color: #1B4332;
 }
 
 .thank-you-section {
     text-align: center;
     font-size: 9px;
-    font-weight: 600;
+    font-weight: 500;
+    color: #3A3A3A;
 }
 
-.thank-you-section p {
-    margin: 1px 0;
-}
+.thank-you-section p { margin: 2px 0; line-height: 1.3; }
 
 .thank-you-section strong {
     font-weight: 900;
+    color: #1B4332;
 }
 
 .disclaimer-note {
-    margin-top: 4px;
+    margin-top: 5px;
     padding-top: 4px;
-    border-top: 1px solid #F57C00;
+    border-top: 1px dashed #B7950B;
     text-align: center;
-    font-size: 8.5px;
-    font-weight: 600;
-    color: #E65100;
+    font-size: 7.5pt;
+    font-weight: 500;
+    color: #666;
     font-style: italic;
 }
 
-/* Print Styles - Optimized for Single Page Output with Readable Font Sizes */
+/* ============================================================
+   PRINT MEDIA QUERY — Preserve premium colors for PDF/print
+   ============================================================ */
 @media print {
-    /* Force all elements to print with exact colors (backgrounds, text, borders) */
+    /* Force all elements to print with exact colors */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
     }
 
-    /* Remove non-invoice elements from document flow to prevent blank pages.
-       Using display:none (not visibility:hidden) so elements take up no space. */
+    /* Remove non-invoice elements from document flow */
     .sidebar,
     .top-navbar {
         display: none !important;
@@ -3438,29 +3527,27 @@ unset($_avail_svc);
         width: 100%;
     }
 
-    /* A4 Page Settings - Optimized margins for single-page readable layout */
+    /* A4 page settings */
     @page {
         size: A4 portrait;
-        margin: 10mm 12mm;
+        margin: 8mm 10mm;
     }
-    
+
     body {
         margin: 0;
         padding: 0;
-        color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
     }
-    
+
     .invoice-container {
         width: 100%;
-        max-width: 186mm;
+        max-width: 190mm;
         margin: 0 auto;
         padding: 0;
-        font-size: 10pt;
-        line-height: 1.3;
+        font-size: 9.5pt;
+        line-height: 1.35;
     }
-    
+
+    /* Prevent page breaks inside sections */
     .invoice-header,
     .invoice-details-bar,
     .customer-section,
@@ -3470,331 +3557,234 @@ unset($_avail_svc);
     .invoice-footer {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
     }
-    
-    /* Header - Compact but readable */
-    .invoice-header {
-        padding-bottom: 4px;
-        margin-bottom: 5px;
-        border-bottom: 2px solid #333 !important;
-    }
-    
+
+    /* Header: center content for letterhead look in print */
     .header-content {
-        display: flex;
         flex-direction: column;
         align-items: center;
-        margin-bottom: 3px;
+        border-left: 5px solid #1B4332 !important;
+        border-right: 5px solid #1B4332 !important;
+        border-top: 5px solid #1B4332 !important;
     }
-    
+
     .company-logo-space {
         text-align: center;
         margin-bottom: 5px;
+        margin-left: 0;
         order: -1;
     }
-    
+
     .company-logo-img {
         max-width: 180px;
         max-height: 80px;
     }
-    
+
     .logo-placeholder {
+        font-size: 13pt;
         padding: 8px 20px;
-        font-size: 14pt;
-        border: 1px solid #333;
+        border: 2px solid #B7950B !important;
+        background: linear-gradient(135deg, #FEFDF7 0%, #F4E9C0 100%) !important;
+        color: #1B4332 !important;
     }
-    
+
     .company-info {
         text-align: center;
         width: 100%;
     }
-    
+
     .company-name {
-        font-size: 16pt;
-        margin: 0;
-        font-weight: bold;
-        letter-spacing: 0px;
-        line-height: 1.2;
+        font-size: 15pt;
+        letter-spacing: 2px;
+        color: #1B4332 !important;
     }
-    
+
     .company-details {
         font-size: 9pt;
-        margin: 2px 0;
-        line-height: 1.3;
+        color: #2D6A4F !important;
     }
-    
+
     .invoice-title {
-        padding: 3px 0;
-        margin-top: 3px;
-        border-top: 1px solid #333;
-        border-bottom: 1px solid #333;
-        background: #f5f5f5 !important;
+        background: linear-gradient(135deg, #1B4332 0%, #0D2B1F 100%) !important;
+        border-left: 5px solid #1B4332 !important;
+        border-right: 5px solid #1B4332 !important;
+        border-bottom: 5px solid #1B4332 !important;
     }
-    
+
     .invoice-title h2 {
-        font-size: 11pt;
-        margin: 0;
-        font-weight: bold;
+        font-size: 10.5pt;
+        color: #F4D03F !important;
+        letter-spacing: 2px;
     }
-    
-    /* Invoice details bar - readable */
+
+    /* Details bar */
     .invoice-details-bar {
-        padding: 4px 8px;
-        margin-bottom: 5px;
-        border: 1px solid #666 !important;
-        background: #f9f9f9 !important;
+        background: linear-gradient(135deg, #F5E9BE 0%, #EDD98A 100%) !important;
+        border-left: 4px solid #B7950B !important;
+        border-top: 1px solid #B7950B !important;
+        border-right: 1px solid #B7950B !important;
+        border-bottom: 1px solid #B7950B !important;
+        padding: 5px 10px;
         display: flex;
         justify-content: space-between;
     }
-    
+
     .invoice-detail-item {
-        font-size: 9pt;
-        font-weight: bold;
+        font-size: 8.5pt;
+        color: #1B4332 !important;
     }
-    
-    /* Customer section - readable and compact */
+
+    .invoice-detail-item strong { color: #7D6608 !important; }
+
+    /* Customer section */
     .customer-section {
-        margin-bottom: 5px;
-        padding: 5px;
-        border: 1px solid #666 !important;
-        background: #f9f9f9 !important;
+        border: 1px solid #A8C5B5 !important;
+        border-left: 4px solid #1B4332 !important;
+        background: #fff !important;
+        padding: 5px 8px;
     }
-    
+
     .customer-section h3 {
-        font-size: 10pt;
-        margin: 0 0 3px 0;
-        padding-bottom: 2px;
-        border-bottom: 1px solid #999;
-        font-weight: bold;
+        font-size: 9pt;
+        border-bottom: 2px solid #B7950B !important;
+        color: #1B4332 !important;
+        letter-spacing: 1px;
     }
-    
+
     .customer-info-grid {
-        gap: 2px;
         display: grid;
         grid-template-columns: 1fr 1fr;
+        gap: 2px;
     }
-    
-    .info-row {
-        font-size: 9pt;
-        line-height: 1.4;
-    }
-    
-    .info-label {
-        min-width: 85px;
-        font-weight: bold;
-    }
-    
-    .info-value {
-        font-weight: normal;
-    }
-    
-    /* Booking table - larger, readable fonts */
-    .booking-table-section {
-        margin-bottom: 5px;
-    }
-    
+
+    .info-row      { font-size: 8.5pt; line-height: 1.4; }
+    .info-label    { font-weight: bold; color: #1B4332 !important; min-width: 88px; }
+    .info-value    { font-weight: normal; color: #1A1A1A !important; }
+
+    /* Table */
     .invoice-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 9pt;
+        font-size: 8.5pt;
     }
-    
+
     .invoice-table th {
-        padding: 4px 5px;
-        font-size: 9pt;
-        border: 1px solid #333 !important;
-        background: #e0e0e0 !important;
+        background: linear-gradient(135deg, #1B4332 0%, #0D2B1F 100%) !important;
+        color: #F4D03F !important;
+        padding: 4px 6px;
+        font-size: 8.5pt;
+        border: 1px solid #0D2B1F !important;
         font-weight: bold;
-        text-align: left;
+        letter-spacing: 0.4px;
     }
-    
+
     .invoice-table td {
-        padding: 3px 5px;
-        border: 1px solid #666 !important;
-        font-size: 9pt;
+        padding: 3px 6px;
+        border: 1px solid #C5D8CC !important;
+        font-size: 8.5pt;
         line-height: 1.3;
+        color: #1A1A1A !important;
     }
-    
+
+    .invoice-table tr:nth-child(even) td { background: #F2F9F5 !important; }
+    .invoice-table tr:nth-child(odd)  td { background: #FFFFFF !important; }
+
+    .invoice-table td strong { color: #1B4332 !important; }
+
     .invoice-table .subtotal-row td {
+        background: linear-gradient(135deg, #F5E9BE 0%, #EDD98A 100%) !important;
         font-size: 9pt;
-        background: #f5f5f5 !important;
         font-weight: bold;
+        color: #5A3E00 !important;
+        border-top: 2px solid #B7950B !important;
     }
-    
+
     .invoice-table .total-row td {
+        background: linear-gradient(135deg, #1B4332 0%, #0D2B1F 100%) !important;
+        color: #F4D03F !important;
         font-size: 10pt;
-        padding: 4px 5px;
-        background: #e0e0e0 !important;
         font-weight: bold;
+        padding: 5px 6px;
     }
-    
-    /* Payment calculation - readable */
+
+    /* Payment section */
     .payment-calculation-section {
-        margin-bottom: 5px;
-        padding: 5px;
-        border: 1px solid #666 !important;
-        background: #f9f9f9 !important;
+        border: 1px solid #A8C5B5 !important;
+        border-left: 4px solid #B7950B !important;
+        background: linear-gradient(135deg, #FEFDF7 0%, #FAF5EB 100%) !important;
+        padding: 5px 8px;
     }
-    
-    .payment-table {
-        width: 100%;
-    }
-    
-    .payment-table td {
-        padding: 2px 0;
-        font-size: 9pt;
-        line-height: 1.4;
-    }
-    
-    .payment-label {
-        font-weight: bold;
-    }
-    
-    .payment-value {
-        font-size: 9pt;
-        font-weight: bold;
-        text-align: right;
-    }
-    
-    .payment-value-words {
-        font-size: 9pt;
-        font-style: italic;
-    }
-    
+
+    .payment-table td { font-size: 8.5pt; line-height: 1.4; padding: 2px 0; }
+    .payment-label    { font-weight: bold; color: #1B4332 !important; }
+    .payment-value    { font-size: 8.5pt; font-weight: bold; text-align: right; color: #1A1A1A !important; }
+    .payment-value-words { font-size: 8pt; font-style: italic; color: #4A4A4A !important; }
+
     .due-amount-row td {
-        padding-top: 3px;
-        font-size: 10pt;
-        border-top: 1px solid #666;
-        font-weight: bold;
-    }
-    
-    /* Note section - concise but readable */
-    .note-section {
-        padding: 4px;
-        margin-bottom: 5px;
-        border: 1px solid #666 !important;
-        background: #fffbf0 !important;
-    }
-    
-    .note-section h3 {
-        font-size: 9pt;
-        margin: 0 0 2px 0;
-        font-weight: bold;
-    }
-    
-    .note-section ul {
-        padding-left: 15px;
-        font-size: 8pt;
-        line-height: 1.3;
-        margin: 2px 0;
-    }
-    
-    .note-section li {
-        margin-bottom: 1px;
-    }
-    
-    /* Footer - readable */
-    .invoice-footer {
         padding-top: 4px;
-        border-top: 2px solid #333 !important;
+        font-size: 10pt;
+        border-top: 2px solid #B7950B !important;
+        font-weight: bold;
     }
-    
-    .signature-section {
-        margin-bottom: 3px;
+
+    .due-amount-row .payment-label { color: #1B4332 !important; }
+    .due-amount-row .payment-value { font-size: 10pt; color: #0D2B1F !important; }
+
+    /* Policy section */
+    .note-section {
+        background: linear-gradient(135deg, #FFF9F2 0%, #FFF3E0 100%) !important;
+        border: 1px solid #D0834A !important;
+        border-left: 4px solid #C0392B !important;
+        padding: 4px 8px;
     }
-    
-    .signature-line {
-        font-size: 9pt;
-        text-align: right;
+
+    .note-section h3 { font-size: 8.5pt; color: #922B21 !important; letter-spacing: 0.8px; }
+    .note-section ul  { font-size: 7.5pt; line-height: 1.35; color: #6B3010 !important; padding-left: 14px; margin: 2px 0; }
+    .note-section li  { margin-bottom: 1px; }
+
+    /* Footer */
+    .invoice-footer { border-top: none; padding-top: 0; }
+
+    .invoice-footer::before {
+        background: linear-gradient(90deg, #1B4332 0%, #B7950B 40%, #F4D03F 50%, #B7950B 60%, #1B4332 100%) !important;
+        height: 3px;
+        margin-bottom: 6px;
     }
-    
-    .signature-line p {
-        margin: 2px 0;
-        line-height: 1.3;
-    }
-    
-    .thank-you-section {
-        font-size: 8pt;
-        text-align: center;
-        line-height: 1.3;
-    }
-    
-    .thank-you-section p {
-        margin: 2px 0;
-    }
-    
+
+    .signature-line { font-size: 8.5pt; text-align: right; }
+    .signature-line p { margin: 2px 0; line-height: 1.3; }
+    .signature-line strong { color: #1B4332 !important; }
+
+    .thank-you-section { font-size: 8pt; text-align: center; line-height: 1.3; }
+    .thank-you-section p { margin: 2px 0; }
+    .thank-you-section strong { color: #1B4332 !important; }
+
     .disclaimer-note {
         margin-top: 3px;
         padding-top: 3px;
-        font-size: 8pt;
-        border-top: 1px solid #ccc;
+        font-size: 7pt;
+        border-top: 1px dashed #B7950B !important;
         text-align: center;
         line-height: 1.3;
-    }
-    
-    /* Service description in print - readable */
-    .service-description-print {
-        font-size: 8pt;
-        line-height: 1.3;
         color: #666 !important;
+        font-style: italic;
     }
-    
-    /* Menu items list in print - small text below menu name */
-    .menu-items-print {
-        font-size: 8pt;
-        line-height: 1.3;
-        color: #555 !important;
+
+    /* Typography helpers */
+    .service-description-print { font-size: 7.5pt; line-height: 1.3; color: #5A7265 !important; }
+    .menu-items-print           { font-size: 7.5pt; line-height: 1.3; color: #4A5D55 !important; }
+    .service-category-print     { font-size: 8pt;   font-weight: 600; color: #1B4332 !important; margin-left: 4px; }
+
+    /* Decorative stripe */
+    .invoice-top-stripe {
+        background: linear-gradient(90deg, #1B4332 0%, #B7950B 40%, #F4D03F 50%, #B7950B 60%, #1B4332 100%) !important;
+        height: 7px;
     }
-    
-    /* Service category in print - readable */
-    .service-category-print {
-        font-size: 9px;
-        font-weight: 600;
-        color: #444 !important;
-        margin-left: 4px;
-    }
-    
-    /* Hide "no services" row when printing */
-    .no-services-row {
-        display: none !important;
-    }
-    
-    /* Remove decorative elements to save space */
-    .invoice-header,
-    .customer-section,
-    .booking-table-section,
-    .payment-calculation-section,
-    .note-section,
-    .invoice-footer {
-        box-shadow: none !important;
-        text-shadow: none !important;
-    }
-    
-    /* Ensure text is black for good contrast */
-    .invoice-container,
-    .invoice-container p,
-    .invoice-container td,
-    .invoice-container th,
-    .invoice-container span,
-    .invoice-container strong,
-    .invoice-container h1,
-    .invoice-container h2,
-    .invoice-container h3 {
-        color: #000 !important;
-    }
-    
-    /* Simplified backgrounds for print */
-    .invoice-title,
-    .invoice-details-bar,
-    .customer-section,
-    .note-section,
-    .payment-calculation-section,
-    .subtotal-row td,
-    .total-row td,
-    .invoice-table th {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-    }
+
+    /* Hide "no services" row */
+    .no-services-row { display: none !important; }
 }
 
 
