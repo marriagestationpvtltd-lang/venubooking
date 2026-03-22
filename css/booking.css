@@ -1,16 +1,81 @@
-/* Booking Flow Specific Styles */
+/* Booking Flow Specific Styles — Professional Redesign */
 
-/* Price Display */
+/* ── Section heading ── */
+section.py-5 > .container > h2,
+section.py-5 .container > h2.mb-4 {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: 0.5rem !important;
+}
+
+/* ── Venue / Hall / Menu cards ── */
+.venue-card,
+.menu-card,
+.package-card,
+.service-card {
+    border: 1px solid rgba(76, 175, 80, 0.12);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    overflow: hidden;
+    background: #fff;
+}
+
+.venue-card:hover,
+.menu-card:hover,
+.package-card:hover,
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgba(76, 175, 80, 0.35);
+}
+
+.venue-card.selected,
+.menu-card.selected,
+.package-card.selected,
+.service-card.selected {
+    border-color: var(--primary-green);
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.18), var(--shadow-card-hover);
+}
+
+/* ── Venue image ── */
+.venue-image {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+}
+
+/* ── Card body improvements ── */
+.venue-card .card-body,
+.menu-card .card-body {
+    padding: 1.25rem;
+}
+
+.venue-card .card-title,
+.menu-card .card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.4rem;
+}
+
+/* ── Price Display ── */
 .price-tag {
     font-size: 1.5rem;
-    font-weight: bold;
+    font-weight: 700;
     color: var(--primary-green);
 }
 
 .price-breakdown {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 8px;
+    background: linear-gradient(135deg, #f8fdf9 0%, #f0f9f0 100%);
+    border: 1px solid rgba(76, 175, 80, 0.15);
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
     margin-top: 1rem;
 }
 
@@ -18,43 +83,46 @@
     display: flex;
     justify-content: space-between;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .price-line:last-child {
     border-bottom: none;
-    font-weight: bold;
+    font-weight: 700;
     font-size: 1.1rem;
 }
 
-/* Hall Details */
+/* ── Hall Details ── */
 .hall-details {
     padding: 1rem;
     background: white;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .hall-feature {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
+    padding: 0.3rem 0.8rem;
     margin: 0.25rem;
-    background: #e8f5e9;
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
     color: var(--dark-green);
-    border-radius: 20px;
-    font-size: 0.85rem;
+    border-radius: 99px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border: 1px solid rgba(46, 125, 50, 0.15);
 }
 
 .capacity-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.5rem 1rem;
-    background: var(--primary-green);
+    padding: 0.5rem 1.1rem;
+    background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
     color: white;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
 }
 
-/* Gallery */
+/* ── Gallery ── */
 .hall-gallery {
     display: flex;
     gap: 10px;
@@ -198,7 +266,73 @@
     opacity: 1;
 }
 
-/* Image Placeholder */
+/* ── Booking Step 6 / Form Card Header ── */
+/* Upgrade Bootstrap bg-success card headers to gradient */
+.card > .card-header.bg-success {
+    background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%) !important;
+    border-bottom: none;
+    padding: 1rem 1.25rem;
+}
+
+/* Card border improvements */
+.card {
+    border-radius: var(--radius-md);
+    border-color: rgba(76, 175, 80, 0.15);
+    overflow: hidden;
+}
+
+/* Booking summary sidebar — premium card */
+.sticky-top.card {
+    border: 1px solid rgba(76, 175, 80, 0.18);
+    box-shadow: var(--shadow-md);
+}
+
+/* Step form labels upgrade */
+section.py-5 .form-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+    margin-bottom: 0.4rem;
+}
+
+/* Form control focus: green ring */
+section.py-5 .form-control:focus,
+section.py-5 .form-select:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.18);
+}
+
+/* Continue / Submit button glow */
+section.py-5 .btn-success.btn-lg,
+section.py-5 .btn.btn-success.btn-lg {
+    background: linear-gradient(135deg, #43A047 0%, #2E7D32 100%);
+    border: none;
+    box-shadow: 0 4px 16px rgba(46, 125, 50, 0.3);
+    transition: all 0.2s ease;
+}
+section.py-5 .btn-success.btn-lg:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(46, 125, 50, 0.4);
+}
+
+/* Bill summary table zebra */
+#bill_summary_section .table tr:nth-child(even) td {
+    background: rgba(76, 175, 80, 0.04);
+}
+
+/* Payment radio options visual improvement */
+.form-check.border {
+    border-radius: var(--radius-sm) !important;
+}
+
+/* Advance payment alert — custom style */
+.alert-info {
+    background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%);
+    border-color: rgba(76, 175, 80, 0.25);
+    color: var(--text-dark);
+}
+
+/* ── Image Placeholder ── */
 .img-placeholder {
     background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
     display: flex;

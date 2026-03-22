@@ -513,90 +513,195 @@ label, .form-label {
     font-weight: 600;
 }
 
-/* Booking Progress Steps */
+/* ══════════════════════════════════════════════════
+   Booking Progress Steps — Premium Redesign
+   ══════════════════════════════════════════════════ */
 .booking-progress {
-    border-bottom: 1px solid #ddd;
+    background: #ffffff;
+    border-bottom: 1px solid rgba(76, 175, 80, 0.15);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    position: relative;
+    z-index: 10;
+}
+
+.booking-progress .container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 
 .progress-steps {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    max-width: 800px;
+    align-items: flex-start;
+    max-width: 840px;
     margin: 0 auto;
+    position: relative;
+}
+
+/* Connecting track behind the steps */
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: calc(100% / 12);
+    right: calc(100% / 12);
+    height: 3px;
+    background: #e8f5e9;
+    border-radius: 99px;
+    z-index: 0;
 }
 
 .step {
     flex: 1;
     text-align: center;
     position: relative;
+    z-index: 1;
 }
 
-.step:not(:last-child):after {
+/* Filled progress track for completed + active */
+.step.completed:not(:last-child)::after,
+.step.active:not(:last-child)::after {
     content: '';
     position: absolute;
-    top: 20px;
+    top: 22px;
     left: 50%;
     width: 100%;
-    height: 2px;
-    background: #ddd;
-    z-index: -1;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-green), var(--dark-green));
+    border-radius: 0 99px 99px 0;
+    z-index: 0;
+    transition: width 0.4s ease;
 }
 
-.step.completed:not(:last-child):after,
-.step.active:not(:last-child):after {
-    background: var(--primary-green);
+.step:not(.completed):not(.active):not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    width: 100%;
+    height: 3px;
+    background: #e8f5e9;
+    z-index: 0;
 }
 
+/* Step bubble */
 .step-number {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    line-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: #ddd;
-    color: white;
-    font-weight: bold;
-    margin-bottom: 5px;
+    background: #e8f5e9;
+    color: #aaa;
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 2;
+    border: 3px solid #e0e0e0;
+    transition: all 0.3s ease;
+    box-shadow: none;
 }
 
-.step.completed .step-number,
+/* Completed step: green filled with checkmark */
+.step.completed .step-number {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+    color: #ffffff;
+    border-color: var(--primary-green);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.30);
+    font-size: 0;  /* hide number */
+}
+.step.completed .step-number::after {
+    content: '\2714'; /* ✔ checkmark */
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* Active step: gradient with outer ring pulse */
 .step.active .step-number {
-    background: var(--primary-green);
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.20), 0 4px 16px rgba(46, 125, 50, 0.35);
+    transform: scale(1.08);
 }
 
 .step-label {
     display: block;
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #b0bec5;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: color 0.3s ease;
 }
 
-.step.completed .step-label,
-.step.active .step-label {
-    color: var(--primary-green);
+.step.completed .step-label {
+    color: var(--dark-green);
     font-weight: 600;
 }
 
-/* Booking Summary Bar */
-.booking-summary-bar {
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.step.active .step-label {
+    color: var(--primary-green);
+    font-weight: 700;
 }
 
-/* Success Icon */
+/* Responsive: hide labels on very small screens */
+@media (max-width: 480px) {
+    .step-label { display: none; }
+    .step-number { width: 36px; height: 36px; font-size: 0.85rem; }
+    .progress-steps::before { top: 18px; }
+    .step.completed:not(:last-child)::after,
+    .step.active:not(:last-child)::after,
+    .step:not(.completed):not(.active):not(:last-child)::after { top: 18px; }
+}
+
+/* ══════════════════════════════════════════════════
+   Booking Summary Bar — Premium Redesign
+   ══════════════════════════════════════════════════ */
+.booking-summary-bar {
+    background: linear-gradient(135deg, #2E7D32 0%, #388E3C 50%, #43A047 100%);
+    box-shadow: 0 4px 20px rgba(46, 125, 50, 0.35);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle texture overlay — white dots pattern stored as CSS variable */
+:root {
+    --summary-bar-texture: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.booking-summary-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--summary-bar-texture);
+    pointer-events: none;
+}
+
+.booking-summary-bar .container {
+    position: relative;
+    z-index: 1;
+}
+
+.booking-summary-bar strong {
+    font-size: 1.1rem;
+}
+
+/* ── Confirmation / Success ── */
 .success-icon i {
-    animation: scaleIn 0.5s ease-in-out;
+    animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 8px 24px rgba(76, 175, 80, 0.45));
 }
 
 @keyframes scaleIn {
-    0% {
-        transform: scale(0);
-    }
-    50% {
-        transform: scale(1.2);
-    }
-    100% {
-        transform: scale(1);
-    }
+    0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+    60%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); }
 }
 
 /* Form Validation */
