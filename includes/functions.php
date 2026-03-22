@@ -3682,6 +3682,15 @@ function addVendorAssignment($booking_id, $vendor_id, $task_description, $assign
             throw new Exception("A valid vendor must be selected");
         }
 
+        // Prevent duplicate: same vendor already assigned to the same booking service
+        if ($booking_service_id !== null) {
+            $chk = $db->prepare("SELECT COUNT(*) FROM booking_vendor_assignments WHERE booking_id = ? AND booking_service_id = ? AND vendor_id = ?");
+            $chk->execute([$booking_id, $booking_service_id, $vendor_id]);
+            if ((int)$chk->fetchColumn() > 0) {
+                throw new Exception("This vendor is already assigned to this service");
+            }
+        }
+
         $stmt = $db->prepare("
             INSERT INTO booking_vendor_assignments (booking_id, booking_service_id, vendor_id, task_description, assigned_amount, notes, status)
             VALUES (?, ?, ?, ?, ?, ?, 'assigned')
