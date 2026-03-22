@@ -988,7 +988,7 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                         <div class="d-flex align-items-center gap-3 flex-wrap">
                             <h3 class="mb-0 text-white fw-bold">
                                 <i class="fas fa-calendar-check me-2 opacity-75"></i>
-                                Booking <span class="opacity-75">#</span><?php echo htmlspecialchars($booking['booking_number']); ?>
+                                Booking #<?php echo htmlspecialchars($booking['booking_number']); ?>
                             </h3>
                             <span class="badge bg-<?php echo $booking_status_color; ?> fs-6 px-3 py-2">
                                 <?php echo $booking_status_display; ?>
@@ -1012,7 +1012,7 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                             <i class="fas fa-arrow-left me-1"></i> Back
                         </a>
                         <a href="edit.php?id=<?php echo $booking_id; ?>" class="btn btn-warning btn-sm fw-semibold">
-                            <i class="fas fa-edit me-1"></i> Edit Booking
+                            <i class="fas fa-edit me-1"></i> Edit
                         </a>
                     </div>
                 </div>
@@ -1492,7 +1492,7 @@ unset($_avail_svc);
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="d-flex align-items-center gap-2">
                             <i class="fas fa-box-open text-secondary" style="font-size:.85rem;"></i>
-                            <span class="fw-bold text-uppercase text-muted" >Packages</span>
+                            <span class="fw-bold text-uppercase text-muted">Packages</span>
                             <?php if (!empty($package_services)): ?>
                                 <span class="badge bg-primary" style="font-size:.65rem;"><?php echo count($package_services); ?></span>
                             <?php endif; ?>
@@ -1673,7 +1673,7 @@ unset($_avail_svc);
                             <div class="p-4">
                                 <div class="section-label-premium mb-3">
                                     <span class="section-dot bg-info"></span>
-                                    <span class="fw-bold text-uppercase text-muted" >Customer Information</span>
+                                    <span class="fw-bold text-uppercase text-muted">Customer Information</span>
                                 </div>
                                 <div class="compact-field">
                                     <span class="compact-field-label"><i class="fas fa-user-circle text-primary me-1"></i> Name</span>
@@ -1717,7 +1717,7 @@ unset($_avail_svc);
                             <div class="p-4">
                                 <div class="section-label-premium mb-3">
                                     <span class="section-dot bg-success"></span>
-                                    <span class="fw-bold text-uppercase text-muted" >Event Details</span>
+                                    <span class="fw-bold text-uppercase text-muted">Event Details</span>
                                 </div>
                                 <div class="compact-field">
                                     <span class="compact-field-label"><i class="fas fa-building text-primary me-1"></i> Venue</span>
@@ -1793,7 +1793,7 @@ unset($_avail_svc);
                         <div class="mb-4">
                             <div class="section-label-premium mb-2">
                                 <span class="section-dot bg-warning"></span>
-                                <span class="fw-bold text-uppercase text-muted" >Selected Menus</span>
+                                <span class="fw-bold text-uppercase text-muted">Selected Menus</span>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover mb-0 border rounded">
@@ -1882,7 +1882,7 @@ unset($_avail_svc);
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <div class="section-label-premium mb-0">
                                     <span class="section-dot bg-secondary"></span>
-                                    <span class="fw-bold text-uppercase text-muted" >Services</span>
+                                    <span class="fw-bold text-uppercase text-muted">Services</span>
                                     <?php if ($all_display_services_count > 0): ?>
                                         <span class="badge bg-secondary ms-1" style="font-size:.65rem;"><?php echo $all_display_services_count; ?></span>
                                     <?php endif; ?>
@@ -2538,7 +2538,7 @@ unset($_avail_svc);
                         <div class="mb-4">
                             <div class="section-label-premium mb-3">
                                 <span class="section-dot bg-primary"></span>
-                                <span class="fw-bold text-uppercase text-muted" >Payment Methods</span>
+                                <span class="fw-bold text-uppercase text-muted">Payment Methods</span>
                             </div>
                             <?php foreach ($booking_payment_methods as $method): ?>
                             <div class="payment-method-item mb-3 pb-3 <?php echo ($method !== end($booking_payment_methods)) ? 'border-bottom' : ''; ?>">
@@ -2573,7 +2573,7 @@ unset($_avail_svc);
                         <?php if ($tab_payments_count > 0): ?>
                         <div class="section-label-premium mb-3">
                             <span class="section-dot bg-success"></span>
-                            <span class="fw-bold text-uppercase text-muted" >Payment Transactions</span>
+                            <span class="fw-bold text-uppercase text-muted">Payment Transactions</span>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover mb-0 border rounded">
@@ -2804,7 +2804,7 @@ unset($_avail_svc);
         <!-- Booking Overview Card -->
         <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 20px;">
             <div class="card-header bg-gradient-info text-white py-3">
-                <h5 class="mb-0 fw-semibold"><i class="fas fa-receipt me-2 opacity-75"></i> Payment Summary</h5>
+                <h5 class="mb-0 fw-semibold"><i class="fas fa-receipt me-2 opacity-75"></i> Booking Summary</h5>
             </div>
             <div class="card-body p-3">
                 <!-- Status Summary Row -->
@@ -2835,39 +2835,39 @@ unset($_avail_svc);
                 <div>
                     <div class="payment-breakdown">
                         <div class="d-flex justify-content-between py-1 align-items-center">
-                            <span class="text-muted small">Hall Price</span>
+                            <span class="text-muted small">Hall Price:</span>
                             <strong class="text-dark small"><?php echo formatCurrency($booking['hall_price']); ?></strong>
                         </div>
                         <?php if ($booking['menu_total'] > 0): ?>
                         <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Menu Total</span>
+                            <span class="text-muted small">Menu Total:</span>
                             <strong class="text-dark small"><?php echo formatCurrency($booking['menu_total']); ?></strong>
                         </div>
                         <?php endif; ?>
                         <?php if ($booking['services_total'] > 0): ?>
                         <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Services Total</span>
+                            <span class="text-muted small">Services Total:</span>
                             <strong class="text-dark small"><?php echo formatCurrency($booking['services_total']); ?></strong>
                         </div>
                         <?php endif; ?>
                         <?php if ($vendors_total > 0): ?>
                         <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Vendors Total</span>
+                            <span class="text-muted small">Vendors Total:</span>
                             <strong class="text-dark small"><?php echo formatCurrency($vendors_total); ?></strong>
                         </div>
                         <?php endif; ?>
                         <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Subtotal</span>
+                            <span class="text-muted small">Subtotal:</span>
                             <strong class="text-dark small"><?php echo formatCurrency($booking['subtotal']); ?></strong>
                         </div>
                         <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
                         <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Tax (<?php echo getSetting('tax_rate', '13'); ?>%)</span>
+                            <span class="text-muted small">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
                             <strong class="text-dark small"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
                         </div>
                         <?php endif; ?>
                         <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
-                            <span class="fw-bold text-dark">Grand Total</span>
+                            <span class="fw-bold text-dark">Grand Total:</span>
                             <span class="fw-bold text-success fs-5"><?php echo formatCurrency($booking['grand_total']); ?></span>
                         </div>
                     </div>
