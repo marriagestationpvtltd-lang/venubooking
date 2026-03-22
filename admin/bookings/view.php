@@ -4168,9 +4168,12 @@ document.addEventListener('DOMContentLoaded', function() {
     var COUNTDOWN_SECONDS = 5;
     var AUTO_OPEN_DELAY_MS = 1500; // delay between opening each recipient's WhatsApp
     var AUTO_DONE_DELAY_MS = 500;  // delay before showing the done state
+    var DONE_REDIRECT_SECONDS = 3; // seconds before auto-redirecting to home after all sent
     var countdownTimer = null;
+    var redirectTimer = null;
     var currentIdx = 0;
     var autoMode = false;
+    var isDone = false;
 
     function esc(str) {
         if (!str) return '';
@@ -4279,8 +4282,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function clearRedirect() {
+        if (redirectTimer) { clearTimeout(redirectTimer); redirectTimer = null; }
+    }
+
     function showDone() {
         clearCountdown();
+        isDone = true;
         var total = recipients.length;
         getEl('wa-step-counter').textContent = '✓ Done';
         var pb = getEl('wa-progress-bar');
@@ -4303,9 +4311,16 @@ document.addEventListener('DOMContentLoaded', function() {
             '<div class="text-center py-3">' +
             '<i class="fas fa-check-circle" style="font-size:2.8rem;color:#25D366;"></i>' +
             '<h6 class="mt-2 fw-bold" style="color:#25D366;">All ' + total + ' sent!</h6>' +
-            '<p class="text-muted small mb-0">WhatsApp was opened for all recipients.</p></div>';
+            '<p class="text-muted small mb-0">WhatsApp was opened for all recipients.</p>' +
+            '<p class="small mt-2 mb-0 text-muted">Returning to home in <strong id="wa-done-secs">' + DONE_REDIRECT_SECONDS + '</strong>s…</p>' +
+            '</div>';
 
-        getEl('wa-skip-btn').innerHTML = '<i class="fas fa-times me-1"></i>Close';
+        var skipBtn = getEl('wa-skip-btn');
+        skipBtn.innerHTML = '<i class="fas fa-home me-1"></i>Home';
+        skipBtn.onclick = function() {
+            clearRedirect();
+            window.location.href = 'index.php';
+        };
         getEl('wa-next-btn').style.display = 'none';
 
         var mainBtn = getEl('send-all-whatsapp-btn');
@@ -4313,6 +4328,20 @@ document.addEventListener('DOMContentLoaded', function() {
             mainBtn.disabled = false;
             mainBtn.innerHTML = '<i class="fab fa-whatsapp me-1"></i> Send to All';
         }
+
+        // Auto-redirect to home page after countdown
+        var remaining = DONE_REDIRECT_SECONDS;
+        function tickRedirect() {
+            if (remaining <= 0) {
+                window.location.href = 'index.php';
+                return;
+            }
+            var secsEl = getEl('wa-done-secs');
+            if (secsEl) secsEl.textContent = remaining;
+            remaining--;
+            redirectTimer = setTimeout(tickRedirect, 1000);
+        }
+        tickRedirect();
     }
 
     window.sendAllWhatsApp = function() {
@@ -4337,7 +4366,9 @@ document.addEventListener('DOMContentLoaded', function() {
         modalEl.addEventListener('hidden.bs.modal', function onHide() {
             modalEl.removeEventListener('hidden.bs.modal', onHide);
             clearCountdown();
+            clearRedirect();
             autoMode = false;
+            isDone = false;
             if (nextBtn) nextBtn.style.display = '';
             var mainBtn = getEl('send-all-whatsapp-btn');
             if (mainBtn) {
