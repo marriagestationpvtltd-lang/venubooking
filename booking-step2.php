@@ -10,12 +10,12 @@ $extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellu
 // Get booking data from session or POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['booking_data'] = [
-        'shift'      => $_POST['shift'],
+        'shift'      => $_POST['shift']      ?? '',
         'start_time' => $_POST['start_time'] ?? '',
         'end_time'   => $_POST['end_time']   ?? '',
-        'event_date' => $_POST['event_date'],
-        'guests'     => $_POST['guests'],
-        'event_type' => $_POST['event_type'],
+        'event_date' => $_POST['event_date'] ?? '',
+        'guests'     => isset($_POST['guests']) && is_numeric($_POST['guests']) && (int)$_POST['guests'] > 0 ? (int)$_POST['guests'] : '',
+        'event_type' => $_POST['event_type'] ?? '',
         'city_id'    => isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null
     ];
     

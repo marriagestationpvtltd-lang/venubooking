@@ -12,6 +12,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Verify CSRF token
+if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+    $_SESSION['error_message'] = 'Invalid security token. Please try again.';
+    header('Location: index.php');
+    exit;
+}
+
 $db = getDB();
 $hall_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
 

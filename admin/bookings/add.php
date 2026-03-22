@@ -32,6 +32,10 @@ $payment_methods = getActivePaymentMethods();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Verify CSRF token
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
     $full_name = trim($_POST['full_name']);
     $phone = trim($_POST['phone']);
     $email = trim($_POST['email']);
@@ -242,9 +246,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    } // end CSRF-valid else
 }
-
-// Include the HTML header only after all PHP processing (and potential redirects)
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
@@ -266,6 +269,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php endif; ?>
 
                 <form method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <h6 class="text-muted border-bottom pb-2 mb-3">Customer Information</h6>
                     <div class="row">
                         <div class="col-md-6">

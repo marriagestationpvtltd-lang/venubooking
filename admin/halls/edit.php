@@ -36,7 +36,9 @@ $assigned_menu_ids = getAssignedMenuIds($hall_id);
 
 // Handle image upload
 if (isset($_POST['upload_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_FILES['hall_image'])) {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } elseif (isset($_FILES['hall_image'])) {
         $upload_result = handleImageUpload($_FILES['hall_image'], 'hall');
         
         if ($upload_result['success']) {
@@ -70,7 +72,9 @@ if (isset($_POST['upload_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Handle 360° panoramic image upload
 if (isset($_POST['upload_pano']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_FILES['hall_pano_image']) && $_FILES['hall_pano_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } elseif (isset($_FILES['hall_pano_image']) && $_FILES['hall_pano_image']['error'] !== UPLOAD_ERR_NO_FILE) {
         $pano_result = handleImageUpload($_FILES['hall_pano_image'], 'hall_pano');
         if ($pano_result['success']) {
             try {
@@ -147,6 +151,9 @@ if (isset($_POST['delete_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Handle form submission
 if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
     $venue_id = intval($_POST['venue_id']);
     $name = trim($_POST['name']);
     $capacity = intval($_POST['capacity']);
