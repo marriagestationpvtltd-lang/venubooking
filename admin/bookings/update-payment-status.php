@@ -30,8 +30,8 @@ try {
 
     // Optional: actual advance amount received (entered manually by admin)
     $advance_amount_raw = isset($_POST['advance_amount']) ? trim($_POST['advance_amount']) : '';
-    $advance_amount_provided = ($advance_amount_raw !== '' && is_numeric($advance_amount_raw) && floatval($advance_amount_raw) >= 0);
-    $advance_amount_input = $advance_amount_provided ? floatval($advance_amount_raw) : null;
+    $is_advance_amount_valid = ($advance_amount_raw !== '' && is_numeric($advance_amount_raw) && floatval($advance_amount_raw) >= 0);
+    $advance_amount = $is_advance_amount_valid ? floatval($advance_amount_raw) : null;
     
     // Validate booking ID
     if ($booking_id <= 0) {
@@ -79,9 +79,9 @@ try {
     $grand_total = floatval($booking['grand_total']);
     $current_advance_amount = floatval($booking['advance_amount_received'] ?? 0);
     if ($new_payment_status === 'partial') {
-        $new_advance_amount = ($advance_amount_input !== null) ? $advance_amount_input : $current_advance_amount;
+        $new_advance_amount = ($advance_amount !== null) ? $advance_amount : $current_advance_amount;
     } elseif ($new_payment_status === 'paid') {
-        $new_advance_amount = ($advance_amount_input !== null) ? $advance_amount_input : $grand_total;
+        $new_advance_amount = ($advance_amount !== null) ? $advance_amount : $grand_total;
     } else {
         // pending or cancelled: reset
         $new_advance_amount = 0.0;

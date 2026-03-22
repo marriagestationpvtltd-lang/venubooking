@@ -1660,6 +1660,31 @@ function calculateAdvancePayment($total_amount) {
 }
 
 /**
+ * Determine the advance payment amount and label to display.
+ *
+ * Returns the actual advance_amount_received if it has been set (> 0),
+ * otherwise falls back to the percentage-calculated advance amount.
+ *
+ * @param float $grand_total          Grand total of the booking
+ * @param float $advance_amount_received Actual advance already received (0 = not yet set)
+ * @return array ['amount' => float, 'label' => string]  label is empty string when using actual amount
+ */
+function getAdvanceDisplayInfo($grand_total, $advance_amount_received) {
+    $advance_amount_received = floatval($advance_amount_received);
+    if ($advance_amount_received > 0) {
+        return [
+            'amount' => $advance_amount_received,
+            'label'  => '',
+        ];
+    }
+    $calc = calculateAdvancePayment($grand_total);
+    return [
+        'amount' => $calc['amount'],
+        'label'  => '(' . htmlspecialchars($calc['percentage'], ENT_QUOTES, 'UTF-8') . '%)',
+    ];
+}
+
+/**
  * Get setting value with caching
  */
 function getSetting($key, $default = '') {
@@ -2456,19 +2481,17 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <?php elseif ($type === 'payment_request'): ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <?php 
-                        // Use actual advance amount received if set, otherwise calculate from percentage
-                        $actual_advance_received = floatval($booking['advance_amount_received'] ?? 0);
-                        $advance_calc = calculateAdvancePayment($booking['grand_total']);
-                        $advance_display_amount = ($actual_advance_received > 0) ? $actual_advance_received : $advance_calc['amount'];
-                        $advance_display_label = ($actual_advance_received > 0)
-                            ? 'Advance Payment Required'
-                            : 'Advance Payment (' . htmlspecialchars($advance_calc['percentage']) . '%)';
+                        $adv_info = getAdvanceDisplayInfo(
+                            floatval($booking['grand_total']),
+                            floatval($booking['advance_amount_received'] ?? 0)
+                        );
+                        $advance_display_label = 'Advance Payment Required' . ($adv_info['label'] ? ' ' . $adv_info['label'] : '');
                         ?>
                         <div class="payment-notice">
                             <strong>Payment Request</strong><br>
                             Your booking for <?php echo htmlspecialchars($booking['venue_name']); ?> on <?php echo convertToNepaliDate($booking['event_date']); ?> is almost confirmed.<br><br>
                             <strong>Total Amount:</strong> <?php echo formatCurrency($booking['grand_total']); ?><br>
-                            <strong><?php echo $advance_display_label; ?>:</strong> <?php echo formatCurrency($advance_display_amount); ?><br><br>
+                            <strong><?php echo $advance_display_label; ?>:</strong> <?php echo formatCurrency($adv_info['amount']); ?><br><br>
                             Please complete the advance payment at your earliest convenience to confirm your booking.
                         </div>
                     <?php elseif ($type === 'confirmed'): ?>
@@ -2652,15 +2675,14 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     </div>
                     <?php if ($type === 'payment_request'): ?>
                         <?php 
-                        // Use actual advance amount received if set, otherwise calculate from percentage
-                        $actual_adv = floatval($booking['advance_amount_received'] ?? 0);
-                        $advance_calc2 = calculateAdvancePayment($booking['grand_total']);
-                        $adv_display_amount = ($actual_adv > 0) ? $actual_adv : $advance_calc2['amount'];
-                        $adv_display_pct    = ($actual_adv > 0) ? '' : ' (' . htmlspecialchars($advance_calc2['percentage']) . '%)';
+                        $adv_info2 = getAdvanceDisplayInfo(
+                            floatval($booking['grand_total']),
+                            floatval($booking['advance_amount_received'] ?? 0)
+                        );
                         ?>
                         <div class="cost-row" style="margin-top: 10px; border-top: 1px solid #ddd; background-color: #fff3cd; padding: 10px; border-radius: 3px;">
-                            <span><strong>Advance Payment Required<?php echo $adv_display_pct; ?>:</strong></span>
-                            <span style="color: #856404; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($adv_display_amount); ?></span>
+                            <span><strong>Advance Payment Required<?php echo ($adv_info2['label'] ? ' ' . $adv_info2['label'] : ''); ?>:</strong></span>
+                            <span style="color: #856404; font-weight: bold; font-size: 18px;"><?php echo formatCurrency($adv_info2['amount']); ?></span>
                         </div>
                     <?php endif; ?>
                 </div>

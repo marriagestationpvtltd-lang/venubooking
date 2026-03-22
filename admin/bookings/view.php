@@ -4082,8 +4082,10 @@ unset($_avail_svc);
                     const advanceDisplay = document.getElementById('advance-amount-display');
                     if (advanceDisplay && typeof data.advance_amount_received !== 'undefined') {
                         if (data.advance_amount_received > 0) {
+                            var currencyLabel = <?php echo json_encode(getSetting('currency', 'NPR')); ?>;
                             advanceDisplay.className = 'fw-semibold text-success small';
-                            advanceDisplay.innerHTML = '<i class="fas fa-check me-1"></i>' + '<?php echo addslashes(getSetting('currency', 'NPR')); ?> ' + parseFloat(data.advance_amount_received).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            advanceDisplay.innerHTML = '<i class="fas fa-check me-1"></i>';
+                            advanceDisplay.appendChild(document.createTextNode(currencyLabel + ' ' + parseFloat(data.advance_amount_received).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})));
                         } else {
                             advanceDisplay.className = 'text-muted small';
                             advanceDisplay.textContent = '—';
