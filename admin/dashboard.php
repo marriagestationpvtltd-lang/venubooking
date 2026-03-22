@@ -1,5 +1,10 @@
 <?php
 $page_title = 'Dashboard';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/functions.php';
+requireLogin();
+$current_user = getCurrentUser();
 
 $db = getDB();
 
