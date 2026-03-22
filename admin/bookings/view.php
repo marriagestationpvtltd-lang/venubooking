@@ -353,6 +353,30 @@ if (isset($_POST['action'])) {
         $_SESSION['flash_section'] = 'admin_services';
         header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
         exit;
+    } elseif ($action === 'send_all_vendor_emails') {
+        $va_all      = getBookingVendorAssignments($booking_id);
+        $sent_count  = 0;
+        $fail_count  = 0;
+        foreach ($va_all as $_va) {
+            if (!empty($_va['vendor_email'])) {
+                if (sendVendorAssignmentEmail($_va['vendor_name'], $_va['vendor_email'], $booking)) {
+                    $sent_count++;
+                } else {
+                    $fail_count++;
+                }
+            }
+        }
+        if ($sent_count > 0) {
+            $_SESSION['flash_success'] = "Emails sent to {$sent_count} vendor(s) successfully!" . ($fail_count > 0 ? " ({$fail_count} failed)" : '');
+        } elseif ($fail_count > 0) {
+            $_SESSION['flash_error'] = "Failed to send emails to {$fail_count} vendor(s).";
+        } else {
+            $_SESSION['flash_error'] = 'No vendor emails found to send.';
+        }
+        logActivity($current_user['id'], 'Sent all vendor emails', 'bookings', $booking_id, "Sent to {$sent_count} vendor(s)");
+        $_SESSION['flash_section'] = 'admin_services';
+        header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
+        exit;
     }
 }
 
@@ -548,6 +572,42 @@ if (!empty($user_services) || !empty($admin_services)) {
     }
     unset($_all_svc_rows, $_svc_ids_for_vt, $_vt_stmt, $_vt_rows, $_vt_map, $_srow, $_vtr, $_ph, $_db_tmp);
 }
+
+// Compute "Send All" combo messaging data.
+// A service "requires a vendor" if its catalog entry has a vendor_type_id (non-empty slug).
+$_combo_svc_ids_needing_vendor = [];
+foreach (array_merge($user_services, $admin_services) as $_svc) {
+    $_sid = (int)$_svc['id'];
+    if (!empty($service_vendor_type_slugs[$_sid])) {
+        $_combo_svc_ids_needing_vendor[] = $_sid;
+    }
+}
+// All-assigned: there is at least one vendor assignment AND every vendor-requiring service
+// has at least one assignment linked to it.
+$combo_all_assigned = !empty($vendor_assignments);
+if ($combo_all_assigned && !empty($_combo_svc_ids_needing_vendor)) {
+    foreach ($_combo_svc_ids_needing_vendor as $_sid) {
+        if (empty($vendor_assignments_by_service[$_sid])) {
+            $combo_all_assigned = false;
+            break;
+        }
+    }
+}
+// Build combo WhatsApp URL list and email list (all assigned vendors).
+$combo_wa_urls    = [];
+$combo_email_list = [];
+foreach ($vendor_assignments as $_va) {
+    if (!empty($_va['vendor_phone'])) {
+        $_wa = buildVendorAssignmentWhatsAppUrl($_va['vendor_name'], $_va['vendor_phone'], $booking);
+        if (!empty($_wa)) {
+            $combo_wa_urls[] = $_wa;
+        }
+    }
+    if (!empty($_va['vendor_email'])) {
+        $combo_email_list[] = ['name' => $_va['vendor_name'], 'email' => $_va['vendor_email']];
+    }
+}
+unset($_combo_svc_ids_needing_vendor, $_svc, $_sid, $_va, $_wa);
 
 // Resolve display time – prefer saved start/end times; fall back to shift defaults so that
 // the booking time is always visible in both the screen view and the print invoice.
@@ -1692,6 +1752,25 @@ unset($_avail_svc);
                                         <span class="badge bg-secondary ms-1" style="font-size:.65rem;"><?php echo $all_display_services_count; ?></span>
                                     <?php endif; ?>
                                 </div>
+                                <?php if ($combo_all_assigned && !empty($combo_wa_urls)): ?>
+                                <div class="d-flex gap-1">
+                                    <button type="button" class="btn btn-sm btn-success py-0 px-2" id="combo-wa-btn"
+                                            onclick="sendAllVendorWhatsApp()"
+                                            title="Send WhatsApp message to all assigned vendors one by one">
+                                        <i class="fab fa-whatsapp me-1"></i>WhatsApp All
+                                    </button>
+                                    <?php if (!empty($combo_email_list)): ?>
+                                    <form method="POST" style="display:inline;">
+                                        <input type="hidden" name="action" value="send_all_vendor_emails">
+                                        <button type="submit" class="btn btn-sm btn-info py-0 px-2"
+                                                onclick="return confirm('Send email notification to all <?php echo (int)count($combo_email_list); ?> assigned vendor(s)?')"
+                                                title="Send email to all assigned vendors">
+                                            <i class="fas fa-envelope me-1"></i>Email All
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endif; ?>
                             </div>
 
                             <?php if (($is_admin_services_flash || $is_vendor_flash) && $success_message): ?>
@@ -3795,6 +3874,37 @@ document.addEventListener('DOMContentLoaded', function() {
         var category = selectEl.dataset.serviceCategory || '';
         populateVendorSelect(selectEl, typeSlug, category);
     });
+})();
+</script>
+<?php endif; ?>
+
+<?php if (!empty($combo_wa_urls)): ?>
+<script>
+(function() {
+    var comboWaUrls = <?php echo json_encode($combo_wa_urls, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
+    window.sendAllVendorWhatsApp = function() {
+        if (!comboWaUrls || comboWaUrls.length === 0) return;
+        var btn = document.getElementById('combo-wa-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Opening...';
+        }
+        var idx = 0;
+        function openNext() {
+            if (idx >= comboWaUrls.length) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i>WhatsApp All';
+                }
+                return;
+            }
+            window.open(comboWaUrls[idx], '_blank');
+            idx++;
+            setTimeout(openNext, idx < comboWaUrls.length ? 1500 : 0);
+        }
+        openNext();
+    };
 })();
 </script>
 <?php endif; ?>
