@@ -3118,7 +3118,7 @@ unset($_avail_svc);
 
 /* ── Main Container ─────────────────────────────────────────── */
 .invoice-container {
-    font-family: 'Georgia', 'Times New Roman', serif;
+    font-family: 'Roboto', 'Arial', 'Helvetica Neue', sans-serif;
     color: #1A1A1A;
     line-height: 1.4;
     background: #FEFDF7;
@@ -3162,7 +3162,7 @@ unset($_avail_svc);
     color: #1B4332;
     background: linear-gradient(135deg, #FEFDF7 0%, #F4E9C0 100%);
     letter-spacing: 1px;
-    font-family: Georgia, serif;
+    font-family: 'Roboto', 'Arial', sans-serif;
 }
 
 .company-info {
@@ -3178,7 +3178,7 @@ unset($_avail_svc);
     letter-spacing: 2.5px;
     color: #1B4332;
     line-height: 1.2;
-    font-family: Georgia, serif;
+    font-family: 'Roboto', 'Arial', sans-serif;
 }
 
 .company-details {
@@ -3208,7 +3208,7 @@ unset($_avail_svc);
     text-transform: uppercase;
     letter-spacing: 2.5px;
     color: #F4D03F;
-    font-family: Georgia, serif;
+    font-family: 'Roboto', 'Arial', sans-serif;
 }
 
 /* ── Invoice Details Bar ────────────────────────────────────── */
@@ -3258,7 +3258,7 @@ unset($_avail_svc);
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: #1B4332;
-    font-family: Georgia, serif;
+    font-family: 'Roboto', 'Arial', sans-serif;
 }
 
 .customer-info-grid {
@@ -3341,6 +3341,7 @@ unset($_avail_svc);
     color: #5A3E00;
     border-top: 2px solid #B7950B;
     border-bottom: 1px solid #B7950B;
+    font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
 }
 
 .invoice-table .total-row td {
@@ -3350,6 +3351,7 @@ unset($_avail_svc);
     font-size: 11px;
     padding: 5px 7px;
     letter-spacing: 0.4px;
+    font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
 }
 
 /* ── Payment Calculation Section ────────────────────────────── */
@@ -3384,6 +3386,7 @@ unset($_avail_svc);
     font-size: 9.5px;
     font-weight: 700;
     color: #1A1A1A;
+    font-family: 'Roboto Mono', 'Courier New', Courier, monospace;
 }
 
 .payment-value-words {
@@ -3402,7 +3405,7 @@ unset($_avail_svc);
 }
 
 .due-amount-row .payment-label { color: #1B4332; }
-.due-amount-row .payment-value { color: #0D2B1F; font-size: 11px; }
+.due-amount-row .payment-value { color: #0D2B1F; font-size: 11px; font-family: 'Roboto Mono', 'Courier New', Courier, monospace; }
 
 /* ── Cancellation Policy Section ────────────────────────────── */
 .note-section {
@@ -3420,7 +3423,7 @@ unset($_avail_svc);
     text-transform: uppercase;
     letter-spacing: 1px;
     color: #922B21;
-    font-family: Georgia, serif;
+    font-family: 'Roboto', 'Arial', sans-serif;
 }
 
 .note-section ul {
@@ -3545,6 +3548,7 @@ unset($_avail_svc);
         padding: 0;
         font-size: 9.5pt;
         line-height: 1.35;
+        font-family: 'Roboto', 'Arial', 'Helvetica Neue', sans-serif;
     }
 
     /* Prevent page breaks inside sections */
@@ -3699,6 +3703,7 @@ unset($_avail_svc);
         font-weight: bold;
         color: #5A3E00 !important;
         border-top: 2px solid #B7950B !important;
+        font-family: 'Roboto Mono', 'Courier New', Courier, monospace !important;
     }
 
     .invoice-table .total-row td {
@@ -3707,6 +3712,7 @@ unset($_avail_svc);
         font-size: 10pt;
         font-weight: bold;
         padding: 5px 6px;
+        font-family: 'Roboto Mono', 'Courier New', Courier, monospace !important;
     }
 
     /* Payment section */
@@ -3719,7 +3725,7 @@ unset($_avail_svc);
 
     .payment-table td { font-size: 8.5pt; line-height: 1.4; padding: 2px 0; }
     .payment-label    { font-weight: bold; color: #1B4332 !important; }
-    .payment-value    { font-size: 8.5pt; font-weight: bold; text-align: right; color: #1A1A1A !important; }
+    .payment-value    { font-size: 8.5pt; font-weight: bold; text-align: right; color: #1A1A1A !important; font-family: 'Roboto Mono', 'Courier New', Courier, monospace !important; }
     .payment-value-words { font-size: 8pt; font-style: italic; color: #4A4A4A !important; }
 
     .due-amount-row td {
@@ -3730,7 +3736,7 @@ unset($_avail_svc);
     }
 
     .due-amount-row .payment-label { color: #1B4332 !important; }
-    .due-amount-row .payment-value { font-size: 10pt; color: #0D2B1F !important; }
+    .due-amount-row .payment-value { font-size: 10pt; color: #0D2B1F !important; font-family: 'Roboto Mono', 'Courier New', Courier, monospace !important; }
 
     /* Policy section */
     .note-section {
