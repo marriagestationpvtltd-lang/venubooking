@@ -46,7 +46,7 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                     </div>
                     <div class="step completed">
                         <span class="step-number">2</span>
-                        <span class="step-label">Venue & Hall</span>
+                        <span class="step-label">Venue &amp; Hall</span>
                     </div>
                     <div class="step active">
                         <span class="step-number">3</span>
@@ -54,10 +54,14 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                     </div>
                     <div class="step">
                         <span class="step-number">4</span>
-                        <span class="step-label">Services</span>
+                        <span class="step-label">Packages</span>
                     </div>
                     <div class="step">
                         <span class="step-number">5</span>
+                        <span class="step-label">Services</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">6</span>
                         <span class="step-label">Confirm</span>
                     </div>
                 </div>
