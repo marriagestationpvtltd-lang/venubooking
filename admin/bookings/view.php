@@ -310,19 +310,30 @@ if (isset($_POST['action'])) {
         if ($vendor_id_input <= 0) {
             $_SESSION['flash_error'] = 'Please select a vendor.';
         } else {
-            $assignment_id = addVendorAssignment($booking_id, $vendor_id_input, $task_description, $assigned_amount, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null);
-            if ($assignment_id) {
-                logActivity($current_user['id'], 'Added vendor assignment', 'booking_vendor_assignments', $booking_id, "Assigned vendor ID {$vendor_id_input}: {$task_description}");
-                $_SESSION['flash_success'] = 'Vendor assigned successfully!';
-                $new_vendor = getVendor($vendor_id_input);
-                if ($new_vendor && !empty($new_vendor['phone'])) {
-                    $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking);
-                }
-                if ($new_vendor && !empty($new_vendor['email'])) {
-                    $_SESSION['flash_vendor_email_sent'] = sendVendorAssignmentEmail($new_vendor['name'], $new_vendor['email'], $booking);
-                }
+            // Duplicate check: same vendor already assigned to this service?
+            $is_duplicate = false;
+            if ($booking_service_id > 0) {
+                $chk = getDB()->prepare("SELECT COUNT(*) FROM booking_vendor_assignments WHERE booking_id = ? AND booking_service_id = ? AND vendor_id = ?");
+                $chk->execute([$booking_id, $booking_service_id, $vendor_id_input]);
+                $is_duplicate = (int)$chk->fetchColumn() > 0;
+            }
+            if ($is_duplicate) {
+                $_SESSION['flash_error'] = 'This vendor is already assigned to this service.';
             } else {
-                $_SESSION['flash_error'] = 'Failed to add vendor assignment. Please try again.';
+                $assignment_id = addVendorAssignment($booking_id, $vendor_id_input, $task_description, $assigned_amount, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null);
+                if ($assignment_id) {
+                    logActivity($current_user['id'], 'Added vendor assignment', 'booking_vendor_assignments', $booking_id, "Assigned vendor ID {$vendor_id_input}: {$task_description}");
+                    $_SESSION['flash_success'] = 'Vendor assigned successfully!';
+                    $new_vendor = getVendor($vendor_id_input);
+                    if ($new_vendor && !empty($new_vendor['phone'])) {
+                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking);
+                    }
+                    if ($new_vendor && !empty($new_vendor['email'])) {
+                        $_SESSION['flash_vendor_email_sent'] = sendVendorAssignmentEmail($new_vendor['name'], $new_vendor['email'], $booking);
+                    }
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to add vendor assignment. Please try again.';
+                }
             }
         }
         $_SESSION['flash_section'] = 'admin_services';
@@ -1925,8 +1936,8 @@ unset($_avail_svc);
                                         </div>
                                     </div>
                                     <div class="flex-shrink-0 d-flex align-items-center gap-1">
-                                        <!-- Plus button: toggles inline vendor assignment form -->
-                                        <?php if (!empty($vendor_types_available)): ?>
+                                        <!-- Plus button: toggles inline vendor assignment form (hidden once a vendor is assigned) -->
+                                        <?php if (!empty($vendor_types_available) && empty($svc_vendors)): ?>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-primary py-0 px-2 inline-va-toggle"
                                                 title="Assign vendor for this service"
