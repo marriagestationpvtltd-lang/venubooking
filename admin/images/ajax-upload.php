@@ -120,7 +120,7 @@ if ($max_card_id > 0) {
     );
     $count_stmt->execute([$section, $max_card_id]);
     $current_card_count = (int)$count_stmt->fetchColumn();
-    if ($current_card_count >= 10) {
+    if ($current_card_count >= 100) {
         $card_id = $max_card_id + 1;
     } else {
         $card_id = $max_card_id;

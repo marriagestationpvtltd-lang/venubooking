@@ -110,7 +110,7 @@ foreach ($sections as $key => $label) {
                     <!-- Section Info Display -->
                     <div id="sectionInfo" class="photos-per-card-info" style="display: none;">
                         <i class="fas fa-folder-open"></i>
-                        <span>Photos are grouped into cards (max 10 per card). Current section has <span id="currentPhotos" class="count">0</span> photos in <span id="currentCards" class="count">0</span> card(s).</span>
+                        <span>Photos are grouped into cards (max 100 per card). Current section has <span id="currentPhotos" class="count">0</span> photos in <span id="currentCards" class="count">0</span> card(s).</span>
                     </div>
 
                     <!-- Event Category field – only shown when section = work_photos -->
@@ -196,7 +196,7 @@ foreach ($sections as $key => $label) {
                             <li><strong>Select Section First:</strong> Choose where the images should appear</li>
                             <li><strong>Add Images:</strong> Drag & drop or click to select multiple images</li>
                             <li><strong>Auto-Compression:</strong> Large images (>1920px) are automatically resized and compressed without visible quality loss</li>
-                            <li><strong>Card Grouping:</strong> Images are automatically grouped into cards (max 10 per card) within each section, similar to menu/sub-menu structure</li>
+                            <li><strong>Card Grouping:</strong> Images are automatically grouped into cards (max 100 per card) within each section, similar to menu/sub-menu structure</li>
                             <li><strong>Preview & Remove:</strong> You can preview and remove images before uploading</li>
                         </ul>
                     </div>
