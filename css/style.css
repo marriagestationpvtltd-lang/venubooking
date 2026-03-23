@@ -3388,3 +3388,22 @@ footer a:hover {
 html {
     scroll-behavior: smooth;
 }
+
+/* ── Section Dedicated Pages — Page Hero Bar ── */
+.page-hero-bar {
+    background: linear-gradient(135deg, var(--primary-green, #4CAF50), var(--dark-green, #2e7d32));
+    padding: 1.25rem 0;
+}
+.page-hero-bar .breadcrumb {
+    background: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.82rem;
+}
+.page-hero-bar .breadcrumb-item + .breadcrumb-item::before {
+    color: rgba(255,255,255,0.5);
+}
+.text-white-75 {
+    color: rgba(255,255,255,0.75) !important;
+}
+

@@ -22,19 +22,28 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
  * The button lets users copy a direct link or share via WhatsApp/Facebook.
  *
  * @param  string $sectionId  The HTML id of the target section (e.g. "section-packages").
+ * @param  string $pageUrl    Optional dedicated page URL for this section.
  * @return string             HTML markup for the share button and its dropdown.
  */
-function getSectionShareButton(string $sectionId): string {
-    $escaped = htmlspecialchars($sectionId, ENT_QUOTES, 'UTF-8');
+function getSectionShareButton(string $sectionId, string $pageUrl = ''): string {
+    $escaped    = htmlspecialchars($sectionId, ENT_QUOTES, 'UTF-8');
+    $escapedUrl = htmlspecialchars($pageUrl, ENT_QUOTES, 'UTF-8');
+    $viewPageLink = '';
+    if (!empty($pageUrl)) {
+        $viewPageLink = '
+        <a class="share-opt share-view-page" href="' . $escapedUrl . '" role="menuitem">
+            <i class="fas fa-external-link-alt" aria-hidden="true"></i> छुट्टै पेजमा हेर्नुहोस्
+        </a>';
+    }
     return '
-<div class="section-share-wrap" data-share-wrap="' . $escaped . '">
+<div class="section-share-wrap" data-share-wrap="' . $escaped . '"' . (!empty($escapedUrl) ? ' data-page-url="' . $escapedUrl . '"' : '') . '>
     <button class="section-share-btn" type="button"
             data-section="' . $escaped . '"
             title="सेयर गर्नुहोस्"
             aria-haspopup="true" aria-expanded="false">
         <i class="fas fa-share-alt" aria-hidden="true"></i>
     </button>
-    <div class="section-share-dropdown" role="menu" aria-label="Share options">
+    <div class="section-share-dropdown" role="menu" aria-label="Share options">' . $viewPageLink . '
         <button class="share-opt share-copy" type="button" data-section="' . $escaped . '" role="menuitem">
             <i class="fas fa-link" aria-hidden="true"></i> लिंक कपी गर्नुहोस्
         </button>
@@ -322,7 +331,7 @@ if (!empty($service_categories)) {
             <span class="section-eyebrow">Service Packages</span>
             <h2 class="section-title">हाम्रा सेवा प्याकेजहरू</h2>
             <p class="section-subtitle mt-2">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
-            <?php echo getSectionShareButton('section-packages'); ?>
+            <?php echo getSectionShareButton('section-packages', BASE_URL . '/packages.php'); ?>
         </div>
 
         <?php if (count($pkg_categories_present) > 1): ?>
@@ -487,7 +496,7 @@ if (!empty($service_categories)) {
             <span class="section-eyebrow">Why Choose Us</span>
             <h2 class="section-title">हामीलाई किन छान्ने?</h2>
             <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">हाम्रो प्रिमियम सेवाले तपाईंको हरेक अनुष्ठानलाई अविस्मरणीय बनाउँछ।</p>
-            <?php echo getSectionShareButton('section-features'); ?>
+            <?php echo getSectionShareButton('section-features', BASE_URL . '/about.php'); ?>
         </div>
         <div class="row g-4 reveal-stagger">
             <div class="col-6 col-md-3">
@@ -542,7 +551,7 @@ if (!empty($venues)):
             <span class="section-eyebrow">Our Venues</span>
             <h2 class="section-title">हाम्रा प्रिमियम स्थानहरू</h2>
             <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
-            <?php echo getSectionShareButton('section-venues'); ?>
+            <?php echo getSectionShareButton('section-venues', BASE_URL . '/venues.php'); ?>
         </div>
 
         <!-- City filter bar — auto-updates from booking form selection -->
@@ -686,7 +695,7 @@ if (!empty($gallery_cards)):
             <span class="section-eyebrow">Our Gallery</span>
             <h2 class="section-title">हाम्रा यादगार पलहरू</h2>
             <p class="text-muted mt-2">Moments we are proud to capture</p>
-            <?php echo getSectionShareButton('section-gallery'); ?>
+            <?php echo getSectionShareButton('section-gallery', BASE_URL . '/gallery.php'); ?>
         </div>
 
         <div class="photo-cards-grid">
@@ -1090,7 +1099,7 @@ if (!empty($work_categories)):
             <span class="section-eyebrow">Portfolio</span>
             <h2 class="section-title">हाम्रो काम</h2>
             <p class="text-muted mt-2">Browse our events by category</p>
-            <?php echo getSectionShareButton('section-work'); ?>
+            <?php echo getSectionShareButton('section-work', BASE_URL . '/portfolio.php'); ?>
         </div>
 
         <!-- Marquee wrapper: cards scroll continuously; hovering pauses the animation -->
@@ -1694,7 +1703,7 @@ if (!empty($vendors)):
             <span class="section-eyebrow">Our Team</span>
             <h2 class="section-title">हाम्रा विशेषज्ञहरू</h2>
             <p class="text-muted mt-2">Meet the professionals who make your event special</p>
-            <?php echo getSectionShareButton('section-vendors'); ?>
+            <?php echo getSectionShareButton('section-vendors', BASE_URL . '/vendors.php'); ?>
         </div>
 
         <?php if (count($present_vendor_types) > 1): ?>
@@ -1849,7 +1858,7 @@ if (!empty($testimonial_images)):
             <span class="section-eyebrow">Testimonials</span>
             <h2 class="section-title">हाम्रा ग्राहकहरूका विचार</h2>
             <p class="text-muted mt-2">Memories made, moments cherished</p>
-            <?php echo getSectionShareButton('section-testimonials'); ?>
+            <?php echo getSectionShareButton('section-testimonials', BASE_URL . '/testimonials.php'); ?>
         </div>
 
         <div id="testimonialsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
@@ -1956,7 +1965,7 @@ if (!empty($about_images)):
                 <div class="section-heading-wrap d-inline-block w-100">
                     <span class="section-eyebrow">About Us</span>
                     <h2 class="section-title mb-3">हाम्रो बारेमा</h2>
-                    <?php echo getSectionShareButton('section-about'); ?>
+                    <?php echo getSectionShareButton('section-about', BASE_URL . '/about.php'); ?>
                 </div>
                 <?php
                 $about_desc = '';
@@ -2468,6 +2477,7 @@ document.addEventListener("DOMContentLoaded", function() {
 .share-opt .fab.fa-whatsapp { color: #25D366; }
 .share-opt .fab.fa-facebook-f { color: #1877F2; }
 .share-opt .fas.fa-link { color: #555; }
+.share-opt .fas.fa-external-link-alt { color: #2e7d32; }
 .share-copied-toast {
     position: fixed;
     bottom: 28px;
@@ -2881,6 +2891,12 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function getSectionUrl(sectionId) {
+        // Use the dedicated page URL if available (stored in data-page-url on the wrap element)
+        var wrap = document.querySelector(\'[data-share-wrap="\' + sectionId + \'"]\');
+        if (wrap) {
+            var pageUrl = wrap.getAttribute(\'data-page-url\');
+            if (pageUrl) return pageUrl;
+        }
         return window.location.origin + window.location.pathname + \'#\' + sectionId;
     }
 
