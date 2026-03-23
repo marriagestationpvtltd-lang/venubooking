@@ -1639,65 +1639,28 @@ if ($folder && !$error_message) {
                         </div>
                     </div>
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                        <?php if ($folder['allow_zip_download']): ?>
-                            <?php if ($has_subfolders && $current_album === null && count($photos) > 0): ?>
-                                <!-- Top-level: offer download of all photos -->
-                                <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
-                                   class="btn btn-success download-all-btn"
-                                   onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
-                                    <i class="fas fa-download me-2"></i>
-                                    Download All (<?php echo count($photos); ?>)
-                                </a>
-                                <p class="text-muted mt-2 mb-0">
-                                    <small><i class="fas fa-file-archive"></i> Downloads as ZIP file in one folder</small>
-                                </p>
-                            <?php elseif (!$has_subfolders && count($photos) > 0): ?>
-                                <!-- Flat view -->
-                                <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
-                                   class="btn btn-success download-all-btn"
-                                   onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
-                                    <i class="fas fa-download me-2"></i> 
-                                    Download All (<?php echo count($photos); ?>)
-                                </a>
-                                <p class="text-muted mt-2 mb-0">
-                                    <small><i class="fas fa-file-archive"></i> Downloads as ZIP file in one folder</small>
-                                </p>
-                            <?php elseif ($has_subfolders && $current_album !== null && count($visible_photos) > 0): ?>
-                                <!-- Album view: download only this album -->
-                                <a href="?token=<?php echo urlencode($token); ?>&album=<?php echo urlencode($current_album); ?>&download_all=1"
-                                   class="btn btn-success album-download-btn"
-                                   onclick="return startDownload(this.href, <?php echo json_encode(($current_album === '' ? 'General' : $current_album) . '.zip', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
-                                    <i class="fas fa-download me-2"></i>
-                                    Download Album (<?php echo count($visible_photos); ?>)
-                                </a>
-                                <p class="text-muted mt-2 mb-0">
-                                    <small><i class="fas fa-file-archive"></i> Downloads album as ZIP</small>
-                                </p>
-                            <?php endif; ?>
-                        <?php endif; ?>
-
                         <?php
-                        // Individual (no-ZIP) bulk download button
+                        // Individual (no-ZIP) bulk download — primary download action
                         // For album drill-down use only that album's URLs; otherwise use all photos' URLs
                         $_ind_urls = ($has_subfolders && $current_album !== null) ? $bulk_album_urls : $bulk_all_urls;
                         if (!empty($_ind_urls)):
                         ?>
                             <button type="button"
-                                    class="btn btn-outline-primary mt-2"
+                                    class="btn btn-success download-all-btn"
                                     onclick="return bulkDownloadIndividual(<?php echo json_encode($_ind_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
-                                <i class="fas fa-images me-2"></i>
+                                <i class="fas fa-download me-2"></i>
                                 <?php if ($has_subfolders && $current_album !== null): ?>
-                                    Download Album (<?php echo count($_ind_urls); ?>) - Individual
+                                    Download Album (<?php echo count($_ind_urls); ?>)
                                 <?php else: ?>
-                                    Download All (<?php echo count($_ind_urls); ?>) - Individual
+                                    Download All (<?php echo count($_ind_urls); ?>)
                                 <?php endif; ?>
                             </button>
-                            <p class="text-muted mt-1 mb-0">
+                            <p class="text-muted mt-2 mb-0">
                                 <small><i class="fas fa-file-image"></i> Downloads each file separately (no ZIP)</small>
                             </p>
-                            <!-- Select Photos toggle for individual selection -->
+                            <!-- Select Photos toggle for selective download -->
                             <button type="button" id="selectModeBtn"
-                                    class="btn btn-outline-secondary mt-2 select-mode-btn"
+                                    class="btn btn-outline-primary mt-2 select-mode-btn"
                                     aria-label="Select photos to download individually"
                                     onclick="toggleSelectMode()">
                                 <i class="fas fa-check-square me-1"></i>
@@ -1766,15 +1729,15 @@ if ($folder && !$error_message) {
                         यस फोल्डरमा <?php echo $file_count; ?> <?php echo $file_text; ?>।<br>
                         तलको बटनहरू थिचेर फाइलहरू डाउनलोड गर्नुहोस्।
                     </p>
-                    <?php if ($folder['allow_zip_download'] && $file_count > 0): ?>
-                        <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
-                           class="btn btn-success btn-lg download-all-btn px-5 py-3"
-                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
+                    <?php if (!empty($bulk_all_urls)): ?>
+                        <button type="button"
+                                class="btn btn-success btn-lg download-all-btn mt-3 px-5 py-3"
+                                onclick="return bulkDownloadIndividual(<?php echo json_encode($bulk_all_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
                             <i class="fas fa-download me-2"></i>
-                            सबै डाउनलोड गर्नुहोस् (<?php echo $file_count; ?> फाइलहरू)
-                        </a>
+                            सबै फाइल डाउनलोड गर्नुहोस् (<?php echo count($bulk_all_urls); ?>)
+                        </button>
                         <p style="color:var(--text-secondary);" class="mt-3 mb-0">
-                            <small><i class="fas fa-file-archive me-1"></i> ZIP फाइलमा डाउनलोड हुन्छ</small>
+                            <small><i class="fas fa-file-image me-1"></i> ZIP नबनाई प्रत्येक फाइल अलग-अलग डाउनलोड हुन्छ</small>
                         </p>
 
                         <?php if ($whatsapp_delete_url): ?>
@@ -1792,46 +1755,11 @@ if ($folder && !$error_message) {
                             </p>
                         </div>
                         <?php endif; ?>
-                    <?php elseif (!$folder['allow_zip_download']): ?>
-                        <!-- ZIP disabled - still allow individual download if files exist -->
                     <?php else: ?>
                         <div class="alert alert-info d-inline-block">
                             <i class="fas fa-folder-open me-2"></i>
                             यस फोल्डरमा अहिले कुनै फाइल छैन।
                         </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($bulk_all_urls)): ?>
-                        <?php if ($folder['allow_zip_download'] && $file_count > 0): ?>
-                            <div class="mt-3">
-                                <small style="color:var(--text-secondary);">— वा —</small>
-                            </div>
-                        <?php endif; ?>
-                        <button type="button"
-                                class="btn btn-outline-primary btn-lg mt-3 px-5 py-3"
-                                onclick="return bulkDownloadIndividual(<?php echo json_encode($bulk_all_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
-                            <i class="fas fa-images me-2"></i>
-                            सबै फाइल अलग-अलग डाउनलोड गर्नुहोस् (<?php echo count($bulk_all_urls); ?>)
-                        </button>
-                        <p style="color:var(--text-secondary);" class="mt-3 mb-0">
-                            <small><i class="fas fa-file-image me-1"></i> ZIP नबनाई प्रत्येक फाइल अलग-अलग डाउनलोड हुन्छ</small>
-                        </p>
-
-                        <?php if ($whatsapp_delete_url && !($folder['allow_zip_download'] && $file_count > 0)): ?>
-                        <!-- WhatsApp Photo Deletion Request (shown here when ZIP button is not shown) -->
-                        <div class="whatsapp-delete-request mt-4">
-                            <a href="<?php echo htmlspecialchars($whatsapp_delete_url); ?>"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="whatsapp-delete-btn">
-                                <i class="fab fa-whatsapp"></i>
-                                मैले फोटो डाउनलोड गरेँ, कृपया डिलिट गरिदिनुस्
-                            </a>
-                            <p class="whatsapp-delete-note">
-                                <i class="fas fa-info-circle"></i> फोटो डाउनलोड गरिसकेपछि माथिको बटन थिच्नुहोस्
-                            </p>
-                        </div>
-                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
