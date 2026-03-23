@@ -76,14 +76,9 @@ $venues_js_json = json_encode($venues_js, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX
             <?php endforeach; ?>
         </div>
 
-        <!-- Venue slider -->
-        <div class="venues-slider-wrapper">
-            <button class="venues-slider-btn venues-slider-prev" id="venuesSliderPrev" aria-label="Previous venues" disabled>
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <div class="venues-slider-viewport" id="venuesSliderViewport">
-                <div class="venues-slider-track" id="venuesGrid">
-                    <?php foreach ($venues as $venue):
+        <!-- Venue grid -->
+        <div class="row g-3" id="venuesGrid">
+            <?php foreach ($venues as $venue):
                         $images_to_display = [];
                         if (!empty($venue['gallery_images'])) {
                             $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
@@ -108,7 +103,7 @@ $venues_js_json = json_encode($venues_js, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX
                             }
                         }
                     ?>
-                        <div class="venue-slide">
+                        <div class="col-12 col-sm-6 col-lg-4">
                             <div class="venue-card-home card h-100 shadow-sm">
                                 <?php if (count($images_to_display) > 1): ?>
                                     <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
@@ -161,11 +156,6 @@ $venues_js_json = json_encode($venues_js, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX
                             </div>
                         </div>
                     <?php endforeach; ?>
-                </div>
-            </div>
-            <button class="venues-slider-btn venues-slider-next" id="venuesSliderNext" aria-label="Next venues">
-                <i class="fas fa-chevron-right"></i>
-            </button>
         </div>
 
         <!-- Empty state (hidden by default) -->
@@ -241,7 +231,7 @@ $extra_js = '
         var panoBtn = venue.pano_image_url
             ? \'<button type="button" class="btn btn-outline-primary w-100 home-pano-btn mb-2" data-pano-url="\' + escapeHtml(venue.pano_image_url) + \'" data-venue-name="\' + escapeHtml(venue.name) + \'"><i class="fas fa-street-view"></i> View 360°</button>\'
             : \'\';
-        return \'<div class="venue-slide">\' +
+        return '<div class="col-12 col-sm-6 col-lg-4">' +
                \'<div class="venue-card-home card h-100 shadow-sm">\' +
                imgHtml +
                \'<div class="card-body d-flex flex-column">\' +
@@ -338,36 +328,6 @@ $extra_js = '
                 new bootstrap.Carousel(el, { interval: 4000 });
             });
         }
-        var viewport = document.getElementById(\'venuesSliderViewport\');
-        if (viewport) { viewport.scrollLeft = 0; }
-        refreshVenuesSlider();
-    }
-
-    function refreshVenuesSlider() {
-        var viewport = document.getElementById(\'venuesSliderViewport\');
-        var prevBtn  = document.getElementById(\'venuesSliderPrev\');
-        var nextBtn  = document.getElementById(\'venuesSliderNext\');
-        if (!viewport || !prevBtn || !nextBtn) return;
-        prevBtn.disabled = viewport.scrollLeft <= 0;
-        nextBtn.disabled = viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 1;
-    }
-
-    function initVenuesSlider() {
-        var viewport    = document.getElementById(\'venuesSliderViewport\');
-        var prevBtn     = document.getElementById(\'venuesSliderPrev\');
-        var nextBtn     = document.getElementById(\'venuesSliderNext\');
-        var sliderTrack = document.getElementById(\'venuesGrid\');
-        if (!viewport || !prevBtn || !nextBtn) return;
-        function getSlideScrollAmount() {
-            var slide = viewport.querySelector(\'.venue-slide\');
-            if (!slide) return 300;
-            return slide.offsetWidth + (parseFloat(getComputedStyle(sliderTrack).gap) || 24);
-        }
-        prevBtn.addEventListener(\'click\', function () { viewport.scrollBy({ left: -getSlideScrollAmount(), behavior: \'smooth\' }); });
-        nextBtn.addEventListener(\'click\', function () { viewport.scrollBy({ left: getSlideScrollAmount(), behavior: \'smooth\' }); });
-        viewport.addEventListener(\'scroll\', refreshVenuesSlider);
-        window.addEventListener(\'resize\', refreshVenuesSlider);
-        refreshVenuesSlider();
     }
 
     document.addEventListener(\'DOMContentLoaded\', function () {
@@ -381,7 +341,6 @@ $extra_js = '
         });
         attachBookBtnListeners();
         attachPanoBtnListeners();
-        initVenuesSlider();
     });
 }());
 </script>
