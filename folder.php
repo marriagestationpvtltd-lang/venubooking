@@ -2592,6 +2592,18 @@ if ($folder && !$error_message) {
             document.head.appendChild(s);
         })();
 
+        // Track the active progress-bar timer so the single dismiss handler can
+        // clear it – avoids registering a new handler on every initiateZipDownload call.
+        var _activeZipBarTimer = null;
+
+        // Register the ZIP overlay dismiss handler exactly once.
+        document.getElementById('zipProgressOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                if (_activeZipBarTimer) { clearInterval(_activeZipBarTimer); _activeZipBarTimer = null; }
+                this.classList.remove('visible');
+            }
+        });
+
         function toggleSelectionMode() {
             if (selectionModeActive) {
                 exitSelectionMode();
@@ -2706,20 +2718,14 @@ if ($folder && !$error_message) {
             readyBtn.style.display = 'none';
             overlay.classList.add('visible');
 
-            // Animate the bar while waiting
+            // Animate the bar while waiting; tracked in module-level var so the
+            // single dismiss handler (registered once above) can clear it too.
+            if (_activeZipBarTimer) { clearInterval(_activeZipBarTimer); }
             var barPct = 15;
-            var barTimer = setInterval(function() {
+            _activeZipBarTimer = setInterval(function() {
                 barPct = Math.min(barPct + 5, 88);
                 bar.style.width = barPct + '%';
             }, 600);
-
-            // Close overlay if user clicks outside the card
-            overlay.onclick = function(e) {
-                if (e.target === overlay) {
-                    clearInterval(barTimer);
-                    overlay.classList.remove('visible');
-                }
-            };
 
             // Build form data
             var fd = new FormData();
@@ -2737,7 +2743,7 @@ if ($folder && !$error_message) {
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                clearInterval(barTimer);
+                clearInterval(_activeZipBarTimer); _activeZipBarTimer = null;
                 bar.style.width = '100%';
 
                 if (data.success) {
@@ -2776,7 +2782,7 @@ if ($folder && !$error_message) {
                 }
             })
             .catch(function(err) {
-                clearInterval(barTimer);
+                clearInterval(_activeZipBarTimer); _activeZipBarTimer = null;
                 icon.className    = 'fas fa-exclamation-circle';
                 icon.style.color  = '#dc3545';
                 title.textContent = 'Network Error';

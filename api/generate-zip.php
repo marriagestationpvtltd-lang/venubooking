@@ -38,7 +38,7 @@ if (!empty($_POST['photo_ids'])) {
     $decoded = json_decode($_POST['photo_ids'], true);
     if (is_array($decoded)) {
         $requested_ids = array_map('intval', $decoded);
-        $requested_ids = array_filter($requested_ids, fn($id) => $id > 0);
+        $requested_ids = array_filter($requested_ids, function($id) { return $id > 0; });
         $requested_ids = array_values($requested_ids);
     }
 }
@@ -158,7 +158,7 @@ try {
 
         // Path-traversal guard
         $safe_path = str_replace('\\', '/', $photo['image_path']);
-        if (strpos($safe_path, '../') !== false || strpos($safe_path, '/..') !== false || $safe_path[0] === '/') {
+        if (empty($safe_path) || strpos($safe_path, '../') !== false || strpos($safe_path, '/..') !== false || $safe_path[0] === '/') {
             continue;
         }
 
@@ -215,10 +215,13 @@ try {
     // Write .htaccess if missing (extra safety on hosts without default protection)
     $htaccess_path = $cache_dir . '.htaccess';
     if (!file_exists($htaccess_path)) {
-        @file_put_contents($htaccess_path,
+        $htaccess_result = file_put_contents($htaccess_path,
             "Options -Indexes\n" .
             "<FilesMatch \"\\.php[0-9]?$\">\n    Require all denied\n</FilesMatch>\n"
         );
+        if ($htaccess_result === false) {
+            error_log('generate-zip.php: could not write .htaccess to zip_cache directory: ' . $htaccess_path);
+        }
     }
 
     // ── Remove stale ZIP files (older than 2 hours) ────────────────────────────
@@ -231,8 +234,8 @@ try {
     // ── Generate ZIP ───────────────────────────────────────────────────────────
     @set_time_limit(0);
 
-    $zip_token      = bin2hex(random_bytes(16));
-    $zip_basename   = 'zip_' . $folder['id'] . '_' . $zip_token . '_' . date('Ymd') . '.zip';
+    $zip_nonce      = bin2hex(random_bytes(16));
+    $zip_basename   = 'zip_' . $folder['id'] . '_' . $zip_nonce . '_' . date('Ymd') . '.zip';
     $zip_path       = $cache_dir . $zip_basename;
 
     $zip    = new ZipArchive();
