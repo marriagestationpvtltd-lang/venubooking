@@ -46,13 +46,13 @@ if (!empty($whatsapp_admin_number)) {
     $wa_ref      = $booking['booking_number'];
     $wa_phone_clean = preg_replace('/[^0-9]/', '', $whatsapp_admin_number);
     if (!empty($wa_phone_clean)) {
-        $wa_message  = "नमस्ते! मैले भर्खरै बुकिङ गरेको छु। कृपया मेरो बुकिङ कन्फर्म गरिदिनुहोला।\n\n";
+        $wa_message  = "Hello! I have just made a booking. Please confirm my booking.\n\n";
         $wa_message .= "📋 Booking Reference: " . $wa_ref . "\n";
         if ($wa_name)  $wa_message .= "👤 Name: "  . $wa_name  . "\n";
         if ($wa_date)  $wa_message .= "📅 Date: "  . $wa_date  . "\n";
         if ($wa_venue) $wa_message .= "🏛️ Venue: " . $wa_venue . "\n";
         if ($wa_hall)  $wa_message .= "🚪 Hall: "  . $wa_hall  . "\n";
-        $wa_message .= "\nधन्यवाद!";
+        $wa_message .= "\nThank you!";
         $whatsapp_url = 'https://wa.me/' . $wa_phone_clean . '?text=' . rawurlencode($wa_message);
     }
 }
