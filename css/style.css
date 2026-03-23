@@ -3198,12 +3198,17 @@ footer a:hover {
 @media (max-width: 575px) {
     .floating-wa-btn {
         bottom: 1rem;
-        right: 1rem;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
         padding: 0.78rem;
         border-radius: 50%;
         width: 56px;
         height: 56px;
         justify-content: center;
+    }
+    .floating-wa-btn:hover {
+        transform: translateX(-50%) translateY(-3px) scale(1.02);
     }
     .floating-wa-btn .wa-fab-text { display: none; }
     .floating-wa-btn .wa-fab-icon { font-size: 1.5rem; }
