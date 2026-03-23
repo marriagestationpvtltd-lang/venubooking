@@ -16,7 +16,13 @@ function getSitemapBaseUrl(): string {
         $scheme = trim($forwarded[0]);
     }
 
-    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $host = $_SERVER['SERVER_NAME'] ?? '';
+    if ($host === '') {
+        $hostCandidate = $_SERVER['HTTP_HOST'] ?? '';
+        if ($hostCandidate !== '' && preg_match('/^[a-z0-9.-]+(?::\d+)?$/i', $hostCandidate)) {
+            $host = $hostCandidate;
+        }
+    }
     $basePath = BASE_URL;
     if ($host === '') {
         return rtrim($basePath, '/');
@@ -41,6 +47,10 @@ function getFileLastModified(string $path): string {
     return gmdate('Y-m-d');
 }
 
+function buildPackageDetailPath(int $packageId): string {
+    return '/package-detail.php?' . http_build_query(['id' => $packageId]);
+}
+
 $baseUrl = getSitemapBaseUrl();
 
 $staticPages = [
@@ -56,8 +66,8 @@ $staticPages = [
 
 $packagePages = [];
 $pdo = getDB();
-$stmt = $pdo->prepare("SELECT id, updated_at, created_at FROM service_packages WHERE status = 'active'");
-$stmt->execute();
+$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ?');
+$stmt->execute(['active']);
 $packagePages = $stmt->fetchAll();
 
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
@@ -74,7 +84,7 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 <?php foreach ($packagePages as $package):
     $lastmodSource = $package['updated_at'] ?? $package['created_at'] ?? null;
     $lastmodDate = $lastmodSource ? gmdate('Y-m-d', strtotime($lastmodSource)) : gmdate('Y-m-d');
-    $packagePath = '/package-detail.php?id=' . (int)$package['id'];
+    $packagePath = buildPackageDetailPath((int)$package['id']);
 ?>
     <url>
         <loc><?php echo htmlspecialchars(buildSitemapUrl($baseUrl, $packagePath), ENT_XML1); ?></loc>
