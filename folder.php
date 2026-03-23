@@ -24,10 +24,6 @@ if ($current_album === '') {
     $current_album = null;
 }
 
-// Flat-view open/expand mode: when no subfolders exist, first show folder card,
-// then reveal photos after user clicks the folder card (?open=1)
-$is_open = isset($_GET['open']) && $_GET['open'] === '1';
-
 // Get download token from URL
 $token = isset($_GET['token']) ? trim($_GET['token']) : '';
 
@@ -1673,36 +1669,7 @@ if ($whatsapp_number) {
                         <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
                         <p class="text-muted">No files in this folder yet.</p>
                     </div>
-                <?php elseif (!$is_open): ?>
-                    <!-- Step 1: Show single folder card — user clicks to reveal photos -->
-                    <div class="subfolder-grid single-folder-view">
-                        <a href="?token=<?php echo urlencode($token); ?>&open=1" class="subfolder-card">
-                            <div class="subfolder-thumb">
-                                <i class="fas fa-folder folder-icon"></i>
-                            </div>
-                            <div class="subfolder-info">
-                                <div class="subfolder-name" title="<?php echo htmlspecialchars($folder['folder_name']); ?>">
-                                    <?php echo htmlspecialchars($folder['folder_name']); ?>
-                                </div>
-                                <div class="subfolder-count">
-                                    <i class="fas fa-photo-video"></i>
-                                    <?php echo count($photos); ?> file<?php echo count($photos) !== 1 ? 's' : ''; ?>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
                 <?php else: ?>
-                    <!-- Step 2: Folder opened — breadcrumb + full photo grid -->
-                    <div class="breadcrumb-nav">
-                        <a href="?token=<?php echo urlencode($token); ?>">
-                            <i class="fas fa-folder"></i> <?php echo htmlspecialchars($folder['folder_name']); ?>
-                        </a>
-                        <span class="separator"><i class="fas fa-chevron-right" style="font-size:0.75rem;"></i></span>
-                        <span>
-                            <i class="fas fa-photo-video text-warning"></i>
-                            <?php echo count($photos); ?> file<?php echo count($photos) !== 1 ? 's' : ''; ?>
-                        </span>
-                    </div>
                     <div class="photo-grid">
                         <?php 
                         // Define extension arrays once for performance
