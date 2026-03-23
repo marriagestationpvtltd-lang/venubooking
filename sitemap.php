@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
 
+const PACKAGE_DETAIL_PATH = '/package-detail.php';
+
 header('Content-Type: application/xml; charset=UTF-8');
 
 function getSitemapBaseUrl(): string {
@@ -19,7 +21,7 @@ function getSitemapBaseUrl(): string {
     $host = $_SERVER['SERVER_NAME'] ?? '';
     if ($host === '') {
         $hostCandidate = $_SERVER['HTTP_HOST'] ?? '';
-        if ($hostCandidate !== '' && preg_match('/^[a-z0-9.-]+(?::\d+)?$/i', $hostCandidate)) {
+        if ($hostCandidate !== '' && preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(?::\\d+)?$/i', $hostCandidate)) {
             $host = $hostCandidate;
         }
     }
@@ -48,7 +50,7 @@ function getFileLastModified(string $path): string {
 }
 
 function buildPackageDetailPath(int $packageId): string {
-    return '/package-detail.php?' . http_build_query(['id' => $packageId]);
+    return PACKAGE_DETAIL_PATH . '?' . http_build_query(['id' => $packageId]);
 }
 
 $baseUrl = getSitemapBaseUrl();
@@ -66,7 +68,7 @@ $staticPages = [
 
 $packagePages = [];
 $pdo = getDB();
-$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ?');
+$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT 50000');
 $stmt->execute(['active']);
 $packagePages = $stmt->fetchAll();
 
