@@ -10,9 +10,9 @@ $extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellu
 // Get booking data from session or POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['booking_data'] = [
-        'shift'      => $_POST['shift']      ?? '',
-        'start_time' => $_POST['start_time'] ?? '',
-        'end_time'   => $_POST['end_time']   ?? '',
+        'shift'      => '',
+        'start_time' => '',
+        'end_time'   => '',
         'event_date' => $_POST['event_date'] ?? '',
         'guests'     => isset($_POST['guests']) && is_numeric($_POST['guests']) && (int)$_POST['guests'] > 0 ? (int)$_POST['guests'] : '',
         'event_type' => $_POST['event_type'] ?? '',
@@ -39,7 +39,7 @@ $booking_data = $_SESSION['booking_data'];
 
 // Get available venues, filtered by city if provided
 $city_id = isset($booking_data['city_id']) ? $booking_data['city_id'] : null;
-$venues = getAvailableVenues($booking_data['event_date'], $booking_data['shift'], $city_id);
+$venues = getAvailableVenues($booking_data['event_date'], '', $city_id);
 
 // Check if custom venue entry is allowed
 $allow_custom_venue = getSetting('allow_custom_venue', '1') === '1';
@@ -95,19 +95,13 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                 <i class="fas fa-calendar"></i> <?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?> <small class="opacity-75">(<?php echo convertToNepaliDate($booking_data['event_date']); ?>)</small>
                 <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
-                    <i class="fas fa-clock"></i> <?php echo ucfirst($booking_data['shift']); ?>
-                    <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>
-                        <span class="ms-1">(<?php echo formatBookingTime($booking_data['start_time']); ?> – <?php echo formatBookingTime($booking_data['end_time']); ?>)</span>
-                    <?php endif; ?>
-                    <span class="mx-2 d-none d-md-inline">|</span>
-                </span>
-                <span class="d-block d-md-inline">
                     <i class="fas fa-users"></i> <?php echo $booking_data['guests']; ?> Guests
                     <span class="mx-2 d-none d-md-inline">|</span>
                 </span>
                 <span class="d-block d-md-inline">
                     <i class="fas fa-tag"></i> <?php echo $booking_data['event_type']; ?>
                 </span>
+                <span id="selectedSlotDisplay" class="d-block d-md-inline ms-md-2" style="display:none!important;"></span>
             </div>
             <div class="col-md-4 col-12 text-md-end mt-2 mt-md-0">
                 <strong>Total: <span id="totalCost"><?php echo formatCurrency(0); ?></span></strong>
@@ -263,6 +257,40 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
         </div>
     </div>
 </section>
+
+<!-- Time Slot Selection Modal -->
+<div class="modal fade" id="timeSlotModal" tabindex="-1" aria-labelledby="timeSlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="timeSlotModalLabel">
+                    <i class="fas fa-clock me-2"></i>Select a Time Slot — <span id="tsModalHallName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Please select an available time slot for your event. Slots already booked on <strong id="tsModalDate"></strong> are shown as unavailable.
+                </p>
+                <div id="timeSlotsContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading available time slots…</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmSlotBtn" disabled>
+                    <i class="fas fa-check me-1"></i>Confirm &amp; Continue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php if ($allow_custom_venue && !$preferred_venue_id): ?>
 <!-- Custom / Own Venue Section -->

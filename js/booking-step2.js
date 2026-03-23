@@ -82,11 +82,10 @@ function showHalls(venueId, venueName) {
     
     showLoading();
     
-    // Fetch halls for the venue
+    // Fetch halls for the venue (no shift needed – time slots drive availability)
     const params = new URLSearchParams({
         venue_id: venueId,
         date: bookingData.event_date,
-        shift: bookingData.shift,
         guests: bookingData.guests
     });
     
@@ -201,17 +200,17 @@ function displayHalls(halls, venueName) {
                                 data-hall-name="${escapeHtml(hall.name || '')}">
                             <i class="fas fa-street-view"></i> View 360° Panorama
                         </button>` : ''}
-                        ${hall.available ? 
+                        ${hall.has_time_slots ? 
                             `<button class="btn btn-success w-100 select-hall-btn" 
                                      data-hall-id="${parseInt(hall.id, 10) || 0}" 
                                      data-hall-name="${hall.name || ''}" 
                                      data-venue-name="${venueName || ''}" 
                                      data-base-price="${parseFloat(hall.base_price) || 0}" 
                                      data-capacity="${parseInt(hall.capacity, 10) || 0}">
-                                <i class="fas fa-check"></i> Select This Hall
+                                <i class="fas fa-clock"></i> View Available Times
                             </button>` :
-                            `<button class="btn btn-secondary w-100" disabled>
-                                <i class="fas fa-times"></i> Not Available
+                            `<button class="btn btn-secondary w-100" disabled title="No time slots have been configured for this hall yet.">
+                                <i class="fas fa-exclamation-circle"></i> No Time Slots Available
                             </button>`
                         }
                     </div>
@@ -239,7 +238,8 @@ function displayHalls(halls, venueName) {
                 return;
             }
             
-            selectHall(hallId, hallName, venueName, basePrice, capacity);
+            // Show time slot selector before confirming hall selection
+            openTimeSlotModal(hallId, hallName, venueName, basePrice, capacity);
         });
     });
 
@@ -330,8 +330,8 @@ function showVenues() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Select hall and proceed to next step
-function selectHall(hallId, hallName, venueName, basePrice, capacity) {
+// Select hall (with optional time slot) and proceed to next step
+function selectHall(hallId, hallName, venueName, basePrice, capacity, slotId) {
     // Save selected hall to session
     const hallData = {
         id: hallId,
@@ -340,11 +340,15 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
         base_price: basePrice,
         capacity: capacity
     };
+
+    if (slotId !== undefined && slotId !== null) {
+        hallData.slot_id = slotId;
+    }
     
     // Show loading indicator
     showLoading();
     
-    // Update session via AJAX or form submission
+    // Update session via AJAX
     fetch(baseUrl + '/api/select-hall.php', {
         method: 'POST',
         headers: {
@@ -375,6 +379,171 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity) {
         showError('An error occurred while selecting the hall');
     });
 }
+
+// ── Time Slot Modal ─────────────────────────────────────────────────────────
+
+let _pendingHall = null;   // stores hall data while user picks a slot
+let _selectedSlot = null;  // the slot the user has chosen
+
+function openTimeSlotModal(hallId, hallName, venueName, basePrice, capacity) {
+    _pendingHall = { hallId, hallName, venueName, basePrice, capacity };
+    _selectedSlot = null;
+
+    // Populate modal header
+    const nameEl = document.getElementById('tsModalHallName');
+    if (nameEl) nameEl.textContent = hallName;
+
+    const dateEl = document.getElementById('tsModalDate');
+    if (dateEl) dateEl.textContent = bookingData.event_date || '';
+
+    // Disable confirm button until a slot is selected
+    const confirmBtn = document.getElementById('confirmSlotBtn');
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    // Show loading spinner inside modal body
+    const container = document.getElementById('timeSlotsContainer');
+    if (container) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading…</span>
+                </div>
+                <p class="mt-2 text-muted">Loading available time slots…</p>
+            </div>`;
+    }
+
+    // Show the modal
+    const modalEl = document.getElementById('timeSlotModal');
+    if (!modalEl) { showError('Time slot modal not found.'); return; }
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    // Fetch available slots
+    const params = new URLSearchParams({
+        hall_id: hallId,
+        date: bookingData.event_date
+    });
+
+    fetch(baseUrl + '/api/get-time-slots.php?' + params)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                container.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-1"></i>${escapeHtml(data.message || 'Failed to load time slots.')}</div>`;
+                return;
+            }
+            renderTimeSlots(data.slots, container);
+        })
+        .catch(() => {
+            container.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-1"></i>An error occurred while loading time slots.</div>`;
+        });
+}
+
+function renderTimeSlots(slots, container) {
+    if (!slots || slots.length === 0) {
+        container.innerHTML = `<div class="alert alert-warning"><i class="fas fa-clock me-1"></i>No time slots have been configured for this hall. Please contact us or choose another hall.</div>`;
+        return;
+    }
+
+    let html = '<div class="row g-3">';
+    slots.forEach(slot => {
+        const available = slot.available;
+        const priceLabel = slot.price_override !== null
+            ? formatCurrency(slot.price_override)
+            : formatCurrency(_pendingHall ? _pendingHall.basePrice : 0);
+
+        html += `
+            <div class="col-12 col-md-6">
+                <div class="card h-100 time-slot-card ${available ? 'border-success' : 'border-secondary opacity-50'}"
+                     data-slot-id="${parseInt(slot.id, 10)}"
+                     data-slot-name="${escapeHtml(slot.slot_name)}"
+                     data-start="${escapeHtml(slot.start_time)}"
+                     data-end="${escapeHtml(slot.end_time)}"
+                     data-price="${slot.price_override !== null ? parseFloat(slot.price_override) : ''}"
+                     style="${available ? 'cursor:pointer;' : 'cursor:not-allowed;'}">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div>
+                            <h6 class="card-title mb-1 ${available ? 'text-success' : 'text-muted'}">
+                                <i class="fas fa-clock me-1"></i>${escapeHtml(slot.slot_name)}
+                            </h6>
+                            <p class="text-muted mb-2 small">
+                                ${escapeHtml(slot.start_time_display)} – ${escapeHtml(slot.end_time_display)}
+                            </p>
+                            <p class="mb-0 fw-semibold small">${priceLabel}</p>
+                        </div>
+                        <div class="mt-2">
+                            ${available
+                                ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Available</span>`
+                                : `<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>Already Booked</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Attach click listeners only to available slots
+    container.querySelectorAll('.time-slot-card').forEach(card => {
+        const slotId = parseInt(card.getAttribute('data-slot-id'), 10);
+        const slotPrice = card.getAttribute('data-price');
+        if (!slots.find(s => s.id === slotId && s.available)) return;
+
+        card.addEventListener('click', function() {
+            // Deselect all
+            container.querySelectorAll('.time-slot-card.selected-slot').forEach(c => {
+                c.classList.remove('selected-slot', 'border-warning', 'shadow');
+                c.classList.add('border-success');
+            });
+            // Highlight selected
+            this.classList.add('selected-slot', 'border-warning', 'shadow');
+            this.classList.remove('border-success');
+
+            _selectedSlot = {
+                id: slotId,
+                name: this.getAttribute('data-slot-name'),
+                start: this.getAttribute('data-start'),
+                end: this.getAttribute('data-end'),
+                price: slotPrice !== '' ? parseFloat(slotPrice) : null
+            };
+
+            const confirmBtn = document.getElementById('confirmSlotBtn');
+            if (confirmBtn) confirmBtn.disabled = false;
+        });
+    });
+}
+
+// Wire up confirm button (once, at DOMContentLoaded)
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmBtn = document.getElementById('confirmSlotBtn');
+    if (!confirmBtn) return;
+
+    confirmBtn.addEventListener('click', function() {
+        if (!_selectedSlot || !_pendingHall) return;
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('timeSlotModal'));
+        if (modal) modal.hide();
+
+        // Use slot price override if present, else hall base price
+        const effectivePrice = (_selectedSlot.price !== null) ? _selectedSlot.price : _pendingHall.basePrice;
+
+        // Update the summary bar with selected slot info
+        const slotDisplay = document.getElementById('selectedSlotDisplay');
+        if (slotDisplay) {
+            slotDisplay.textContent = ' | \u23F0 ' + _selectedSlot.name + ' (' + _selectedSlot.start.substring(0,5) + ' – ' + _selectedSlot.end.substring(0,5) + ')';
+            slotDisplay.style.display = '';
+        }
+
+        selectHall(
+            _pendingHall.hallId,
+            _pendingHall.hallName,
+            _pendingHall.venueName,
+            effectivePrice,
+            _pendingHall.capacity,
+            _selectedSlot.id
+        );
+    });
+});
 
 // Ensure the 360° pano viewer modal exists in the DOM (inject once)
 function ensurePanoModal() {

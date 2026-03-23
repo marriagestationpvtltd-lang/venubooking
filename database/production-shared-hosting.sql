@@ -184,6 +184,22 @@ CREATE TABLE IF NOT EXISTS hall_menus (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: hall_time_slots
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS hall_time_slots (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    hall_id INT NOT NULL,
+    slot_name VARCHAR(100) NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    price_override DECIMAL(10,2) DEFAULT NULL COMMENT 'NULL = use hall base_price',
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_hts_hall FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE,
+    INDEX idx_hts_hall_status (hall_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- TABLE: additional_services
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS additional_services (
@@ -1372,3 +1388,33 @@ DELIMITER ;
 
 CALL upgrade_additional_services_vendor_type_id();
 DROP PROCEDURE IF EXISTS upgrade_additional_services_vendor_type_id;
+
+-- ============================================================================
+-- UPGRADE: Create hall_time_slots table for existing installations
+-- ============================================================================
+DELIMITER $$
+DROP PROCEDURE IF EXISTS upgrade_hall_time_slots$$
+CREATE PROCEDURE upgrade_hall_time_slots()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'hall_time_slots'
+    ) THEN
+        CREATE TABLE hall_time_slots (
+            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            hall_id INT NOT NULL,
+            slot_name VARCHAR(100) NOT NULL,
+            start_time TIME NOT NULL,
+            end_time TIME NOT NULL,
+            price_override DECIMAL(10,2) DEFAULT NULL,
+            status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_hts_hall FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE,
+            INDEX idx_hts_hall_status (hall_id, status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    END IF;
+END$$
+DELIMITER ;
+CALL upgrade_hall_time_slots();
+DROP PROCEDURE IF EXISTS upgrade_hall_time_slots;

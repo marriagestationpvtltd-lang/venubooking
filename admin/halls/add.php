@@ -61,6 +61,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Handle menu assignments
                 $selected_menus = isset($_POST['menus']) ? $_POST['menus'] : [];
                 updateHallMenus($hall_id, $selected_menus);
+
+                // Handle time slot additions
+                $slot_names  = $_POST['slot_name']  ?? [];
+                $slot_starts = $_POST['slot_start']  ?? [];
+                $slot_ends   = $_POST['slot_end']    ?? [];
+                $slot_prices = $_POST['slot_price']  ?? [];
+                $slot_statuses = $_POST['slot_status'] ?? [];
+
+                $slot_stmt = $db->prepare(
+                    "INSERT INTO hall_time_slots (hall_id, slot_name, start_time, end_time, price_override, status) VALUES (?, ?, ?, ?, ?, ?)"
+                );
+                for ($i = 0; $i < count($slot_names); $i++) {
+                    $sn = trim($slot_names[$i] ?? '');
+                    $ss = trim($slot_starts[$i] ?? '');
+                    $se = trim($slot_ends[$i]   ?? '');
+                    if ($sn === '' || $ss === '' || $se === '') continue;
+                    // Validate time format
+                    if (!preg_match('/^\d{2}:\d{2}$/', $ss) || !preg_match('/^\d{2}:\d{2}$/', $se)) continue;
+                    $sp = isset($slot_prices[$i]) && is_numeric($slot_prices[$i]) && $slot_prices[$i] !== '' ? floatval($slot_prices[$i]) : null;
+                    $st = in_array($slot_statuses[$i] ?? '', ['active','inactive'], true) ? $slot_statuses[$i] : 'active';
+                    try {
+                        $slot_stmt->execute([$hall_id, $sn, $ss, $se, $sp, $st]);
+                    } catch (Exception $se_ex) {
+                        error_log('Error adding time slot: ' . $se_ex->getMessage());
+                    }
+                }
                 
                 // Handle image upload if provided
                 if (isset($_FILES['hall_image']) && $_FILES['hall_image']['error'] !== UPLOAD_ERR_NO_FILE) {
@@ -274,7 +300,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                     </div>
 
-                    <div class="d-flex justify-content-between">
+                    <!-- Time Slots Section -->
+                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+                        <i class="fas fa-clock text-success me-1"></i> Booking Time Slots
+                        <small class="text-muted fw-normal ms-2">Define available booking windows for this hall</small>
+                    </h6>
+                    <div class="alert alert-info py-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Time slots determine when customers can book this hall. Add at least one slot so customers can select a booking time.
+                    </div>
+                    <div id="timeSlotsContainer">
+                        <!-- Dynamic time slot rows will be added here -->
+                    </div>
+                    <button type="button" class="btn btn-outline-success btn-sm mt-2" id="addSlotBtn">
+                        <i class="fas fa-plus me-1"></i> Add Time Slot
+                    </button>
+
+                    <div class="d-flex justify-content-between mt-4">
                         <a href="index.php" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Cancel
                         </a>
@@ -298,5 +340,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 <?php endif; ?>
+
+<script>
+(function() {
+    var slotIndex = 0;
+    var container = document.getElementById('timeSlotsContainer');
+    var addBtn    = document.getElementById('addSlotBtn');
+
+    function buildSlotRow(idx) {
+        var row = document.createElement('div');
+        row.className = 'row g-2 align-items-end mb-2 slot-row border rounded p-2';
+        row.innerHTML = [
+            '<div class="col-md-3">',
+            '  <label class="form-label small fw-semibold mb-1">Slot Name <span class="text-danger">*</span></label>',
+            '  <input type="text" name="slot_name[]" class="form-control form-control-sm" placeholder="e.g. Morning Slot" required>',
+            '</div>',
+            '<div class="col-md-2">',
+            '  <label class="form-label small fw-semibold mb-1">Start Time <span class="text-danger">*</span></label>',
+            '  <input type="time" name="slot_start[]" class="form-control form-control-sm" required>',
+            '</div>',
+            '<div class="col-md-2">',
+            '  <label class="form-label small fw-semibold mb-1">End Time <span class="text-danger">*</span></label>',
+            '  <input type="time" name="slot_end[]" class="form-control form-control-sm" required>',
+            '</div>',
+            '<div class="col-md-2">',
+            '  <label class="form-label small fw-semibold mb-1">Price Override</label>',
+            '  <input type="number" name="slot_price[]" class="form-control form-control-sm" placeholder="(optional)" min="0" step="0.01">',
+            '</div>',
+            '<div class="col-md-2">',
+            '  <label class="form-label small fw-semibold mb-1">Status</label>',
+            '  <select name="slot_status[]" class="form-select form-select-sm">',
+            '    <option value="active">Active</option>',
+            '    <option value="inactive">Inactive</option>',
+            '  </select>',
+            '</div>',
+            '<div class="col-md-1 text-end">',
+            '  <button type="button" class="btn btn-outline-danger btn-sm remove-slot-btn" title="Remove"><i class="fas fa-trash"></i></button>',
+            '</div>',
+        ].join('');
+
+        row.querySelector('.remove-slot-btn').addEventListener('click', function() {
+            row.remove();
+        });
+        return row;
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            container.appendChild(buildSlotRow(slotIndex++));
+        });
+    }
+}());
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

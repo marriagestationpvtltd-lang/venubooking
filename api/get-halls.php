@@ -14,14 +14,20 @@ if (!isset($_GET['venue_id']) || !isset($_GET['guests'])) {
 $venue_id = intval($_GET['venue_id']);
 $guests = intval($_GET['guests']);
 $date = $_GET['date'] ?? '';
-$shift = $_GET['shift'] ?? '';
 
 try {
     $halls = getHallsForVenue($venue_id, $guests);
     
-    // Check availability for each hall
     foreach ($halls as &$hall) {
-        $hall['available'] = checkHallAvailability($hall['id'], $date, $shift);
+        // Check if hall has any active time slots defined; if so it is "schedulable"
+        $slots = getHallTimeSlots($hall['id']);
+        $hall['has_time_slots'] = !empty($slots);
+
+        // Legacy availability field: a hall is "available" when it has time slots
+        // configured (actual per-slot availability is resolved in the time-slot modal).
+        // When no slots are defined the hall is still shown but the button will
+        // inform the user that no time slots have been set up yet.
+        $hall['available'] = $hall['has_time_slots'];
         
         // Get all images for this hall (for carousel)
         $db = getDB();
