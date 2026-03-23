@@ -729,6 +729,58 @@ function getAllCities() {
 }
 
 /**
+ * Get public-facing statistics for the homepage/about counters.
+ *
+ * @return array{venues:int, events:int, clients:int, service_years:int}
+ */
+function getPublicStats() {
+    $db = getDB();
+    $stats = [
+        'venues' => 0,
+        'events' => 0,
+        'clients' => 0,
+        'service_years' => 0,
+    ];
+
+    try {
+        $stmt = $db->query("
+            SELECT
+                (SELECT COUNT(*) FROM venues WHERE status = 'active') AS venues_count,
+                (SELECT COUNT(*) FROM bookings WHERE booking_status = 'completed') AS events_count,
+                (SELECT COUNT(*) FROM customers) AS clients_count,
+                (SELECT MIN(created_at) FROM venues) AS venue_started_at,
+                (SELECT MIN(created_at) FROM bookings) AS booking_started_at
+        ");
+        $row = $stmt->fetch() ?: [];
+        $stats['venues'] = (int)($row['venues_count'] ?? 0);
+        $stats['events'] = (int)($row['events_count'] ?? 0);
+        $stats['clients'] = (int)($row['clients_count'] ?? 0);
+
+        $venue_start = $row['venue_started_at'] ?? null;
+        $booking_start = $row['booking_started_at'] ?? null;
+
+        $earliest = null;
+        if (!empty($venue_start)) {
+            $earliest = $venue_start;
+        }
+        if (!empty($booking_start) && ($earliest === null || $booking_start < $earliest)) {
+            $earliest = $booking_start;
+        }
+
+        if (!empty($earliest)) {
+            $start = new DateTime($earliest);
+            $now = new DateTime();
+            $interval = $start->diff($now);
+            $stats['service_years'] = $interval->invert ? 0 : max(0, (int)$interval->y);
+        }
+    } catch (PDOException $e) {
+        error_log('getPublicStats() failed: ' . $e->getMessage());
+    }
+
+    return $stats;
+}
+
+/**
  * Get available venues for a date, optionally filtered by city
  */
 function getAvailableVenues($date, $shift, $city_id = null) {

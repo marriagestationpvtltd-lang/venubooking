@@ -17,6 +17,13 @@ $service_categories = getServicePackagesByCategory();
 $office_whatsapp       = getSetting('whatsapp_number', '');
 $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
 
+// Public stats for homepage counters
+$public_stats = getPublicStats();
+$stat_venues  = (int)($public_stats['venues'] ?? 0);
+$stat_events  = (int)($public_stats['events'] ?? 0);
+$stat_clients = (int)($public_stats['clients'] ?? 0);
+$stat_years   = (int)($public_stats['service_years'] ?? 0);
+
 /**
  * Returns the HTML for a share button widget for a given section ID.
  * The button lets users copy a direct link or share via WhatsApp/Facebook.
@@ -207,28 +214,28 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
             <div class="col-6 col-md-3">
                 <div class="stat-item">
                     <div class="stat-icon-wrap"><i class="fas fa-building"></i></div>
-                    <span class="stat-number"><span class="counter" data-target="10">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-number"><span class="counter" data-target="<?php echo $stat_venues; ?>">0</span><span class="stat-suffix">+</span></span>
                     <span class="stat-label">Premium Venues</span>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="stat-item">
                     <div class="stat-icon-wrap"><i class="fas fa-calendar-check"></i></div>
-                    <span class="stat-number"><span class="counter" data-target="500">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-number"><span class="counter" data-target="<?php echo $stat_events; ?>">0</span><span class="stat-suffix">+</span></span>
                     <span class="stat-label">Events Done</span>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="stat-item">
                     <div class="stat-icon-wrap"><i class="fas fa-smile"></i></div>
-                    <span class="stat-number"><span class="counter" data-target="1000">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-number"><span class="counter" data-target="<?php echo $stat_clients; ?>">0</span><span class="stat-suffix">+</span></span>
                     <span class="stat-label">Happy Clients</span>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="stat-item">
                     <div class="stat-icon-wrap"><i class="fas fa-star"></i></div>
-                    <span class="stat-number"><span class="counter" data-target="5">0</span><span class="stat-suffix">+</span></span>
+                    <span class="stat-number"><span class="counter" data-target="<?php echo $stat_years; ?>">0</span><span class="stat-suffix">+</span></span>
                     <span class="stat-label">Years of Service</span>
                 </div>
             </div>
@@ -1976,21 +1983,21 @@ if (!empty($about_images)):
                     <div class="col-4 text-center">
                         <div class="about-stat-card">
                             <i class="fas fa-building about-stat-icon"></i>
-                            <div class="about-stat-number">10+</div>
+                            <div class="about-stat-number"><?php echo $stat_venues; ?>+</div>
                             <div class="about-stat-label">Venues</div>
                         </div>
                     </div>
                     <div class="col-4 text-center">
                         <div class="about-stat-card">
                             <i class="fas fa-calendar-check about-stat-icon"></i>
-                            <div class="about-stat-number">500+</div>
+                            <div class="about-stat-number"><?php echo $stat_events; ?>+</div>
                             <div class="about-stat-label">Events</div>
                         </div>
                     </div>
                     <div class="col-4 text-center">
                         <div class="about-stat-card">
                             <i class="fas fa-smile about-stat-icon"></i>
-                            <div class="about-stat-number">1000+</div>
+                            <div class="about-stat-number"><?php echo $stat_clients; ?>+</div>
                             <div class="about-stat-label">Happy Clients</div>
                         </div>
                     </div>

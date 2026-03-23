@@ -8,6 +8,10 @@ require_once __DIR__ . '/includes/header.php';
 $about_images = getImagesBySection('about');
 $office_whatsapp = getSetting('whatsapp_number', '');
 $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
+$public_stats = getPublicStats();
+$stat_venues  = (int)($public_stats['venues'] ?? 0);
+$stat_events  = (int)($public_stats['events'] ?? 0);
+$stat_clients = (int)($public_stats['clients'] ?? 0);
 
 $about_desc = '';
 if (!empty($about_images)) {
@@ -87,21 +91,21 @@ if (!empty($about_images)) {
                     <div class="col-4 text-center">
                         <div class="about-stat-card">
                             <i class="fas fa-building about-stat-icon"></i>
-                            <div class="about-stat-number">10+</div>
+                            <div class="about-stat-number"><?php echo $stat_venues; ?>+</div>
                             <div class="about-stat-label">Venues</div>
                         </div>
                     </div>
                     <div class="col-4 text-center">
                         <div class="about-stat-card">
                             <i class="fas fa-calendar-check about-stat-icon"></i>
-                            <div class="about-stat-number">500+</div>
+                            <div class="about-stat-number"><?php echo $stat_events; ?>+</div>
                             <div class="about-stat-label">Events</div>
                         </div>
                     </div>
                     <div class="col-4 text-center">
                         <div class="about-stat-card">
                             <i class="fas fa-smile about-stat-icon"></i>
-                            <div class="about-stat-number">1000+</div>
+                            <div class="about-stat-number"><?php echo $stat_clients; ?>+</div>
                             <div class="about-stat-label">Happy Clients</div>
                         </div>
                     </div>
