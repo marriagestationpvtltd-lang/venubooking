@@ -80,16 +80,16 @@
     }
 
     if (waLink) {
+        waLink.href = 'https://wa.me/?text=' + encodeURIComponent(shareUrl);
         waLink.addEventListener('click', function(event) {
-            waLink.href = 'https://wa.me/?text=' + encodeURIComponent(shareUrl);
             event.stopPropagation();
             closeShare();
         });
     }
 
     if (fbLink) {
+        fbLink.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl);
         fbLink.addEventListener('click', function(event) {
-            fbLink.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl);
             event.stopPropagation();
             closeShare();
         });

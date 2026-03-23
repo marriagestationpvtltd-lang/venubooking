@@ -2106,7 +2106,7 @@ if ($whatsapp_number) {
          * The browser's download manager handles the file transfer directly,
          * avoiding the slow fetch-to-memory approach.
          */
-    function startDownload(url, defaultName) {
+        function startDownload(url, defaultName) {
             var overlay = document.getElementById('downloadProgressOverlay');
             var dlBar   = document.getElementById('dlBar');
             var dlPct   = document.getElementById('dlPercent');

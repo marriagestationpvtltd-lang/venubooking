@@ -1112,7 +1112,13 @@ $google_review_link = getSetting('google_review_link', 'https://g.page/r/CXn4LyB
 $thankyou_text  = "Thank you, " . strip_tags($booking['full_name']) . "!\n\n";
 $thankyou_text .= "We hope your " . strip_tags($booking['event_type']) . " at " . strip_tags($booking['venue_name']) . " was wonderful.\n";
 if (!empty($booking['event_date'])) {
-    $thankyou_text .= "📅 Event Date: " . date('d M Y', strtotime($booking['event_date'])) . "\n";
+    $event_date_en = date('F d, Y', strtotime($booking['event_date']));
+    $event_date_np = convertToNepaliDate($booking['event_date']);
+    $thankyou_text .= "📅 Event Date: " . $event_date_en;
+    if (!empty($event_date_np)) {
+        $thankyou_text .= " (" . $event_date_np . ")";
+    }
+    $thankyou_text .= "\n";
 }
 $thankyou_text .= "✅ Payment received\n\n";
 $thankyou_text .= "We would love your feedback. Please leave a review here:\n";
