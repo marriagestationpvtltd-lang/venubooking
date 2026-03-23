@@ -47,15 +47,28 @@ class ZipStream {
         // Disable time limit for large file transfers
         @set_time_limit(0);
 
+        // Disable PHP's zlib output compression so it cannot buffer the stream.
+        // ob_end_clean() does not remove the zlib layer; it must be turned off
+        // explicitly before any output buffering cleanup.
+        @ini_set('zlib.output_compression', '0');
+
         // Disable output buffering for immediate streaming
         while (ob_get_level()) {
             ob_end_clean();
         }
 
+        // Ask Apache/Nginx not to apply mod_deflate / gzip on this response.
+        // A binary ZIP compressed again would be corrupt and grows in size.
+        @apache_setenv('no-gzip', '1');
+        @apache_setenv('dont-vary', '1');
+
         // Send headers for ZIP download
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="' . $this->zipFilename . '"');
         header('Content-Transfer-Encoding: binary');
+        // Explicitly declare no content encoding so proxies/servers do not
+        // attempt to re-compress the already-binary ZIP stream.
+        header('Content-Encoding: identity');
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         header('Cache-Control: post-check=0, pre-check=0', false);
         header('Pragma: no-cache');
