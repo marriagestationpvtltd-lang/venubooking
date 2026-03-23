@@ -326,7 +326,7 @@ if (isset($_POST['action'])) {
                     $_SESSION['flash_success'] = 'Vendor assigned successfully!';
                     $new_vendor = getVendor($vendor_id_input);
                     if ($new_vendor && !empty($new_vendor['phone'])) {
-                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking);
+                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking, $new_vendor['type'] ?? '');
                     }
                     if ($new_vendor && !empty($new_vendor['email'])) {
                         $_SESSION['flash_vendor_email_sent'] = sendVendorAssignmentEmail($new_vendor['name'], $new_vendor['email'], $booking);
@@ -611,7 +611,7 @@ $combo_wa_urls    = [];
 $combo_email_list = [];
 foreach ($vendor_assignments as $_va) {
     if (!empty($_va['vendor_phone'])) {
-        $_wa = buildVendorAssignmentWhatsAppUrl($_va['vendor_name'], $_va['vendor_phone'], $booking);
+        $_wa = buildVendorAssignmentWhatsAppUrl($_va['vendor_name'], $_va['vendor_phone'], $booking, $_va['vendor_type'] ?? '');
         if (!empty($_wa)) {
             $combo_wa_urls[] = $_wa;
         }
@@ -1035,24 +1035,19 @@ $clean_phone = !empty($booking['phone']) ? preg_replace('/[^0-9]/', '', $booking
 $whatsapp_payment_methods = getBookingPaymentMethods($booking_id);
 
 $whatsapp_shift_time = getBookingShiftTimeDisplay($booking);
-$whatsapp_text  = "*Payment Request – Booking #" . $booking['booking_number'] . "*\n\n";
-$whatsapp_text .= "Dear " . $booking['full_name'] . ",\n\n";
-$whatsapp_text .= "Please complete your advance payment to confirm your booking.\n\n";
-$whatsapp_text .= "📅 " . convertToNepaliDate($booking['event_date']) . "\n";
+$whatsapp_text  = "💳 *Payment Request – Booking #" . $booking['booking_number'] . "*\n\n";
+$whatsapp_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
+$whatsapp_text .= "To confirm your booking, please complete your advance payment at the earliest.\n\n";
+$whatsapp_text .= "📅 " . convertToNepaliDate($booking['event_date']) . " (" . date('d M Y', strtotime($booking['event_date'])) . ")\n";
+$whatsapp_text .= "🕐 " . $whatsapp_shift_time . "\n";
 $whatsapp_text .= "🎉 " . strip_tags($booking['event_type']) . "\n";
 $whatsapp_text .= "🏛️ " . strip_tags($booking['venue_name']) . "\n";
 if (!empty($booking['hall_name'])) {
     $whatsapp_text .= "🚪 " . strip_tags($booking['hall_name']) . "\n";
 }
-$whatsapp_text .= "🕐 " . $whatsapp_shift_time . "\n";
 $_wa_guests = intval($booking['number_of_guests'] ?? 0);
 if ($_wa_guests > 0) {
     $whatsapp_text .= "👥 Guests: " . $_wa_guests . "\n";
-}
-$whatsapp_text .= "💰 Total: " . formatCurrency($booking['grand_total']) . "\n";
-$whatsapp_text .= "💵 Advance (" . $advance['percentage'] . "%): *" . formatCurrency($advance['amount']) . "*\n";
-if (!empty($booking['location'])) {
-    $whatsapp_text .= "📍 " . strip_tags($booking['location']) . "\n";
 }
 if (!empty($booking['venue_address'])) {
     $whatsapp_text .= "🏠 " . strip_tags($booking['venue_address']) . "\n";
@@ -1060,6 +1055,8 @@ if (!empty($booking['venue_address'])) {
 if (!empty($booking['map_link'])) {
     $whatsapp_text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
 }
+$whatsapp_text .= "\n💰 Total Amount: *" . formatCurrency($booking['grand_total']) . "*\n";
+$whatsapp_text .= "💵 Advance (" . $advance['percentage'] . "%): *" . formatCurrency($advance['amount']) . "*\n";
 
 if (!empty($whatsapp_payment_methods)) {
     $whatsapp_text .= "\n*Payment Options:*\n";
@@ -1069,12 +1066,16 @@ if (!empty($whatsapp_payment_methods)) {
             $whatsapp_text .= $method['bank_details'] . "\n";
         }
     }
-    $whatsapp_text .= "\nAfter payment, reply with your booking number *" . $booking['booking_number'] . "* to confirm.\n";
+    $whatsapp_text .= "\nAfter payment, please reply with your booking number *" . $booking['booking_number'] . "* for confirmation.\n";
 } else {
     $whatsapp_text .= "\nPlease contact us to complete your payment.\n";
 }
 
 $whatsapp_text .= "\n*" . strip_tags($company_name) . "*";
+$_wa_contact_phone = getSetting('contact_phone', '');
+if (!empty($_wa_contact_phone)) {
+    $whatsapp_text .= "\n📞 " . $_wa_contact_phone;
+}
 
 // Build booking confirmation WhatsApp message (shown after advance payment is received)
 $booking_confirmation_vendors = $vendor_assignments;
@@ -1082,8 +1083,8 @@ $site_name_wa = !empty($company_name) ? $company_name : getSetting('site_name', 
 
 $confirmation_text  = "✅ *Booking Confirmed – #" . strip_tags($booking['booking_number']) . "*\n\n";
 $confirmation_text .= "Dear " . strip_tags($booking['full_name']) . ",\n\n";
-$confirmation_text .= "Your booking with *" . strip_tags($site_name_wa) . "* is confirmed.\n\n";
-$confirmation_text .= "📅 " . convertToNepaliDate($booking['event_date']) . "\n";
+$confirmation_text .= "Your booking has been confirmed with *" . strip_tags($site_name_wa) . "*.\n\n";
+$confirmation_text .= "📅 " . convertToNepaliDate($booking['event_date']) . " (" . date('d M Y', strtotime($booking['event_date'])) . ")\n";
 $confirmation_text .= "🕐 " . getBookingShiftTimeDisplay($booking) . "\n";
 $confirmation_text .= "🎉 " . strip_tags($booking['event_type']) . "\n\n";
 $confirmation_text .= "🏛️ *" . strip_tags($booking['venue_name']) . "*\n";
@@ -1094,7 +1095,6 @@ $_conf_guests = intval($booking['number_of_guests'] ?? 0);
 if ($_conf_guests > 0) {
     $confirmation_text .= "👥 Guests: " . $_conf_guests . "\n";
 }
-$confirmation_text .= "📍 " . strip_tags($booking['location']) . "\n";
 if (!empty($booking['venue_address'])) {
     $confirmation_text .= "🏠 " . strip_tags($booking['venue_address']) . "\n";
 }
@@ -1109,8 +1109,11 @@ if ($confirmation_adv_info['amount'] > 0) {
     $adv_label = $confirmation_adv_info['label'] ? ' ' . $confirmation_adv_info['label'] : '';
     $confirmation_text .= "\n💰 *Advance Received" . $adv_label . ":* " . formatCurrency($confirmation_adv_info['amount']) . "\n";
 }
+if ($balance_due > 0) {
+    $confirmation_text .= "💳 *Remaining Balance:* " . formatCurrency($balance_due) . "\n";
+}
 if (!empty($booking_confirmation_vendors)) {
-    $confirmation_text .= "\n👥 *Your Team*\n";
+    $confirmation_text .= "\n👥 *Your Assigned Team:*\n";
     foreach ($booking_confirmation_vendors as $va) {
         $label = getVendorTypeLabel($va['vendor_type']);
         $confirmation_text .= "• " . $label . ": *" . strip_tags($va['vendor_name']) . "*";
@@ -1120,29 +1123,31 @@ if (!empty($booking_confirmation_vendors)) {
         $confirmation_text .= "\n";
     }
 }
+$confirmation_text .= "\nFor any queries, feel free to contact us.\n";
 $confirmation_text .= "\n*" . strip_tags($site_name_wa) . "*";
+$_conf_contact_phone = getSetting('contact_phone', '');
+if (!empty($_conf_contact_phone)) {
+    $confirmation_text .= "\n📞 " . $_conf_contact_phone;
+}
 
 // Build thank you WhatsApp message (shown after payment is fully paid)
 $google_review_link = getSetting('google_review_link') ?: 'https://g.page/r/CXn4LyBY3iY7EBM/review';
-$thankyou_venue_str = strip_tags($booking['venue_name']);
-if (!empty($booking['hall_name'])) {
-    $thankyou_venue_str .= " (" . strip_tags($booking['hall_name']) . ")";
-}
-$thankyou_text  = "Thank you, " . strip_tags($booking['full_name']) . "!\n\n";
-$thankyou_text .= "We hope your " . strip_tags($booking['event_type']) . " at " . $thankyou_venue_str . " was wonderful.\n";
+$thankyou_text  = "🎉 *Thank You – " . strip_tags($booking['full_name']) . "!*\n\n";
+$thankyou_text .= "We hope your *" . strip_tags($booking['event_type']) . "* on ";
 if (!empty($booking['event_date'])) {
     $event_date_en = date('F d, Y', strtotime($booking['event_date']));
     $event_date_np = convertToNepaliDate($booking['event_date']);
-    $thankyou_text .= "📅 Event Date: " . $event_date_en;
+    $thankyou_text .= $event_date_en;
     if (!empty($event_date_np)) {
         $thankyou_text .= " (" . $event_date_np . ")";
     }
-    $thankyou_text .= "\n";
 }
-$thankyou_text .= "✅ Payment received\n\n";
+$thankyou_text .= " was wonderful and memorable.\n\n";
+$thankyou_text .= "It was truly a pleasure serving you at *" . strip_tags($booking['venue_name']) . "*.\n\n";
 if (!empty($google_review_link)) {
-    $thankyou_text .= "We would love your feedback. Please leave a review here:\n";
+    $thankyou_text .= "⭐ We would greatly appreciate your feedback. Please take a moment to leave us a review:\n";
     $thankyou_text .= $google_review_link . "\n\n";
+    $thankyou_text .= "Your kind words help us serve future clients better.\n\n";
 }
 $thankyou_text .= "*" . strip_tags($site_name_wa) . "*";
 $contact_phone_wa = getSetting('contact_phone', '');
@@ -1317,7 +1322,7 @@ unset($_avail_svc);
                             }
                             foreach ($vendor_assignments as $_vwa_va) {
                                 if (!empty($_vwa_va['vendor_phone'])) {
-                                    $_vwa_url = buildVendorAssignmentWhatsAppUrl($_vwa_va['vendor_name'], $_vwa_va['vendor_phone'], $booking);
+                                    $_vwa_url = buildVendorAssignmentWhatsAppUrl($_vwa_va['vendor_name'], $_vwa_va['vendor_phone'], $booking, $_vwa_va['vendor_type'] ?? '');
                                     if (!empty($_vwa_url)) {
                                         $all_combo_wa_urls[] = $_vwa_url;
                                         $_vwa_type_label = getVendorTypeLabel($_vwa_va['vendor_type'] ?? '');

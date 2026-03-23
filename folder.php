@@ -331,8 +331,17 @@ $banner_b_image = getSetting('folder_banner_b');
 $banner_b_link = getSetting('folder_banner_b_link');
 $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
 
-// WhatsApp deletion request message (Nepali)
-$whatsapp_delete_message = 'तपाईँहरूलाई धेरै धेरै धन्यवाद! मैले मेरो फोटो डाउनलोड गरिसकेँ। कृपया प्राइभेसीको कारण मेरो फोटो तपाईँहरूको सिस्टमबाट हटाइदिनुहोला।';
+// WhatsApp deletion request message (bilingual) with folder reference
+$_whatsapp_folder_name = !empty($folder['folder_name']) ? strip_tags($folder['folder_name']) : '';
+$_whatsapp_folder_url  = BASE_URL . '/folder.php?token=' . urlencode($token);
+$whatsapp_delete_message  = "Photo Deletion Request / फोटो डिलिट अनुरोध\n\n";
+if (!empty($_whatsapp_folder_name)) {
+    $whatsapp_delete_message .= "Folder: *" . $_whatsapp_folder_name . "*\n";
+    $whatsapp_delete_message .= "Link: " . $_whatsapp_folder_url . "\n\n";
+}
+$whatsapp_delete_message .= "I have downloaded my photos and request that they be removed from your system for privacy reasons.\n\n";
+$whatsapp_delete_message .= "मैले मेरो फोटो डाउनलोड गरिसकेँ। कृपया प्राइभेसीको कारण मेरो फोटो तपाईँहरूको सिस्टमबाट हटाइदिनुहोला।\n\n";
+$whatsapp_delete_message .= "Thank you / धन्यवाद";
 $whatsapp_delete_url = '';
 if ($whatsapp_number) {
     $clean_whatsapp = preg_replace('/[^0-9]/', '', $whatsapp_number);

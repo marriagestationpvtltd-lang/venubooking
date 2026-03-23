@@ -39,20 +39,29 @@ $conf_has_display_time = !empty($conf_display_start) && !empty($conf_display_end
 $whatsapp_admin_number = getSetting('whatsapp_number', '');
 $whatsapp_url = '';
 if (!empty($whatsapp_admin_number)) {
-    $wa_venue    = !empty($booking['venue_name']) ? $booking['venue_name'] : (!empty($booking['custom_venue_name']) ? $booking['custom_venue_name'] : '');
-    $wa_hall     = !empty($booking['hall_name'])  ? $booking['hall_name']  : (!empty($booking['custom_hall_name'])  ? $booking['custom_hall_name']  : '');
-    $wa_date     = !empty($booking['event_date']) ? date('d M Y', strtotime($booking['event_date'])) : '';
-    $wa_name     = !empty($booking['customer_name']) ? $booking['customer_name'] : '';
-    $wa_ref      = $booking['booking_number'];
+    $wa_venue      = !empty($booking['venue_name']) ? $booking['venue_name'] : (!empty($booking['custom_venue_name']) ? $booking['custom_venue_name'] : '');
+    $wa_hall       = !empty($booking['hall_name'])  ? $booking['hall_name']  : (!empty($booking['custom_hall_name'])  ? $booking['custom_hall_name']  : '');
+    $wa_date       = !empty($booking['event_date']) ? date('d M Y', strtotime($booking['event_date'])) : '';
+    $wa_name       = !empty($booking['customer_name']) ? $booking['customer_name'] : '';
+    $wa_ref        = $booking['booking_number'];
+    $wa_phone      = !empty($booking['phone']) ? $booking['phone'] : '';
+    $wa_event_type = !empty($booking['event_type']) ? strip_tags($booking['event_type']) : '';
+    $wa_guests     = intval($booking['number_of_guests'] ?? 0);
+    $wa_shift_time = getBookingShiftTimeDisplay($booking);
     $wa_phone_clean = preg_replace('/[^0-9]/', '', $whatsapp_admin_number);
     if (!empty($wa_phone_clean)) {
-        $wa_message  = "Hello! I have just made a booking. Please confirm my booking.\n\n";
-        $wa_message .= "📋 Booking Reference: " . $wa_ref . "\n";
-        if ($wa_name)  $wa_message .= "👤 Name: "  . $wa_name  . "\n";
-        if ($wa_date)  $wa_message .= "📅 Date: "  . $wa_date  . "\n";
-        if ($wa_venue) $wa_message .= "🏛️ Venue: " . $wa_venue . "\n";
-        if ($wa_hall)  $wa_message .= "🚪 Hall: "  . $wa_hall  . "\n";
-        $wa_message .= "\nThank you!";
+        $wa_message  = "📋 *New Booking Received*\n\n";
+        $wa_message .= "Booking Ref: *#" . $wa_ref . "*\n";
+        if ($wa_name)       $wa_message .= "👤 Name: "   . $wa_name       . "\n";
+        if ($wa_phone)      $wa_message .= "📞 Phone: "  . $wa_phone      . "\n";
+        $wa_message .= "\n";
+        if ($wa_date)       $wa_message .= "📅 Date: "   . $wa_date       . "\n";
+        if ($wa_shift_time) $wa_message .= "🕐 Time: "   . $wa_shift_time . "\n";
+        if ($wa_event_type) $wa_message .= "🎉 Event: "  . $wa_event_type . "\n";
+        if ($wa_venue)      $wa_message .= "🏛️ Venue: "  . $wa_venue      . "\n";
+        if ($wa_hall)       $wa_message .= "🚪 Hall: "   . $wa_hall       . "\n";
+        if ($wa_guests > 0) $wa_message .= "👥 Guests: " . $wa_guests     . "\n";
+        $wa_message .= "\nPlease review and confirm this booking.";
         $whatsapp_url = 'https://wa.me/' . $wa_phone_clean . '?text=' . rawurlencode($wa_message);
     }
 }
