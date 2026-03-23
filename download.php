@@ -137,6 +137,8 @@ $whatsapp_number = getSetting('whatsapp_number');
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/share.css">
     
     <style>
         :root {
@@ -380,6 +382,7 @@ $whatsapp_number = getSetting('whatsapp_number');
         .footer-contact-row a:hover {
             color: #4CAF50;
         }
+
     </style>
 </head>
 <body>
@@ -541,6 +544,24 @@ $whatsapp_number = getSetting('whatsapp_number');
         </div>
     </div>
 
+    <div class="page-share-wrap" aria-label="Share this page">
+        <button class="page-share-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <i class="fas fa-share-alt" aria-hidden="true"></i>
+            <span>Share</span>
+        </button>
+        <div class="page-share-dropdown" role="menu" aria-label="Share options">
+            <button class="page-share-opt page-share-copy" type="button" role="menuitem">
+                <i class="fas fa-link" aria-hidden="true"></i> Copy link
+            </button>
+            <a class="page-share-opt page-share-whatsapp" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-whatsapp" aria-hidden="true"></i> Share on WhatsApp
+            </a>
+            <a class="page-share-opt page-share-facebook" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-facebook-f" aria-hidden="true"></i> Share on Facebook
+            </a>
+        </div>
+    </div>
+
     <script>
     /**
      * Instant Download Handler
@@ -621,5 +642,6 @@ $whatsapp_number = getSetting('whatsapp_number');
         return false; // Prevent default link navigation
     }
     </script>
+    <script src="<?php echo BASE_URL; ?>/js/share.js"></script>
 </body>
 </html>

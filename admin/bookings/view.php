@@ -1109,13 +1109,13 @@ $confirmation_text .= "\n*" . strip_tags($site_name_wa) . "*";
 
 // Build thank you WhatsApp message (shown after payment is fully paid)
 $google_review_link = getSetting('google_review_link', 'https://g.page/r/CXn4LyBY3iY7EBM/review');
-$thankyou_text  = "🙏 *धन्यवाद, " . strip_tags($booking['full_name']) . "!*\n\n";
-$thankyou_text .= "हामीलाई *" . strip_tags($booking['event_type']) . "* को आयोजना *" . strip_tags($booking['venue_name']) . "* मा गर्न दिनुभएकोमा धन्यवाद।\n\n";
-$thankyou_text .= "📅 " . convertToNepaliDate($booking['event_date']) . " | ✅ भुक्तानी प्राप्त\n\n";
-$thankyou_text .= "हाम्रो सेवामा कुनै कमी कमजोरी भएको भए त्यसका लागि क्षमाप्रार्थी छौं।\n";
-$thankyou_text .= "हामीले सुधार गर्नुपर्ने कुनै कुरा भए कृपया हामीलाई जानकारी गराउनुहोस्।\n\n";
-$thankyou_text .= "⭐ *तपाईंको समीक्षा*\n";
-$thankyou_text .= "हाम्रो सेवा तपाईंलाई कस्तो लागेको छ भन्ने विषयमा आफ्नो विचार/तर्क तलको लिंकमा लेखिदिनुहोस्।\n";
+$thankyou_text  = "Thank you, " . strip_tags($booking['full_name']) . "!\n\n";
+$thankyou_text .= "We hope your " . strip_tags($booking['event_type']) . " at " . strip_tags($booking['venue_name']) . " was wonderful.\n";
+if (!empty($booking['event_date'])) {
+    $thankyou_text .= "📅 Event Date: " . date('d M Y', strtotime($booking['event_date'])) . "\n";
+}
+$thankyou_text .= "✅ Payment received\n\n";
+$thankyou_text .= "We would love your feedback. Please leave a review here:\n";
 $thankyou_text .= $google_review_link . "\n\n";
 $thankyou_text .= "*" . strip_tags($site_name_wa) . "*";
 $contact_phone_wa = getSetting('contact_phone', '');
