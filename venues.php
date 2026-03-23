@@ -231,7 +231,7 @@ $extra_js = '
         var panoBtn = venue.pano_image_url
             ? \'<button type="button" class="btn btn-outline-primary w-100 home-pano-btn mb-2" data-pano-url="\' + escapeHtml(venue.pano_image_url) + \'" data-venue-name="\' + escapeHtml(venue.name) + \'"><i class="fas fa-street-view"></i> View 360°</button>\'
             : \'\';
-        return '<div class="col-12 col-sm-6 col-lg-4">' +
+        return \'<div class="col-12 col-sm-6 col-lg-4">\' +
                \'<div class="venue-card-home card h-100 shadow-sm">\' +
                imgHtml +
                \'<div class="card-body d-flex flex-column">\' +
