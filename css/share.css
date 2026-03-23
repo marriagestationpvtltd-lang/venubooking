@@ -1,0 +1,112 @@
+/* Global page share button */
+.section-share-wrap {
+    display: none !important;
+}
+
+.page-share-wrap {
+    position: fixed;
+    right: 20px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.page-share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 600;
+    background: #2e7d32;
+    color: #fff;
+    box-shadow: var(--shadow-md, 0 6px 18px rgba(0, 0, 0, 0.18));
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.page-share-btn:hover,
+.page-share-btn.active {
+    background: #256628;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg, 0 12px 28px rgba(0, 0, 0, 0.2));
+}
+
+.page-share-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 12px);
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    min-width: 210px;
+    padding: 8px;
+    box-shadow: var(--shadow-lg, 0 12px 28px rgba(0, 0, 0, 0.2));
+}
+
+.page-share-dropdown.open {
+    display: block;
+}
+
+.page-share-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    color: #2d3748;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.page-share-opt:hover {
+    background: #f1f5f1;
+    color: #2e7d32;
+}
+
+.page-share-toast {
+    position: fixed;
+    right: 20px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    background: #2e7d32;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    box-shadow: var(--shadow-md, 0 6px 18px rgba(0, 0, 0, 0.18));
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    z-index: 1051;
+}
+
+.page-share-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@media (max-width: 576px) {
+    .page-share-btn {
+        width: 50px;
+        height: 50px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .page-share-btn span {
+        display: none;
+    }
+
+    .page-share-dropdown {
+        right: -8px;
+        min-width: 190px;
+    }
+}

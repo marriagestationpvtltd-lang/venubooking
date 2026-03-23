@@ -168,6 +168,24 @@
         </div>
     </footer>
 
+    <div class="page-share-wrap" aria-label="Share this page">
+        <button class="page-share-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <i class="fas fa-share-alt" aria-hidden="true"></i>
+            <span>Share</span>
+        </button>
+        <div class="page-share-dropdown" role="menu" aria-label="Share options">
+            <button class="page-share-opt page-share-copy" type="button" role="menuitem">
+                <i class="fas fa-link" aria-hidden="true"></i> Copy link
+            </button>
+            <a class="page-share-opt page-share-whatsapp" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-whatsapp" aria-hidden="true"></i> Share on WhatsApp
+            </a>
+            <a class="page-share-opt page-share-facebook" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-facebook-f" aria-hidden="true"></i> Share on Facebook
+            </a>
+        </div>
+    </div>
+
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
@@ -190,6 +208,7 @@
     
     <!-- Custom JS -->
     <script src="<?php echo BASE_URL; ?>/js/main.js"></script>
+    <script src="<?php echo BASE_URL; ?>/js/share.js"></script>
     
     <?php if (isset($extra_js)) echo $extra_js; ?>
 </body>

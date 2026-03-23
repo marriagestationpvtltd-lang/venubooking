@@ -70,6 +70,7 @@ if (!empty($page_title)) {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/booking.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/responsive.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/nepali-date-picker.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/share.css">
     
     <?php if (isset($extra_css)) echo $extra_css; ?>
 
