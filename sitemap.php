@@ -21,8 +21,15 @@ function getSitemapBaseUrl(): string {
     $host = $_SERVER['SERVER_NAME'] ?? '';
     if ($host === '') {
         $hostCandidate = $_SERVER['HTTP_HOST'] ?? '';
-        if ($hostCandidate !== '' && preg_match('/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(?::\\d+)?$/i', $hostCandidate)) {
-            $host = $hostCandidate;
+        if ($hostCandidate !== '') {
+            $parsedHost = parse_url('http://' . $hostCandidate);
+            $hostName = $parsedHost['host'] ?? '';
+            $port = $parsedHost['port'] ?? null;
+            $isIpHost = $hostName !== '' && filter_var($hostName, FILTER_VALIDATE_IP);
+            $isDomainHost = $hostName !== '' && preg_match('/^[a-z]/i', $hostName) && filter_var($hostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
+            if ($isIpHost || $isDomainHost) {
+                $host = $hostName . ($port ? ':' . $port : '');
+            }
         }
     }
     $basePath = BASE_URL;
@@ -68,7 +75,7 @@ $staticPages = [
 
 $packagePages = [];
 $pdo = getDB();
-$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT 50000');
+$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT 10000');
 $stmt->execute(['active']);
 $packagePages = $stmt->fetchAll();
 
