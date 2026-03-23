@@ -10,10 +10,18 @@ $meta_title = getSetting('meta_title', '');
 $meta_description = getSetting('meta_description', '');
 $meta_keywords = getSetting('meta_keywords', '');
 
+// Per-page overrides (set $page_description / $page_keywords before including this header)
+if (!empty($page_description)) $meta_description = $page_description;
+if (!empty($page_keywords))    $meta_keywords    = $page_keywords;
+
 // Build page title
 $full_title = isset($page_title) ? $page_title . ' - ' . $site_name : $site_name;
 if (!empty($meta_title)) {
     $full_title = $meta_title;
+}
+// Per-page title override takes precedence over site-wide meta_title
+if (!empty($page_title)) {
+    $full_title = $page_title . ' - ' . $site_name;
 }
 ?>
 <!DOCTYPE html>
@@ -65,6 +73,8 @@ if (!empty($meta_title)) {
     
     <?php if (isset($extra_css)) echo $extra_css; ?>
 
+    <?php if (isset($extra_head)) echo $extra_head; ?>
+
     <?php
     $ga_id = getSetting('google_analytics_id', '');
     if (!empty($ga_id)):
@@ -102,6 +112,40 @@ if (!empty($meta_title)) {
                         <a class="nav-link px-3" href="<?php echo BASE_URL; ?>/index.php">
                             <i class="fas fa-home me-1 d-lg-none"></i>Home
                         </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3" href="<?php echo BASE_URL; ?>/venues.php">
+                            <i class="fas fa-building me-1 d-lg-none"></i>Venues
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3" href="<?php echo BASE_URL; ?>/packages.php">
+                            <i class="fas fa-box-open me-1 d-lg-none"></i>Packages
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle px-3" href="#" id="moreNavDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            More
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="moreNavDropdown">
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/gallery.php">
+                                <i class="fas fa-images me-2 text-success"></i>Gallery
+                            </a></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/portfolio.php">
+                                <i class="fas fa-folder-open me-2 text-warning"></i>Portfolio
+                            </a></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/vendors.php">
+                                <i class="fas fa-user-tie me-2 text-primary"></i>Our Team
+                            </a></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/testimonials.php">
+                                <i class="fas fa-quote-left me-2 text-info"></i>Testimonials
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/about.php">
+                                <i class="fas fa-info-circle me-2 text-secondary"></i>About Us
+                            </a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>
