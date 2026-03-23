@@ -481,18 +481,19 @@ $extra_js = '
         }
         var copyBtn = e.target.closest(\'.share-copy\');
         if (copyBtn) {
+            e.preventDefault();
             e.stopPropagation();
             var sectionId = copyBtn.getAttribute(\'data-section\');
             var url = getShareUrl(sectionId);
-            if (navigator.share) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    showToast(\'✓ Link copied!\');
+                }).catch(function() { fallbackCopy(url); });
+            } else if (navigator.share) {
                 navigator.share({ url: url }).catch(function(err) {
                     if (err && err.name === "AbortError") return;
                     showToast("Unable to open share");
                 });
-            } else if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(function() {
-                    showToast(\'✓ Link copied!\');
-                }).catch(function() { fallbackCopy(url); });
             } else {
                 fallbackCopy(url);
             }
@@ -501,6 +502,7 @@ $extra_js = '
         }
         var waBtn = e.target.closest(\'.share-whatsapp\');
         if (waBtn) {
+            e.preventDefault();
             e.stopPropagation();
             var url = getShareUrl(waBtn.getAttribute(\'data-section\'));
             waBtn.href = \'https://wa.me/?text=\' + encodeURIComponent(url);
@@ -509,6 +511,7 @@ $extra_js = '
         }
         var fbBtn = e.target.closest(\'.share-facebook\');
         if (fbBtn) {
+            e.preventDefault();
             e.stopPropagation();
             var url = getShareUrl(fbBtn.getAttribute(\'data-section\'));
             fbBtn.href = \'https://www.facebook.com/sharer/sharer.php?u=\' + encodeURIComponent(url);
