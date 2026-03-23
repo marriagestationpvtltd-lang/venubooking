@@ -3695,7 +3695,9 @@ function getVendorPrimaryPhotoUrls(array $vendor_ids) {
         return [];
     }
     $db = getDB();
-    $ids = array_values(array_unique(array_filter(array_map('intval', $vendor_ids), fn($id) => $id > 0)));
+    $normalized_ids = array_map('intval', $vendor_ids);
+    $valid_ids = array_filter($normalized_ids, fn($id) => $id > 0);
+    $ids = array_values(array_unique($valid_ids));
     if (empty($ids)) {
         return [];
     }
@@ -3726,9 +3728,14 @@ function getVendorPrimaryPhotoUrls(array $vendor_ids) {
     }
 
     if (count($result) < count($ids)) {
+        $missing_ids = array_values(array_diff($ids, array_keys($result)));
+        if (empty($missing_ids)) {
+            return $result;
+        }
+        $fallback_placeholders = implode(',', array_fill(0, count($missing_ids), '?'));
         try {
-            $fallback_stmt = $db->prepare("SELECT id, photo FROM vendors WHERE id IN ($placeholders) AND photo IS NOT NULL AND photo != ''");
-            $fallback_stmt->execute($ids);
+            $fallback_stmt = $db->prepare("SELECT id, photo FROM vendors WHERE id IN ($fallback_placeholders) AND photo IS NOT NULL AND photo != ''");
+            $fallback_stmt->execute($missing_ids);
             $fallback_rows = $fallback_stmt->fetchAll();
         } catch (Exception $e) {
             $fallback_rows = [];

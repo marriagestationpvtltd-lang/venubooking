@@ -2027,7 +2027,7 @@ unset($_avail_svc);
                                             <input type="hidden" name="booking_service_id" value="<?php echo $svc_id; ?>">
                                             <input type="hidden" name="task_description" value="<?php echo htmlspecialchars($service['service_name']); ?>">
                                             <div class="row g-2 align-items-end">
-                                                <div class="col">
+                                                <div class="col inline-va-vendor-wrap">
                                                     <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Vendor <span class="text-danger">*</span></label>
                                                     <select name="vendor_id" class="form-select form-select-sm inline-va-vendor-select"
                                                             data-vendor-type-slug="<?php echo htmlspecialchars($svc_vt_slug); ?>"
@@ -4079,12 +4079,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectEl.appendChild(o);
                 if (listWrap) {
                     var photoHtml = v.photo
-                        ? '<img src="' + encodeURI(v.photo) + '" alt="' + esc(v.name) + '" class="inline-va-vendor-photo-thumb">'
-                        : '<span class="inline-va-vendor-photo-placeholder"><i class="fas fa-user"></i></span>';
+                        ? '<img src="' + esc(v.photo) + '" alt="' + esc(v.name) + '" class="inline-va-vendor-photo-thumb">'
+                        : '<span class="inline-va-vendor-photo-placeholder" aria-hidden="true"><i class="fas fa-user" aria-hidden="true"></i></span>';
                     var cityHtml = v.city ? '<div class="small text-muted">' + esc(v.city) + '</div>' : '';
                     var descHtml = v.description ? '<div class="small text-muted text-truncate">' + esc(v.description) + '</div>' : '';
                     listWrap.insertAdjacentHTML('beforeend',
-                        '<button type="button" class="inline-va-vendor-photo-item" data-vendor-id="' + esc(String(v.id)) + '">' +
+                        '<button type="button" class="inline-va-vendor-photo-item" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
                             photoHtml +
                             '<span class="min-width-0 flex-grow-1">' +
                                 '<span class="d-block fw-semibold text-truncate">' + esc(v.name) + '</span>' +
@@ -4131,7 +4131,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('.inline-va-vendor-photo-item[data-vendor-id]');
         if (!btn) return;
-        var wrap = btn.closest('.col');
+        var wrap = btn.closest('.inline-va-vendor-wrap');
         var selectEl = wrap ? wrap.querySelector('.inline-va-vendor-select') : null;
         if (!selectEl) return;
         selectEl.value = btn.getAttribute('data-vendor-id') || '';
