@@ -741,6 +741,7 @@ function getPublicStats() {
         'clients' => 0,
         'service_years' => 0,
     ];
+    $service_years_override = trim((string)getSetting('service_years', ''));
 
     try {
         $stmt = $db->query("
@@ -775,6 +776,14 @@ function getPublicStats() {
         }
     } catch (PDOException $e) {
         error_log('getPublicStats() failed: ' . $e->getMessage());
+    }
+
+    if ($service_years_override !== '' && is_numeric($service_years_override)) {
+        $stats['service_years'] = max(0, (int)$service_years_override);
+    }
+
+    if ($stats['service_years'] <= 0) {
+        $stats['service_years'] = 5;
     }
 
     return $stats;
