@@ -743,30 +743,35 @@ function getPublicStats() {
     ];
 
     try {
-        $stmt = $db->query("SELECT COUNT(*) as count FROM venues WHERE status = 'active'");
-        $stats['venues'] = (int)($stmt->fetch()['count'] ?? 0);
+        $stmt = $db->query("
+            SELECT
+                (SELECT COUNT(*) FROM venues WHERE status = 'active') AS venues_count,
+                (SELECT COUNT(*) FROM bookings WHERE booking_status = 'completed') AS events_count,
+                (SELECT COUNT(*) FROM customers) AS clients_count,
+                (SELECT MIN(created_at) FROM venues) AS venue_started_at,
+                (SELECT MIN(created_at) FROM bookings) AS booking_started_at
+        ");
+        $row = $stmt->fetch() ?: [];
+        $stats['venues'] = (int)($row['venues_count'] ?? 0);
+        $stats['events'] = (int)($row['events_count'] ?? 0);
+        $stats['clients'] = (int)($row['clients_count'] ?? 0);
 
-        $stmt = $db->query("SELECT COUNT(*) as count FROM bookings WHERE booking_status = 'completed'");
-        $stats['events'] = (int)($stmt->fetch()['count'] ?? 0);
-
-        $stmt = $db->query("SELECT COUNT(*) as count FROM customers");
-        $stats['clients'] = (int)($stmt->fetch()['count'] ?? 0);
-
-        $venue_start = $db->query("SELECT MIN(created_at) AS started_at FROM venues")->fetch();
-        $booking_start = $db->query("SELECT MIN(created_at) AS started_at FROM bookings")->fetch();
+        $venue_start = $row['venue_started_at'] ?? null;
+        $booking_start = $row['booking_started_at'] ?? null;
 
         $earliest = null;
-        if (!empty($venue_start['started_at'])) {
-            $earliest = $venue_start['started_at'];
+        if (!empty($venue_start)) {
+            $earliest = $venue_start;
         }
-        if (!empty($booking_start['started_at']) && ($earliest === null || $booking_start['started_at'] < $earliest)) {
-            $earliest = $booking_start['started_at'];
+        if (!empty($booking_start) && ($earliest === null || $booking_start < $earliest)) {
+            $earliest = $booking_start;
         }
 
         if (!empty($earliest)) {
             $start = new DateTime($earliest);
-            $now = new DateTime('now');
-            $stats['service_years'] = max(0, (int)$start->diff($now)->y);
+            $now = new DateTime();
+            $interval = $start->diff($now);
+            $stats['service_years'] = $interval->invert ? 0 : max(0, (int)$interval->y);
         }
     } catch (PDOException $e) {
         error_log('getPublicStats() failed: ' . $e->getMessage());
