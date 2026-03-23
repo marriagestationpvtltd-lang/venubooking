@@ -2036,6 +2036,10 @@ unset($_avail_svc);
                                                         <option value="">&#x2014; Select Vendor &#x2014;</option>
                                                     </select>
                                                 </div>
+                                                <div class="col-auto inline-va-photo-col d-none" style="padding-bottom:2px;">
+                                                    <img class="inline-va-photo-img rounded-circle" src="" alt=""
+                                                         style="width:30px;height:30px;object-fit:cover;border:2px solid #dee2e6;">
+                                                </div>
                                                 <div class="col-auto">
                                                     <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Amount</label>
                                                     <input type="number" name="assigned_amount" class="form-control form-control-sm"
@@ -2260,6 +2264,11 @@ unset($_avail_svc);
                                                 <i class="fas fa-user-tie me-1"></i>Assign Vendor
                                             </span>
                                         </div>
+                                        <div class="col-auto d-none" id="catalog-vendor-photo-col">
+                                            <img id="catalog-vendor-photo-img" src="" alt=""
+                                                 class="rounded-circle"
+                                                 style="width:32px;height:32px;object-fit:cover;border:2px solid #dee2e6;">
+                                        </div>
                                         <div class="col-auto">
                                             <select class="form-select form-select-sm" id="catalog-vendor-select" style="min-width:180px;">
                                                 <option value="">&#x2014; No vendor (skip) &#x2014;</option>
@@ -2402,17 +2411,24 @@ unset($_avail_svc);
 
                                         vendorSelect.innerHTML = '<option value="">\u2014 No vendor (skip) \u2014</option>';
                                         vendorInput.value = '';
+                                        // Reset photo preview when service changes
+                                        var photoCol = document.getElementById('catalog-vendor-photo-col');
+                                        if (photoCol) photoCol.classList.add('d-none');
 
                                         if (vendorTypeSlug && catalogVendorsByType[vendorTypeSlug] && catalogVendorsByType[vendorTypeSlug].length > 0) {
                                             catalogVendorsByType[vendorTypeSlug].forEach(function(v) {
                                                 var o = document.createElement('option');
                                                 o.value = v.id;
                                                 o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                                                o.dataset.photo = v.photo || '';
                                                 vendorSelect.appendChild(o);
                                             });
                                             vendorRow.classList.remove('d-none');
                                         } else {
                                             vendorRow.classList.add('d-none');
+                                            // Hide photo preview when vendor row hides
+                                            var photoCol = document.getElementById('catalog-vendor-photo-col');
+                                            if (photoCol) photoCol.classList.add('d-none');
                                         }
                                     }
 
@@ -2428,6 +2444,21 @@ unset($_avail_svc);
                                         vendorSelect.addEventListener('change', function() {
                                             var input = document.getElementById('catalog-vendor-id-input');
                                             if (input) input.value = this.value;
+                                            // Update vendor photo preview
+                                            var photoCol = document.getElementById('catalog-vendor-photo-col');
+                                            var photoImg = document.getElementById('catalog-vendor-photo-img');
+                                            var selOpt   = this.options[this.selectedIndex];
+                                            var photoUrl = (selOpt && selOpt.dataset.photo) ? selOpt.dataset.photo : '';
+                                            if (photoCol && photoImg) {
+                                                if (photoUrl) {
+                                                    photoImg.src = photoUrl;
+                                                    photoImg.alt = selOpt ? selOpt.textContent : '';
+                                                    photoCol.classList.remove('d-none');
+                                                } else {
+                                                    photoImg.src = '';
+                                                    photoCol.classList.add('d-none');
+                                                }
+                                            }
                                         });
                                     }
 
@@ -4020,6 +4051,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var o = document.createElement('option');
                 o.value = v.id;
                 o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                o.dataset.photo = v.photo || '';
                 selectEl.appendChild(o);
             });
         } else {
@@ -4030,6 +4062,24 @@ document.addEventListener('DOMContentLoaded', function() {
             o.textContent = '\u2014 No vendors available for this service type \u2014';
             selectEl.appendChild(o);
         }
+        // Wire up photo preview on change (once per select; populated flag prevents re-entry)
+        var photoRow = selectEl.closest('.row');
+        var photoCol = photoRow ? photoRow.querySelector('.inline-va-photo-col') : null;
+        var photoImg = photoCol ? photoCol.querySelector('.inline-va-photo-img') : null;
+        selectEl.addEventListener('change', function() {
+            var selOpt   = this.options[this.selectedIndex];
+            var photoUrl = (selOpt && selOpt.dataset.photo) ? selOpt.dataset.photo : '';
+            if (photoCol && photoImg) {
+                if (photoUrl) {
+                    photoImg.src = photoUrl;
+                    photoImg.alt = selOpt ? selOpt.textContent : '';
+                    photoCol.classList.remove('d-none');
+                } else {
+                    photoImg.src = '';
+                    photoCol.classList.add('d-none');
+                }
+            }
+        });
     }
 
     // When a collapse relevant to inline vendor assignment opens, populate its vendor select

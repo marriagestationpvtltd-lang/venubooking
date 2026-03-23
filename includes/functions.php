@@ -3698,11 +3698,15 @@ function getVendorPrimaryPhotoUrls(array $vendor_ids) {
     $ids = array_map('intval', $vendor_ids);
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
     try {
+        // Join with vendors to fall back to vendors.photo (legacy single-photo column)
+        // when no vendor_photos entry exists for a vendor.
         $stmt = $db->prepare("
-            SELECT vendor_id, image_path
-            FROM vendor_photos
-            WHERE vendor_id IN ($placeholders)
-            ORDER BY vendor_id, is_primary DESC, display_order ASC, id ASC
+            SELECT v.id AS vendor_id,
+                   COALESCE(vp.image_path, v.photo) AS image_path
+            FROM vendors v
+            LEFT JOIN vendor_photos vp ON vp.vendor_id = v.id
+            WHERE v.id IN ($placeholders)
+            ORDER BY v.id, vp.is_primary DESC, vp.display_order ASC, vp.id ASC
         ");
         $stmt->execute($ids);
         $rows = $stmt->fetchAll();
