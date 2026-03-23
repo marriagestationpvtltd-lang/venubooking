@@ -72,29 +72,35 @@ $db = getDB();
     border-radius: 4px;
 }
 
-/* Booking count badge - inline next to day number, always visible */
+/* Booking count badge - compact number badge inline next to day number */
 .booking-count-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     background: #198754;
     color: white;
     border-radius: 10px;
-    padding: 1px 7px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
     font-size: 0.7rem;
     font-weight: 700;
-    line-height: 1.6;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
     white-space: nowrap;
-    margin-left: 4px;
-    vertical-align: middle;
     cursor: default;
+    flex-shrink: 0;
 }
 
-/* Day top row: flex so badge sits beside the date number */
+/* Day top row: override FullCalendar row-reverse so date number comes first,
+   then the event-count badge sits immediately to its right */
 .fc-daygrid-day-top {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center;
+    justify-content: flex-end;
     flex-wrap: nowrap;
+    gap: 4px;
     padding: 2px 4px;
 }
 
@@ -415,7 +421,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 const badge = document.createElement("span");
                 badge.className = "booking-count-badge";
                 badge.title = count + " booking" + (count !== 1 ? "s" : "") + " on this date";
-                badge.textContent = count + (count !== 1 ? " Bookings" : " Booking");
+                badge.textContent = count;
                 dayTop.appendChild(badge);
             }
         });
@@ -486,7 +492,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
         },
         eventsSet: function() {
-            updateDateCellBadges();
+            // Defer badge injection to after FullCalendar\'s current rendering
+            // frame so the day-top elements are guaranteed to be in the DOM
+            requestAnimationFrame(function() {
+                updateDateCellBadges();
+            });
             
             // Auto-load today\'s bookings on the very first render
             if (!hasLoadedInitialDate) {
