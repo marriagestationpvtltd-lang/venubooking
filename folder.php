@@ -347,6 +347,24 @@ if ($whatsapp_number) {
     $clean_whatsapp = preg_replace('/[^0-9]/', '', $whatsapp_number);
     $whatsapp_delete_url = 'https://wa.me/' . $clean_whatsapp . '?text=' . rawurlencode($whatsapp_delete_message);
 }
+
+// Build lists of download URLs for bulk individual download (no ZIP)
+// $bulk_all_urls  – all photos in this folder (used in flat view & top-level subfolder view)
+// $bulk_album_urls – only photos in the currently selected album (used in album drill-down view)
+$bulk_all_urls   = [];
+$bulk_album_urls = [];
+if ($folder && !$error_message) {
+    foreach ($photos as $_p) {
+        if (!$folder['max_downloads'] || $_p['download_count'] < $folder['max_downloads']) {
+            $bulk_all_urls[] = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
+        }
+    }
+    foreach ($visible_photos as $_p) {
+        if (!$folder['max_downloads'] || $_p['download_count'] < $folder['max_downloads']) {
+            $bulk_album_urls[] = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="ne">
@@ -1560,6 +1578,27 @@ if ($whatsapp_number) {
                                 </p>
                             <?php endif; ?>
                         <?php endif; ?>
+
+                        <?php
+                        // Individual (no-ZIP) bulk download button
+                        // For album drill-down use only that album's URLs; otherwise use all photos' URLs
+                        $_ind_urls = ($has_subfolders && $current_album !== null) ? $bulk_album_urls : $bulk_all_urls;
+                        if (!empty($_ind_urls)):
+                        ?>
+                            <button type="button"
+                                    class="btn btn-outline-primary mt-2"
+                                    onclick="return bulkDownloadIndividual(<?php echo json_encode($_ind_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
+                                <i class="fas fa-images me-2"></i>
+                                <?php if ($has_subfolders && $current_album !== null): ?>
+                                    Download Album (<?php echo count($_ind_urls); ?>) - Individual
+                                <?php else: ?>
+                                    Download All (<?php echo count($_ind_urls); ?>) - Individual
+                                <?php endif; ?>
+                            </button>
+                            <p class="text-muted mt-1 mb-0">
+                                <small><i class="fas fa-file-image"></i> Downloads each file separately (no ZIP)</small>
+                            </p>
+                        <?php endif; ?>
                         
                         <?php if ($whatsapp_delete_url): ?>
                         <!-- WhatsApp Photo Deletion Request -->
@@ -1620,7 +1659,7 @@ if ($whatsapp_number) {
                     ?>
                     <p style="color:var(--text-secondary);" class="mb-4">
                         यस फोल्डरमा <?php echo $file_count; ?> <?php echo $file_text; ?>।<br>
-                        तलको बटन थिचेर ZIP फाइलमा एकैपटक डाउनलोड गर्नुहोस्।
+                        तलको बटनहरू थिचेर फाइलहरू डाउनलोड गर्नुहोस्।
                     </p>
                     <?php if ($folder['allow_zip_download'] && $file_count > 0): ?>
                         <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
@@ -1649,15 +1688,45 @@ if ($whatsapp_number) {
                         </div>
                         <?php endif; ?>
                     <?php elseif (!$folder['allow_zip_download']): ?>
-                        <div class="alert alert-warning d-inline-block">
-                            <i class="fas fa-info-circle me-2"></i>
-                            डाउनलोड यस फोल्डरको लागि उपलब्ध छैन।
-                        </div>
+                        <!-- ZIP disabled - still allow individual download if files exist -->
                     <?php else: ?>
                         <div class="alert alert-info d-inline-block">
                             <i class="fas fa-folder-open me-2"></i>
                             यस फोल्डरमा अहिले कुनै फाइल छैन।
                         </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($bulk_all_urls)): ?>
+                        <?php if ($folder['allow_zip_download'] && $file_count > 0): ?>
+                            <div class="mt-3">
+                                <small style="color:var(--text-secondary);">— वा —</small>
+                            </div>
+                        <?php endif; ?>
+                        <button type="button"
+                                class="btn btn-outline-primary btn-lg mt-3 px-5 py-3"
+                                onclick="return bulkDownloadIndividual(<?php echo json_encode($bulk_all_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
+                            <i class="fas fa-images me-2"></i>
+                            सबै फाइल अलग-अलग डाउनलोड गर्नुहोस् (<?php echo count($bulk_all_urls); ?>)
+                        </button>
+                        <p style="color:var(--text-secondary);" class="mt-3 mb-0">
+                            <small><i class="fas fa-file-image me-1"></i> ZIP नबनाई प्रत्येक फाइल अलग-अलग डाउनलोड हुन्छ</small>
+                        </p>
+
+                        <?php if ($whatsapp_delete_url && !($folder['allow_zip_download'] && $file_count > 0)): ?>
+                        <!-- WhatsApp Photo Deletion Request (shown here when ZIP button is not shown) -->
+                        <div class="whatsapp-delete-request mt-4">
+                            <a href="<?php echo htmlspecialchars($whatsapp_delete_url); ?>"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="whatsapp-delete-btn">
+                                <i class="fab fa-whatsapp"></i>
+                                मैले फोटो डाउनलोड गरेँ, कृपया डिलिट गरिदिनुस्
+                            </a>
+                            <p class="whatsapp-delete-note">
+                                <i class="fas fa-info-circle"></i> फोटो डाउनलोड गरिसकेपछि माथिको बटन थिच्नुहोस्
+                            </p>
+                        </div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
@@ -2187,6 +2256,91 @@ if ($whatsapp_number) {
 
         return false;
     }
+
+        /**
+         * Bulk Individual Download (no ZIP)
+         * Downloads each file as a separate browser download, one at a time,
+         * with a short delay between each to avoid browser pop-up blocking.
+         * @param {string[]} urls - Array of download URL strings (?token=…&download_photo=…)
+         */
+        function bulkDownloadIndividual(urls) {
+            if (!urls || urls.length === 0) return false;
+
+            var overlay = document.getElementById('downloadProgressOverlay');
+            var dlBar   = document.getElementById('dlBar');
+            var dlPct   = document.getElementById('dlPercent');
+            var dlTitle = document.getElementById('dlTitle');
+            var dlFile  = document.getElementById('dlFilename');
+            var dlSize  = document.getElementById('dlSizeInfo');
+            var dlIcon  = document.getElementById('dlIcon');
+            var dlEta   = document.getElementById('dlEta');
+            var dlSpd   = document.getElementById('dlSpeed');
+
+            var total   = urls.length;
+            var current = 0;
+            // 900 ms gap between triggers: long enough that most browsers don't treat
+            // rapid consecutive downloads as a pop-up burst and block them, while still
+            // completing a 60-file batch in under a minute.
+            var DELAY   = 900;
+
+            // Initialise the progress overlay
+            dlBar.style.width      = '0%';
+            dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+            dlBar.style.animation  = '';
+            dlPct.textContent      = '0%';
+            dlTitle.textContent    = 'Downloading Files\u2026';
+            dlFile.textContent     = '0 of ' + total + ' file' + (total !== 1 ? 's' : '');
+            dlEta.textContent      = '';
+            dlSpd.textContent      = '';
+            dlSize.textContent     = '';
+            dlIcon.className       = 'fas fa-spinner fa-spin';
+            overlay.classList.add('dl-active');
+
+            var queue = urls.slice(); // work on a copy
+
+            function triggerNext() {
+                if (queue.length === 0) {
+                    // All downloads triggered – show completion
+                    dlBar.style.width   = '100%';
+                    dlPct.textContent   = '100%';
+                    dlTitle.textContent = 'All ' + total + ' file' + (total !== 1 ? 's' : '') + ' downloaded!';
+                    dlFile.textContent  = 'Check your browser downloads folder';
+                    dlIcon.className    = 'fas fa-check-circle';
+                    setTimeout(function () { overlay.classList.remove('dl-active'); }, 2500);
+                    return;
+                }
+
+                var url = queue.shift();
+                current++;
+
+                // Update progress bar
+                var pct = Math.round((current / total) * 100);
+                dlBar.style.width  = pct + '%';
+                dlPct.textContent  = pct + '%';
+                dlFile.textContent = current + ' of ' + total + ' file' + (total !== 1 ? 's' : '');
+
+                // Trigger file download via a short-lived hidden iframe.
+                // Using Content-Disposition:attachment responses, the browser downloads
+                // the file without navigating away from the page.
+                var iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                iframe.src = url;
+
+                // Remove the iframe after 60 s – enough time for even large files to
+                // begin transferring before the DOM element is no longer needed.
+                setTimeout(function () {
+                    if (iframe.parentNode) { iframe.parentNode.removeChild(iframe); }
+                }, 60000);
+
+                // Schedule the next file
+                setTimeout(triggerNext, DELAY);
+            }
+
+            // Small initial delay so the overlay is visible before first download fires
+            setTimeout(triggerNext, 150);
+            return false;
+        }
     </script>
     <script src="<?php echo BASE_URL; ?>/js/share.js"></script>
 </body>
