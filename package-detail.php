@@ -190,33 +190,47 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                             <i class="fas fa-arrow-left me-2"></i>Back to Packages
                         </a>
                         <?php if (!empty($package_share_url)): ?>
-                        <div class="section-share-wrap share-inline flex-fill"
+                        <div class="dropdown flex-fill"
                              data-share-wrap="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>"
                              data-page-url="<?php echo htmlspecialchars($package_share_url, ENT_QUOTES, 'UTF-8'); ?>">
-                            <button class="section-share-btn" type="button"
-                                    data-section="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>"
-                                    title="Share this package"
-                                    aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-share-alt" aria-hidden="true"></i>
-                                <span>Share</span>
+                            <button class="btn btn-outline-success w-100 pkg-share-toggle"
+                                    type="button"
+                                    id="pkgShareDropdown"
+                                    data-bs-toggle="dropdown"
+                                    data-bs-auto-close="true"
+                                    aria-expanded="false"
+                                    title="Share this package">
+                                <i class="fas fa-share-alt me-2" aria-hidden="true"></i>Share
                             </button>
-                            <div class="section-share-dropdown" role="menu" aria-label="Share options">
-                                <button class="share-opt share-copy" type="button"
-                                        data-section="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>"
-                                        role="menuitem">
-                                    <i class="fas fa-link" aria-hidden="true"></i> Copy link
-                                </button>
-                                <a class="share-opt share-whatsapp"
-                                   data-section="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>"
-                                   href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
-                                    <i class="fab fa-whatsapp" aria-hidden="true"></i> Share on WhatsApp
-                                </a>
-                                <a class="share-opt share-facebook"
-                                   data-section="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>"
-                                   href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
-                                    <i class="fab fa-facebook-f" aria-hidden="true"></i> Share on Facebook
-                                </a>
-                            </div>
+                            <ul class="dropdown-menu dropdown-menu-end w-100 py-1"
+                                aria-labelledby="pkgShareDropdown">
+                                <li>
+                                    <button class="dropdown-item share-copy d-flex align-items-center gap-2"
+                                            type="button"
+                                            data-section="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <i class="fas fa-link text-muted" aria-hidden="true"></i>
+                                        <span>Copy link</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item share-whatsapp d-flex align-items-center gap-2"
+                                       href="#"
+                                       data-section="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>"
+                                       target="_blank" rel="noopener noreferrer">
+                                        <i class="fab fa-whatsapp text-whatsapp" aria-hidden="true"></i>
+                                        <span>Share on WhatsApp</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item share-facebook d-flex align-items-center gap-2"
+                                       href="#"
+                                       data-section="<?php echo htmlspecialchars($package_share_id, ENT_QUOTES, 'UTF-8'); ?>"
+                                       target="_blank" rel="noopener noreferrer">
+                                        <i class="fab fa-facebook-f text-facebook" aria-hidden="true"></i>
+                                        <span>Share on Facebook</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -292,24 +306,12 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 .pkg-detail-features li {
     font-size: .95rem;
 }
-/* Full-width inline share variant for action buttons row */
-.section-share-wrap.share-inline {
-    position: relative;
-    top: auto;
-    right: auto;
-    display: block;
-    width: 100%;
-}
-.section-share-wrap.share-inline .section-share-btn {
-    width: 100%;
-    border-radius: .375rem;
-    padding: .55rem 1rem;
-}
-.section-share-wrap.share-inline .section-share-dropdown {
-    left: 0;
-    right: 0;
-    min-width: 100%;
-}
+/* Share dropdown icon sizing */
+.pkg-share-toggle .fa-share-alt { font-size: .9em; }
+.dropdown-item .fab,
+.dropdown-item .fas { width: 1.1em; text-align: center; flex-shrink: 0; }
+.text-whatsapp  { color: #25D366 !important; }
+.text-facebook  { color: #1877F2 !important; }
 </style>
 
 <?php
@@ -323,6 +325,17 @@ $extra_js = '
         if (!ticking) { requestAnimationFrame(function() { btn.classList.toggle("visible", window.scrollY > 400); ticking = false; }); ticking = true; }
     }, { passive: true });
     btn.addEventListener("click", function() { window.scrollTo({ top: 0, behavior: "smooth" }); });
+}());
+// Close Bootstrap share dropdown after a share action fires
+(function() {
+    document.addEventListener("click", function(e) {
+        if (!e.target.closest(".share-copy, .share-whatsapp, .share-facebook")) return;
+        var toggleEl = document.getElementById("pkgShareDropdown");
+        if (toggleEl && window.bootstrap) {
+            var dd = bootstrap.Dropdown.getInstance(toggleEl);
+            if (dd) dd.hide();
+        }
+    }, true); // capture phase runs before share.js stopPropagation
 }());
 </script>
 ';
