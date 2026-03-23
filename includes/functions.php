@@ -429,18 +429,27 @@ function generateTimeOptions($selected = '') {
 }
 
 /**
- * Derive shift label from start/end times.
+ * Derive a shift label from start/end times.
+ *
+ * The shift is used only as a display label and for backward compatibility
+ * with existing bookings. The actual availability check uses precise time
+ * overlap detection, not this derived shift.
  *
  * @param  string $start_time  "HH:MM" or "HH:MM:SS"
  * @param  string $end_time    "HH:MM" or "HH:MM:SS"
  * @return string  One of: morning | afternoon | evening | fullday
  */
 function deriveShiftFromTimes($start_time, $end_time) {
-    $s = (int)substr($start_time, 0, 2);
-    $e = (int)substr($end_time,   0, 2);
-    if ($s < 12 && $e <= 12) return 'morning';
-    if ($s >= 12 && $e <= 18) return 'afternoon';
-    if ($s >= 18) return 'evening';
+    $s = (int)substr($start_time, 0, 2) * 60 + (int)substr($start_time, 3, 2);
+    $e = (int)substr($end_time,   0, 2) * 60 + (int)substr($end_time,   3, 2);
+
+    // Morning: entirely within 00:00–12:00
+    if ($e <= 12 * 60) return 'morning';
+    // Afternoon: starts at or after noon, ends by 18:00
+    if ($s >= 12 * 60 && $e <= 18 * 60) return 'afternoon';
+    // Evening: starts at or after 18:00
+    if ($s >= 18 * 60) return 'evening';
+    // Everything else is treated as a full-day or multi-shift slot
     return 'fullday';
 }
 

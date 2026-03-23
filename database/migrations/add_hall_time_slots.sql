@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS hall_time_slots (
     price_override DECIMAL(10,2) DEFAULT NULL COMMENT 'NULL = use hall base_price',
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_hts_hall FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_hts_hall_status ON hall_time_slots (hall_id, status);
+    CONSTRAINT fk_hts_hall FOREIGN KEY (hall_id) REFERENCES halls(id) ON DELETE CASCADE,
+    INDEX idx_hts_hall_status (hall_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

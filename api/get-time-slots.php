@@ -38,8 +38,10 @@ try {
 
     // Format times for display
     foreach ($slots as &$slot) {
-        $slot['start_time_display'] = date('h:i A', strtotime($slot['start_time']));
-        $slot['end_time_display']   = date('h:i A', strtotime($slot['end_time']));
+        $start_ts = strtotime($slot['start_time']);
+        $end_ts   = strtotime($slot['end_time']);
+        $slot['start_time_display'] = $start_ts !== false ? date('h:i A', $start_ts) : $slot['start_time'];
+        $slot['end_time_display']   = $end_ts   !== false ? date('h:i A', $end_ts)   : $slot['end_time'];
         $slot['id']                 = (int)$slot['id'];
         $slot['hall_id']            = (int)$slot['hall_id'];
         if ($slot['price_override'] !== null) {
