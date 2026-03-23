@@ -295,6 +295,194 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
     color: #666;
     font-size: 0.85rem;
 }
+
+/* ── Pro Upload Card ─────────────────────────────────── */
+.upload-card-pro {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+    overflow: hidden;
+}
+.upload-card-header {
+    background: linear-gradient(135deg, #1a7a4a 0%, #22a05a 60%, #2dce89 100%);
+    border-radius: 10px 10px 0 0;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.upload-card-header h5 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.3px;
+}
+.upload-card-header .upload-header-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+.upload-card-header .icon-muted {
+    opacity: 0.85;
+}
+
+/* Feature pills row */
+.upload-features-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 18px 10px;
+    background: #f0fdf6;
+    border-bottom: 1px solid #d1fae5;
+}
+.upload-feature-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff;
+    border: 1px solid #a7f3d0;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    color: #065f46;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.upload-feature-pill i {
+    color: #10b981;
+    font-size: 0.8rem;
+}
+
+/* Album input styling */
+.album-input-wrapper {
+    position: relative;
+}
+.album-input-wrapper .album-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #f59e0b;
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+.album-input-wrapper .form-control {
+    padding-left: 34px;
+    border-radius: 8px;
+    border-color: #d1d5db;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.album-input-wrapper .form-control:focus {
+    border-color: #22a05a;
+    box-shadow: 0 0 0 3px rgba(34,160,90,0.15);
+}
+.label-dark-green {
+    color: #1a4731;
+}
+
+/* Drop zone – pro redesign */
+.drop-zone-pro {
+    border: 2px dashed #a7f3d0;
+    border-radius: 14px;
+    padding: 48px 24px 40px;
+    text-align: center;
+    background: linear-gradient(160deg, #f0fdf4 0%, #ecfdf5 100%);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.drop-zone-pro::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(34,160,90,0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+.drop-zone-pro:hover,
+.drop-zone-pro.drag-over {
+    border-color: #22a05a;
+    background: linear-gradient(160deg, #e6fbf0 0%, #dcfce7 100%);
+    transform: scale(1.008);
+    box-shadow: 0 6px 28px rgba(34,160,90,0.13);
+}
+.drop-zone-pro .dz-icon-circle {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #22a05a, #2dce89);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    box-shadow: 0 6px 20px rgba(34,160,90,0.35);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.drop-zone-pro:hover .dz-icon-circle,
+.drop-zone-pro.drag-over .dz-icon-circle {
+    transform: translateY(-4px) scale(1.08);
+    box-shadow: 0 10px 28px rgba(34,160,90,0.45);
+}
+.drop-zone-pro .dz-icon-circle i {
+    font-size: 1.9rem;
+    color: #fff;
+}
+.drop-zone-pro .dz-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a4731;
+    margin-bottom: 6px;
+}
+.drop-zone-pro .dz-subtitle {
+    color: #22a05a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+.drop-zone-pro .dz-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #6b7280;
+    font-size: 0.78rem;
+    background: rgba(255,255,255,0.7);
+    border-radius: 20px;
+    padding: 4px 14px;
+}
+.drop-zone-pro .dz-hint i { color: #9ca3af; }
+
+/* Upload button */
+.btn-upload-pro {
+    background: linear-gradient(135deg, #1a7a4a 0%, #22a05a 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 30px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    box-shadow: 0 4px 14px rgba(34,160,90,0.35);
+    transition: all 0.25s;
+}
+.btn-upload-pro:hover:not(:disabled) {
+    background: linear-gradient(135deg, #15643c 0%, #1a7a4a 100%);
+    box-shadow: 0 6px 20px rgba(34,160,90,0.45);
+    transform: translateY(-1px);
+    color: #fff;
+}
+.btn-upload-pro:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    color: #fff;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -390,38 +578,45 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
 </div>
 
 <!-- Upload Section -->
-<div class="card mb-4">
-    <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload Files to this Folder</h5>
-    </div>
-    <div class="card-body">
-        <div class="alert alert-info mb-3">
-            <i class="fas fa-info-circle"></i> <strong>Bulk Upload:</strong> 
-            तपाईं एकैपटकमा धेरै फाइलहरु अपलोड गर्न सक्नुहुन्छ।<br>
-            <i class="fas fa-file"></i> कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै (५० GB सम्म)<br>
-            <i class="fas fa-video"></i> ठूलो भिडियो/फाइल chunk गरेर background मा अपलोड हुन्छ
+<div class="card upload-card-pro mb-4">
+    <div class="upload-card-header">
+        <div class="upload-header-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
         </div>
-        
+        <h5><i class="fas fa-folder-plus icon-muted me-1"></i> Upload Files to this Folder</h5>
+    </div>
+
+    <!-- Feature pills -->
+    <div class="upload-features-row">
+        <span class="upload-feature-pill"><i class="fas fa-layer-group"></i> Bulk Upload</span>
+        <span class="upload-feature-pill"><i class="fas fa-image"></i> Photo &amp; Video</span>
+        <span class="upload-feature-pill"><i class="fas fa-file-archive"></i> ZIP / PDF / Word / Excel</span>
+        <span class="upload-feature-pill"><i class="fas fa-hdd"></i> Max 50 GB per file</span>
+        <span class="upload-feature-pill"><i class="fas fa-bolt"></i> Background chunked upload</span>
+    </div>
+
+    <div class="card-body p-4">
         <form id="uploadForm" method="POST" action="ajax-upload.php" enctype="multipart/form-data">
             <input type="hidden" name="folder_id" value="<?php echo $folder_id; ?>">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
-            
-            <!-- Sub-folder/Album Name -->
-            <div class="mb-3">
-                <label for="subfolderNameInput" class="form-label fw-semibold">
-                    <i class="fas fa-folder-plus text-warning"></i> Album / Sub-folder Name
-                    <small class="text-muted fw-normal ms-1">(optional – groups photos into albums)</small>
+
+            <!-- Album / Sub-folder Name -->
+            <div class="mb-4">
+                <label for="subfolderNameInput" class="form-label fw-semibold label-dark-green mb-1">
+                    <i class="fas fa-folder-plus text-warning me-1"></i> Album / Sub-folder Name
+                    <small class="text-muted fw-normal ms-1">(optional)</small>
                 </label>
                 <?php
-                // Collect existing subfolder names for datalist
                 $sf_stmt = $db->prepare("SELECT DISTINCT subfolder_name FROM shared_photos WHERE folder_id = ? AND subfolder_name IS NOT NULL AND subfolder_name <> '' ORDER BY subfolder_name ASC");
                 $sf_stmt->execute([$folder_id]);
                 $existing_subfolders = $sf_stmt->fetchAll(PDO::FETCH_COLUMN);
                 ?>
-                <input type="text" class="form-control" id="subfolderNameInput" name="subfolder_name"
-                       placeholder="e.g. Ceremony, Reception, Getting Ready…"
-                       list="subfolderSuggestions" autocomplete="off"
-                       value="">
+                <div class="album-input-wrapper">
+                    <i class="fas fa-folder album-input-icon"></i>
+                    <input type="text" class="form-control" id="subfolderNameInput" name="subfolder_name"
+                           placeholder="e.g. Ceremony, Reception, Getting Ready…"
+                           list="subfolderSuggestions" autocomplete="off" value="">
+                </div>
                 <?php if (!empty($existing_subfolders)): ?>
                 <datalist id="subfolderSuggestions">
                     <?php foreach ($existing_subfolders as $sf): ?>
@@ -429,34 +624,33 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
                     <?php endforeach; ?>
                 </datalist>
                 <?php endif; ?>
-                <div class="form-text">
-                    <i class="fas fa-info-circle"></i> 
-                    फोटोहरू एउटै एल्बममा राख्न एउटै नाम टाइप गर्नुहोस्। उदाहरण: "Ceremony" टाइप गरेर Ceremony एल्बममा फोटो थप्नुहोस्।
+                <div class="form-text mt-1">
+                    <i class="fas fa-info-circle text-success me-1"></i>
+                    फोटोहरू एउटै एल्बममा राख्न एउटै नाम टाइप गर्नुहोस्। उदाहरण: <strong>"Ceremony"</strong> टाइप गरेर Ceremony एल्बममा फोटो थप्नुहोस्।
                 </div>
             </div>
-            
+
             <!-- Drag & Drop Zone -->
-            <div id="dropZone" class="drop-zone">
-                <div class="drop-zone-icon">
+            <div id="dropZone" class="drop-zone-pro">
+                <div class="dz-icon-circle">
                     <i class="fas fa-cloud-upload-alt"></i>
                 </div>
-                <div class="drop-zone-text">
-                    <strong>Drag & Drop files here</strong><br>
-                    or click to browse
-                </div>
-                <div class="drop-zone-hint">
-                    कुनै पनि फाइल: फोटो, भिडियो, ZIP, PDF, Word, Excel र अन्य सबै • Max size: 50GB
-                </div>
+                <div class="dz-title">Drag &amp; Drop your files here</div>
+                <div class="dz-subtitle">or click to browse from your computer</div>
+                <span class="dz-hint">
+                    <i class="fas fa-info-circle"></i>
+                    Photos, Videos, ZIP, PDF, Word, Excel &amp; more &nbsp;·&nbsp; Up to 50 GB per file
+                </span>
             </div>
-            
+
             <input type="file" class="form-control d-none" id="images" name="images[]" accept="*/*" multiple>
-            
+
             <!-- Image Preview Container -->
             <div id="imagePreviewContainer" class="image-preview-container"></div>
-            
+
             <div class="d-flex justify-content-end mt-3">
-                <button type="submit" id="uploadButton" class="btn btn-success btn-lg" disabled>
-                    <i class="fas fa-upload"></i> Upload Files
+                <button type="submit" id="uploadButton" class="btn btn-upload-pro btn-lg" disabled>
+                    <i class="fas fa-upload me-2"></i> Upload Files
                 </button>
             </div>
         </form>
