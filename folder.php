@@ -2828,6 +2828,12 @@ if ($folder && !$error_message) {
                             localStorage.setItem(lsKey, JSON.stringify(arr));
                         } catch (e) { /* ignore storage errors */ }
                     }
+
+                    // Pause briefly so the browser can commit this file to the local
+                    // Downloads folder before the next download begins. Without this
+                    // yield, browsers may batch all anchor-click triggers together and
+                    // save every file at once at the end instead of one by one.
+                    await new Promise(function(resolve) { setTimeout(resolve, 300); });
                 } catch (e) {
                     console.error('Download error for ' + file.filename, e);
                 }
