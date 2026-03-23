@@ -24,12 +24,14 @@ function getSitemapBaseUrl(): string {
         $hostCandidate = $_SERVER['HTTP_HOST'] ?? '';
         if ($hostCandidate !== '') {
             $parsedHost = parse_url('http://' . $hostCandidate);
-            $hostName = $parsedHost['host'] ?? '';
-            $port = $parsedHost['port'] ?? null;
-            $isIpHost = $hostName !== '' && filter_var($hostName, FILTER_VALIDATE_IP);
-            $isDomainHost = $hostName !== '' && filter_var($hostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
-            if ($isIpHost || $isDomainHost) {
-                $host = $hostName . ($port ? ':' . $port : '');
+            if ($parsedHost !== false) {
+                $hostName = $parsedHost['host'] ?? '';
+                $port = $parsedHost['port'] ?? null;
+                $isIpHost = $hostName !== '' && filter_var($hostName, FILTER_VALIDATE_IP);
+                $isDomainHost = $hostName !== '' && filter_var($hostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
+                if ($isIpHost || $isDomainHost) {
+                    $host = $hostName . ($port ? ':' . $port : '');
+                }
             }
         }
     }
@@ -79,7 +81,11 @@ $staticPages = [
 
 $packagePages = [];
 $pdo = getDB();
-$packageLimit = isset($_ENV['SITEMAP_PACKAGE_LIMIT']) ? (int) $_ENV['SITEMAP_PACKAGE_LIMIT'] : DEFAULT_SITEMAP_PACKAGE_LIMIT;
+$rawPackageLimit = $_ENV['SITEMAP_PACKAGE_LIMIT'] ?? '';
+$packageLimit = DEFAULT_SITEMAP_PACKAGE_LIMIT;
+if ($rawPackageLimit !== '' && is_numeric($rawPackageLimit)) {
+    $packageLimit = (int) $rawPackageLimit;
+}
 $packageLimit = max(1, min(50000, $packageLimit));
 $stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT ?');
 $stmt->bindValue(1, 'active');
