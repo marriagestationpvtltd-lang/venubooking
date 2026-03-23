@@ -130,10 +130,10 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <?php foreach ($staticPages as $page): ?>
     <url>
-        <loc><?php echo htmlspecialchars(buildSitemapUrl($baseUrl, $page['path']), ENT_XML1); ?></loc>
-        <lastmod><?php echo htmlspecialchars(getFileLastModified($page['path']), ENT_XML1); ?></lastmod>
-        <changefreq><?php echo htmlspecialchars($page['changefreq'], ENT_XML1); ?></changefreq>
-        <priority><?php echo htmlspecialchars($page['priority'], ENT_XML1); ?></priority>
+        <loc><?php echo htmlspecialchars(buildSitemapUrl($baseUrl, $page['path']), ENT_XML1 | ENT_QUOTES); ?></loc>
+        <lastmod><?php echo htmlspecialchars(getFileLastModified($page['path']), ENT_XML1 | ENT_QUOTES); ?></lastmod>
+        <changefreq><?php echo htmlspecialchars($page['changefreq'], ENT_XML1 | ENT_QUOTES); ?></changefreq>
+        <priority><?php echo htmlspecialchars($page['priority'], ENT_XML1 | ENT_QUOTES); ?></priority>
     </url>
 <?php endforeach; ?>
 <?php foreach ($packagePages as $package):
@@ -142,8 +142,8 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     $packagePath = buildPackageDetailUrl((int)$package['id']);
 ?>
     <url>
-        <loc><?php echo htmlspecialchars(buildSitemapUrl($baseUrl, $packagePath), ENT_XML1); ?></loc>
-        <lastmod><?php echo htmlspecialchars($lastmodDate, ENT_XML1); ?></lastmod>
+        <loc><?php echo htmlspecialchars(buildSitemapUrl($baseUrl, $packagePath), ENT_XML1 | ENT_QUOTES); ?></loc>
+        <lastmod><?php echo htmlspecialchars($lastmodDate, ENT_XML1 | ENT_QUOTES); ?></lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
