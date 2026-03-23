@@ -349,88 +349,162 @@ if ($whatsapp_number) {
     
     <style>
         :root {
-            --primary-green: #4CAF50;
-            --dark-green: #2E7D32;
+            --primary-green: #16a34a;
+            --light-green: #22c55e;
+            --dark-green: #14532d;
+            --accent: #dcfce7;
+            --surface: #ffffff;
+            --bg: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
+            --radius: 16px;
+            --radius-sm: 10px;
         }
-        
+
+        * { box-sizing: border-box; }
+
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: var(--bg);
             min-height: 100vh;
             padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-primary);
         }
-        
+
         .folder-container {
             max-width: 1400px;
             margin: 0 auto;
         }
-        
+
+        /* ── Folder Header Card ── */
         .folder-header {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            padding: 30px;
-            margin-bottom: 30px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 0;
+            margin-bottom: 24px;
+            overflow: hidden;
         }
-        
+
+        .folder-header-accent {
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-green) 0%, var(--light-green) 60%, #86efac 100%);
+        }
+
+        .folder-header-body {
+            padding: 28px 30px 24px;
+        }
+
         .folder-title {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 10px;
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        
-        .folder-title i {
-            color: #ffc107;
+
+        .folder-title-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(234,179,8,0.25);
         }
-        
+
+        .folder-title-icon i {
+            color: #d97706;
+            font-size: 1.3rem;
+        }
+
         .folder-description {
-            color: #666;
-            margin-bottom: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-size: 0.93rem;
+            line-height: 1.6;
         }
-        
+
+        /* ── Stats Badges ── */
+        .stats-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .stats-badge {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 5px 14px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .stats-badge i { font-size: 0.85rem; }
+
+        /* ── Download Buttons ── */
         .download-all-btn {
-            background: var(--primary-green);
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
             border: none;
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 13px 32px;
+            font-size: 1.05rem;
+            font-weight: 600;
             border-radius: 50px;
-            transition: all 0.3s;
-            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
+            transition: all 0.25s;
+            box-shadow: 0 4px 18px rgba(22,163,74,0.35);
+            letter-spacing: 0.01em;
         }
-        
+
         .download-all-btn:hover {
-            background: var(--dark-green);
+            background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+            box-shadow: 0 8px 28px rgba(22,163,74,0.45);
         }
-        
+
+        /* ── Photo Grid ── */
         .photo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
         }
-        
+
         .photo-card {
-            background: white;
-            border-radius: 16px;
+            background: var(--surface);
+            border-radius: var(--radius-sm);
             overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-md);
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease;
             cursor: pointer;
+            border: 1px solid var(--border);
         }
-        
+
         .photo-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 16px 40px rgba(0,0,0,0.16);
+            transform: translateY(-5px);
+            box-shadow: 0 18px 45px rgba(0,0,0,0.14);
+            border-color: #cbd5e1;
         }
-        
+
         .photo-card img {
             width: 100%;
-            height: 220px;
+            aspect-ratio: 4/3;
             object-fit: cover;
             display: block;
         }
-        
+
         /* Prevent blinking: hide images until loaded, then show them */
         .photo-card img.lazy-img {
             opacity: 0;
@@ -439,41 +513,43 @@ if ($whatsapp_number) {
         .photo-card img.lazy-img.loaded {
             opacity: 1;
         }
-        
+
         /* Error state for failed images - show placeholder instead of hiding */
         .photo-card .img-error-placeholder {
             width: 100%;
-            height: 220px;
-            background: linear-gradient(135deg, #f0f2f5 0%, #e4e8ee 100%);
+            aspect-ratio: 4/3;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: #b0b8c4;
+            color: #94a3b8;
+            border-bottom: 1px solid var(--border);
         }
         .photo-card .img-error-placeholder i {
-            font-size: 3rem;
-            margin-bottom: 10px;
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            opacity: 0.6;
         }
         .photo-card .img-error-placeholder span {
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             font-weight: 500;
         }
-        
+
         .photo-card .photo-info {
-            padding: 12px 15px;
+            padding: 10px 14px 12px;
         }
-        
+
         .photo-card .photo-title {
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            font-size: 0.88rem;
+            font-size: 0.84rem;
         }
-        
+
         /* ── Photo media wrapper (positions overlay button) ── */
         .photo-media {
             position: relative;
@@ -505,7 +581,7 @@ if ($whatsapp_number) {
             opacity: 1;
         }
         .photo-media-download:hover {
-            background: rgba(76, 175, 80, 0.9);
+            background: rgba(22,163,74, 0.9);
             border-color: #fff;
             color: #fff;
             transform: scale(1.12);
@@ -547,24 +623,24 @@ if ($whatsapp_number) {
             display: flex;
         }
         .lightbox-download-btn:hover {
-            background: rgba(76, 175, 80, 0.85);
+            background: rgba(22,163,74, 0.85);
             border-color: #fff;
             color: #fff;
             transform: scale(1.08);
         }
-        
+
         /* Video card styles */
         .photo-card .video-container {
             position: relative;
             width: 100%;
-            height: 220px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            aspect-ratio: 4/3;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
         }
-        
+
         .photo-card .video-play-overlay {
             position: absolute;
             top: 0;
@@ -576,23 +652,23 @@ if ($whatsapp_number) {
             justify-content: center;
             transition: background 0.3s;
         }
-        
+
         .photo-card .video-container:hover .video-play-overlay {
             background: rgba(255,255,255,0.08);
         }
-        
+
         .photo-card .video-play-overlay i {
-            font-size: 3.5rem;
+            font-size: 3.2rem;
             color: rgba(255,255,255,0.85);
             text-shadow: 0 2px 16px rgba(0,0,0,0.6);
             transition: transform 0.2s, color 0.2s;
         }
-        
+
         .photo-card .video-container:hover .video-play-overlay i {
             transform: scale(1.1);
             color: #fff;
         }
-        
+
         .file-type-badge {
             position: absolute;
             top: 8px;
@@ -601,38 +677,40 @@ if ($whatsapp_number) {
             padding: 3px 8px;
             z-index: 10;
         }
-        
+
         .file-size-info {
             font-size: 0.75rem;
             color: #888;
             margin-bottom: 8px;
         }
-        
-        .stats-badge {
-            background: #f8f9fa;
-            padding: 8px 15px;
-            border-radius: 20px;
-            display: inline-block;
-            margin-right: 10px;
-            font-size: 0.9rem;
-        }
-        
+
+        /* ── Error Container ── */
         .error-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            padding: 50px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 50px 40px;
             text-align: center;
-            max-width: 600px;
-            margin: 50px auto;
+            max-width: 540px;
+            margin: 60px auto;
         }
-        
+
         .error-icon {
-            font-size: 4rem;
-            color: #dc3545;
-            margin-bottom: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #fef2f2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
         }
-        
+
+        .error-icon i {
+            font-size: 2.5rem;
+            color: #ef4444;
+        }
+
         .footer-text {
             text-align: center;
             padding: 30px;
@@ -686,8 +764,8 @@ if ($whatsapp_number) {
             word-break: break-all;
         }
         .dl-bar-wrap {
-            height: 12px;
-            background: #e8f5e9;
+            height: 10px;
+            background: #dcfce7;
             border-radius: 6px;
             overflow: hidden;
             margin-bottom: 10px;
@@ -695,7 +773,7 @@ if ($whatsapp_number) {
         .dl-bar-fill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            background: linear-gradient(90deg, var(--primary-green), var(--light-green));
             border-radius: 6px;
             transition: width 0.3s ease;
         }
@@ -714,7 +792,7 @@ if ($whatsapp_number) {
             0%   { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
-        
+
         /* Lightbox styles */
         .lightbox {
             display: none;
@@ -723,23 +801,23 @@ if ($whatsapp_number) {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.92);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
-        
+
         .lightbox.active {
             display: flex;
         }
-        
+
         .lightbox img,
         .lightbox video {
             max-width: 90%;
             max-height: 90%;
             border-radius: 8px;
         }
-        
+
         .lightbox-close {
             position: absolute;
             top: 20px;
@@ -748,53 +826,39 @@ if ($whatsapp_number) {
             font-size: 2rem;
             cursor: pointer;
         }
-        
+
         @media (max-width: 768px) {
-            .folder-header {
+            .folder-header-body {
                 padding: 20px;
             }
-            
+
             .folder-title {
-                font-size: 1.4rem;
-            }
-            
-            .download-all-btn {
-                width: 100%;
-                padding: 12px 30px;
-                font-size: 1rem;
-            }
-            
-            .photo-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                gap: 14px;
-            }
-            
-            .photo-card img {
-                height: 170px;
+                font-size: 1.35rem;
             }
 
-            .photo-card .img-error-placeholder {
-                height: 170px;
+            .download-all-btn {
+                width: 100%;
+                padding: 12px 24px;
+                font-size: 0.97rem;
             }
-            
+
+            .photo-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 12px;
+            }
+
             /* Mobile: Stack brand bar items vertically */
             .folder-brand-bar {
                 flex-direction: column;
                 align-items: center;
                 text-align: center;
             }
-            .folder-brand-bar .brand-link {
-                order: 1;
-            }
-            .folder-brand-bar .brand-text {
-                order: 2;
-            }
             .folder-brand-bar .go-home-btn {
-                order: 3;
-                margin: 10px 0 0 0;
+                margin-top: 10px;
                 width: 100%;
+                text-align: center;
             }
-            
+
             /* Mobile: WhatsApp button full width */
             .whatsapp-delete-btn {
                 width: 100%;
@@ -809,9 +873,9 @@ if ($whatsapp_number) {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding-bottom: 20px;
+            padding-bottom: 18px;
             margin-bottom: 20px;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid var(--border);
             flex-wrap: wrap;
         }
         .folder-brand-bar .brand-link {
@@ -823,27 +887,29 @@ if ($whatsapp_number) {
             opacity: 0.9;
         }
         .folder-brand-bar .brand-logo {
-            height: 48px;
-            max-width: 150px;
+            height: 40px;
+            max-width: 140px;
             object-fit: contain;
         }
         .brand-text .brand-name {
-            font-size: 1rem;
+            font-size: 0.97rem;
             font-weight: 700;
-            color: #333;
+            color: var(--text-primary);
             line-height: 1.2;
             margin: 0;
         }
         .brand-text .brand-tagline {
-            font-size: 0.76rem;
-            color: #888;
+            font-size: 0.74rem;
+            color: var(--text-secondary);
             margin: 2px 0 0;
         }
         .go-home-btn {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             border-radius: 20px;
             padding: 6px 16px;
-            transition: all 0.3s;
+            border-color: var(--border);
+            color: var(--text-secondary);
+            transition: all 0.25s;
         }
         .go-home-btn:hover {
             background: var(--primary-green);
@@ -853,81 +919,79 @@ if ($whatsapp_number) {
 
         /* ── WhatsApp Deletion Request Button ── */
         .whatsapp-delete-request {
-            margin-top: 15px;
-            text-align: center;
+            margin-top: 14px;
         }
         .whatsapp-delete-btn {
             background: #25D366;
             border: none;
             color: white;
-            padding: 12px 24px;
+            padding: 11px 22px;
             border-radius: 50px;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             font-weight: 500;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+            transition: all 0.25s;
+            box-shadow: 0 3px 12px rgba(37, 211, 102, 0.3);
         }
         .whatsapp-delete-btn:hover {
             background: #128C7E;
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+            box-shadow: 0 6px 18px rgba(37, 211, 102, 0.4);
         }
         .whatsapp-delete-btn i {
-            font-size: 1.2rem;
+            font-size: 1.15rem;
         }
         .whatsapp-delete-note {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 8px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 7px;
         }
 
         /* ── Security Panel ── */
         .security-panel {
-            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
-            border: 1px solid #c8e6c9;
-            border-radius: 12px;
-            padding: 14px 20px;
-            margin-bottom: 25px;
+            background: var(--accent);
+            border: 1px solid #bbf7d0;
+            border-radius: var(--radius-sm);
+            padding: 11px 18px;
+            margin-bottom: 22px;
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 14px;
         }
         .security-item {
             display: flex;
             align-items: center;
-            gap: 7px;
-            font-size: 0.82rem;
-            color: #2E7D32;
-            font-weight: 500;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--primary-green);
+            font-weight: 600;
         }
         .security-item i {
-            font-size: 1rem;
-            color: #4CAF50;
+            font-size: 0.9rem;
         }
         .security-note {
             margin-left: auto;
-            font-size: 0.76rem;
-            color: #888;
+            font-size: 0.74rem;
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 5px;
         }
         .security-note i {
-            color: #aaa;
+            color: #94a3b8;
         }
 
         /* ── Enhanced Footer ── */
         .footer-text {
             text-align: center;
             padding: 30px 20px;
-            color: #999;
-            font-size: 0.85rem;
+            color: #94a3b8;
+            font-size: 0.84rem;
         }
         .footer-contact {
             display: flex;
@@ -937,37 +1001,37 @@ if ($whatsapp_number) {
             margin-bottom: 12px;
         }
         .footer-contact a {
-            color: #666;
+            color: var(--text-secondary);
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: 0.85rem;
+            font-size: 0.84rem;
             transition: color 0.2s;
         }
         .footer-contact a:hover {
-            color: #4CAF50;
+            color: var(--primary-green);
         }
         .footer-security {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 6px;
-            color: #aaa;
-            font-size: 0.8rem;
+            color: #94a3b8;
+            font-size: 0.79rem;
             flex-wrap: wrap;
         }
 
         @media (max-width: 576px) {
             .security-note { display: none; }
-            .folder-brand-bar { padding-bottom: 15px; margin-bottom: 15px; }
+            .folder-brand-bar { padding-bottom: 14px; margin-bottom: 16px; }
         }
 
         /* ── Sub-folder / Album Grid ── */
         .subfolder-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 24px;
+            gap: 20px;
         }
 
         /* Single-folder view: centre one large card */
@@ -978,26 +1042,28 @@ if ($whatsapp_number) {
         }
 
         .subfolder-card {
-            background: white;
-            border-radius: 18px;
+            background: var(--surface);
+            border-radius: var(--radius-sm);
             overflow: hidden;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.09);
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-md);
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease;
             text-decoration: none;
             color: inherit;
             display: block;
+            border: 1px solid var(--border);
         }
 
         .subfolder-card:hover {
-            transform: translateY(-7px);
-            box-shadow: 0 18px 45px rgba(0,0,0,0.14);
+            transform: translateY(-5px);
+            box-shadow: 0 18px 45px rgba(0,0,0,0.12);
             color: inherit;
+            border-color: #cbd5e1;
         }
 
         .subfolder-card .subfolder-thumb {
             position: relative;
-            height: 170px;
-            background: linear-gradient(145deg, #fff8e1 0%, #fff3cd 50%, #ffe57f 100%);
+            height: 155px;
+            background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 60%, #fde68a 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1008,20 +1074,20 @@ if ($whatsapp_number) {
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(ellipse at 60% 40%, rgba(255,255,255,0.6) 0%, transparent 70%);
+            background: radial-gradient(ellipse at 60% 40%, rgba(255,255,255,0.5) 0%, transparent 70%);
         }
 
         .subfolder-card .subfolder-thumb .folder-icon {
-            font-size: 5.5rem;
-            color: #f59e0b;
-            filter: drop-shadow(0 6px 14px rgba(245,158,11,0.35));
+            font-size: 5rem;
+            color: #d97706;
+            filter: drop-shadow(0 4px 10px rgba(217,119,6,0.3));
             position: relative;
             z-index: 1;
             transition: transform 0.3s ease;
         }
 
         .subfolder-card:hover .subfolder-thumb .folder-icon {
-            transform: scale(1.08) translateY(-4px);
+            transform: scale(1.08) translateY(-3px);
         }
 
         /* Kept for legacy rendering but hidden by default */
@@ -1034,21 +1100,21 @@ if ($whatsapp_number) {
         }
 
         .subfolder-card .subfolder-info {
-            padding: 16px 18px;
+            padding: 14px 16px;
         }
 
         .subfolder-card .subfolder-name {
             font-weight: 700;
-            font-size: 0.95rem;
-            color: #1a1a2e;
-            margin-bottom: 5px;
+            font-size: 0.92rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .subfolder-card .subfolder-count {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #9ca3af;
             display: flex;
             align-items: center;
@@ -1056,19 +1122,20 @@ if ($whatsapp_number) {
         }
 
         .subfolder-card .subfolder-count i {
-            color: #f59e0b;
+            color: #d97706;
         }
 
         .breadcrumb-nav {
-            background: white;
-            border-radius: 12px;
-            padding: 12px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            padding: 11px 18px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow-sm);
             display: flex;
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
+            border: 1px solid var(--border);
         }
 
         .breadcrumb-nav a {
@@ -1079,20 +1146,21 @@ if ($whatsapp_number) {
 
         .breadcrumb-nav a:hover { text-decoration: underline; }
 
-        .breadcrumb-nav .separator { color: #bbb; }
+        .breadcrumb-nav .separator { color: #cbd5e1; }
 
         .album-download-btn {
-            background: var(--primary-green);
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
             border: none;
             padding: 10px 24px;
-            font-size: 1rem;
+            font-size: 0.97rem;
+            font-weight: 600;
             border-radius: 50px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            transition: all 0.25s;
+            box-shadow: 0 3px 14px rgba(22,163,74,0.3);
         }
 
         .album-download-btn:hover {
-            background: var(--dark-green);
+            background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
             transform: translateY(-2px);
         }
 
@@ -1317,15 +1385,17 @@ if ($whatsapp_number) {
                 <div class="error-icon">
                     <i class="fas fa-exclamation-circle"></i>
                 </div>
-                <h3 class="text-danger mb-3">Access Denied</h3>
-                <p class="text-muted mb-4"><?php echo htmlspecialchars($error_message); ?></p>
-                <p class="text-muted">
+                <h3 class="fw-bold mb-2" style="color:var(--text-primary);">Access Denied</h3>
+                <p class="mb-4" style="color:var(--text-secondary);"><?php echo htmlspecialchars($error_message); ?></p>
+                <p style="color:var(--text-secondary);">
                     <small>If you believe this is an error, please contact the sender.</small>
                 </p>
             </div>
         <?php else: ?>
             <!-- Folder Header -->
             <div class="folder-header">
+                <div class="folder-header-accent"></div>
+                <div class="folder-header-body">
                 <?php if ($site_logo && file_exists(UPLOAD_PATH . $site_logo)): ?>
                 <div class="folder-brand-bar">
                     <a href="<?php echo BASE_URL; ?>/" class="brand-link" title="Go to Home">
@@ -1337,7 +1407,7 @@ if ($whatsapp_number) {
                         <p class="brand-name"><?php echo htmlspecialchars($site_name); ?></p>
                         <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
                     </div>
-                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-outline-success btn-sm ms-auto go-home-btn">
+                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-outline-secondary btn-sm ms-auto go-home-btn">
                         <i class="fas fa-home me-1"></i> Go Back to Home
                     </a>
                 </div>
@@ -1347,7 +1417,7 @@ if ($whatsapp_number) {
                         <p class="brand-name"><?php echo htmlspecialchars($site_name); ?></p>
                         <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
                     </div>
-                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-outline-success btn-sm ms-auto go-home-btn">
+                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-outline-secondary btn-sm ms-auto go-home-btn">
                         <i class="fas fa-home me-1"></i> Go Back to Home
                     </a>
                 </div>
@@ -1355,40 +1425,41 @@ if ($whatsapp_number) {
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <h1 class="folder-title">
-                            <?php if ($has_subfolders && $current_album !== null): ?>
+                            <span class="folder-title-icon">
                                 <i class="fas fa-folder-open"></i>
+                            </span>
+                            <?php if ($has_subfolders && $current_album !== null): ?>
                                 <?php echo htmlspecialchars($current_album === '' ? 'General' : $current_album); ?>
                             <?php else: ?>
-                                <i class="fas fa-folder-open"></i>
                                 <?php echo htmlspecialchars($folder['folder_name']); ?>
                             <?php endif; ?>
                         </h1>
-                        
+
                         <?php if (!$has_subfolders || $current_album === null): ?>
                             <?php if ($folder['description']): ?>
                                 <p class="folder-description"><?php echo nl2br(htmlspecialchars($folder['description'])); ?></p>
                             <?php endif; ?>
                         <?php endif; ?>
-                        
+
                         <div class="stats-badges">
                             <?php if ($has_subfolders && $current_album === null): ?>
                                 <span class="stats-badge">
-                                    <i class="fas fa-folder text-warning"></i>
+                                    <i class="fas fa-folder" style="color:#d97706;"></i>
                                     <?php echo count($subfolders); ?> Album<?php echo count($subfolders) !== 1 ? 's' : ''; ?>
                                 </span>
                                 <span class="stats-badge">
-                                    <i class="fas fa-photo-video text-primary"></i>
+                                    <i class="fas fa-photo-video" style="color:#3b82f6;"></i>
                                     <?php echo count($photos); ?> File<?php echo count($photos) !== 1 ? 's' : ''; ?>
                                 </span>
                             <?php else: ?>
                                 <span class="stats-badge">
-                                    <i class="fas fa-photo-video text-primary"></i> 
+                                    <i class="fas fa-photo-video" style="color:#3b82f6;"></i>
                                     <?php echo count($visible_photos); ?> File<?php echo count($visible_photos) !== 1 ? 's' : ''; ?>
                                 </span>
                             <?php endif; ?>
                             <?php if ($folder['expires_at']): ?>
                                 <span class="stats-badge">
-                                    <i class="fas fa-clock text-warning"></i> 
+                                    <i class="fas fa-clock" style="color:#f59e0b;"></i>
                                     Expires: <?php echo date('M d, Y', strtotime($folder['expires_at'])); ?> (<?php echo convertToNepaliDate($folder['expires_at']); ?>)
                                 </span>
                             <?php endif; ?>
@@ -1449,7 +1520,8 @@ if ($whatsapp_number) {
                         <?php endif; ?>
                     </div>
                 </div>
-            </div>
+            </div><!-- end folder-header-body -->
+            </div><!-- end folder-header -->
 
             <!-- Security Assurance Panel -->
             <div class="security-panel">
@@ -1478,18 +1550,17 @@ if ($whatsapp_number) {
             ?>
                 <!-- ── Download Only View (Preview Disabled) ── -->
                 <div class="download-only-view text-center py-5">
-                    <div class="download-only-icon mb-4">
-                        <i class="fas fa-file-archive" style="font-size: 5rem; color: #28a745;"></i>
+                    <div class="mb-4" style="width:90px;height:90px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto;">
+                        <i class="fas fa-file-archive" style="font-size: 2.8rem; color: var(--primary-green);"></i>
                     </div>
-                    <h4 class="mb-3">
-                        <i class="fas fa-download me-2"></i>
+                    <h4 class="mb-2 fw-bold" style="color:var(--text-primary);">
                         फाइलहरू डाउनलोड गर्नुहोस्
                     </h4>
                     <?php 
                     $file_count = count($photos);
                     $file_text = $file_count !== 1 ? 'फाइलहरू छन्' : 'फाइल छ';
                     ?>
-                    <p class="text-muted mb-4">
+                    <p style="color:var(--text-secondary);" class="mb-4">
                         यस फोल्डरमा <?php echo $file_count; ?> <?php echo $file_text; ?>।<br>
                         तलको बटन थिचेर ZIP फाइलमा एकैपटक डाउनलोड गर्नुहोस्।
                     </p>
@@ -1497,18 +1568,18 @@ if ($whatsapp_number) {
                         <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
                            class="btn btn-success btn-lg download-all-btn px-5 py-3"
                            onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
-                            <i class="fas fa-download me-2"></i> 
+                            <i class="fas fa-download me-2"></i>
                             सबै डाउनलोड गर्नुहोस् (<?php echo $file_count; ?> फाइलहरू)
                         </a>
-                        <p class="text-muted mt-3 mb-0">
+                        <p style="color:var(--text-secondary);" class="mt-3 mb-0">
                             <small><i class="fas fa-file-archive me-1"></i> ZIP फाइलमा डाउनलोड हुन्छ</small>
                         </p>
-                        
+
                         <?php if ($whatsapp_delete_url): ?>
                         <!-- WhatsApp Photo Deletion Request -->
-                        <div class="whatsapp-delete-request">
-                            <a href="<?php echo htmlspecialchars($whatsapp_delete_url); ?>" 
-                               target="_blank" 
+                        <div class="whatsapp-delete-request mt-4">
+                            <a href="<?php echo htmlspecialchars($whatsapp_delete_url); ?>"
+                               target="_blank"
                                rel="noopener noreferrer"
                                class="whatsapp-delete-btn">
                                 <i class="fab fa-whatsapp"></i>
@@ -1551,9 +1622,9 @@ if ($whatsapp_number) {
             <?php if ($has_subfolders && $current_album === null): ?>
                 <!-- ── Sub-folder / Album Cards View ── -->
                 <?php if (empty($subfolders)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
-                        <p class="text-muted">No albums in this folder yet.</p>
+                    <div class="text-center py-5" style="color:var(--text-secondary);">
+                        <i class="fas fa-folder-open fa-4x mb-3" style="opacity:0.35;"></i>
+                        <p>No albums in this folder yet.</p>
                     </div>
                 <?php else: ?>
                     <div class="subfolder-grid">
@@ -1582,9 +1653,9 @@ if ($whatsapp_number) {
             <?php elseif ($has_subfolders && $current_album !== null): ?>
                 <!-- ── Album Drill-Down: Photos in Selected Album ── -->
                 <?php if (empty($visible_photos)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
-                        <p class="text-muted">No files in this album.</p>
+                    <div class="text-center py-5" style="color:var(--text-secondary);">
+                        <i class="fas fa-photo-video fa-4x mb-3" style="opacity:0.35;"></i>
+                        <p>No files in this album.</p>
                     </div>
                 <?php else: ?>
                     <div class="photo-grid">
@@ -1665,9 +1736,9 @@ if ($whatsapp_number) {
             <?php else: ?>
                 <!-- ── Flat View (no sub-folders) ── -->
                 <?php if (empty($photos)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
-                        <p class="text-muted">No files in this folder yet.</p>
+                    <div class="text-center py-5" style="color:var(--text-secondary);">
+                        <i class="fas fa-photo-video fa-4x mb-3" style="opacity:0.35;"></i>
+                        <p>No files in this folder yet.</p>
                     </div>
                 <?php else: ?>
                     <div class="photo-grid">
