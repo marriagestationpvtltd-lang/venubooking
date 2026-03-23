@@ -489,11 +489,6 @@ $extra_js = '
                 navigator.clipboard.writeText(url).then(function() {
                     showToast(\'✓ Link copied!\');
                 }).catch(function() { fallbackCopy(url); });
-            } else if (navigator.share) {
-                navigator.share({ url: url }).catch(function(err) {
-                    if (err && err.name === "AbortError") return;
-                    showToast("Unable to open share");
-                });
             } else {
                 fallbackCopy(url);
             }
