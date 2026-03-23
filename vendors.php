@@ -52,43 +52,42 @@ if (!empty($vendors)) {
         </div>
         <?php endif; ?>
 
-        <div class="vendor-auto-wrapper">
-            <div class="vendor-auto-track" data-vendor-slider>
-                <?php
-                $seen_vendor_ids = [];
-                foreach ($vendors as $vendor):
-                    if (in_array((int)$vendor['id'], $seen_vendor_ids, true)) continue;
-                    $seen_vendor_ids[] = (int)$vendor['id'];
+        <div class="row g-3">
+            <?php
+            $seen_vendor_ids = [];
+            foreach ($vendors as $vendor):
+                if (in_array((int)$vendor['id'], $seen_vendor_ids, true)) continue;
+                $seen_vendor_ids[] = (int)$vendor['id'];
 
-                    $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
-                    $vendor_name        = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
-                    $vendor_location    = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
-                    $vendor_address     = htmlspecialchars($vendor['address'] ?? '', ENT_QUOTES, 'UTF-8');
-                    $vendor_notes       = htmlspecialchars($vendor['notes'] ?? '', ENT_QUOTES, 'UTF-8');
-                    $vendor_description = htmlspecialchars($vendor['short_description'] ?? '', ENT_QUOTES, 'UTF-8');
+                $vendor_type_label  = htmlspecialchars(getVendorTypeLabel($vendor['type']), ENT_QUOTES, 'UTF-8');
+                $vendor_name        = htmlspecialchars($vendor['name'], ENT_QUOTES, 'UTF-8');
+                $vendor_location    = htmlspecialchars($vendor['city_name'] ?? '', ENT_QUOTES, 'UTF-8');
+                $vendor_address     = htmlspecialchars($vendor['address'] ?? '', ENT_QUOTES, 'UTF-8');
+                $vendor_notes       = htmlspecialchars($vendor['notes'] ?? '', ENT_QUOTES, 'UTF-8');
+                $vendor_description = htmlspecialchars($vendor['short_description'] ?? '', ENT_QUOTES, 'UTF-8');
 
-                    $vendor_photos_list = getVendorPhotos($vendor['id']);
-                    $primary_photo_path = !empty($vendor_photos_list) ? $vendor_photos_list[0]['image_path'] : ($vendor['photo'] ?? '');
+                $vendor_photos_list = getVendorPhotos($vendor['id']);
+                $primary_photo_path = !empty($vendor_photos_list) ? $vendor_photos_list[0]['image_path'] : ($vendor['photo'] ?? '');
 
-                    $wa_vendor_name = strip_tags($vendor['name']);
-                    $wa_vendor_type = strip_tags(getVendorTypeLabel($vendor['type']));
-                    $wa_message = "Hello, I am interested in your vendor: {$wa_vendor_name} ({$wa_vendor_type}). Please contact me with more details.";
-                    $wa_url = '';
-                    if (!empty($clean_office_whatsapp)) {
-                        $wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_message);
-                    }
+                $wa_vendor_name = strip_tags($vendor['name']);
+                $wa_vendor_type = strip_tags(getVendorTypeLabel($vendor['type']));
+                $wa_message = "Hello, I am interested in your vendor: {$wa_vendor_name} ({$wa_vendor_type}). Please contact me with more details.";
+                $wa_url = '';
+                if (!empty($clean_office_whatsapp)) {
+                    $wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_message);
+                }
 
-                    $extra_slides = [];
-                    if (!empty($vendor['address'])) {
-                        $extra_slides[] = ['icon' => 'fas fa-map-marker-alt', 'label' => 'Address', 'value' => $vendor_address];
-                    }
-                    if (!empty($vendor['notes'])) {
-                        $extra_slides[] = ['icon' => 'fas fa-info-circle', 'label' => 'About', 'value' => $vendor_notes];
-                    }
+                $extra_slides = [];
+                if (!empty($vendor['address'])) {
+                    $extra_slides[] = ['icon' => 'fas fa-map-marker-alt', 'label' => 'Address', 'value' => $vendor_address];
+                }
+                if (!empty($vendor['notes'])) {
+                    $extra_slides[] = ['icon' => 'fas fa-info-circle', 'label' => 'About', 'value' => $vendor_notes];
+                }
 
-                    $detail_carousel_id = 'vendorDetail' . (int)$vendor['id'];
-                ?>
-                    <div class="vendor-auto-card" data-vendor-type="<?php echo htmlspecialchars($vendor['type'], ENT_QUOTES, 'UTF-8'); ?>">
+                $detail_carousel_id = 'vendorDetail' . (int)$vendor['id'];
+            ?>
+                <div class="col-12 col-sm-6 col-lg-4" data-vendor-type="<?php echo htmlspecialchars($vendor['type'], ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="vendor-card card h-100 shadow-sm">
                             <?php if (!empty($primary_photo_path)): ?>
                                 <img src="<?php echo htmlspecialchars(rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($primary_photo_path), ENT_QUOTES, 'UTF-8'); ?>"
@@ -160,7 +159,6 @@ if (!empty($vendors)) {
                     </div>
                 <?php endforeach; ?>
             </div>
-        </div>
     </div>
 </section>
 <?php else: ?>
@@ -193,55 +191,18 @@ if (!empty($vendors)) {
 <?php
 $extra_js = '
 <script>
-// ── Vendor auto-scroll carousel ──
 (function() {
-    var speed = 0.5;
     var filterBar = document.getElementById(\'vendorFilterBar\');
-    var track = document.querySelector(\'[data-vendor-slider]\');
-    if (!track) return;
-    var hovered = false, dragging = false, rafId = null;
-    function isPaused() { return hovered || dragging; }
-    Array.from(track.querySelectorAll(\'.vendor-auto-card\')).forEach(function(card) { card.setAttribute(\'data-original\', \'1\'); });
-    function initSlider() {
-        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-        Array.from(track.querySelectorAll(\'[data-clone]\')).forEach(function(c) { track.removeChild(c); });
-        var origCards = Array.from(track.querySelectorAll(\'.vendor-auto-card[data-original]\')).filter(function(c) { return c.style.display !== \'none\'; });
-        if (origCards.length === 0) return;
-        if (track.scrollWidth <= track.clientWidth + 2) { track.scrollLeft = 0; return; }
-        origCards.forEach(function(card, idx) {
-            var clone = card.cloneNode(true); clone.removeAttribute(\'data-original\'); clone.setAttribute(\'data-clone\', \'1\');
-            var idMap = {}; clone.querySelectorAll(\'[id]\').forEach(function(el) { var oid=el.id,nid=oid+\'_c\'+idx; idMap[oid]=nid; el.id=nid; });
-            clone.querySelectorAll(\'[href],[data-bs-target]\').forEach(function(el) { [\'href\',\'data-bs-target\'].forEach(function(attr) { var val=el.getAttribute(attr); if(val&&val.charAt(0)===\'#\'){var rid=val.slice(1);if(idMap.hasOwnProperty(rid)){el.setAttribute(attr,\'#\'+idMap[rid]);}}}); });
-            track.appendChild(clone);
+    if (!filterBar) return;
+    filterBar.addEventListener(\'click\', function(e) {
+        var btn = e.target.closest(\'.vendor-filter-btn\');
+        if (!btn) return;
+        filterBar.querySelectorAll(\'.vendor-filter-btn\').forEach(function(b) { b.classList.toggle(\'active\', b === btn); });
+        var filter = btn.getAttribute(\'data-filter\');
+        document.querySelectorAll(\'[data-vendor-type]\').forEach(function(card) {
+            card.style.display = (filter === \'all\' || card.getAttribute(\'data-vendor-type\') === filter) ? \'\' : \'none\';
         });
-        track.scrollLeft = 0;
-        function step() { if(!isPaused()){track.scrollLeft+=speed;var half=track.scrollWidth/2;if(track.scrollLeft>=half-1){track.scrollLeft-=half;}} rafId=requestAnimationFrame(step); }
-        rafId = requestAnimationFrame(step);
-    }
-    initSlider();
-    track.addEventListener("mouseenter", function() { hovered = true; });
-    track.addEventListener("mouseleave", function() { hovered = false; });
-    var isDown=false,startX=0,scrollStart=0;
-    track.addEventListener("mousedown",function(e){isDown=true;dragging=true;track.classList.add("pkg-slider-grabbing");startX=e.pageX-track.offsetLeft;scrollStart=track.scrollLeft;document.addEventListener("mousemove",onMove);e.preventDefault();});
-    function onMove(e){if(!isDown)return;track.scrollLeft=scrollStart-(e.pageX-track.offsetLeft-startX)*1.5;}
-    function stopDrag(){if(!isDown)return;isDown=false;dragging=false;track.classList.remove("pkg-slider-grabbing");document.removeEventListener("mousemove",onMove);}
-    document.addEventListener("mouseup",stopDrag);
-    var tStartX=0,tScrollStart=0;
-    track.addEventListener("touchstart",function(e){hovered=true;dragging=true;tStartX=e.touches[0].pageX;tScrollStart=track.scrollLeft;},{passive:true});
-    track.addEventListener("touchmove",function(e){track.scrollLeft=tScrollStart-(e.touches[0].pageX-tStartX);},{passive:true});
-    track.addEventListener("touchend",function(){hovered=false;dragging=false;},{passive:true});
-    if (filterBar) {
-        filterBar.addEventListener(\'click\', function(e) {
-            var btn = e.target.closest(\'.vendor-filter-btn\');
-            if (!btn) return;
-            filterBar.querySelectorAll(\'.vendor-filter-btn\').forEach(function(b) { b.classList.toggle(\'active\', b === btn); });
-            var filter = btn.getAttribute(\'data-filter\');
-            Array.from(track.querySelectorAll(\'.vendor-auto-card[data-original]\')).forEach(function(card) {
-                card.style.display = (filter === \'all\' || card.getAttribute(\'data-vendor-type\') === filter) ? \'\' : \'none\';
-            });
-            initSlider();
-        });
-    }
+    });
 })();
 </script>
 <script>

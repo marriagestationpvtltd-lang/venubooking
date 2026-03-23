@@ -60,15 +60,11 @@ if (!empty($service_categories)) {
         <?php endif; ?>
 
         <div class="service-category-block">
-            <div class="pkg-slider-wrapper">
-                <button class="pkg-slider-nav pkg-slider-prev" type="button" aria-label="Previous packages">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="pkg-slider-track" data-pkg-slider>
+            <div class="row g-3" id="pkgGrid">
                 <?php foreach ($all_service_packages as $pkg):
                     $pkg_carousel_id = 'pkgCarousel' . (int)$pkg['id'];
                 ?>
-                    <div class="pkg-slider-card" data-pkg-category="<?php echo (int)$pkg['category_id']; ?>">
+                    <div class="col-12 col-sm-6 col-lg-4" data-pkg-category="<?php echo (int)$pkg['category_id']; ?>">
                         <div class="package-card card h-100">
                             <?php if (!empty($pkg['photos'])): ?>
                                 <?php if (count($pkg['photos']) > 1): ?>
@@ -195,14 +191,7 @@ if (!empty($service_categories)) {
                         </div>
                     </div>
                 <?php endforeach; ?>
-                </div>
-                <button class="pkg-slider-nav pkg-slider-next" type="button" aria-label="Next packages">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
             </div>
-            <p class="text-center pkg-swipe-hint mt-2 mb-0">
-                <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
-            </p>
         </div>
     </div>
 </section>
@@ -236,101 +225,18 @@ if (!empty($service_categories)) {
 <?php
 $extra_js = '
 <script>
-// ── Auto-scroll for package sliders ──
 (function() {
-    var speed = 0.5;
-    var allTracks = document.querySelectorAll(\'[data-pkg-slider]\');
-    if (!allTracks.length) return;
-    allTracks.forEach(function(track, trackIdx) {
-        var hovered = false, dragging = false;
-        var rafId = null;
-        function isPaused() { return hovered || dragging; }
-        Array.from(track.querySelectorAll(\'.pkg-slider-card\')).forEach(function(card) {
-            card.setAttribute(\'data-original\', \'1\');
+    var pkgFilterBar = document.getElementById(\'pkgFilterBar\');
+    if (!pkgFilterBar) return;
+    var pkgGrid = document.getElementById(\'pkgGrid\');
+    pkgFilterBar.addEventListener(\'click\', function(e) {
+        var btn = e.target.closest(\'.service-category-filter-btn\');
+        if (!btn) return;
+        pkgFilterBar.querySelectorAll(\'.service-category-filter-btn\').forEach(function(b) { b.classList.toggle(\'active\', b === btn); });
+        var filter = btn.getAttribute(\'data-filter\');
+        pkgGrid.querySelectorAll(\'[data-pkg-category]\').forEach(function(card) {
+            card.style.display = (filter === \'all\' || card.getAttribute(\'data-pkg-category\') === filter) ? \'\' : \'none\';
         });
-        function initSlider() {
-            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-            Array.from(track.querySelectorAll(\'[data-clone]\')).forEach(function(c) { track.removeChild(c); });
-            var origCards = Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\')).filter(function(c) { return c.style.display !== \'none\'; });
-            if (origCards.length === 0) return;
-            if (track.scrollWidth <= track.clientWidth + 2) { track.scrollLeft = 0; return; }
-            origCards.forEach(function(card, idx) {
-                var clone = card.cloneNode(true);
-                clone.setAttribute(\'data-clone\', \'1\');
-                clone.removeAttribute(\'data-original\');
-                var idMap = {};
-                clone.querySelectorAll(\'[id]\').forEach(function(el) {
-                    var oldId = el.id; var newId = oldId + \'_t\' + trackIdx + \'_c\' + idx;
-                    idMap[oldId] = newId; el.id = newId;
-                });
-                clone.querySelectorAll(\'[href],[data-bs-target]\').forEach(function(el) {
-                    [\'href\',\'data-bs-target\'].forEach(function(attr) {
-                        var val = el.getAttribute(attr);
-                        if (val && val.charAt(0) === \'#\') { var refId = val.slice(1); if (idMap.hasOwnProperty(refId)) { el.setAttribute(attr, \'#\' + idMap[refId]); } }
-                    });
-                });
-                track.appendChild(clone);
-            });
-            track.scrollLeft = 0;
-            function step() {
-                if (!isPaused()) { track.scrollLeft += speed; var half = track.scrollWidth / 2; if (track.scrollLeft >= half - 1) { track.scrollLeft -= half; } }
-                rafId = requestAnimationFrame(step);
-            }
-            rafId = requestAnimationFrame(step);
-        }
-        initSlider();
-        track.addEventListener("mouseenter", function() { hovered = true; });
-        track.addEventListener("mouseleave", function() { hovered = false; });
-        var isDown = false, startX = 0, scrollStart = 0;
-        track.addEventListener("mousedown", function(e) {
-            isDown = true; dragging = true; track.classList.add("pkg-slider-grabbing");
-            startX = e.pageX - track.offsetLeft; scrollStart = track.scrollLeft;
-            document.addEventListener("mousemove", onMove); e.preventDefault();
-        });
-        function onMove(e) { if (!isDown) return; track.scrollLeft = scrollStart - (e.pageX - track.offsetLeft - startX) * 1.5; }
-        function stopDrag() { if (!isDown) return; isDown = false; dragging = false; track.classList.remove("pkg-slider-grabbing"); document.removeEventListener("mousemove", onMove); }
-        document.addEventListener("mouseup", stopDrag);
-        var tStartX = 0, tScrollStart = 0;
-        track.addEventListener("touchstart", function(e) { hovered = true; dragging = true; tStartX = e.touches[0].pageX; tScrollStart = track.scrollLeft; }, { passive: true });
-        track.addEventListener("touchmove", function(e) { track.scrollLeft = tScrollStart - (e.touches[0].pageX - tStartX); }, { passive: true });
-        track.addEventListener("touchend", function() { hovered = false; dragging = false; }, { passive: true });
-        var pkgFilterBar = document.getElementById(\'pkgFilterBar\');
-        if (pkgFilterBar) {
-            pkgFilterBar.addEventListener(\'click\', function(e) {
-                var btn = e.target.closest(\'.service-category-filter-btn\');
-                if (!btn) return;
-                pkgFilterBar.querySelectorAll(\'.service-category-filter-btn\').forEach(function(b) { b.classList.toggle(\'active\', b === btn); });
-                var filter = btn.getAttribute(\'data-filter\');
-                Array.from(track.querySelectorAll(\'.pkg-slider-card[data-original]\')).forEach(function(card) {
-                    card.style.display = (filter === \'all\' || card.getAttribute(\'data-pkg-category\') === filter) ? \'\' : \'none\';
-                });
-                initSlider();
-            });
-        }
-    });
-})();
-</script>
-<script>
-(function() {
-    document.querySelectorAll(".pkg-slider-wrapper").forEach(function(wrapper) {
-        var track = wrapper.querySelector("[data-pkg-slider]");
-        var prevBtn = wrapper.querySelector(".pkg-slider-prev");
-        var nextBtn = wrapper.querySelector(".pkg-slider-next");
-        if (!track) return;
-        function getCardWidth() {
-            var card = track.querySelector(".pkg-slider-card:not([style*=\'display: none\'])");
-            if (!card) return 320;
-            return card.offsetWidth + (parseFloat(getComputedStyle(track).gap) || 20);
-        }
-        function updateNavVisibility() {
-            var overflows = track.scrollWidth > wrapper.clientWidth + 2;
-            if (prevBtn) prevBtn.style.display = overflows ? "" : "none";
-            if (nextBtn) nextBtn.style.display = overflows ? "" : "none";
-        }
-        updateNavVisibility();
-        window.addEventListener("resize", updateNavVisibility);
-        if (prevBtn) { prevBtn.addEventListener("click", function(e) { e.stopPropagation(); track.scrollBy({ left: -getCardWidth(), behavior: "smooth" }); }); }
-        if (nextBtn) { nextBtn.addEventListener("click", function(e) { e.stopPropagation(); track.scrollBy({ left: getCardWidth(), behavior: "smooth" }); }); }
     });
 })();
 </script>
