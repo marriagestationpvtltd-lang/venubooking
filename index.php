@@ -360,6 +360,9 @@ if (!empty($service_categories)) {
                                         <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
                                     </div>
                                 </div>
+                                <?php if (!empty($pkg['description'])): ?>
+                                <p class="text-muted small mb-2"><?php echo sanitize($pkg['description']); ?></p>
+                                <?php endif; ?>
                                 <?php if (!empty($pkg['features'])):
                                     $max_visible = 3;
                                     $total_features = count($pkg['features']);
