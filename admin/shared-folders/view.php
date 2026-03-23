@@ -589,6 +589,7 @@ $is_expired = ($folder['expires_at'] && strtotime($folder['expires_at']) < time(
         skipPreviewGeneration: true,             // Skip thumbnail loading; upload instantly (Google Drive style)
         uploadUrl: 'ajax-upload.php',
         chunkUploadUrl: 'ajax-chunk-upload.php',
+        keepAliveUrl: '<?php echo BASE_URL; ?>/admin/keep-alive.php',
         onUploadStart: function() {
         },
         onUploadProgress: function(percent) {

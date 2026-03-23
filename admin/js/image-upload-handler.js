@@ -39,6 +39,7 @@ class ImageUploadHandler {
             disableChunkedUpload: false, // When true, all uploads use direct POST (max = maxFileSize/maxOtherFileSize)
             autoUpload: false, // When true, upload starts immediately after file selection without clicking the Upload button
             skipPreviewGeneration: false, // When true, skip thumbnail/preview loading (Google Drive style: instant upload, no preview)
+            keepAliveUrl: '',  // URL of the keep-alive endpoint; if set, pinged every 4 min during uploads to prevent session timeout
             onUploadStart: () => {},
             onUploadProgress: () => {},
             onUploadComplete: () => {},
@@ -50,6 +51,7 @@ class ImageUploadHandler {
         this.files = [];
         this.processedFiles = [];
         this._duplicateDecision = null; // Tracks "replace all" / "skip all" choice for the current batch
+        this._keepAliveTimer = null;    // Interval ID for session keep-alive pings during uploads
         this.init();
     }
 
@@ -441,6 +443,10 @@ class ImageUploadHandler {
 
         this.options.onUploadStart();
 
+        // Start session keep-alive pings so the admin session does not expire
+        // during a long upload (e.g. large videos over a slow connection).
+        this._startKeepAlive();
+
         // Record upload start time for ETA calculation
         this._uploadStartTime = Date.now();
 
@@ -586,6 +592,9 @@ class ImageUploadHandler {
         this.updateFloatingProgress(100, 'Done!');
         setTimeout(() => this.hideFloatingProgress(), 2000);
 
+        // Stop session keep-alive pings now that the upload batch is finished
+        this._stopKeepAlive();
+
         // Re-enable upload button
         if (this.uploadButton) {
             this.uploadButton.disabled = false;
@@ -614,6 +623,33 @@ class ImageUploadHandler {
             setTimeout(() => {
                 this.clearFiles();
             }, 2000);
+        }
+    }
+
+    /**
+     * Start a periodic keep-alive ping to prevent the admin session from
+     * timing out during a long file upload.  Pings every 4 minutes so the
+     * 30-minute idle timeout is never reached while the upload is active.
+     * No-op when keepAliveUrl is not configured.
+     */
+    _startKeepAlive() {
+        this._stopKeepAlive(); // Clear any previous timer
+        if (!this.options.keepAliveUrl) return;
+        const url = this.options.keepAliveUrl;
+        // Ping immediately, then on every 4-minute interval
+        const ping = () => {
+            fetch(url, { method: 'GET', credentials: 'same-origin' })
+                .catch((err) => { console.warn('Session keep-alive ping failed:', err); });
+        };
+        ping();
+        this._keepAliveTimer = setInterval(ping, 4 * 60 * 1000);
+    }
+
+    /** Stop the keep-alive interval started by _startKeepAlive(). */
+    _stopKeepAlive() {
+        if (this._keepAliveTimer !== null) {
+            clearInterval(this._keepAliveTimer);
+            this._keepAliveTimer = null;
         }
     }
 
