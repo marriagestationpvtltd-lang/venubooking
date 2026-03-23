@@ -5,7 +5,7 @@ $page_keywords    = 'service package details, venue package, event package, Nepa
 require_once __DIR__ . '/includes/header.php';
 
 $package_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-$package_id = $package_id ? (int) $package_id : 0;
+$package_id = $package_id ?: 0;
 $package    = null;
 $features   = [];
 $photos     = [];
