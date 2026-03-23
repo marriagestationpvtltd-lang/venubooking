@@ -172,9 +172,10 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                     ob_end_clean();
                 }
                 
-                // Get file size
-                $file_size = filesize($file_path);
-                
+                // Get file size as an unsigned string to handle files larger than 2 GB
+                // correctly on 32-bit PHP builds where filesize() can overflow.
+                $file_size = sprintf('%u', filesize($file_path));
+
                 // Send file for download with proper headers
                 header('Content-Type: ' . $mime_type);
                 header('Content-Disposition: attachment; filename="' . $download_filename . '"');
