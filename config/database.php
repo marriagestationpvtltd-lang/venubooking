@@ -26,15 +26,24 @@ define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 define('DB_CHARSET', 'utf8mb4');
 
 // Base URL configuration
-// Calculate the base URL by finding the application root directory
-$scriptPath = $_SERVER['SCRIPT_NAME'] ?? '/';
-$scriptDir = dirname($scriptPath);
+// If APP_URL is set in .env, use it directly (recommended on shared hosting to
+// prevent "Image unavailable" caused by incorrect dynamic URL detection).
+if (!empty($_ENV['APP_URL'])) {
+    $baseUrl = rtrim($_ENV['APP_URL'], '/');
+} else {
+    // Dynamically detect the application root from the current request path.
+    // This works on most Apache/mod_php setups but can fail on some
+    // Nginx + PHP-FPM or reverse-proxy configurations.
+    $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '/';
+    $scriptDir = dirname($scriptPath);
 
-// Remove /admin or /api subdirectories from the path to get the application root
-// This handles cases where script is in /admin/dashboard.php or /admin/venues/index.php
-$basePath = preg_replace('#/(admin|api)(/.*)?$#', '', $scriptDir);
+    // Remove /admin or /api subdirectories from the path to get the application root.
+    // This handles cases where script is in /admin/dashboard.php or /admin/venues/index.php.
+    $basePath = preg_replace('#/(admin|api)(/.*)?$#', '', $scriptDir);
+    $baseUrl = rtrim($basePath, '/');
+}
 
-define('BASE_URL', rtrim($basePath, '/'));
+define('BASE_URL', $baseUrl);
 define('UPLOAD_PATH', __DIR__ . '/../uploads/');
 define('UPLOAD_URL', BASE_URL . '/uploads/');
 

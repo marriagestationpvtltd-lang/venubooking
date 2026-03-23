@@ -54,6 +54,9 @@ if (empty($token)) {
             // Filter out records whose physical files are missing from disk.
             // This prevents broken-image 404 errors on the public folder page when a
             // file has been removed from storage but its database record still exists.
+            // As a side-effect, also ensure existing files have world-readable permissions
+            // so that Apache/Nginx can serve them (fixes the "Image unavailable" issue
+            // caused by files uploaded with restrictive umask on some shared-hosting servers).
             $real_upload_base = realpath(UPLOAD_PATH);
             $photos = array_values(array_filter($photos, function ($photo) use ($real_upload_base) {
                 if (empty($photo['image_path'])) {
@@ -67,12 +70,24 @@ if (empty($token)) {
                 $abs_path = UPLOAD_PATH . $photo['image_path'];
                 if ($real_upload_base !== false) {
                     $real_path = realpath($abs_path);
-                    return $real_path !== false
-                        && strpos($real_path, $real_upload_base . DIRECTORY_SEPARATOR) === 0
-                        && file_exists($abs_path);
+                    if ($real_path === false || strpos($real_path, $real_upload_base . DIRECTORY_SEPARATOR) !== 0 || !file_exists($abs_path)) {
+                        return false;
+                    }
+                    // Fix permissions if file is not world-readable
+                    if ((fileperms($abs_path) & 0004) !== 0004) {
+                        @chmod($abs_path, 0644);
+                    }
+                    return true;
                 }
                 // Fallback when realpath() cannot resolve the uploads base path
-                return file_exists($abs_path);
+                if (!file_exists($abs_path)) {
+                    return false;
+                }
+                // Fix permissions if file is not world-readable
+                if ((fileperms($abs_path) & 0004) !== 0004) {
+                    @chmod($abs_path, 0644);
+                }
+                return true;
             }));
         }
     } catch (Exception $e) {

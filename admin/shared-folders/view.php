@@ -97,6 +97,34 @@ $photos_stmt = $db->prepare("SELECT * FROM shared_photos WHERE folder_id = ? ORD
 $photos_stmt->execute([$folder_id]);
 $photos = $photos_stmt->fetchAll();
 
+// Silently ensure all uploaded files are world-readable so the web server can
+// serve them.  On some shared-hosting configurations, files are created with
+// 0600 permissions (due to a restrictive umask) and Apache/Nginx running as a
+// different user cannot read them, causing broken previews.  This one-time fix
+// corrects those permissions whenever the admin views the folder.
+{
+    $real_upload_base = realpath(UPLOAD_PATH);
+    foreach ($photos as $photo) {
+        if (empty($photo['image_path'])) {
+            continue;
+        }
+        $safe_path = str_replace('\\', '/', $photo['image_path']);
+        if (strpos($safe_path, '../') !== false || strpos($safe_path, '/..') !== false || $safe_path[0] === '/') {
+            continue;
+        }
+        $abs_path = UPLOAD_PATH . $photo['image_path'];
+        if ($real_upload_base !== false) {
+            $real_path = realpath($abs_path);
+            if ($real_path === false || strpos($real_path, $real_upload_base . DIRECTORY_SEPARATOR) !== 0) {
+                continue;
+            }
+        }
+        if (file_exists($abs_path) && (fileperms($abs_path) & 0004) !== 0004) {
+            @chmod($abs_path, 0644);
+        }
+    }
+}
+
 // Group photos by subfolder_name for admin display
 $photos_by_subfolder = [];
 foreach ($photos as $photo) {

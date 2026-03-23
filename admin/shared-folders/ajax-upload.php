@@ -201,6 +201,14 @@ if (!is_dir($folder_upload_dir)) {
         echo json_encode(['success' => false, 'message' => 'Failed to create upload directory.']);
         exit;
     }
+    // Ensure directories are world-executable/readable so the web server can
+    // serve files regardless of which system user PHP and Apache run as.
+    @chmod($folder_upload_dir, 0755);
+    // Also chmod the parent "folders/" directory if it was just created
+    $folders_base_dir = UPLOAD_PATH . 'folders/';
+    if (is_dir($folders_base_dir)) {
+        @chmod($folders_base_dir, 0755);
+    }
 }
 
 // Generate unique filename
@@ -242,6 +250,11 @@ if (!move_uploaded_file($file['tmp_name'], $upload_path)) {
     echo json_encode(['success' => false, 'message' => 'Failed to save file.']);
     exit;
 }
+
+// Ensure the uploaded file is world-readable so the web server can serve it
+// regardless of the system umask (which may create files as 0600 on some
+// shared-hosting configurations, preventing Apache/Nginx from reading them).
+@chmod($upload_path, 0644);
 
 // Verify the file was actually written to disk before touching the database.
 // This guards against silent write failures (e.g. disk-quota exhaustion) where
