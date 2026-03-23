@@ -744,8 +744,8 @@ Date changes are subject to availability and must be requested at least 15 days 
                             <label class="form-label"><i class="fab fa-google"></i> Google Review Link</label>
                             <input type="url" class="form-control" name="setting_google_review_link" 
                                    value="<?php echo htmlspecialchars($settings['google_review_link'] ?? ''); ?>"
-                                   placeholder="https://g.page/r/your-business-review-link">
-                            <small class="text-muted">Used in WhatsApp thank you message after full payment</small>
+                                   placeholder="https://g.page/r/CXn4LyBY3iY7EBM/review">
+                            <small class="text-muted">Used in the thank you email sent to customers after full payment is received. Leave blank to use the default link.</small>
                         </div>
 
                         <div class="col-md-6 mb-3">

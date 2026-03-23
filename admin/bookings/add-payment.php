@@ -102,7 +102,7 @@ try {
         $paid_amount = floatval($paid_amount_raw);
 
         // Verify booking exists
-        $stmt = $db->prepare("SELECT id, grand_total, booking_number FROM bookings WHERE id = ?");
+        $stmt = $db->prepare("SELECT id, grand_total, booking_number, payment_status FROM bookings WHERE id = ?");
         $stmt->execute([$booking_id]);
         $booking = $stmt->fetch();
         if (!$booking) {
@@ -146,6 +146,11 @@ try {
 
         $db->commit();
 
+        // Send thank-you + Google review notification when booking is fully paid for the first time
+        if ($result['payment_status'] === 'paid' && $booking['payment_status'] !== 'paid') {
+            sendBookingNotification($booking_id, 'paid');
+        }
+
         logActivity(
             $current_user['id'],
             'Recorded payment received',
@@ -182,7 +187,7 @@ try {
 
         // Fetch existing payment and its booking
         $stmt = $db->prepare(
-            "SELECT p.*, b.grand_total, b.booking_number
+            "SELECT p.*, b.grand_total, b.booking_number, b.payment_status AS booking_payment_status
              FROM payments p
              JOIN bookings b ON b.id = p.booking_id
              WHERE p.id = ?"
@@ -203,6 +208,11 @@ try {
         $result = applyVerifiedPaymentStatus($db, $booking_id, floatval($payment['grand_total']));
 
         $db->commit();
+
+        // Send thank-you + Google review notification when booking is fully paid for the first time
+        if ($result['payment_status'] === 'paid' && $payment['booking_payment_status'] !== 'paid') {
+            sendBookingNotification($booking_id, 'paid');
+        }
 
         logActivity(
             $current_user['id'],

@@ -2637,7 +2637,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
     $contact_email = getSetting('contact_email', '');
     $contact_phone = getSetting('contact_phone', '');
     $whatsapp_number = getSetting('whatsapp_number', '');
-    $google_review_link = getSetting('google_review_link', '');
+    $google_review_link = getSetting('google_review_link', 'https://g.page/r/CXn4LyBY3iY7EBM/review');
     
     ob_start();
     ?>
@@ -2705,9 +2705,23 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>We are pleased to confirm your booking. Please find your booking details below.</p>
                     <?php elseif ($type === 'paid'): ?>
+                        <?php
+                        $booked_packages = [];
+                        if (!empty($booking['services'])) {
+                            foreach ($booking['services'] as $svc) {
+                                if (strtolower($svc['category'] ?? '') === 'package') {
+                                    $booked_packages[] = htmlspecialchars($svc['service_name']);
+                                }
+                            }
+                        }
+                        $package_display = !empty($booked_packages)
+                            ? implode(', ', $booked_packages)
+                            : htmlspecialchars($booking['event_type']);
+                        ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
-                        <p>We are pleased to inform you that your full payment of <strong><?php echo formatCurrency($booking['grand_total']); ?></strong> for your <strong><?php echo htmlspecialchars($booking['event_type']); ?></strong> event has been received and your booking is now complete.</p>
-                        <p>It was our honour to be a part of your special occasion. Thank you sincerely for choosing <strong><?php echo htmlspecialchars($site_name); ?></strong>.</p>
+                        <p>On behalf of the entire team at <strong><?php echo htmlspecialchars($site_name); ?></strong>, we would like to extend our heartfelt gratitude for choosing us for your <strong><?php echo $package_display; ?></strong> event. Your full payment of <strong><?php echo formatCurrency($booking['grand_total']); ?></strong> has been received and your booking is now successfully completed.</p>
+                        <p>It was a true honour and privilege for us to be a part of your special occasion. We sincerely hope that our services met your expectations. Should there be anything we could have done better, please know that we take all feedback very seriously. We are committed to continuously improving our services so that every guest has an exceptional experience.</p>
+                        <p>We value your trust and look forward to being of service to you again in the future. Thank you sincerely for your confidence in <strong><?php echo htmlspecialchars($site_name); ?></strong>.</p>
                     <?php else: ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>Your booking status has been updated.</p>
@@ -2964,17 +2978,17 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <p style="margin-top: 20px;">If you have any questions about your booking, please don't hesitate to contact us.</p>
                 <?php endif; ?>
                 
-                <?php if ($recipient === 'user' && $type === 'paid' && !empty($google_review_link)): ?>
+                <?php if ($recipient === 'user' && $type === 'paid'): ?>
                 <div class="booking-details" style="background-color: #f0f9f0; border-left: 4px solid #4CAF50; padding: 20px; margin-top: 20px;">
                     <div class="section-title">Share Your Experience ⭐</div>
-                    <p>We would greatly appreciate it if you could take a moment to share your experience with us. Your feedback helps us serve you and others better.</p>
+                    <p>We would greatly appreciate it if you could take a moment to write a review about your experience with us. Your honest feedback not only helps us improve our services but also helps other families make informed decisions for their special occasions.</p>
                     <p style="text-align: center; margin: 15px 0;">
                         <a href="<?php echo htmlspecialchars($google_review_link); ?>" 
                            style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
                             ⭐ Write a Google Review
                         </a>
                     </p>
-                    <p style="font-size: 13px; color: #555; text-align: center;">It only takes a minute and means the world to our team.</p>
+                    <p style="font-size: 13px; color: #555; text-align: center;">It only takes a minute and means the world to our entire team.</p>
                 </div>
                 <?php endif; ?>
                 
