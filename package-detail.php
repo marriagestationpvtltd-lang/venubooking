@@ -50,7 +50,7 @@ if ($package_id > 0) {
 
 $office_whatsapp       = getSetting('whatsapp_number', '');
 $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
-$package_share_url     = $package_id > 0 ? BASE_URL . '/package-detail.php?id=' . rawurlencode((string) $package_id) : '';
+$package_share_url     = $package_id > 0 ? BASE_URL . '/package-detail.php?id=' . (string) $package_id : '';
 $package_share_id      = $package_id > 0 ? 'package-detail-' . $package_id : '';
 ?>
 
@@ -422,7 +422,8 @@ $extra_js = '
         toastTimer = setTimeout(function() { toast.classList.remove(\'show\'); }, 2500);
     }
     function getShareUrl(sectionId) {
-        var wrap = document.querySelector(\'[data-share-wrap="\' + sectionId + \'"]\');
+        var safeId = (window.CSS && CSS.escape) ? CSS.escape(sectionId) : sectionId;
+        var wrap = document.querySelector(\'[data-share-wrap="\' + safeId + \'"]\');
         if (wrap) {
             var pageUrl = wrap.getAttribute(\'data-page-url\');
             if (pageUrl) return pageUrl;
@@ -442,6 +443,7 @@ $extra_js = '
         var el = document.createElement(\'textarea\');
         el.value = text;
         el.style.cssText = \'position:fixed;top:-9999px;left:-9999px;opacity:0;\';
+        el.setAttribute(\'aria-hidden\', \'true\');
         document.body.appendChild(el);
         el.select();
         try {
