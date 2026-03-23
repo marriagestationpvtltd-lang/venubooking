@@ -2339,11 +2339,13 @@ if ($folder && !$error_message) {
 
         /**
          * Bulk Individual Download (no ZIP)
-         * Downloads each file as a separate browser download, one at a time,
-         * with a short delay between each to avoid browser pop-up blocking.
-         * @param {string[]} urls - Array of download URL strings (?token=…&download_photo=…)
+         * When directoryHandle is provided (File System Access API), each file is
+         * fetched and written directly to the user-chosen folder.
+         * Without a handle the legacy hidden-iframe fallback is used instead.
+         * @param {string[]} urls            - Array of download URL strings (?token=…&download_photo=…)
+         * @param {FileSystemDirectoryHandle|null} directoryHandle - Chosen save directory, or null for fallback
          */
-        function bulkDownloadIndividual(urls) {
+        function bulkDownloadIndividual(urls, directoryHandle) {
             if (!urls || urls.length === 0) return false;
 
             var overlay = document.getElementById('downloadProgressOverlay');
@@ -2358,10 +2360,6 @@ if ($folder && !$error_message) {
 
             var total   = urls.length;
             var current = 0;
-            // 900 ms gap between triggers: long enough that most browsers don't treat
-            // rapid consecutive downloads as a pop-up burst and block them, while still
-            // completing a 60-file batch in under a minute.
-            var DELAY   = 900;
 
             // Initialise the progress overlay
             dlBar.style.width      = '0%';
@@ -2376,49 +2374,126 @@ if ($folder && !$error_message) {
             dlIcon.className       = 'fas fa-spinner fa-spin';
             overlay.classList.add('dl-active');
 
-            var queue = urls.slice(); // work on a copy
-
-            function triggerNext() {
-                if (queue.length === 0) {
-                    // All downloads triggered – show completion
-                    dlBar.style.width   = '100%';
-                    dlPct.textContent   = '100%';
-                    dlTitle.textContent = 'All ' + total + ' file' + (total !== 1 ? 's' : '') + ' downloaded!';
-                    dlFile.textContent  = 'Check your browser downloads folder';
-                    dlIcon.className    = 'fas fa-check-circle';
-                    setTimeout(function () { overlay.classList.remove('dl-active'); }, 2500);
-                    return;
-                }
-
-                var url = queue.shift();
-                current++;
-
-                // Update progress bar
+            function updateProgress() {
                 var pct = Math.round((current / total) * 100);
                 dlBar.style.width  = pct + '%';
                 dlPct.textContent  = pct + '%';
                 dlFile.textContent = current + ' of ' + total + ' file' + (total !== 1 ? 's' : '');
-
-                // Trigger file download via a short-lived hidden iframe.
-                // Using Content-Disposition:attachment responses, the browser downloads
-                // the file without navigating away from the page.
-                var iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                iframe.src = url;
-
-                // Remove the iframe after 60 s – enough time for even large files to
-                // begin transferring before the DOM element is no longer needed.
-                setTimeout(function () {
-                    if (iframe.parentNode) { iframe.parentNode.removeChild(iframe); }
-                }, 60000);
-
-                // Schedule the next file
-                setTimeout(triggerNext, DELAY);
             }
 
-            // Small initial delay so the overlay is visible before first download fires
-            setTimeout(triggerNext, 150);
+            function showComplete(completionMsg) {
+                dlBar.style.width   = '100%';
+                dlPct.textContent   = '100%';
+                dlTitle.textContent = 'All ' + total + ' file' + (total !== 1 ? 's' : '') + ' downloaded!';
+                dlFile.textContent  = completionMsg;
+                dlIcon.className    = 'fas fa-check-circle';
+                setTimeout(function () { overlay.classList.remove('dl-active'); }, 2500);
+            }
+
+            var queue = urls.slice(); // work on a copy
+
+            if (directoryHandle) {
+                // ── File System Access API path ──────────────────────────────
+                // Fetch each file and write it directly to the chosen directory.
+                var failed = 0;
+
+                // Map MIME types to file extensions for the fallback filename
+                var extMap = {
+                    'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif',
+                    'image/webp': '.webp', 'image/heic': '.heic', 'image/bmp': '.bmp',
+                    'image/tiff': '.tiff', 'video/mp4': '.mp4', 'video/quicktime': '.mov',
+                    'video/x-msvideo': '.avi', 'video/x-ms-wmv': '.wmv',
+                    'application/pdf': '.pdf'
+                };
+
+                function processNext() {
+                    if (queue.length === 0) {
+                        var msg = failed > 0
+                            ? 'Files saved to your chosen folder (' + failed + ' failed – check console)'
+                            : 'Files saved to your chosen folder.';
+                        showComplete(msg);
+                        return;
+                    }
+
+                    var url = queue.shift();
+                    current++;
+                    updateProgress();
+
+                    fetch(url)
+                        .then(function (response) {
+                            // Extract filename from Content-Disposition header
+                            var filename = '';
+                            var cd = response.headers.get('Content-Disposition');
+                            if (cd) {
+                                var m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+                                if (m && m[1]) { filename = m[1].replace(/['"]/g, '').trim(); }
+                            }
+                            if (!filename) {
+                                // Derive extension from Content-Type for a proper fallback filename
+                                var ct = (response.headers.get('Content-Type') || '').split(';')[0].trim();
+                                var idMatch = url.match(/download_photo=(\d+)/);
+                                filename = 'photo' + (idMatch ? idMatch[1] : current) + (extMap[ct] || '');
+                            }
+                            return response.blob().then(function (blob) {
+                                return { blob: blob, filename: filename };
+                            });
+                        })
+                        .then(function (data) {
+                            return directoryHandle.getFileHandle(data.filename, { create: true })
+                                .then(function (fileHandle) { return fileHandle.createWritable(); })
+                                .then(function (writable) {
+                                    return writable.write(data.blob).then(function () { return writable.close(); });
+                                });
+                        })
+                        .then(processNext)
+                        .catch(function (err) {
+                            failed++;
+                            console.error('Failed to save file:', url, err);
+                            processNext();
+                        });
+                }
+
+                processNext();
+
+            } else {
+                // ── Legacy iframe fallback ───────────────────────────────────
+                // 900 ms gap between triggers: long enough that most browsers don't treat
+                // rapid consecutive downloads as a pop-up burst and block them, while still
+                // completing a 60-file batch in under a minute.
+                var DELAY = 900;
+
+                function triggerNext() {
+                    if (queue.length === 0) {
+                        showComplete('Check your browser downloads folder');
+                        return;
+                    }
+
+                    var url = queue.shift();
+                    current++;
+                    updateProgress();
+
+                    // Trigger file download via a short-lived hidden iframe.
+                    // Using Content-Disposition:attachment responses, the browser downloads
+                    // the file without navigating away from the page.
+                    var iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    iframe.src = url;
+
+                    // Remove the iframe after 60 s – enough time for even large files to
+                    // begin transferring before the DOM element is no longer needed.
+                    setTimeout(function () {
+                        if (iframe.parentNode) { iframe.parentNode.removeChild(iframe); }
+                    }, 60000);
+
+                    // Schedule the next file
+                    setTimeout(triggerNext, DELAY);
+                }
+
+                // Small initial delay so the overlay is visible before first download fires
+                setTimeout(triggerNext, 150);
+            }
+
             return false;
         }
 
@@ -2505,14 +2580,31 @@ if ($folder && !$error_message) {
             }
         }
 
-        function downloadSelected() {
+        async function downloadSelected() {
             var selected = document.querySelectorAll('.photo-card.selected[data-download-url]');
             if (selected.length === 0) return;
             var urls = [];
             selected.forEach(function(card) {
                 urls.push(card.dataset.downloadUrl);
             });
-            bulkDownloadIndividual(urls);
+
+            // If the browser supports the File System Access API, ask the user
+            // to choose a save folder BEFORE downloading starts.
+            if (window.showDirectoryPicker) {
+                try {
+                    var dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    bulkDownloadIndividual(urls, dirHandle);
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        // Unexpected error – fall back to the legacy iframe method
+                        bulkDownloadIndividual(urls, null);
+                    }
+                    // AbortError means the user cancelled the picker; do nothing
+                }
+            } else {
+                // Fallback for browsers that don't support showDirectoryPicker (Firefox, Safari)
+                bulkDownloadIndividual(urls, null);
+            }
         }
     </script>
     <script src="<?php echo BASE_URL; ?>/js/share.js"></script>
