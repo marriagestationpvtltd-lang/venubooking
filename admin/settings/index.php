@@ -375,6 +375,13 @@ $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
                                    value="<?php echo htmlspecialchars($settings['footer_copyright'] ?? ''); ?>">
                             <div class="form-text">Custom copyright text (leave empty for auto-generated)</div>
                         </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Years of Service (Homepage)</label>
+                            <input type="number" class="form-control" name="setting_service_years" 
+                                   value="<?php echo htmlspecialchars($settings['service_years'] ?? ''); ?>" min="0">
+                            <div class="form-text">Optional override for the homepage "Years of Service" counter. Leave empty to auto-calculate (defaults to 5 if auto is 0).</div>
+                        </div>
                     </div>
                 </div>
 
