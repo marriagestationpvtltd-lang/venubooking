@@ -1139,7 +1139,9 @@ if (!empty($booking['event_date'])) {
     }
     $thankyou_text .= "\n";
 }
-$thankyou_text .= "✅ Payment received\n\n";
+$thankyou_text .= "💰 Grand Total: *" . formatCurrency($booking['grand_total']) . "*\n";
+$thankyou_text .= "✅ Total Amount Received: *" . formatCurrency($total_paid) . "*\n\n";
+$thankyou_text .= "It was truly an honor and privilege to be a part of your special occasion. We are deeply grateful for the trust and opportunity you gave us to serve you. Your satisfaction means the world to us! 🙏\n\n";
 if (!empty($google_review_link)) {
     $thankyou_text .= "We would love your feedback. Please leave a review here:\n";
     $thankyou_text .= $google_review_link . "\n\n";
