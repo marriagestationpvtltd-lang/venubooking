@@ -24,6 +24,10 @@ if ($current_album === '') {
     $current_album = null;
 }
 
+// Flat-view open/expand mode: when no subfolders exist, first show folder card,
+// then reveal photos after user clicks the folder card (?open=1)
+$is_open = isset($_GET['open']) && $_GET['open'] === '1';
+
 // Get download token from URL
 $token = isset($_GET['token']) ? trim($_GET['token']) : '';
 
@@ -55,18 +59,25 @@ if (empty($token)) {
             // This prevents broken-image 404 errors on the public folder page when a
             // file has been removed from storage but its database record still exists.
             $real_upload_base = realpath(UPLOAD_PATH);
-            if ($real_upload_base !== false) {
-                $photos = array_values(array_filter($photos, function ($photo) use ($real_upload_base) {
-                    if (empty($photo['image_path'])) {
-                        return false;
-                    }
-                    $abs_path = UPLOAD_PATH . $photo['image_path'];
+            $photos = array_values(array_filter($photos, function ($photo) use ($real_upload_base) {
+                if (empty($photo['image_path'])) {
+                    return false;
+                }
+                // Basic path-traversal guard regardless of realpath availability
+                $safe_path = str_replace('\\', '/', $photo['image_path']);
+                if (strpos($safe_path, '../') !== false || strpos($safe_path, '/..') !== false || $safe_path[0] === '/') {
+                    return false;
+                }
+                $abs_path = UPLOAD_PATH . $photo['image_path'];
+                if ($real_upload_base !== false) {
                     $real_path = realpath($abs_path);
                     return $real_path !== false
                         && strpos($real_path, $real_upload_base . DIRECTORY_SEPARATOR) === 0
                         && file_exists($abs_path);
-                }));
-            }
+                }
+                // Fallback when realpath() cannot resolve the uploads base path
+                return file_exists($abs_path);
+            }));
         }
     } catch (Exception $e) {
         error_log('Folder page error: ' . $e->getMessage());
@@ -399,33 +410,35 @@ if ($whatsapp_number) {
         
         .photo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 20px;
         }
         
         .photo-card {
             background: white;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
         
         .photo-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.16);
         }
         
         .photo-card img {
             width: 100%;
-            height: 200px;
+            height: 220px;
             object-fit: cover;
+            display: block;
         }
         
         /* Prevent blinking: hide images until loaded, then show them */
         .photo-card img.lazy-img {
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s ease;
         }
         .photo-card img.lazy-img.loaded {
             opacity: 1;
@@ -434,33 +447,35 @@ if ($whatsapp_number) {
         /* Error state for failed images - show placeholder instead of hiding */
         .photo-card .img-error-placeholder {
             width: 100%;
-            height: 200px;
-            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            height: 220px;
+            background: linear-gradient(135deg, #f0f2f5 0%, #e4e8ee 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: #999;
+            color: #b0b8c4;
         }
         .photo-card .img-error-placeholder i {
             font-size: 3rem;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         .photo-card .img-error-placeholder span {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
+            font-weight: 500;
         }
         
         .photo-card .photo-info {
-            padding: 15px;
+            padding: 12px 15px;
         }
         
         .photo-card .photo-title {
-            font-weight: 500;
+            font-weight: 600;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-size: 0.88rem;
         }
         
         /* ── Photo media wrapper (positions overlay button) ── */
@@ -546,7 +561,7 @@ if ($whatsapp_number) {
         .photo-card .video-container {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 220px;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             display: flex;
             align-items: center;
@@ -754,12 +769,16 @@ if ($whatsapp_number) {
             }
             
             .photo-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                gap: 15px;
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 14px;
             }
             
             .photo-card img {
-                height: 150px;
+                height: 170px;
+            }
+
+            .photo-card .img-error-placeholder {
+                height: 170px;
             }
             
             /* Mobile: Stack brand bar items vertically */
@@ -951,89 +970,97 @@ if ($whatsapp_number) {
         /* ── Sub-folder / Album Grid ── */
         .subfolder-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        /* Single-folder view: centre one large card */
+        .subfolder-grid.single-folder-view {
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            justify-content: center;
+            padding: 20px 0;
         }
 
         .subfolder-card {
             background: white;
-            border-radius: 14px;
+            border-radius: 18px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
             color: inherit;
             display: block;
         }
 
         .subfolder-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(-7px);
+            box-shadow: 0 18px 45px rgba(0,0,0,0.14);
             color: inherit;
         }
 
         .subfolder-card .subfolder-thumb {
             position: relative;
-            height: 160px;
-            background: linear-gradient(135deg, #fff9c4 0%, #fff3e0 100%);
+            height: 170px;
+            background: linear-gradient(145deg, #fff8e1 0%, #fff3cd 50%, #ffe57f 100%);
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+        }
+
+        .subfolder-card .subfolder-thumb::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 60% 40%, rgba(255,255,255,0.6) 0%, transparent 70%);
         }
 
         .subfolder-card .subfolder-thumb .folder-icon {
-            font-size: 5rem;
-            color: #ffc107;
-            filter: drop-shadow(0 4px 8px rgba(255,193,7,0.3));
+            font-size: 5.5rem;
+            color: #f59e0b;
+            filter: drop-shadow(0 6px 14px rgba(245,158,11,0.35));
+            position: relative;
+            z-index: 1;
+            transition: transform 0.3s ease;
         }
 
+        .subfolder-card:hover .subfolder-thumb .folder-icon {
+            transform: scale(1.08) translateY(-4px);
+        }
+
+        /* Kept for legacy rendering but hidden by default */
         .subfolder-card .subfolder-thumb .thumb-preview {
-            position: absolute;
-            inset: 0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2px;
-            opacity: 0.55;
-        }
-
-        .subfolder-card .subfolder-thumb .thumb-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        /* Prevent blinking: hide thumb images until loaded */
-        .subfolder-card .subfolder-thumb .thumb-preview img.lazy-img {
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-        .subfolder-card .subfolder-thumb .thumb-preview img.lazy-img.loaded {
-            opacity: 1;
+            display: none;
         }
 
         .subfolder-card .subfolder-thumb .folder-icon-overlay {
-            position: absolute;
-            font-size: 3.5rem;
-            color: #ffc107;
-            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+            display: none;
         }
 
         .subfolder-card .subfolder-info {
-            padding: 14px 16px;
+            padding: 16px 18px;
         }
 
         .subfolder-card .subfolder-name {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1a1a2e;
+            margin-bottom: 5px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .subfolder-card .subfolder-count {
-            font-size: 0.82rem;
-            color: #888;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .subfolder-card .subfolder-count i {
+            color: #f59e0b;
         }
 
         .breadcrumb-nav {
@@ -1075,10 +1102,11 @@ if ($whatsapp_number) {
 
         @media (max-width: 576px) {
             .subfolder-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                gap: 14px;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 16px;
             }
-            .subfolder-card .subfolder-thumb { height: 120px; }
+            .subfolder-card .subfolder-thumb { height: 130px; }
+            .subfolder-card .subfolder-thumb .folder-icon { font-size: 4.5rem; }
         }
 
         /* Banner Ad Styles - Desktop */
@@ -1536,28 +1564,10 @@ if ($whatsapp_number) {
                         <?php foreach ($subfolders as $sf_name => $sf_photos):
                             $display_name = ($sf_name === '') ? 'General' : $sf_name;
                             $album_url = '?token=' . urlencode($token) . '&album=' . urlencode($sf_name);
-                            // Use first few images as preview thumbnails
-                            $thumb_photos = array_filter($sf_photos, function($p) {
-                                return (!isset($p['file_type']) || $p['file_type'] === 'photo');
-                            });
-                            $thumb_photos = array_values($thumb_photos);
                         ?>
                             <a href="<?php echo htmlspecialchars($album_url, ENT_QUOTES, 'UTF-8'); ?>" class="subfolder-card">
                                 <div class="subfolder-thumb">
-                                    <?php if (!empty($thumb_photos)): ?>
-                                        <div class="thumb-preview">
-                                            <?php foreach (array_slice($thumb_photos, 0, 4) as $tp): ?>
-                                                <img src="<?php echo htmlspecialchars(UPLOAD_URL . $tp['image_path'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                     alt=""
-                                                     loading="lazy"
-                                                     class="lazy-img"
-                                                     onload="this.classList.add('loaded')">
-                                            <?php endforeach; ?>
-                                        </div>
-                                        <i class="fas fa-folder folder-icon-overlay"></i>
-                                    <?php else: ?>
-                                        <i class="fas fa-folder folder-icon"></i>
-                                    <?php endif; ?>
+                                    <i class="fas fa-folder folder-icon"></i>
                                 </div>
                                 <div class="subfolder-info">
                                     <div class="subfolder-name" title="<?php echo htmlspecialchars($display_name); ?>">
@@ -1657,13 +1667,42 @@ if ($whatsapp_number) {
                 <?php endif; ?>
 
             <?php else: ?>
-                <!-- ── Flat View (no sub-folders): show all photos ── -->
+                <!-- ── Flat View (no sub-folders) ── -->
                 <?php if (empty($photos)): ?>
                     <div class="text-center py-5">
                         <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
                         <p class="text-muted">No files in this folder yet.</p>
                     </div>
+                <?php elseif (!$is_open): ?>
+                    <!-- Step 1: Show single folder card — user clicks to reveal photos -->
+                    <div class="subfolder-grid single-folder-view">
+                        <a href="?token=<?php echo urlencode($token); ?>&open=1" class="subfolder-card">
+                            <div class="subfolder-thumb">
+                                <i class="fas fa-folder folder-icon"></i>
+                            </div>
+                            <div class="subfolder-info">
+                                <div class="subfolder-name" title="<?php echo htmlspecialchars($folder['folder_name']); ?>">
+                                    <?php echo htmlspecialchars($folder['folder_name']); ?>
+                                </div>
+                                <div class="subfolder-count">
+                                    <i class="fas fa-photo-video"></i>
+                                    <?php echo count($photos); ?> file<?php echo count($photos) !== 1 ? 's' : ''; ?>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
                 <?php else: ?>
+                    <!-- Step 2: Folder opened — breadcrumb + full photo grid -->
+                    <div class="breadcrumb-nav">
+                        <a href="?token=<?php echo urlencode($token); ?>">
+                            <i class="fas fa-folder"></i> <?php echo htmlspecialchars($folder['folder_name']); ?>
+                        </a>
+                        <span class="separator"><i class="fas fa-chevron-right" style="font-size:0.75rem;"></i></span>
+                        <span>
+                            <i class="fas fa-photo-video text-warning"></i>
+                            <?php echo count($photos); ?> file<?php echo count($photos) !== 1 ? 's' : ''; ?>
+                        </span>
+                    </div>
                     <div class="photo-grid">
                         <?php 
                         // Define extension arrays once for performance
