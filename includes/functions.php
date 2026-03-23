@@ -2637,7 +2637,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
     $contact_email = getSetting('contact_email', '');
     $contact_phone = getSetting('contact_phone', '');
     $whatsapp_number = getSetting('whatsapp_number', '');
-    $google_review_link = getSetting('google_review_link', 'https://g.page/r/CXn4LyBY3iY7EBM/review');
+    $google_review_link = getSetting('google_review_link') ?: 'https://g.page/r/CXn4LyBY3iY7EBM/review';
     
     ob_start();
     ?>
@@ -4145,6 +4145,9 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking)
     $text .= "🕐 " . getBookingShiftTimeDisplay($booking) . "\n";
     $text .= "🎉 " . strip_tags($booking['event_type']) . "\n";
     $text .= "🏛️ *" . strip_tags($booking['venue_name']) . "*\n";
+    if (!empty($booking['hall_name'])) {
+        $text .= "🚪 " . strip_tags($booking['hall_name']) . "\n";
+    }
     $text .= "📍 " . strip_tags($booking['location']) . "\n";
     if (!empty($booking['venue_address'])) {
         $text .= "🏠 " . strip_tags($booking['venue_address']) . "\n";
