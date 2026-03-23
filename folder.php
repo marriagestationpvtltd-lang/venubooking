@@ -380,19 +380,55 @@ if ($whatsapp_number) {
 }
 
 // Build lists of download URLs for bulk individual download (no ZIP)
-// $bulk_all_urls  – all photos in this folder (used in flat view & top-level subfolder view)
+// $bulk_all_urls   – all photos in this folder (used in flat view & top-level subfolder view)
 // $bulk_album_urls – only photos in the currently selected album (used in album drill-down view)
-$bulk_all_urls   = [];
-$bulk_album_urls = [];
+// $bulk_all_files  – same as above but as [{url, filename}] for File System Access API downloads
+// $bulk_album_files – same but for current album
+$bulk_all_urls    = [];
+$bulk_album_urls  = [];
+$bulk_all_files   = [];
+$bulk_album_files = [];
 if ($folder && !$error_message) {
+    $_seen_names_all = [];
     foreach ($photos as $_p) {
         if (!$folder['max_downloads'] || $_p['download_count'] < $folder['max_downloads']) {
-            $bulk_all_urls[] = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
+            $_url = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
+            $bulk_all_urls[] = $_url;
+            // Build safe filename (mirrors server-side download filename logic)
+            $_ext   = strtolower(pathinfo($_p['image_path'], PATHINFO_EXTENSION));
+            $_safe  = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $_p['title']);
+            $_safe  = preg_replace('/_+/', '_', $_safe);
+            $_safe  = trim($_safe, '_');
+            $_base  = (!empty($_safe) ? $_safe : 'photo');
+            $_fname = $_base . '.' . $_ext;
+            // Handle duplicate filenames by appending a counter
+            if (isset($_seen_names_all[$_fname])) {
+                $_seen_names_all[$_fname]++;
+                $_fname = $_base . '_' . $_seen_names_all[$_fname] . '.' . $_ext;
+            } else {
+                $_seen_names_all[$_fname] = 1;
+            }
+            $bulk_all_files[] = ['url' => $_url, 'filename' => $_fname];
         }
     }
+    $_seen_names_album = [];
     foreach ($visible_photos as $_p) {
         if (!$folder['max_downloads'] || $_p['download_count'] < $folder['max_downloads']) {
-            $bulk_album_urls[] = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
+            $_url = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
+            $bulk_album_urls[] = $_url;
+            $_ext   = strtolower(pathinfo($_p['image_path'], PATHINFO_EXTENSION));
+            $_safe  = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $_p['title']);
+            $_safe  = preg_replace('/_+/', '_', $_safe);
+            $_safe  = trim($_safe, '_');
+            $_base  = (!empty($_safe) ? $_safe : 'photo');
+            $_fname = $_base . '.' . $_ext;
+            if (isset($_seen_names_album[$_fname])) {
+                $_seen_names_album[$_fname]++;
+                $_fname = $_base . '_' . $_seen_names_album[$_fname] . '.' . $_ext;
+            } else {
+                $_seen_names_album[$_fname] = 1;
+            }
+            $bulk_album_files[] = ['url' => $_url, 'filename' => $_fname];
         }
     }
 }
@@ -1642,29 +1678,27 @@ if ($folder && !$error_message) {
                         <?php
                         // Individual (no-ZIP) bulk download — primary download action
                         // For album drill-down use only that album's URLs; otherwise use all photos' URLs
-                        $_ind_urls = ($has_subfolders && $current_album !== null) ? $bulk_album_urls : $bulk_all_urls;
+                        $_ind_urls  = ($has_subfolders && $current_album !== null) ? $bulk_album_urls  : $bulk_all_urls;
+                        $_ind_files = ($has_subfolders && $current_album !== null) ? $bulk_album_files : $bulk_all_files;
                         if (!empty($_ind_urls)):
                         ?>
                             <button type="button"
                                     class="btn btn-success download-all-btn"
-                                    onclick="return bulkDownloadIndividual(<?php echo json_encode($_ind_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
+                                    id="downloadNowBtn"
+                                    onclick="return downloadNowSelected()">
                                 <i class="fas fa-download me-2"></i>
-                                <?php if ($has_subfolders && $current_album !== null): ?>
-                                    Download Album (<?php echo count($_ind_urls); ?>)
-                                <?php else: ?>
-                                    Download All (<?php echo count($_ind_urls); ?>)
-                                <?php endif; ?>
+                                डाउनलोड नाउ (<?php echo count($_ind_urls); ?>)
                             </button>
                             <p class="text-muted mt-2 mb-0">
-                                <small><i class="fas fa-file-image"></i> Downloads each file separately (no ZIP)</small>
+                                <small><i class="fas fa-folder-open"></i> फोल्डर छनौट गरेर डाउनलोड गर्नुहोस्</small>
                             </p>
-                            <!-- Select Photos toggle for selective download -->
+                            <!-- Select Photos toggle for deselecting individual photos -->
                             <button type="button" id="selectModeBtn"
-                                    class="btn btn-outline-primary mt-2 select-mode-btn"
-                                    aria-label="Select photos to download individually"
+                                    class="btn btn-outline-primary mt-2 select-mode-btn active"
+                                    aria-label="Exit photo selection mode"
                                     onclick="toggleSelectMode()">
-                                <i class="fas fa-check-square me-1"></i>
-                                फोटो छानेर डाउनलोड गर्नुहोस्
+                                <i class="fas fa-times me-1"></i>
+                                छान्ने मोड बन्द गर्नुहोस्
                             </button>
                         <?php endif; ?>
                         
@@ -1732,12 +1766,12 @@ if ($folder && !$error_message) {
                     <?php if (!empty($bulk_all_urls)): ?>
                         <button type="button"
                                 class="btn btn-success btn-lg download-all-btn mt-3 px-5 py-3"
-                                onclick="return bulkDownloadIndividual(<?php echo json_encode($bulk_all_urls, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
+                                onclick="return downloadNow(<?php echo json_encode($bulk_all_files, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
                             <i class="fas fa-download me-2"></i>
-                            सबै फाइल डाउनलोड गर्नुहोस् (<?php echo count($bulk_all_urls); ?>)
+                            डाउनलोड नाउ (<?php echo count($bulk_all_urls); ?>)
                         </button>
                         <p style="color:var(--text-secondary);" class="mt-3 mb-0">
-                            <small><i class="fas fa-file-image me-1"></i> ZIP नबनाई प्रत्येक फाइल अलग-अलग डाउनलोड हुन्छ</small>
+                            <small><i class="fas fa-folder-open me-1"></i> फोल्डर छनौट गरेर डाउनलोड गर्नुहोस्</small>
                         </p>
 
                         <?php if ($whatsapp_delete_url): ?>
@@ -2122,8 +2156,8 @@ if ($folder && !$error_message) {
     <!-- Floating Selection Action Bar -->
     <div id="selectionBar" role="toolbar" aria-label="Photo selection actions">
         <span class="sel-count"><i class="fas fa-check-circle me-1"></i><span id="selCount">0</span> छानिएको</span>
-        <button class="btn btn-success btn-sm" onclick="downloadSelected()" aria-label="Download selected photos">
-            <i class="fas fa-download me-1"></i> डाउनलोड गर्नुहोस्
+        <button class="btn btn-success btn-sm" onclick="downloadNowSelected()" aria-label="Download selected photos">
+            <i class="fas fa-download me-1"></i> डाउनलोड नाउ
         </button>
         <button class="btn btn-outline-secondary btn-sm" onclick="selectAllPhotos()" aria-label="Select all photos">
             <i class="fas fa-check-double me-1"></i> सबै छान्नुहोस्
@@ -2131,6 +2165,29 @@ if ($folder && !$error_message) {
         <button class="btn btn-outline-danger btn-sm" onclick="deselectAllPhotos()" aria-label="Deselect all photos">
             <i class="fas fa-times me-1"></i> हटाउनुहोस्
         </button>
+    </div>
+
+    <!-- Resume Download Dialog -->
+    <div id="resumeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+        <div style="background:#fff;border-radius:20px;padding:30px 28px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:dlFadeIn 0.3s ease;">
+            <div style="font-size:2.5rem;color:#f59e0b;margin-bottom:12px;"><i class="fas fa-folder-open"></i></div>
+            <h5 style="font-weight:700;margin-bottom:8px;color:#333;">पहिले डाउनलोड भइसकेका फाइलहरू</h5>
+            <p style="color:#555;margin-bottom:20px;">
+                <strong><span id="resumeAlreadyCount">0</span> फाइलहरू</strong> पहिले नै यस फोल्डरमा डाउनलोड भइसकेका छन्।<br>
+                के तपाईं बाँकी <strong><span id="resumeRemainingCount">0</span> फाइलहरू</strong> मात्र डाउनलोड गर्नुहुन्छ?
+            </p>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <button id="resumeBtnRemaining" class="btn btn-success">
+                    <i class="fas fa-download me-2"></i>हो, बाँकी फाइलहरू मात्र डाउनलोड गर्नुहोस्
+                </button>
+                <button id="resumeBtnAll" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-redo me-2"></i>सबै फेरि डाउनलोड गर्नुहोस्
+                </button>
+                <button id="resumeBtnCancel" class="btn btn-outline-danger btn-sm">
+                    <i class="fas fa-times me-2"></i>रद्द गर्नुहोस्
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="page-share-wrap" aria-label="Share this page">
@@ -2152,6 +2209,12 @@ if ($folder && !$error_message) {
     </div>
     
     <script>
+        /* Downloadable files for this view – [{url, filename}, …] – used by downloadNow() */
+        var _dlFiles = <?php echo json_encode(
+            ($has_subfolders && $current_album !== null) ? $bulk_album_files : $bulk_all_files,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ); ?>;
+
         /**
          * Handle image load errors gracefully
          * Instead of hiding the entire photo card (which causes blinking),
@@ -2506,14 +2569,277 @@ if ($folder && !$error_message) {
         }
 
         function downloadSelected() {
-            var selected = document.querySelectorAll('.photo-card.selected[data-download-url]');
-            if (selected.length === 0) return;
-            var urls = [];
-            selected.forEach(function(card) {
-                urls.push(card.dataset.downloadUrl);
-            });
-            bulkDownloadIndividual(urls);
+            downloadNowSelected();
         }
+
+        /* ── File System Access API download functions ─────────────────── */
+
+        /**
+         * Returns the {url, filename} objects for currently selected photos.
+         * Falls back to all _dlFiles when no photo is individually selected.
+         */
+        function getSelectedFiles() {
+            var selected = document.querySelectorAll('.photo-card.selected[data-download-url]');
+            if (selected.length === 0) return _dlFiles.slice();
+            var selectedUrls = new Set();
+            selected.forEach(function(card) { selectedUrls.add(card.dataset.downloadUrl); });
+            return _dlFiles.filter(function(f) { return selectedUrls.has(f.url); });
+        }
+
+        /**
+         * Entry point for "Download Now" button.
+         * Uses File System Access API when available, falls back to iframe method.
+         */
+        function downloadNowSelected() {
+            var files = getSelectedFiles();
+            if (files.length === 0) return false;
+            downloadNow(files);
+            return false;
+        }
+
+        /**
+         * Core download-now handler. Accepts an array of {url, filename} objects.
+         * Uses showDirectoryPicker() when supported; iframes otherwise.
+         */
+        async function downloadNow(files) {
+            if (!files || files.length === 0) return false;
+
+            // Fallback: File System Access API not supported (Firefox, older Safari)
+            if (!window.showDirectoryPicker) {
+                return bulkDownloadIndividual(files.map(function(f) { return f.url; }));
+            }
+
+            // Ask user where to save
+            var dirHandle;
+            try {
+                dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            } catch (e) {
+                if (e.name !== 'AbortError') { console.error('Directory picker error:', e); }
+                return false;
+            }
+
+            // Collect existing filenames for resume detection
+            var existingFiles = new Set();
+            try {
+                for await (var entry of dirHandle.values()) {
+                    if (entry.kind === 'file') { existingFiles.add(entry.name.toLowerCase()); }
+                }
+            } catch (e) { /* ignore listing errors */ }
+
+            var alreadyDone = files.filter(function(f) {
+                return existingFiles.has(f.filename.toLowerCase());
+            });
+            var remaining = files.filter(function(f) {
+                return !existingFiles.has(f.filename.toLowerCase());
+            });
+
+            if (alreadyDone.length > 0 && remaining.length > 0) {
+                var choice = await showResumeDialog(alreadyDone.length, remaining.length);
+                if (choice === null) return false;          // user cancelled
+                if (choice === 'remaining') { files = remaining; }
+                // choice === 'all' → keep original files array
+            } else if (alreadyDone.length > 0 && remaining.length === 0) {
+                // Everything already downloaded
+                _showDlCompleteMessage('तपाईंको सबै फोटो पहिले नै डाउनलोड भइसकेका छन्!', alreadyDone.length);
+                return false;
+            }
+
+            if (files.length === 0) return false;
+            await fsaDownloadFiles(dirHandle, files);
+            return false;
+        }
+
+        /**
+         * Downloads files sequentially into dirHandle using fetch + File System Access API.
+         * Shows real-time progress bar and estimated time remaining.
+         */
+        async function fsaDownloadFiles(dirHandle, files) {
+            var overlay  = document.getElementById('downloadProgressOverlay');
+            var dlBar    = document.getElementById('dlBar');
+            var dlPct    = document.getElementById('dlPercent');
+            var dlTitle  = document.getElementById('dlTitle');
+            var dlFile   = document.getElementById('dlFilename');
+            var dlSize   = document.getElementById('dlSizeInfo');
+            var dlIcon   = document.getElementById('dlIcon');
+            var dlEta    = document.getElementById('dlEta');
+            var dlSpd    = document.getElementById('dlSpeed');
+
+            var total      = files.length;
+            var completed  = 0;
+            var totalBytes = 0;
+            var startTime  = Date.now();
+
+            // Show overlay
+            dlBar.style.width      = '0%';
+            dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+            dlBar.style.animation  = '';
+            dlPct.textContent      = '0%';
+            dlTitle.textContent    = 'तपाईंको फोटो डाउनलोड हुँदैछ…';
+            dlFile.textContent     = '';
+            dlEta.textContent      = 'गणना गर्दै…';
+            dlSpd.textContent      = '';
+            dlSize.textContent     = '0 / ' + total + ' फाइलहरू';
+            dlIcon.className       = 'fas fa-spinner fa-spin';
+            overlay.classList.add('dl-active');
+
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                var currentWritable = null;   // reset per-iteration for safe cleanup
+                dlFile.textContent = file.filename;
+
+                try {
+                    var response = await fetch(file.url);
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+
+                    var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
+                    var fileHandle    = await dirHandle.getFileHandle(file.filename, { create: true });
+                    currentWritable   = await fileHandle.createWritable();
+                    var reader        = response.body.getReader();
+                    var fileBytes     = 0;
+
+                    while (true) {
+                        var chunk = await reader.read();
+                        if (chunk.done) break;
+                        await currentWritable.write(chunk.value);
+                        fileBytes  += chunk.value.length;
+                        totalBytes += chunk.value.length;
+
+                        // Byte-level progress within the current file
+                        var filePct    = contentLength > 0 ? fileBytes / contentLength : 0.5;
+                        var overallPct = (completed + filePct) / total;
+                        dlBar.style.width = Math.round(overallPct * 100) + '%';
+                        dlPct.textContent = Math.round(overallPct * 100) + '%';
+                        dlSize.textContent = (completed + 1) + ' / ' + total + ' फाइलहरू';
+
+                        // ETA & speed
+                        var elapsed = (Date.now() - startTime) / 1000;
+                        if (elapsed > 0.5 && totalBytes > 0) {
+                            var bps = totalBytes / elapsed;
+                            dlSpd.textContent = _formatBytes(bps) + '/s';
+                            if (completed > 0) {
+                                var etaSec = ((total - completed) / (completed / elapsed));
+                                dlEta.textContent = '~' + _formatEta(etaSec);
+                            }
+                        }
+                    }
+                    await currentWritable.close();
+                    currentWritable = null;
+                    completed++;
+                } catch (e) {
+                    console.error('Download error for ' + file.filename, e);
+                    // Abort any partially-written file and continue with the next
+                    if (currentWritable) { try { await currentWritable.abort(); } catch (_) {} }
+                }
+
+                // Update after each file
+                var pct = Math.round((completed / total) * 100);
+                dlBar.style.width  = pct + '%';
+                dlPct.textContent  = pct + '%';
+                dlSize.textContent = completed + ' / ' + total + ' फाइलहरू';
+                var elapsed2 = (Date.now() - startTime) / 1000;
+                if (elapsed2 > 0.5 && completed > 0) {
+                    var remaining2 = total - completed;
+                    if (remaining2 > 0) {
+                        var etaSec2 = remaining2 / (completed / elapsed2);
+                        dlEta.textContent = '~' + _formatEta(etaSec2);
+                    } else {
+                        dlEta.textContent = '';
+                    }
+                    dlSpd.textContent = _formatBytes(totalBytes / elapsed2) + '/s';
+                }
+            }
+
+            // All done
+            _showDlCompleteMessage('तपाईंको फोटो डाउनलोड भइसक्यो!', completed);
+        }
+
+        /** Show download-complete state in the overlay, then auto-hide after 3 s. */
+        function _showDlCompleteMessage(title, count) {
+            var overlay = document.getElementById('downloadProgressOverlay');
+            var dlBar   = document.getElementById('dlBar');
+            var dlPct   = document.getElementById('dlPercent');
+            var dlTitle = document.getElementById('dlTitle');
+            var dlFile  = document.getElementById('dlFilename');
+            var dlSize  = document.getElementById('dlSizeInfo');
+            var dlIcon  = document.getElementById('dlIcon');
+            var dlEta   = document.getElementById('dlEta');
+            var dlSpd   = document.getElementById('dlSpeed');
+
+            dlBar.style.width  = '100%';
+            dlPct.textContent  = '100%';
+            dlTitle.textContent = title;
+            dlFile.textContent  = '';
+            dlSize.textContent  = 'सबै ' + count + ' फाइलहरू डाउनलोड भए';
+            dlEta.textContent   = '';
+            dlSpd.textContent   = '';
+            dlIcon.className    = 'fas fa-check-circle';
+            overlay.classList.add('dl-active');
+            setTimeout(function() { overlay.classList.remove('dl-active'); }, 3000);
+        }
+
+        /**
+         * Show the resume-download modal.
+         * Returns a Promise that resolves to 'remaining' | 'all' | null (cancel).
+         */
+        function showResumeDialog(alreadyCount, remainingCount) {
+            return new Promise(function(resolve) {
+                var modal = document.getElementById('resumeModal');
+                document.getElementById('resumeAlreadyCount').textContent   = alreadyCount;
+                document.getElementById('resumeRemainingCount').textContent = remainingCount;
+
+                function cleanup(value) {
+                    modal.style.display              = 'none';
+                    btnRemaining.onclick             = null;
+                    btnAll.onclick                   = null;
+                    btnCancel.onclick                = null;
+                    resolve(value);
+                }
+
+                var btnRemaining = document.getElementById('resumeBtnRemaining');
+                var btnAll       = document.getElementById('resumeBtnAll');
+                var btnCancel    = document.getElementById('resumeBtnCancel');
+                btnRemaining.onclick = function() { cleanup('remaining'); };
+                btnAll.onclick       = function() { cleanup('all'); };
+                btnCancel.onclick    = function() { cleanup(null); };
+
+                modal.style.display = 'flex';
+            });
+        }
+
+        /** Format seconds into a Nepali-language approximate time string. */
+        function _formatEta(seconds) {
+            if (!isFinite(seconds) || seconds <= 0) return '';
+            if (seconds < 60)   return Math.ceil(seconds) + ' सेकेन्डमा';
+            if (seconds < 3600) return Math.ceil(seconds / 60) + ' मिनेटमा';
+            return Math.ceil(seconds / 3600) + ' घण्टामा';
+        }
+
+        /** Format bytes per second into a human-readable speed string. */
+        function _formatBytes(bytes) {
+            if (bytes < 1024)            return bytes.toFixed(0) + ' B';
+            if (bytes < 1024 * 1024)     return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        /* ── Auto-activate select mode with all photos pre-selected ─────── */
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof _selectMode === 'undefined') return;
+            _selectMode = true;
+            document.body.classList.add('select-mode');
+            var btn = document.getElementById('selectModeBtn');
+            if (btn) {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-times me-1"></i> छान्ने मोड बन्द गर्नुहोस्';
+                btn.setAttribute('aria-label', 'Exit photo selection mode');
+            }
+            // Pre-select all downloadable photos
+            document.querySelectorAll('.photo-card[data-download-url]').forEach(function(card) {
+                card.classList.add('selected');
+                var cb = card.querySelector('.photo-checkbox');
+                if (cb) cb.checked = true;
+            });
+            updateSelectionBar();
+        });
     </script>
     <script src="<?php echo BASE_URL; ?>/js/share.js"></script>
 </body>
