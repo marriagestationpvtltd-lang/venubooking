@@ -702,6 +702,10 @@ class ImageUploadHandler {
         const folderId    = baseFormData.get('folder_id')  || document.getElementById('folder_id')?.value  || '';
         const subfolderName = baseFormData.get('subfolder_name') || document.getElementById('subfolderNameInput')?.value || '';
 
+        // Retry configuration for transient chunk failures (network blip, timeout, etc.)
+        const MAX_CHUNK_RETRIES = 3;
+        const RETRY_DELAYS_MS   = [3000, 6000, 12000]; // exponential-ish backoff
+
         for (let i = 0; i < totalChunks; i++) {
             const start = i * chunkSize;
             const end   = Math.min(start + chunkSize, file.size);
@@ -723,7 +727,25 @@ class ImageUploadHandler {
                 fd.append('existing_id', replaceExistingId);
             }
 
-            const result = await this._uploadChunk(fd, preview, i, totalChunks, onProgress);
+            let result;
+            let lastError = null;
+            for (let attempt = 0; attempt <= MAX_CHUNK_RETRIES; attempt++) {
+                if (attempt > 0) {
+                    // Wait before retry; FormData with a Blob slice is safely re-sendable
+                    await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[Math.min(attempt - 1, RETRY_DELAYS_MS.length - 1)]));
+                }
+                try {
+                    result    = await this._uploadChunk(fd, preview, i, totalChunks, onProgress);
+                    lastError = null;
+                    break;
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            if (lastError) {
+                return { success: false, message: lastError.message || `Failed to upload chunk ${i + 1}/${totalChunks}` };
+            }
 
             if (!result.success) {
                 return result; // Propagate error
@@ -741,6 +763,13 @@ class ImageUploadHandler {
     _uploadChunk(formData, preview, chunkIndex, totalChunks, onProgress) {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
+
+            // Intermediate chunks are just a 5 MB upload + a quick server save,
+            // so 10 minutes is more than enough.  The LAST chunk also triggers
+            // server-side assembly of the full file (potentially 30-40 GB), which
+            // can take much longer, so give it 2 hours before timing out.
+            const isLastChunk = (chunkIndex === totalChunks - 1);
+            xhr.timeout = isLastChunk ? (2 * 60 * 60 * 1000) : (10 * 60 * 1000);
 
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
@@ -767,7 +796,9 @@ class ImageUploadHandler {
                 }
             });
 
-            xhr.addEventListener('error', () => reject(new Error('Network error during chunk upload')));
+            xhr.addEventListener('error',   () => reject(new Error('Network error during chunk upload')));
+            xhr.addEventListener('timeout', () => reject(new Error('Chunk upload timed out')));
+            xhr.addEventListener('abort',   () => reject(new Error('Chunk upload aborted')));
 
             xhr.open('POST', this.options.chunkUploadUrl);
             xhr.send(formData);
