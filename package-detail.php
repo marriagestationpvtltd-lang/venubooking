@@ -292,100 +292,18 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 .pkg-detail-features li {
     font-size: .95rem;
 }
-.section-share-wrap {
-    position: relative;
-    display: inline-block;
-}
-.section-share-btn {
-    background: #f8f9fa;
-    border: 1px solid #d9d9d9;
-    border-radius: .375rem;
-    width: 100%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #555;
-    font-size: .95rem;
-    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    padding: .55rem 1rem;
-    gap: 6px;
-}
-.section-share-btn:hover,
-.section-share-btn.active {
-    background: #f0f8f0;
-    color: #2e7d32;
-    border-color: #2e7d32;
-    box-shadow: 0 2px 8px rgba(46,125,50,0.15);
-}
-.section-share-dropdown {
-    display: none;
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-    padding: 6px;
-    min-width: 185px;
-    z-index: 200;
-    text-align: left;
-}
-.section-share-dropdown.open {
-    display: block;
-}
-.share-opt {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 12px;
-    border-radius: 7px;
-    text-decoration: none;
-    color: #333;
-    font-size: 13px;
-    border: none;
-    background: none;
-    width: 100%;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.15s;
-}
-.share-opt:hover {
-    background: #f5f5f5;
-    color: #111;
-    text-decoration: none;
-}
-.share-opt .fab.fa-whatsapp { color: #25D366; }
-.share-opt .fab.fa-facebook-f { color: #1877F2; }
-.share-opt .fas.fa-link { color: #555; }
-.share-copied-toast {
-    position: fixed;
-    bottom: 28px;
-    left: 50%;
-    transform: translateX(-50%) translateY(10px);
-    background: #2e7d32;
-    color: #fff;
-    padding: 9px 20px;
-    border-radius: 24px;
-    font-size: 13px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s, transform 0.3s;
-    z-index: 9999;
-}
-.share-copied-toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
+/* Full-width inline share variant for action buttons row */
 .section-share-wrap.share-inline {
     position: relative;
     top: auto;
     right: auto;
     display: block;
     width: 100%;
+}
+.section-share-wrap.share-inline .section-share-btn {
+    width: 100%;
+    border-radius: .375rem;
+    padding: .55rem 1rem;
 }
 .section-share-wrap.share-inline .section-share-dropdown {
     left: 0;
@@ -405,123 +323,6 @@ $extra_js = '
         if (!ticking) { requestAnimationFrame(function() { btn.classList.toggle("visible", window.scrollY > 400); ticking = false; }); ticking = true; }
     }, { passive: true });
     btn.addEventListener("click", function() { window.scrollTo({ top: 0, behavior: "smooth" }); });
-}());
-</script>
-<script>
-// ── Package Share Button ──
-(function() {
-    function initShare() {
-        if (!document.querySelector(\'.section-share-wrap\')) return;
-        var toast = document.createElement(\'div\');
-        toast.className = \'share-copied-toast\';
-        document.body.appendChild(toast);
-        var toastTimer = null;
-        function showToast(msg) {
-            toast.textContent = msg;
-            toast.classList.add(\'show\');
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(function() { toast.classList.remove(\'show\'); }, 2500);
-        }
-        function escapeSelectorValue(value) {
-            return value.replace(/([\\\\"])/g, \'\\\\$1\');
-        }
-        function getShareUrl(sectionId) {
-            var safeId = (window.CSS && CSS.escape) ? CSS.escape(sectionId) : escapeSelectorValue(sectionId);
-            var wrap = document.querySelector(\'[data-share-wrap="\' + safeId + \'"]\');
-            if (wrap) {
-                var pageUrl = wrap.getAttribute(\'data-page-url\');
-                if (pageUrl) return pageUrl;
-            }
-            return window.location.href;
-        }
-        function closeDropdowns() {
-            document.querySelectorAll(\'.section-share-dropdown.open\').forEach(function(d) {
-                d.classList.remove(\'open\');
-            });
-            document.querySelectorAll(\'.section-share-btn.active\').forEach(function(b) {
-                b.classList.remove(\'active\');
-                b.setAttribute(\'aria-expanded\', \'false\');
-            });
-        }
-        function fallbackCopy(text) {
-            var el = document.createElement(\'textarea\');
-            el.value = text;
-            el.style.cssText = \'position:fixed;top:-9999px;left:-9999px;opacity:0;\';
-            el.setAttribute(\'aria-hidden\', \'true\');
-            document.body.appendChild(el);
-            el.select();
-            try {
-                document.execCommand(\'copy\');
-                showToast(\'✓ Link copied!\');
-            } catch (err) {
-                showToast(\'Unable to copy link\');
-            }
-            document.body.removeChild(el);
-        }
-        document.addEventListener(\'click\', function(e) {
-            var shareBtn = e.target.closest(\'.section-share-btn\');
-            if (shareBtn) {
-                e.stopPropagation();
-                var wrap = shareBtn.closest(\'.section-share-wrap\');
-                var dropdown = wrap ? wrap.querySelector(\'.section-share-dropdown\') : null;
-                if (!dropdown) return;
-                var isOpen = dropdown.classList.contains(\'open\');
-                closeDropdowns();
-                if (!isOpen) {
-                    dropdown.classList.add(\'open\');
-                    shareBtn.classList.add(\'active\');
-                    shareBtn.setAttribute(\'aria-expanded\', \'true\');
-                }
-                return;
-            }
-            var copyBtn = e.target.closest(\'.share-copy\');
-            if (copyBtn) {
-                e.preventDefault();
-                e.stopPropagation();
-                var sectionId = copyBtn.getAttribute(\'data-section\');
-                var url = getShareUrl(sectionId);
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(url).then(function() {
-                        showToast(\'✓ Link copied!\');
-                    }).catch(function() { fallbackCopy(url); });
-                } else {
-                    fallbackCopy(url);
-                }
-                closeDropdowns();
-                return;
-            }
-            var waBtn = e.target.closest(\'.share-whatsapp\');
-            if (waBtn) {
-                e.preventDefault();
-                e.stopPropagation();
-                var url = getShareUrl(waBtn.getAttribute(\'data-section\'));
-                var waShareUrl = \'https://wa.me/?text=\' + encodeURIComponent(url);
-                waBtn.href = waShareUrl;
-                window.open(waShareUrl, \'_blank\', \'noopener\');
-                closeDropdowns();
-                return;
-            }
-            var fbBtn = e.target.closest(\'.share-facebook\');
-            if (fbBtn) {
-                e.preventDefault();
-                e.stopPropagation();
-                var url = getShareUrl(fbBtn.getAttribute(\'data-section\'));
-                var fbShareUrl = \'https://www.facebook.com/sharer/sharer.php?u=\' + encodeURIComponent(url);
-                fbBtn.href = fbShareUrl;
-                window.open(fbShareUrl, \'_blank\', \'noopener\');
-                closeDropdowns();
-                return;
-            }
-            if (!e.target.closest(\'.section-share-wrap\')) {
-                closeDropdowns();
-            }
-        });
-    }
-    if (document.readyState === \'loading\') {
-        document.addEventListener(\'DOMContentLoaded\', initShare);
-    } else {
-        initShare();
-    }
 }());
 </script>
 ';
