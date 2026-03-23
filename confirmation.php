@@ -35,6 +35,27 @@ $conf_display_start    = !empty($booking['start_time']) ? $booking['start_time']
 $conf_display_end      = !empty($booking['end_time'])   ? $booking['end_time']   : $conf_shift_times['end'];
 $conf_has_display_time = !empty($conf_display_start) && !empty($conf_display_end);
 
+// WhatsApp confirmation button
+$whatsapp_admin_number = getSetting('whatsapp_number', '');
+$whatsapp_url = '';
+if (!empty($whatsapp_admin_number)) {
+    $wa_venue    = !empty($booking['venue_name']) ? $booking['venue_name'] : (!empty($booking['custom_venue_name']) ? $booking['custom_venue_name'] : '');
+    $wa_hall     = !empty($booking['hall_name'])  ? $booking['hall_name']  : (!empty($booking['custom_hall_name'])  ? $booking['custom_hall_name']  : '');
+    $wa_date     = !empty($booking['event_date']) ? date('d M Y', strtotime($booking['event_date'])) : '';
+    $wa_name     = !empty($booking['customer_name']) ? $booking['customer_name'] : '';
+    $wa_ref      = $booking['booking_number'];
+    $wa_phone_clean = preg_replace('/[^0-9]/', '', $whatsapp_admin_number);
+    if (!empty($wa_phone_clean)) {
+        $wa_message  = "नमस्ते! मैले भर्खरै बुकिङ गरेको छु। कृपया मेरो बुकिङ कन्फर्म गरिदिनुहोला।\n\n";
+        $wa_message .= "📋 Booking Reference: " . $wa_ref . "\n";
+        if ($wa_name)  $wa_message .= "👤 Name: "  . $wa_name  . "\n";
+        if ($wa_date)  $wa_message .= "📅 Date: "  . $wa_date  . "\n";
+        if ($wa_venue) $wa_message .= "🏛️ Venue: " . $wa_venue . "\n";
+        if ($wa_hall)  $wa_message .= "🚪 Hall: "  . $wa_hall  . "\n";
+        $wa_message .= "\nधन्यवाद!";
+        $whatsapp_url = 'https://wa.me/' . $wa_phone_clean . '?text=' . rawurlencode($wa_message);
+    }
+}
 $page_title = 'Booking Confirmed';
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -511,6 +532,17 @@ require_once __DIR__ . '/includes/header.php';
     background: #f1f8f1;
     transform: translateY(-2px);
 }
+.conf-actions .btn-whatsapp-action {
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(37, 211, 102, 0.35);
+}
+.conf-actions .btn-whatsapp-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.50);
+    color: #fff;
+}
 
 /* ── Important note ── */
 .conf-note {
@@ -946,6 +978,11 @@ require_once __DIR__ . '/includes/header.php';
                     <button onclick="window.print()" class="btn btn-secondary-action">
                         <i class="fas fa-print"></i> Print Booking
                     </button>
+                    <?php if (!empty($whatsapp_url)): ?>
+                    <a href="<?php echo htmlspecialchars($whatsapp_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp-action">
+                        <i class="fab fa-whatsapp"></i> Confirm via WhatsApp
+                    </a>
+                    <?php endif; ?>
                     <a href="<?php echo BASE_URL; ?>/index.php" class="btn btn-primary-action">
                         <i class="fas fa-home"></i> Back to Home
                     </a>
