@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/db.php';
 
 const PACKAGE_DETAIL_PATH = '/package-detail.php';
 const DEFAULT_SITEMAP_PACKAGE_LIMIT = 10000;
+const MAX_SITEMAP_URLS = 50000;
 
 header('Content-Type: application/xml; charset=UTF-8');
 
@@ -70,6 +71,25 @@ function buildPackageDetailUrl(int $packageId): string {
     return PACKAGE_DETAIL_PATH . '?' . http_build_query(['id' => $packageId]);
 }
 
+function formatSitemapDate(?string $dateString): string {
+    $defaultDate = gmdate('Y-m-d');
+    if (empty($dateString)) {
+        return $defaultDate;
+    }
+
+    $date = DateTime::createFromFormat('Y-m-d H:i:s', $dateString);
+    if ($date === false) {
+        try {
+            $date = new DateTime($dateString);
+        } catch (Exception $e) {
+            return $defaultDate;
+        }
+    }
+
+    $date->setTimezone(new DateTimeZone('UTC'));
+    return $date->format('Y-m-d');
+}
+
 $baseUrl = getSitemapBaseUrl();
 
 $staticPages = [
@@ -93,7 +113,7 @@ $packageLimit = DEFAULT_SITEMAP_PACKAGE_LIMIT;
 if ($rawPackageLimit !== '' && is_numeric($rawPackageLimit)) {
     $packageLimit = (int) $rawPackageLimit;
 }
-$packageLimit = max(1, min(50000, $packageLimit));
+$packageLimit = max(1, min(MAX_SITEMAP_URLS, $packageLimit));
 $stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT ?');
 $stmt->bindValue(1, 'active');
 $stmt->bindValue(2, $packageLimit, PDO::PARAM_INT);
@@ -113,21 +133,7 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 <?php endforeach; ?>
 <?php foreach ($packagePages as $package):
     $lastmodSource = $package['updated_at'] ?? $package['created_at'] ?? null;
-    $lastmodDate = gmdate('Y-m-d');
-    if ($lastmodSource) {
-        $date = DateTime::createFromFormat('Y-m-d H:i:s', $lastmodSource);
-        if ($date === false) {
-            try {
-                $date = new DateTime($lastmodSource);
-            } catch (Exception $e) {
-                $date = false;
-            }
-        }
-        if ($date instanceof DateTime) {
-            $date->setTimezone(new DateTimeZone('UTC'));
-            $lastmodDate = $date->format('Y-m-d');
-        }
-    }
+    $lastmodDate = formatSitemapDate($lastmodSource);
     $packagePath = buildPackageDetailUrl((int)$package['id']);
 ?>
     <url>
