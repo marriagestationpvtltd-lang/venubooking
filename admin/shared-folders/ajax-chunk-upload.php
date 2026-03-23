@@ -90,15 +90,32 @@ $is_video = in_array($original_ext, $video_ext);
 // $is_other covers any other extension (zip, pdf, docx, rar, etc.)
 
 // ---------------------------------------------------------------
-// Save this chunk to a temp directory
+// Save this chunk to a temp directory inside the upload path.
+// Using UPLOAD_PATH (not sys_get_temp_dir) avoids the very limited
+// /tmp quota on shared hosting, which would be exhausted by a
+// 30-40 GB video (thousands of 5 MB chunks).
 // ---------------------------------------------------------------
-$chunks_base_dir = sys_get_temp_dir() . '/vb_chunks/';
+$chunks_base_dir = UPLOAD_PATH . '_tmp_chunks/';
 $chunks_dir = $chunks_base_dir . $upload_id . '/';
 
 if (!is_dir($chunks_dir)) {
     if (!mkdir($chunks_dir, 0700, true)) {
         echo json_encode(['success' => false, 'message' => 'Failed to create temp directory.']);
         exit;
+    }
+}
+
+// On first use, drop an .htaccess into the _tmp_chunks parent so that
+// no chunk file is ever directly downloadable over HTTP.
+$chunks_htaccess = $chunks_base_dir . '.htaccess';
+if (!file_exists($chunks_htaccess)) {
+    $htaccess_written = file_put_contents(
+        $chunks_htaccess,
+        "Require all denied\n<IfModule mod_rewrite.c>\nRewriteRule ^ - [F,L]\n</IfModule>\n"
+    );
+    if ($htaccess_written === false) {
+        // Non-fatal: the upload can proceed, but log so the admin can investigate
+        error_log('vb_chunks: failed to write .htaccess in ' . $chunks_base_dir . ' – temp chunks may be web-accessible');
     }
 }
 
@@ -128,6 +145,11 @@ if ($received < $total_chunks) {
 // ---------------------------------------------------------------
 // All chunks received – assemble the final file
 // ---------------------------------------------------------------
+// Allow as much time as needed for the assembly step (which can take
+// several minutes for a 30-40 GB video) and keep running even if the
+// browser closes the connection while we are assembling.
+@set_time_limit(0);
+ignore_user_abort(true);
 $folder_upload_dir = UPLOAD_PATH . 'folders/' . $folder_id . '/';
 if (!is_dir($folder_upload_dir)) {
     if (!mkdir($folder_upload_dir, 0755, true)) {
@@ -159,13 +181,18 @@ for ($i = 0; $i < $total_chunks; $i++) {
         $assembly_success = false;
         break;
     }
-    $data = file_get_contents($cf);
-    if ($data === false) {
+    $chunk_stream = fopen($cf, 'rb');
+    if ($chunk_stream === false) {
         $assembly_success = false;
         break;
     }
-    fwrite($output, $data);
-    $total_size += strlen($data);
+    $copied = stream_copy_to_stream($chunk_stream, $output);
+    fclose($chunk_stream);
+    if ($copied === false) {
+        $assembly_success = false;
+        break;
+    }
+    $total_size += $copied;
 }
 fclose($output);
 
