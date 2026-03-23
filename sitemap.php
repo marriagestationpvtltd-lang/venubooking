@@ -66,7 +66,7 @@ function getFileLastModified(string $path): string {
     return gmdate('Y-m-d');
 }
 
-function buildPackageDetailPath(int $packageId): string {
+function buildPackageDetailUrl(int $packageId): string {
     return PACKAGE_DETAIL_PATH . '?' . http_build_query(['id' => $packageId]);
 }
 
@@ -113,8 +113,22 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 <?php endforeach; ?>
 <?php foreach ($packagePages as $package):
     $lastmodSource = $package['updated_at'] ?? $package['created_at'] ?? null;
-    $lastmodDate = $lastmodSource ? gmdate('Y-m-d', strtotime($lastmodSource)) : gmdate('Y-m-d');
-    $packagePath = buildPackageDetailPath((int)$package['id']);
+    $lastmodDate = gmdate('Y-m-d');
+    if ($lastmodSource) {
+        $date = DateTime::createFromFormat('Y-m-d H:i:s', $lastmodSource);
+        if ($date === false) {
+            try {
+                $date = new DateTime($lastmodSource);
+            } catch (Exception $e) {
+                $date = false;
+            }
+        }
+        if ($date instanceof DateTime) {
+            $date->setTimezone(new DateTimeZone('UTC'));
+            $lastmodDate = $date->format('Y-m-d');
+        }
+    }
+    $packagePath = buildPackageDetailUrl((int)$package['id']);
 ?>
     <url>
         <loc><?php echo htmlspecialchars(buildSitemapUrl($baseUrl, $packagePath), ENT_XML1); ?></loc>
