@@ -175,7 +175,7 @@ if (!empty($vendors)) {
 
 <!-- Floating WhatsApp Button -->
 <?php if (!empty($clean_office_whatsapp)): ?>
-<a href="https://wa.me/<?php echo htmlspecialchars($clean_office_whatsapp, ENT_QUOTES, 'UTF-8'); ?>?text=<?php echo rawurlencode('Hello! I would like to book a venue. Please help me.'); ?>"
+<a href="https://wa.me/<?php echo htmlspecialchars($clean_office_whatsapp, ENT_QUOTES, 'UTF-8'); ?>?text=<?php echo rawurlencode('Hello! I would like to inquire about your vendors and services. Please help me.'); ?>"
    class="floating-wa-btn"
    target="_blank" rel="noopener noreferrer"
    aria-label="Contact us on WhatsApp"
