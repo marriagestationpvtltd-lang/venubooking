@@ -389,7 +389,7 @@ if ($whatsapp_number) {
  * Generate a unique safe filename for a photo, deduplicating against $seen.
  * $seen is passed by reference and updated with the new name.
  */
-function _fsa_safe_filename($title, $ext, array &$seen) {
+function _safe_photo_filename($title, $ext, array &$seen) {
     $safe  = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $title);
     $safe  = preg_replace('/_+/', '_', $safe);
     $safe  = trim($safe, '_');
@@ -417,7 +417,7 @@ if ($folder && !$error_message) {
             $_ext   = strtolower(pathinfo($_p['image_path'], PATHINFO_EXTENSION));
             $bulk_all_files[] = [
                 'url'      => $_url,
-                'filename' => _fsa_safe_filename($_p['title'], $_ext, $_seen_names_all),
+                'filename' => _safe_photo_filename($_p['title'], $_ext, $_seen_names_all),
             ];
         }
     }
@@ -429,7 +429,7 @@ if ($folder && !$error_message) {
             $_ext   = strtolower(pathinfo($_p['image_path'], PATHINFO_EXTENSION));
             $bulk_album_files[] = [
                 'url'      => $_url,
-                'filename' => _fsa_safe_filename($_p['title'], $_ext, $_seen_names_album),
+                'filename' => _safe_photo_filename($_p['title'], $_ext, $_seen_names_album),
             ];
         }
     }
@@ -2217,6 +2217,10 @@ if ($folder && !$error_message) {
             JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
         ); ?>;
 
+        /* Milliseconds to wait before revoking a blob URL after a download is triggered.
+           10 s gives the browser enough time to begin the transfer before the URL is freed. */
+        var BLOB_REVOKE_DELAY = 10000;
+
         /**
          * Handle image load errors gracefully
          * Instead of hiding the entire photo card (which causes blinking),
@@ -2601,61 +2605,56 @@ if ($folder && !$error_message) {
 
         /**
          * Core download-now handler. Accepts an array of {url, filename} objects.
-         * Uses showDirectoryPicker() when supported; iframes otherwise.
+         * Downloads immediately to the browser's default Downloads folder using
+         * fetch() with streaming progress tracking + Blob anchor-click trigger.
+         * Falls back to iframe-based download on very old browsers without fetch.
          */
         async function downloadNow(files) {
             if (!files || files.length === 0) return false;
 
-            // Fallback: File System Access API not supported (Firefox, older Safari)
-            if (!window.showDirectoryPicker) {
+            if (typeof fetch === 'undefined') {
+                // Very old browser fallback – no progress possible
                 return bulkDownloadIndividual(files.map(function(f) { return f.url; }));
             }
 
-            // Ask user where to save
-            var dirHandle;
+            // localStorage key: "folderDl_<token>" — tracks downloaded filenames for resume support
+            var lsKey       = 'folderDl_' + <?php echo json_encode($token, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+            var doneSet     = new Set();
             try {
-                dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-            } catch (e) {
-                if (e.name !== 'AbortError') { console.error('Directory picker error:', e); }
-                return false;
-            }
+                var stored = localStorage.getItem(lsKey);
+                if (stored) { JSON.parse(stored).forEach(function(n) { doneSet.add(n); }); }
+            } catch (e) { /* ignore storage errors */ }
 
-            // Collect existing filenames for resume detection
-            var existingFiles = new Set();
-            try {
-                for await (var entry of dirHandle.values()) {
-                    if (entry.kind === 'file') { existingFiles.add(entry.name.toLowerCase()); }
-                }
-            } catch (e) { /* ignore listing errors */ }
-
-            var alreadyDone = files.filter(function(f) {
-                return existingFiles.has(f.filename.toLowerCase());
-            });
-            var remaining = files.filter(function(f) {
-                return !existingFiles.has(f.filename.toLowerCase());
-            });
+            var alreadyDone = files.filter(function(f) { return doneSet.has(f.filename); });
+            var remaining   = files.filter(function(f) { return !doneSet.has(f.filename); });
 
             if (alreadyDone.length > 0 && remaining.length > 0) {
                 var choice = await showResumeDialog(alreadyDone.length, remaining.length);
-                if (choice === null) return false;          // user cancelled
+                if (choice === null) return false;
                 if (choice === 'remaining') { files = remaining; }
-                // choice === 'all' → keep original files array
+                // choice === 'all' → clear history and re-download everything
+                if (choice === 'all') {
+                    try { localStorage.removeItem(lsKey); } catch (e) {}
+                    doneSet.clear();
+                }
             } else if (alreadyDone.length > 0 && remaining.length === 0) {
-                // Everything already downloaded
                 _showDlCompleteMessage('तपाईंको सबै फोटो पहिले नै डाउनलोड भइसकेका छन्!', alreadyDone.length);
                 return false;
             }
 
             if (files.length === 0) return false;
-            await fsaDownloadFiles(dirHandle, files);
+            await fetchDownloadFiles(files, lsKey, doneSet);
             return false;
         }
 
         /**
-         * Downloads files sequentially into dirHandle using fetch + File System Access API.
-         * Shows real-time progress bar and estimated time remaining.
+         * Downloads files sequentially to the browser's default Downloads folder.
+         * Uses fetch() for real byte-level progress; saves via Blob + <a download>.
+         * @param {Array}  files   - [{url, filename}, …]
+         * @param {string} lsKey   - localStorage key for resume tracking
+         * @param {Set}    doneSet - set of already-downloaded filenames (updated in place)
          */
-        async function fsaDownloadFiles(dirHandle, files) {
+        async function fetchDownloadFiles(files, lsKey, doneSet) {
             var overlay  = document.getElementById('downloadProgressOverlay');
             var dlBar    = document.getElementById('dlBar');
             var dlPct    = document.getElementById('dlPercent');
@@ -2666,12 +2665,14 @@ if ($folder && !$error_message) {
             var dlEta    = document.getElementById('dlEta');
             var dlSpd    = document.getElementById('dlSpeed');
 
-            var total      = files.length;
-            var completed  = 0;
-            var totalBytes = 0;
-            var startTime  = Date.now();
+            var total        = files.length;
+            var completed    = 0;
+            var totalBytes   = 0;   // bytes received so far
+            var knownBytes   = 0;   // sum of Content-Length headers seen so far
+            var avgFileBytes = 0;   // running average bytes per file (for ETA)
+            var startTime    = Date.now();
 
-            // Show overlay
+            // Show overlay immediately — no picker dialog, starts right away
             dlBar.style.width      = '0%';
             dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
             dlBar.style.animation  = '';
@@ -2686,7 +2687,6 @@ if ($folder && !$error_message) {
 
             for (var i = 0; i < files.length; i++) {
                 var file = files[i];
-                var currentWritable = null;   // reset per-iteration for safe cleanup
                 dlFile.textContent = file.filename;
 
                 try {
@@ -2694,68 +2694,88 @@ if ($folder && !$error_message) {
                     if (!response.ok) throw new Error('HTTP ' + response.status);
 
                     var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
-                    var fileHandle    = await dirHandle.getFileHandle(file.filename, { create: true });
-                    currentWritable   = await fileHandle.createWritable();
+                    if (contentLength > 0) { knownBytes += contentLength; }
                     var reader        = response.body.getReader();
+                    var chunks        = [];
                     var fileBytes     = 0;
 
                     while (true) {
                         var chunk = await reader.read();
                         if (chunk.done) break;
-                        await currentWritable.write(chunk.value);
+                        chunks.push(chunk.value);
                         fileBytes  += chunk.value.length;
                         totalBytes += chunk.value.length;
 
                         // Byte-level progress within the current file
                         var filePct    = contentLength > 0 ? fileBytes / contentLength : 0.5;
                         var overallPct = (completed + filePct) / total;
-                        dlBar.style.width = Math.round(overallPct * 100) + '%';
-                        dlPct.textContent = Math.round(overallPct * 100) + '%';
+                        dlBar.style.width  = Math.round(overallPct * 100) + '%';
+                        dlPct.textContent  = Math.round(overallPct * 100) + '%';
                         dlSize.textContent = (completed + 1) + ' / ' + total + ' फाइलहरू';
 
-                        // ETA & speed
+                        // Speed and byte-based ETA
                         var elapsed = (Date.now() - startTime) / 1000;
                         if (elapsed > 0.5 && totalBytes > 0) {
                             var bps = totalBytes / elapsed;
                             dlSpd.textContent = _formatBytes(bps) + '/s';
-                            if (completed > 0) {
-                                var etaSec = ((total - completed) / (completed / elapsed));
-                                dlEta.textContent = '~' + _formatEta(etaSec);
+                            // ETA based on bytes: estimate remaining bytes using average file size
+                            if (completed > 0 || contentLength > 0) {
+                                avgFileBytes = totalBytes / Math.max(completed + filePct, 0.1);
+                                var estimatedRemainingBytes = avgFileBytes * (total - completed - filePct);
+                                if (estimatedRemainingBytes > 0 && bps > 0) {
+                                    dlEta.textContent = '~' + _formatEta(estimatedRemainingBytes / bps);
+                                }
                             }
                         }
                     }
-                    await currentWritable.close();
-                    currentWritable = null;
+
+                    // Save file to the browser's default Downloads folder via Blob anchor
+                    var blob      = new Blob(chunks);
+                    var objectUrl = URL.createObjectURL(blob);
+                    var anchor    = document.createElement('a');
+                    anchor.href     = objectUrl;
+                    anchor.download = file.filename;
+                    anchor.style.display = 'none';
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    document.body.removeChild(anchor);
+                    // Revoke after a delay long enough for the browser to start the transfer
+                    setTimeout(function(u) { URL.revokeObjectURL(u); }, BLOB_REVOKE_DELAY, objectUrl);
+
                     completed++;
+                    if (completed > 0) { avgFileBytes = totalBytes / completed; }
+
+                    // Mark as done in localStorage for resume support
+                    if (lsKey) {
+                        try {
+                            if (doneSet) { doneSet.add(file.filename); }
+                            var arr = doneSet ? Array.from(doneSet) : [];
+                            localStorage.setItem(lsKey, JSON.stringify(arr));
+                        } catch (e) { /* ignore storage errors */ }
+                    }
                 } catch (e) {
                     console.error('Download error for ' + file.filename, e);
-                    // Abort any partially-written file and continue with the next
-                    if (currentWritable) {
-                        try { await currentWritable.abort(); } catch (abortErr) {
-                            console.warn('Could not abort writable for ' + file.filename, abortErr);
-                        }
-                    }
                 }
 
-                // Update after each file
+                // Update counters after each file
                 var pct = Math.round((completed / total) * 100);
                 dlBar.style.width  = pct + '%';
                 dlPct.textContent  = pct + '%';
                 dlSize.textContent = completed + ' / ' + total + ' फाइलहरू';
                 var elapsed2 = (Date.now() - startTime) / 1000;
                 if (elapsed2 > 0.5 && completed > 0) {
-                    var remaining2 = total - completed;
-                    if (remaining2 > 0) {
-                        var etaSec2 = remaining2 / (completed / elapsed2);
-                        dlEta.textContent = '~' + _formatEta(etaSec2);
+                    var bps2 = totalBytes / elapsed2;
+                    dlSpd.textContent = _formatBytes(bps2) + '/s';
+                    var rem2 = total - completed;
+                    if (rem2 > 0 && bps2 > 0) {
+                        var etaBytes2 = avgFileBytes * rem2;
+                        dlEta.textContent = '~' + _formatEta(etaBytes2 / bps2);
                     } else {
                         dlEta.textContent = '';
                     }
-                    dlSpd.textContent = _formatBytes(totalBytes / elapsed2) + '/s';
                 }
             }
 
-            // All done
             _showDlCompleteMessage('तपाईंको फोटो डाउनलोड भइसक्यो!', completed);
         }
 
@@ -2830,7 +2850,6 @@ if ($folder && !$error_message) {
 
         /* ── Auto-activate select mode with all photos pre-selected ─────── */
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof _selectMode === 'undefined') return;
             _selectMode = true;
             document.body.classList.add('select-mode');
             var btn = document.getElementById('selectModeBtn');
@@ -2839,11 +2858,14 @@ if ($folder && !$error_message) {
                 btn.innerHTML = '<i class="fas fa-times me-1"></i> छान्ने मोड बन्द गर्नुहोस्';
                 btn.setAttribute('aria-label', 'Exit photo selection mode');
             }
-            // Pre-select all downloadable photos
+            // Pre-select all downloadable photos and fire change events for accessibility
             document.querySelectorAll('.photo-card[data-download-url]').forEach(function(card) {
                 card.classList.add('selected');
                 var cb = card.querySelector('.photo-checkbox');
-                if (cb) cb.checked = true;
+                if (cb) {
+                    cb.checked = true;
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             });
             updateSelectionBar();
         });
