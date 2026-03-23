@@ -234,6 +234,13 @@ $current_total = $totals['grand_total'];
                 <?php $pkg_cat_index++; endforeach; ?>
 
                 <div class="row mt-4">
+                    <div class="col-12 mb-2 text-center">
+                        <button type="submit" name="skip_packages" value="1"
+                                id="skipPackagesBtn"
+                                class="btn btn-link text-muted">
+                            <i class="fas fa-forward me-1"></i> Skip Packages &rarr;
+                        </button>
+                    </div>
                     <div class="col-md-6">
                         <a href="booking-step3.php" class="btn btn-outline-secondary btn-lg w-100">
                             <i class="fas fa-arrow-left"></i> Back
@@ -242,13 +249,6 @@ $current_total = $totals['grand_total'];
                     <div class="col-md-6">
                         <button type="submit" class="btn btn-success btn-lg w-100">
                             Continue <i class="fas fa-arrow-right"></i>
-                        </button>
-                    </div>
-                    <div class="col-12 mt-2 text-center">
-                        <button type="submit" name="skip_packages" value="1"
-                                id="skipPackagesBtn"
-                                class="btn btn-link text-muted">
-                            <i class="fas fa-forward me-1"></i> Skip Packages &rarr;
                         </button>
                     </div>
                 </div>
