@@ -429,22 +429,125 @@ function generateTimeOptions($selected = '') {
 }
 
 /**
- * Check if hall is available for booking
+ * Derive shift label from start/end times.
+ *
+ * @param  string $start_time  "HH:MM" or "HH:MM:SS"
+ * @param  string $end_time    "HH:MM" or "HH:MM:SS"
+ * @return string  One of: morning | afternoon | evening | fullday
  */
-function checkHallAvailability($hall_id, $date, $shift) {
+function deriveShiftFromTimes($start_time, $end_time) {
+    $s = (int)substr($start_time, 0, 2);
+    $e = (int)substr($end_time,   0, 2);
+    if ($s < 12 && $e <= 12) return 'morning';
+    if ($s >= 12 && $e <= 18) return 'afternoon';
+    if ($s >= 18) return 'evening';
+    return 'fullday';
+}
+
+/**
+ * Check if a hall has a time overlap with an existing booking.
+ *
+ * Two time ranges overlap when one starts before the other ends.
+ *
+ * @param int    $hall_id
+ * @param string $date        YYYY-MM-DD
+ * @param string $start_time  HH:MM or HH:MM:SS
+ * @param string $end_time    HH:MM or HH:MM:SS
+ * @return bool  TRUE if the hall is available (no overlap), FALSE if booked
+ */
+function checkTimeSlotAvailability($hall_id, $date, $start_time, $end_time) {
     $db = getDB();
-    
-    $sql = "SELECT COUNT(*) as count FROM bookings 
-            WHERE hall_id = ? 
-            AND event_date = ? 
-            AND shift = ? 
-            AND booking_status != 'cancelled'";
-    
+
+    $sql = "SELECT COUNT(*) AS cnt FROM bookings
+            WHERE hall_id = ?
+              AND event_date = ?
+              AND booking_status != 'cancelled'
+              AND start_time < ?
+              AND end_time   > ?";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$hall_id, $date, $end_time, $start_time]);
+    $result = $stmt->fetch();
+    return (int)$result['cnt'] === 0;
+}
+
+/**
+ * Check if hall is available for booking.
+ *
+ * When explicit start/end times are provided the check uses time-overlap
+ * detection (two bookings conflict when their time windows intersect on the
+ * same date).  When no times are provided the legacy shift-based check is
+ * used so that existing code paths that have not yet been migrated continue
+ * to work without errors.
+ *
+ * @param int         $hall_id
+ * @param string      $date        YYYY-MM-DD
+ * @param string      $shift       morning|afternoon|evening|fullday
+ * @param string|null $start_time  HH:MM  (optional)
+ * @param string|null $end_time    HH:MM  (optional)
+ * @return bool
+ */
+function checkHallAvailability($hall_id, $date, $shift, $start_time = null, $end_time = null) {
+    if (!empty($start_time) && !empty($end_time)) {
+        return checkTimeSlotAvailability($hall_id, $date, $start_time, $end_time);
+    }
+
+    // Legacy shift-based check (kept for backward compatibility)
+    $db = getDB();
+    $sql = "SELECT COUNT(*) as count FROM bookings
+            WHERE hall_id = ?
+              AND event_date = ?
+              AND shift = ?
+              AND booking_status != 'cancelled'";
     $stmt = $db->prepare($sql);
     $stmt->execute([$hall_id, $date, $shift]);
     $result = $stmt->fetch();
-    
-    return $result['count'] == 0;
+    return (int)$result['count'] === 0;
+}
+
+/**
+ * Get all time slots defined for a hall.
+ *
+ * @param int  $hall_id
+ * @param bool $active_only  When TRUE only 'active' slots are returned
+ * @return array
+ */
+function getHallTimeSlots($hall_id, $active_only = true) {
+    $db = getDB();
+    try {
+        $sql = "SELECT * FROM hall_time_slots WHERE hall_id = ?";
+        if ($active_only) {
+            $sql .= " AND status = 'active'";
+        }
+        $sql .= " ORDER BY start_time ASC, id ASC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$hall_id]);
+        return $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('getHallTimeSlots() error: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Return available (not-yet-booked) time slots for a hall on a given date.
+ *
+ * @param int    $hall_id
+ * @param string $date   YYYY-MM-DD
+ * @return array  Each element is a hall_time_slots row plus 'available' => bool
+ */
+function getAvailableTimeSlotsForHall($hall_id, $date) {
+    $slots = getHallTimeSlots($hall_id);
+    foreach ($slots as &$slot) {
+        $slot['available'] = checkTimeSlotAvailability(
+            $hall_id,
+            $date,
+            $slot['start_time'],
+            $slot['end_time']
+        );
+    }
+    unset($slot);
+    return $slots;
 }
 
 /**
@@ -505,13 +608,25 @@ function generateBookingNumber() {
 
 /**
  * Calculate booking total
+ *
+ * @param int|null   $hall_id
+ * @param array      $menus
+ * @param int        $guests
+ * @param array      $services
+ * @param array      $selected_designs
+ * @param array      $packages
+ * @param float|null $slot_price_override  When a time slot has a price override,
+ *                                          pass it here to replace the hall base price.
+ * @return array
  */
-function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = [], $packages = []) {
+function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = [], $packages = [], $slot_price_override = null) {
     $db = getDB();
     
     // Get hall price (custom venues have id=0 and no price in DB)
     $hall_price = 0;
-    if (!empty($hall_id)) {
+    if ($slot_price_override !== null) {
+        $hall_price = (float)$slot_price_override;
+    } elseif (!empty($hall_id)) {
         $stmt = $db->prepare("SELECT base_price FROM halls WHERE id = ?");
         $stmt->execute([$hall_id]);
         $hall = $stmt->fetch();
@@ -1083,8 +1198,11 @@ function createBooking($data) {
         if (!$is_custom) {
             // Check hall availability inside the try-catch so any DB exception is
             // caught and handled gracefully rather than producing a fatal error.
-            if (!checkHallAvailability($data['hall_id'], $data['event_date'], $data['shift'])) {
-                return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and shift. Please select a different date or hall.'];
+            // Prefer time-based overlap check when start/end times are available.
+            $avail_start = !empty($data['start_time']) ? $data['start_time'] : null;
+            $avail_end   = !empty($data['end_time'])   ? $data['end_time']   : null;
+            if (!checkHallAvailability($data['hall_id'], $data['event_date'], $data['shift'] ?? '', $avail_start, $avail_end)) {
+                return ['success' => false, 'error' => 'Sorry, this hall is no longer available for the selected date and time. Please select a different time slot.'];
             }
         }
     } catch (\Throwable $e) {
@@ -1132,10 +1250,18 @@ function createBooking($data) {
             );
 
             // Insert booking
-            // Derive default times from shift if not explicitly provided
-            $shift_times = getShiftDefaultTimes($data['shift']);
-            $start_time = !empty($data['start_time']) ? $data['start_time'] : $shift_times['start'];
-            $end_time   = !empty($data['end_time'])   ? $data['end_time']   : $shift_times['end'];
+            // Derive start/end times from time slot when provided, fall back to shift defaults
+            if (!empty($data['start_time']) && !empty($data['end_time'])) {
+                $start_time = $data['start_time'];
+                $end_time   = $data['end_time'];
+                // Auto-derive shift from times when it wasn't explicitly provided
+                $booking_shift = !empty($data['shift']) ? $data['shift'] : deriveShiftFromTimes($start_time, $end_time);
+            } else {
+                $booking_shift = !empty($data['shift']) ? $data['shift'] : 'fullday';
+                $shift_times   = getShiftDefaultTimes($booking_shift);
+                $start_time    = $shift_times['start'];
+                $end_time      = $shift_times['end'];
+            }
 
             $sql = "INSERT INTO bookings (
                         booking_number, customer_id, hall_id, custom_venue_name, custom_hall_name,
@@ -1155,7 +1281,7 @@ function createBooking($data) {
                 $data['event_date'],
                 $start_time ?: null,
                 $end_time   ?: null,
-                $data['shift'],
+                $booking_shift,
                 $data['event_type'],
                 $data['guests'],
                 $totals['hall_price'],

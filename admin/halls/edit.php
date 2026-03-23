@@ -149,6 +149,65 @@ if (isset($_POST['delete_image']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Handle time slot addition
+if (isset($_POST['add_time_slot']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
+        $ts_name   = trim($_POST['ts_name'] ?? '');
+        $ts_start  = trim($_POST['ts_start'] ?? '');
+        $ts_end    = trim($_POST['ts_end'] ?? '');
+        $ts_price  = isset($_POST['ts_price']) && is_numeric($_POST['ts_price']) && $_POST['ts_price'] !== '' ? floatval($_POST['ts_price']) : null;
+        $ts_status = in_array($_POST['ts_status'] ?? '', ['active','inactive'], true) ? $_POST['ts_status'] : 'active';
+
+        if ($ts_name === '' || !preg_match('/^\d{2}:\d{2}$/', $ts_start) || !preg_match('/^\d{2}:\d{2}$/', $ts_end)) {
+            $error_message = 'Please provide a valid slot name, start time, and end time.';
+        } else {
+            try {
+                $db->prepare("INSERT INTO hall_time_slots (hall_id, slot_name, start_time, end_time, price_override, status) VALUES (?,?,?,?,?,?)")
+                   ->execute([$hall_id, $ts_name, $ts_start, $ts_end, $ts_price, $ts_status]);
+                logActivity($current_user['id'], 'Added hall time slot', 'hall_time_slots', $db->lastInsertId(), "Added slot '$ts_name' for hall: {$hall['name']}");
+                $success_message = 'Time slot added successfully!';
+            } catch (Exception $e) {
+                error_log('Error adding time slot: ' . $e->getMessage());
+                $error_message = 'Error adding time slot.';
+            }
+        }
+    }
+}
+
+// Handle time slot deletion
+if (isset($_POST['delete_time_slot']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
+        $ts_id = intval($_POST['delete_time_slot']);
+        try {
+            $db->prepare("DELETE FROM hall_time_slots WHERE id = ? AND hall_id = ?")->execute([$ts_id, $hall_id]);
+            logActivity($current_user['id'], 'Deleted hall time slot', 'hall_time_slots', $ts_id, "Deleted time slot for hall: {$hall['name']}");
+            $success_message = 'Time slot deleted successfully!';
+        } catch (Exception $e) {
+            $error_message = 'Error deleting time slot.';
+        }
+    }
+}
+
+// Handle time slot status toggle
+if (isset($_POST['toggle_time_slot_status']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+        $error_message = 'Invalid security token. Please try again.';
+    } else {
+        $ts_id = intval($_POST['toggle_time_slot_status']);
+        try {
+            $db->prepare("UPDATE hall_time_slots SET status = CASE WHEN status='active' THEN 'inactive' ELSE 'active' END WHERE id = ? AND hall_id = ?")
+               ->execute([$ts_id, $hall_id]);
+            $success_message = 'Time slot status updated!';
+        } catch (Exception $e) {
+            $error_message = 'Error updating time slot status.';
+        }
+    }
+}
+
 // Handle form submission
 if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
@@ -381,6 +440,111 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                             </a>
                             <button type="submit" name="update_hall" class="btn btn-success">
                                 <i class="fas fa-save"></i> Update Hall
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Time Slots Management Card -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clock text-success me-2"></i>Booking Time Slots</h5>
+                <small class="text-muted">Define when customers can book this hall</small>
+            </div>
+            <div class="card-body">
+                <?php
+                $time_slots = getHallTimeSlots($hall_id, false);
+                if (!empty($time_slots)):
+                ?>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Slot Name</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Price Override</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($time_slots as $slot): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($slot['slot_name']); ?></td>
+                                <td><?php echo date('h:i A', strtotime($slot['start_time'])); ?></td>
+                                <td><?php echo date('h:i A', strtotime($slot['end_time'])); ?></td>
+                                <td><?php echo $slot['price_override'] !== null ? formatCurrency($slot['price_override']) : '<span class="text-muted small">Hall base price</span>'; ?></td>
+                                <td>
+                                    <span class="badge bg-<?php echo $slot['status'] === 'active' ? 'success' : 'secondary'; ?>">
+                                        <?php echo ucfirst($slot['status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                                        <input type="hidden" name="toggle_time_slot_status" value="<?php echo $slot['id']; ?>">
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm" title="Toggle status">
+                                            <i class="fas fa-toggle-<?php echo $slot['status'] === 'active' ? 'on text-success' : 'off'; ?>"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this time slot?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                                        <input type="hidden" name="delete_time_slot" value="<?php echo $slot['id']; ?>">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php else: ?>
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    No time slots defined. Customers cannot book this hall until at least one time slot is added.
+                </div>
+                <?php endif; ?>
+
+                <!-- Add New Slot Form -->
+                <h6 class="border-bottom pb-2 mb-3">Add New Time Slot</h6>
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Slot Name <span class="text-danger">*</span></label>
+                            <input type="text" name="ts_name" class="form-control form-control-sm" placeholder="e.g. Morning Slot" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold mb-1">Start Time <span class="text-danger">*</span></label>
+                            <input type="time" name="ts_start" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold mb-1">End Time <span class="text-danger">*</span></label>
+                            <input type="time" name="ts_end" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold mb-1">Price Override</label>
+                            <input type="number" name="ts_price" class="form-control form-control-sm" placeholder="(optional)" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold mb-1">Status</label>
+                            <select name="ts_status" class="form-select form-select-sm">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" name="add_time_slot" class="btn btn-success btn-sm w-100">
+                                <i class="fas fa-plus"></i> Add
                             </button>
                         </div>
                     </div>

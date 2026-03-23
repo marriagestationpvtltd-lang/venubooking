@@ -139,42 +139,6 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                                 <div class="invalid-feedback">Please select a city.</div>
                             </div>
 
-                            <div class="mb-2">
-                                <label for="shift" class="form-label">
-                                    <i class="fas fa-clock"></i> Select Shift <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select form-select-sm" id="shift" name="shift" required>
-                                    <option value="">Choose a shift...</option>
-                                    <option value="morning">Morning (6:00 AM - 12:00 PM)</option>
-                                    <option value="afternoon">Afternoon (12:00 PM - 6:00 PM)</option>
-                                    <option value="evening">Evening (6:00 PM - 11:00 PM)</option>
-                                    <option value="fullday">Full Day (6:00 AM - 11:00 PM)</option>
-                                </select>
-                                <div class="invalid-feedback">Please select a shift.</div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="form-label">
-                                    <i class="fas fa-hourglass-start"></i> Event Time <span class="text-danger">*</span>
-                                </label>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <label for="start_time" class="form-label small text-muted mb-1">Start Time</label>
-                                        <select class="form-select form-select-sm" id="start_time" name="start_time" required>
-                                            <?php echo generateTimeOptions(); ?>
-                                        </select>
-                                        <div class="invalid-feedback">Please select a start time.</div>
-                                    </div>
-                                    <div class="col-6">
-                                        <label for="end_time" class="form-label small text-muted mb-1">End Time</label>
-                                        <select class="form-select form-select-sm" id="end_time" name="end_time" required>
-                                            <?php echo generateTimeOptions(); ?>
-                                        </select>
-                                        <div class="invalid-feedback">Please select an end time.</div>
-                                    </div>
-                                </div>
-                                <small class="form-text text-muted">Auto-filled from shift — adjust if needed.</small>
-                            </div>
 
                             <div class="mb-2">
                                 <label for="event_date" class="form-label">
@@ -2404,29 +2368,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
 });
 </script>
-<script>
-// ── Shift → Time auto-fill ──
-(function() {
-    var shiftTimes = {
-        morning:   { start: "06:00", end: "12:00" },
-        afternoon: { start: "12:00", end: "18:00" },
-        evening:   { start: "18:00", end: "23:00" },
-        fullday:   { start: "06:00", end: "23:00" }
-    };
-    var shiftSel   = document.getElementById("shift");
-    var startInput = document.getElementById("start_time");
-    var endInput   = document.getElementById("end_time");
-    if (shiftSel && startInput && endInput) {
-        shiftSel.addEventListener("change", function() {
-            var times = shiftTimes[this.value];
-            if (times) {
-                startInput.value = times.start;
-                endInput.value   = times.end;
-            }
-        });
-    }
-}());
-</script>
+
+
 <style>
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
