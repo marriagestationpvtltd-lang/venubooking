@@ -126,109 +126,122 @@ if ($has_subfolders && $current_album !== null) {
 
 // Handle individual photo download
 if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['download_photo'])) {
-    $photo_id = intval($_GET['download_photo']);
-    
-    // Find the photo
-    $photo_stmt = $db->prepare("SELECT * FROM shared_photos WHERE id = ? AND folder_id = ? AND status = 'active'");
-    $photo_stmt->execute([$photo_id, $folder['id']]);
-    $photo = $photo_stmt->fetch();
-    
-    if ($photo) {
-        // Check max downloads if set
-        if ($folder['max_downloads'] && $photo['download_count'] >= $folder['max_downloads']) {
-            $error_message = 'Maximum download limit reached for this photo.';
-        } else {
-            $file_path = UPLOAD_PATH . $photo['image_path'];
-            
-            // Security: Verify file is within uploads directory
-            $real_upload_path = realpath(UPLOAD_PATH);
-            $real_file_path = realpath($file_path);
-            
-            if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
-                // Increment download count
-                $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
-                $update_stmt->execute([$photo['id']]);
-                
-                // Increment folder total downloads
-                $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + 1 WHERE id = ?")->execute([$folder['id']]);
-                
-                // Get file info
-                $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                $mime_type = finfo_file($finfo, $file_path);
-                finfo_close($finfo);
-                
-                // Generate download filename
-                $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
-                $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
-                $safe_title = preg_replace('/_+/', '_', $safe_title);
-                $safe_title = trim($safe_title, '_');
-                $download_filename = (!empty($safe_title) ? $safe_title : 'photo') . '.' . $ext;
-                
-                // Prepare for large file download
-                // Disable time limit for large file transfers
-                @set_time_limit(0);
-
-                // Disable PHP's zlib output compression first — must be done
-                // before clearing output buffers so the hidden zlib layer is
-                // removed before we flush any content to the client.
-                @ini_set('zlib.output_compression', '0');
-
-                // Disable ALL output buffering levels (there can be more than
-                // one: PHP's own ob layer plus a possible zlib/gzip handler).
-                while (ob_get_level()) {
-                    ob_end_clean();
-                }
-
-                // Prevent Apache/Nginx from re-compressing the file response.
-                @apache_setenv('no-gzip', '1');
-                @apache_setenv('dont-vary', '1');
-
-                // Get file size as an unsigned string to handle files larger than 2 GB
-                // correctly on 32-bit PHP builds where filesize() can overflow.
-                $file_size = sprintf('%u', filesize($file_path));
-
-                // Send file for download with proper headers
-                header('Content-Type: ' . $mime_type);
-                header('Content-Disposition: attachment; filename="' . $download_filename . '"');
-                header('Content-Length: ' . $file_size);
-                header('Content-Transfer-Encoding: binary');
-                // Tell proxies/servers not to encode (compress) the response;
-                // this ensures the browser receives the exact byte count and
-                // that the download starts immediately without buffering.
-                header('Content-Encoding: identity');
-                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-                header('Cache-Control: post-check=0, pre-check=0', false);
-                header('Pragma: no-cache');
-                header('Expires: 0');
-
-                // Flush headers to browser immediately
-                flush();
-
-                // Stream the file in 1 MB chunks.  Larger chunks mean far fewer
-                // flush() round-trips, so the first bytes reach the browser
-                // quickly and the overall transfer is faster.
-                $handle = fopen($file_path, 'rb');
-                if ($handle !== false) {
-                    $chunk_size = 1024 * 1024; // 1 MB
-                    while (!feof($handle)) {
-                        echo fread($handle, $chunk_size);
-                        // Flush output buffer to send data immediately
-                        flush();
-                        // Check if connection is still alive
-                        if (connection_aborted()) {
-                            break;
-                        }
-                    }
-                    fclose($handle);
-                } else {
-                    // Log error if file cannot be opened
-                    error_log('Failed to open file for streaming: ' . $file_path);
-                }
-                exit;
+    try {
+        $photo_id = intval($_GET['download_photo']);
+        
+        // Find the photo
+        $photo_stmt = $db->prepare("SELECT * FROM shared_photos WHERE id = ? AND folder_id = ? AND status = 'active'");
+        $photo_stmt->execute([$photo_id, $folder['id']]);
+        $photo = $photo_stmt->fetch();
+        
+        if ($photo) {
+            // Check max downloads if set
+            if ($folder['max_downloads'] && $photo['download_count'] >= $folder['max_downloads']) {
+                $error_message = 'Maximum download limit reached for this photo.';
             } else {
-                $error_message = 'File not found.';
+                $file_path = UPLOAD_PATH . $photo['image_path'];
+                
+                // Security: Verify file is within uploads directory
+                $real_upload_path = realpath(UPLOAD_PATH);
+                $real_file_path = realpath($file_path);
+                
+                if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
+                    // Increment download count
+                    $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
+                    $update_stmt->execute([$photo['id']]);
+                    
+                    // Increment folder total downloads
+                    $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + 1 WHERE id = ?")->execute([$folder['id']]);
+                    
+                    // Detect MIME type using robust helper (handles missing/broken finfo extension)
+                    $mime_type = detectMimeType($file_path);
+                    
+                    // Generate download filename
+                    $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
+                    $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
+                    $safe_title = preg_replace('/_+/', '_', $safe_title);
+                    $safe_title = trim($safe_title, '_');
+                    $download_filename = (!empty($safe_title) ? $safe_title : 'photo') . '.' . $ext;
+                    
+                    // Prepare for large file download
+                    // Disable time limit for large file transfers
+                    @set_time_limit(0);
+
+                    // Disable PHP's zlib output compression first — must be done
+                    // before clearing output buffers so the hidden zlib layer is
+                    // removed before we flush any content to the client.
+                    @ini_set('zlib.output_compression', '0');
+
+                    // Disable ALL output buffering levels (there can be more than
+                    // one: PHP's own ob layer plus a possible zlib/gzip handler).
+                    while (ob_get_level()) {
+                        ob_end_clean();
+                    }
+
+                    // Prevent Apache/Nginx from re-compressing the file response.
+                    @apache_setenv('no-gzip', '1');
+                    @apache_setenv('dont-vary', '1');
+
+                    // Get file size as an unsigned string to handle files larger than 2 GB
+                    // correctly on 32-bit PHP builds where filesize() can overflow.
+                    $file_size = sprintf('%u', filesize($file_path));
+
+                    // Send file for download with proper headers
+                    header('Content-Type: ' . $mime_type);
+                    header('Content-Disposition: attachment; filename="' . $download_filename . '"');
+                    header('Content-Length: ' . $file_size);
+                    header('Content-Transfer-Encoding: binary');
+                    // Tell proxies/servers not to encode (compress) the response;
+                    // this ensures the browser receives the exact byte count and
+                    // that the download starts immediately without buffering.
+                    header('Content-Encoding: identity');
+                    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+                    header('Cache-Control: post-check=0, pre-check=0', false);
+                    header('Pragma: no-cache');
+                    header('Expires: 0');
+
+                    // Flush headers to browser immediately
+                    flush();
+
+                    // Stream the file in 1 MB chunks.  Larger chunks mean far fewer
+                    // flush() round-trips, so the first bytes reach the browser
+                    // quickly and the overall transfer is faster.
+                    $handle = fopen($file_path, 'rb');
+                    if ($handle !== false) {
+                        $chunk_size = 1024 * 1024; // 1 MB
+                        while (!feof($handle)) {
+                            echo fread($handle, $chunk_size);
+                            // Flush output buffer to send data immediately
+                            flush();
+                            // Check if connection is still alive
+                            if (connection_aborted()) {
+                                break;
+                            }
+                        }
+                        fclose($handle);
+                    } else {
+                        // Log error if file cannot be opened
+                        error_log('Failed to open file for streaming: ' . $file_path);
+                    }
+                    exit;
+                } else {
+                    $error_message = 'File not found.';
+                }
             }
         }
+    } catch (Throwable $e) {
+        error_log('Photo download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+        // headers_sent() is true only when an exception occurs AFTER flush() has
+        // already pushed the Content-Type/binary headers to the browser (e.g. a DB
+        // error mid-stream).  In that case we cannot safely send an HTML page, so
+        // we stop immediately.  When the exception occurs before flush() (e.g. a
+        // PDOException from the download-count update), headers_sent() is false and
+        // we fall through to show a user-friendly error on the folder page instead.
+        if (headers_sent()) {
+            // Cannot output HTML after binary headers were sent – just stop.
+            exit;
+        }
+        $error_message = 'Download failed. Please try again.';
     }
 }
 
@@ -297,10 +310,10 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
         } else {
             // Use streaming ZIP for instant download (like Google Drive)
             // Download starts immediately without waiting for full ZIP to be created
-            $zipStream = new ZipStream($zip_filename);
             $zip_stream_started = false;
             
             try {
+                $zipStream = new ZipStream($zip_filename);
                 // Start streaming - this sends headers and begins the download immediately
                 $zipStream->begin();
                 $zip_stream_started = true;
