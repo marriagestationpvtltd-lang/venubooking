@@ -3695,7 +3695,10 @@ function getVendorPrimaryPhotoUrls(array $vendor_ids) {
         return [];
     }
     $db = getDB();
-    $ids = array_map('intval', $vendor_ids);
+    $ids = array_values(array_unique(array_filter(array_map('intval', $vendor_ids), fn($id) => $id > 0)));
+    if (empty($ids)) {
+        return [];
+    }
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
     try {
         $stmt = $db->prepare("
@@ -3721,6 +3724,29 @@ function getVendorPrimaryPhotoUrls(array $vendor_ids) {
             $result[$vid] = UPLOAD_URL . $safe;
         }
     }
+
+    if (count($result) < count($ids)) {
+        try {
+            $fallback_stmt = $db->prepare("SELECT id, photo FROM vendors WHERE id IN ($placeholders) AND photo IS NOT NULL AND photo != ''");
+            $fallback_stmt->execute($ids);
+            $fallback_rows = $fallback_stmt->fetchAll();
+        } catch (Exception $e) {
+            $fallback_rows = [];
+        }
+
+        foreach ($fallback_rows as $row) {
+            $vid = (int)$row['id'];
+            if (isset($result[$vid])) {
+                continue;
+            }
+            $safe = !empty($row['photo']) ? basename($row['photo']) : '';
+            if (!empty($safe) && preg_match(SAFE_FILENAME_PATTERN, $safe)
+                && file_exists(UPLOAD_PATH . $safe)) {
+                $result[$vid] = UPLOAD_URL . $safe;
+            }
+        }
+    }
+
     return $result;
 }
 
