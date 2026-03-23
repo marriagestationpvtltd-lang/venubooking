@@ -49,7 +49,7 @@ if ($package_id > 0) {
 
 $office_whatsapp       = getSetting('whatsapp_number', '');
 $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
-$package_share_url     = $package_id > 0 ? BASE_URL . '/package-detail.php?id=' . $package_id : '';
+$package_share_url     = $package_id > 0 ? BASE_URL . '/package-detail.php?id=' . rawurlencode((string) $package_id) : '';
 $package_share_id      = $package_id > 0 ? 'package-detail-' . $package_id : '';
 ?>
 
@@ -485,7 +485,10 @@ $extra_js = '
             var sectionId = copyBtn.getAttribute(\'data-section\');
             var url = getShareUrl(sectionId);
             if (navigator.share) {
-                navigator.share({ url: url }).catch(function() {});
+                navigator.share({ url: url }).catch(function(err) {
+                    if (err && err.name === "AbortError") return;
+                    showToast("Unable to open share");
+                });
             } else if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url).then(function() {
                     showToast(\'✓ Link copied!\');
