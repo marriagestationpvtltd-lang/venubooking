@@ -1426,6 +1426,170 @@ if ($folder && !$error_message) {
             }
         }
 
+        /* ── Photo Selection Mode ── */
+        .selection-mode-btn {
+            border-radius: 50px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .selection-mode-btn.active {
+            background: var(--primary-green);
+            border-color: var(--primary-green);
+            color: #fff;
+        }
+
+        /* Checkbox overlay on photo card */
+        .photo-select-cb {
+            display: none;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 25;
+        }
+        .photo-select-cb input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--primary-green);
+            border-radius: 5px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        }
+        body.selection-mode .photo-select-cb {
+            display: block;
+        }
+
+        /* Selected card highlight */
+        .photo-card.selected {
+            border-color: var(--primary-green) !important;
+            box-shadow: 0 0 0 3px rgba(22,163,74,0.35), var(--shadow-md) !important;
+        }
+        .photo-card.selected .photo-media::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(22,163,74,0.12);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* In selection mode: clicking card selects it */
+        body.selection-mode .photo-card {
+            cursor: pointer;
+        }
+
+        /* Selection toolbar – fixed bottom bar */
+        #selectionToolbar {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-primary);
+            color: #fff;
+            border-radius: 50px;
+            padding: 12px 22px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1050;
+            align-items: center;
+            gap: 14px;
+            font-size: 0.92rem;
+            white-space: nowrap;
+            max-width: 90vw;
+        }
+        #selectionToolbar.visible {
+            display: flex;
+        }
+        #selectionToolbar .sel-count {
+            font-weight: 600;
+        }
+        #selectionToolbar .btn {
+            font-size: 0.88rem;
+            padding: 6px 16px;
+            border-radius: 50px;
+        }
+        #selectionToolbar .btn-cancel {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            color: #fff;
+        }
+        #selectionToolbar .btn-cancel:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        #selectionToolbar .btn-dl-sel {
+            background: var(--primary-green);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+        }
+        #selectionToolbar .btn-dl-sel:hover {
+            background: var(--dark-green);
+        }
+        #selectionToolbar .btn-sel-all {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            color: #fff;
+        }
+        #selectionToolbar .btn-sel-all:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* ZIP generation overlay */
+        #zipProgressOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        #zipProgressOverlay.visible {
+            display: flex;
+        }
+        .zip-progress-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px 42px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 380px;
+            width: 90vw;
+        }
+        .zip-progress-icon {
+            font-size: 2.8rem;
+            color: var(--primary-green);
+            margin-bottom: 16px;
+        }
+        .zip-progress-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .zip-progress-msg {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        .zip-progress-bar-wrap {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .zip-progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--primary-green), var(--light-green));
+            transition: width 0.4s ease;
+        }
+        .zip-ready-btn {
+            display: none;
+            margin: 0 auto;
+        }
+
     </style>
 </head>
 <body>
@@ -1560,39 +1724,58 @@ if ($folder && !$error_message) {
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
                         <?php if ($folder['allow_zip_download']): ?>
                             <?php if ($has_subfolders && $current_album === null && count($photos) > 0): ?>
-                                <!-- Top-level: offer download of all photos -->
-                                <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
-                                   class="btn btn-success download-all-btn"
-                                   onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
+                                <!-- Top-level: offer download of all photos as pre-generated ZIP -->
+                                <button type="button"
+                                        class="btn btn-success download-all-btn"
+                                        onclick="initiateZipDownload(<?php echo json_encode($token); ?>, null, null)">
                                     <i class="fas fa-download me-2"></i>
                                     Download All (<?php echo count($photos); ?>)
-                                </a>
+                                </button>
                                 <p class="text-muted mt-2 mb-0">
                                     <small><i class="fas fa-file-archive"></i> Downloads as ZIP file in one folder</small>
                                 </p>
                             <?php elseif (!$has_subfolders && count($photos) > 0): ?>
-                                <!-- Flat view -->
-                                <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
-                                   class="btn btn-success download-all-btn"
-                                   onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
-                                    <i class="fas fa-download me-2"></i> 
+                                <!-- Flat view: pre-generated ZIP -->
+                                <button type="button"
+                                        class="btn btn-success download-all-btn"
+                                        onclick="initiateZipDownload(<?php echo json_encode($token); ?>, null, null)">
+                                    <i class="fas fa-download me-2"></i>
                                     Download All (<?php echo count($photos); ?>)
-                                </a>
+                                </button>
                                 <p class="text-muted mt-2 mb-0">
                                     <small><i class="fas fa-file-archive"></i> Downloads as ZIP file in one folder</small>
                                 </p>
                             <?php elseif ($has_subfolders && $current_album !== null && count($visible_photos) > 0): ?>
-                                <!-- Album view: download only this album -->
-                                <a href="?token=<?php echo urlencode($token); ?>&album=<?php echo urlencode($current_album); ?>&download_all=1"
-                                   class="btn btn-success album-download-btn"
-                                   onclick="return startDownload(this.href, <?php echo json_encode(($current_album === '' ? 'General' : $current_album) . '.zip', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
+                                <!-- Album view: pre-generated ZIP for this album -->
+                                <button type="button"
+                                        class="btn btn-success album-download-btn"
+                                        onclick="initiateZipDownload(<?php echo json_encode($token); ?>, null, <?php echo json_encode($current_album, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
                                     <i class="fas fa-download me-2"></i>
                                     Download Album (<?php echo count($visible_photos); ?>)
-                                </a>
+                                </button>
                                 <p class="text-muted mt-2 mb-0">
                                     <small><i class="fas fa-file-archive"></i> Downloads album as ZIP</small>
                                 </p>
                             <?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php
+                        // "Select Photos" button – only show when there is a visible photo grid
+                        $show_preview_flag = !isset($folder['show_preview']) || $folder['show_preview'];
+                        $_has_visible = $has_subfolders
+                            ? ($current_album !== null && count($visible_photos) > 0)
+                            : count($photos) > 0;
+                        if ($show_preview_flag && $_has_visible):
+                        ?>
+                            <button type="button"
+                                    id="selectionModeBtn"
+                                    class="btn btn-outline-secondary selection-mode-btn mt-2"
+                                    onclick="toggleSelectionMode()">
+                                <i class="fas fa-check-square me-1"></i> Select Photos
+                            </button>
+                            <p class="text-muted mt-1 mb-0">
+                                <small><i class="fas fa-info-circle"></i> Select photos for bulk ZIP download</small>
+                            </p>
                         <?php endif; ?>
 
                         <?php
@@ -1678,12 +1861,12 @@ if ($folder && !$error_message) {
                         तलको बटनहरू थिचेर फाइलहरू डाउनलोड गर्नुहोस्।
                     </p>
                     <?php if ($folder['allow_zip_download'] && $file_count > 0): ?>
-                        <a href="?token=<?php echo urlencode($token); ?>&download_all=1"
-                           class="btn btn-success btn-lg download-all-btn px-5 py-3"
-                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($folder['folder_name']) . '.zip'); ?>)">
+                        <button type="button"
+                                class="btn btn-success btn-lg download-all-btn px-5 py-3"
+                                onclick="initiateZipDownload(<?php echo json_encode($token); ?>, null, null)">
                             <i class="fas fa-download me-2"></i>
                             सबै डाउनलोड गर्नुहोस् (<?php echo $file_count; ?> फाइलहरू)
-                        </a>
+                        </button>
                         <p style="color:var(--text-secondary);" class="mt-3 mb-0">
                             <small><i class="fas fa-file-archive me-1"></i> ZIP फाइलमा डाउनलोड हुन्छ</small>
                         </p>
@@ -1826,8 +2009,12 @@ if ($folder && !$error_message) {
                             $download_url_qs = '?token=' . urlencode($token) . '&download_photo=' . $photo['id'];
                             $photo_title_js = json_encode($photo['title'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                         ?>
-                            <div class="photo-card">
+                            <div class="photo-card" data-photo-id="<?php echo (int)$photo['id']; ?>">
+                                <div class="photo-select-cb">
+                                    <input type="checkbox" class="form-check-input photo-cb" onclick="event.stopPropagation()">
+                                </div>
                                 <div class="photo-media">
+                                <div class="selection-overlay" onclick="togglePhotoSelection(this.closest('.photo-card'))"></div>
                                 <?php if ($is_video): ?>
                                     <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)">
                                         <div class="video-play-overlay">
@@ -1866,7 +2053,7 @@ if ($folder && !$error_message) {
                                 <?php endif; ?>
                                 </div>
                                 
-                                <div class="photo-info">
+                                <div class="photo-info" onclick="if(document.body.classList.contains('selection-mode')){togglePhotoSelection(this.closest('.photo-card'));}">
                                     <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
                                         <?php echo htmlspecialchars($photo['title']); ?>
                                     </div>
@@ -1909,8 +2096,12 @@ if ($folder && !$error_message) {
                             $download_url_qs = '?token=' . urlencode($token) . '&download_photo=' . $photo['id'];
                             $photo_title_js = json_encode($photo['title'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                         ?>
-                            <div class="photo-card">
+                            <div class="photo-card" data-photo-id="<?php echo (int)$photo['id']; ?>">
+                                <div class="photo-select-cb">
+                                    <input type="checkbox" class="form-check-input photo-cb" onclick="event.stopPropagation()">
+                                </div>
                                 <div class="photo-media">
+                                <div class="selection-overlay" onclick="togglePhotoSelection(this.closest('.photo-card'))"></div>
                                 <?php if ($is_video): ?>
                                     <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)">
                                         <div class="video-play-overlay">
@@ -1949,7 +2140,7 @@ if ($folder && !$error_message) {
                                 <?php endif; ?>
                                 </div>
                                 
-                                <div class="photo-info">
+                                <div class="photo-info" onclick="if(document.body.classList.contains('selection-mode')){togglePhotoSelection(this.closest('.photo-card'));}">
                                     <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
                                         <?php echo htmlspecialchars($photo['title']); ?>
                                     </div>
@@ -2051,6 +2242,31 @@ if ($folder && !$error_message) {
     </div><!-- End page-wrapper -->
     <?php endif; ?>
     
+    <!-- ── Photo Selection Toolbar (fixed bottom bar) ── -->
+    <div id="selectionToolbar">
+        <span class="sel-count"><span id="selCount">0</span> selected</span>
+        <button class="btn btn-sel-all" type="button" onclick="selectAllPhotos()">Select All</button>
+        <button class="btn btn-dl-sel" type="button" onclick="downloadSelected()">
+            <i class="fas fa-download me-1"></i> Download Selected
+        </button>
+        <button class="btn btn-cancel" type="button" onclick="exitSelectionMode()">Cancel</button>
+    </div>
+
+    <!-- ── ZIP Generation Progress Overlay ── -->
+    <div id="zipProgressOverlay">
+        <div class="zip-progress-card">
+            <div class="zip-progress-icon"><i class="fas fa-file-archive" id="zipIcon"></i></div>
+            <div class="zip-progress-title" id="zipTitle">Generating ZIP…</div>
+            <div class="zip-progress-msg" id="zipMsg">Please wait while we prepare your download.</div>
+            <div class="zip-progress-bar-wrap">
+                <div class="zip-progress-bar-fill" id="zipBar" style="width:30%;"></div>
+            </div>
+            <a id="zipReadyBtn" class="btn btn-success zip-ready-btn px-4" href="#" download>
+                <i class="fas fa-download me-2"></i> Download ZIP
+            </a>
+        </div>
+    </div>
+
     <!-- Lightbox for image preview -->
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
         <span class="lightbox-close">&times;</span>
@@ -2355,6 +2571,224 @@ if ($folder && !$error_message) {
 
             // Small initial delay so the overlay is visible before first download fires
             setTimeout(triggerNext, 150);
+            return false;
+        }
+
+        /**
+         * Selection Mode – lets users checkmark individual photos then download
+         * them as a pre-generated ZIP via the generate-zip API.
+         */
+        var selectionModeActive = false;
+        var selectedPhotoIds    = [];
+
+        // Inline selection overlay: sits above the photo but below the download
+        // button (z-index 20) so individual downloads still work in select mode.
+        // Injected via CSS – see .selection-overlay rule added in <style>.
+        (function addSelectionOverlayStyle() {
+            var s = document.createElement('style');
+            s.textContent =
+                '.selection-overlay{display:none;position:absolute;inset:0;z-index:18;cursor:pointer;}' +
+                'body.selection-mode .selection-overlay{display:block;}';
+            document.head.appendChild(s);
+        })();
+
+        function toggleSelectionMode() {
+            if (selectionModeActive) {
+                exitSelectionMode();
+            } else {
+                enterSelectionMode();
+            }
+        }
+
+        function enterSelectionMode() {
+            selectionModeActive = true;
+            document.body.classList.add('selection-mode');
+            var btn = document.getElementById('selectionModeBtn');
+            if (btn) {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel Selection';
+            }
+            document.getElementById('selectionToolbar').classList.add('visible');
+            updateSelectionCount();
+        }
+
+        function exitSelectionMode() {
+            selectionModeActive = false;
+            document.body.classList.remove('selection-mode');
+            selectedPhotoIds = [];
+            // Uncheck all checkboxes and remove selected class
+            document.querySelectorAll('.photo-card').forEach(function(card) {
+                card.classList.remove('selected');
+                var cb = card.querySelector('.photo-cb');
+                if (cb) cb.checked = false;
+            });
+            var btn = document.getElementById('selectionModeBtn');
+            if (btn) {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fas fa-check-square me-1"></i> Select Photos';
+            }
+            document.getElementById('selectionToolbar').classList.remove('visible');
+        }
+
+        function togglePhotoSelection(card) {
+            if (!selectionModeActive) return;
+            var id = parseInt(card.getAttribute('data-photo-id'), 10);
+            if (!id) return;
+
+            var idx = selectedPhotoIds.indexOf(id);
+            var cb  = card.querySelector('.photo-cb');
+            if (idx === -1) {
+                selectedPhotoIds.push(id);
+                card.classList.add('selected');
+                if (cb) cb.checked = true;
+            } else {
+                selectedPhotoIds.splice(idx, 1);
+                card.classList.remove('selected');
+                if (cb) cb.checked = false;
+            }
+            updateSelectionCount();
+        }
+
+        function updateSelectionCount() {
+            var n    = selectedPhotoIds.length;
+            var span = document.getElementById('selCount');
+            if (span) span.textContent = n;
+            var dlBtn = document.querySelector('#selectionToolbar .btn-dl-sel');
+            if (dlBtn) {
+                dlBtn.disabled = (n === 0);
+                dlBtn.innerHTML = n > 0
+                    ? '<i class="fas fa-download me-1"></i> Download Selected (' + n + ')'
+                    : '<i class="fas fa-download me-1"></i> Download Selected';
+            }
+        }
+
+        function selectAllPhotos() {
+            document.querySelectorAll('.photo-card[data-photo-id]').forEach(function(card) {
+                var id = parseInt(card.getAttribute('data-photo-id'), 10);
+                if (id && selectedPhotoIds.indexOf(id) === -1) {
+                    selectedPhotoIds.push(id);
+                    card.classList.add('selected');
+                    var cb = card.querySelector('.photo-cb');
+                    if (cb) cb.checked = true;
+                }
+            });
+            updateSelectionCount();
+        }
+
+        function downloadSelected() {
+            if (selectedPhotoIds.length === 0) return;
+            var token = <?php echo json_encode($token); ?>;
+            initiateZipDownload(token, selectedPhotoIds.slice(), null);
+        }
+
+        /**
+         * Initiate a ZIP download via the generate-zip API.
+         * Shows a progress overlay while the server builds the ZIP, then
+         * triggers a direct file download once the URL is ready.
+         *
+         * @param {string}      token     Folder download token
+         * @param {number[]|null} photoIds  Array of photo IDs (null = all)
+         * @param {string|null}  album     Album / subfolder name filter (null = all)
+         */
+        function initiateZipDownload(token, photoIds, album) {
+            var overlay  = document.getElementById('zipProgressOverlay');
+            var icon     = document.getElementById('zipIcon');
+            var title    = document.getElementById('zipTitle');
+            var msg      = document.getElementById('zipMsg');
+            var bar      = document.getElementById('zipBar');
+            var readyBtn = document.getElementById('zipReadyBtn');
+
+            // Reset & show overlay
+            icon.className   = 'fas fa-spinner fa-spin';
+            title.textContent = 'Generating ZIP\u2026';
+            msg.textContent  = 'Please wait while we prepare your download.';
+            bar.style.width  = '15%';
+            readyBtn.style.display = 'none';
+            overlay.classList.add('visible');
+
+            // Animate the bar while waiting
+            var barPct = 15;
+            var barTimer = setInterval(function() {
+                barPct = Math.min(barPct + 5, 88);
+                bar.style.width = barPct + '%';
+            }, 600);
+
+            // Close overlay if user clicks outside the card
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    clearInterval(barTimer);
+                    overlay.classList.remove('visible');
+                }
+            };
+
+            // Build form data
+            var fd = new FormData();
+            fd.append('token', token);
+            if (photoIds && photoIds.length > 0) {
+                fd.append('photo_ids', JSON.stringify(photoIds));
+            }
+            if (album !== null && album !== undefined) {
+                fd.append('album', album);
+            }
+
+            fetch(<?php echo json_encode(BASE_URL . '/api/generate-zip.php'); ?>, {
+                method: 'POST',
+                body: fd
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                clearInterval(barTimer);
+                bar.style.width = '100%';
+
+                if (data.success) {
+                    icon.className    = 'fas fa-check-circle';
+                    title.textContent = 'ZIP Ready!';
+                    msg.textContent   = data.file_count + ' file' + (data.file_count !== 1 ? 's' : '') + ' included.';
+                    readyBtn.href     = data.download_url;
+                    readyBtn.setAttribute('download', data.zip_filename || 'download.zip');
+                    readyBtn.style.display = 'inline-block';
+
+                    // Trigger the download automatically
+                    var a = document.createElement('a');
+                    a.href     = data.download_url;
+                    a.download = data.zip_filename || 'download.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    // Auto-close overlay after 3 s
+                    setTimeout(function() { overlay.classList.remove('visible'); }, 3000);
+
+                    // Exit selection mode on success
+                    if (selectionModeActive) { exitSelectionMode(); }
+                } else {
+                    icon.className    = 'fas fa-exclamation-circle';
+                    icon.style.color  = '#dc3545';
+                    title.textContent = 'Download Failed';
+                    msg.textContent   = data.error || 'An error occurred. Please try again.';
+                    bar.style.background = '#dc3545';
+                    readyBtn.style.display = 'none';
+                    setTimeout(function() {
+                        overlay.classList.remove('visible');
+                        icon.style.color = '';
+                        bar.style.background = '';
+                    }, 3500);
+                }
+            })
+            .catch(function(err) {
+                clearInterval(barTimer);
+                icon.className    = 'fas fa-exclamation-circle';
+                icon.style.color  = '#dc3545';
+                title.textContent = 'Network Error';
+                msg.textContent   = 'Could not connect to server. Please try again.';
+                bar.style.background = '#dc3545';
+                setTimeout(function() {
+                    overlay.classList.remove('visible');
+                    icon.style.color = '';
+                    bar.style.background = '';
+                }, 3500);
+            });
+
             return false;
         }
     </script>
