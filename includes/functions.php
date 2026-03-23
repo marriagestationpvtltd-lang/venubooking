@@ -779,10 +779,7 @@ function getPublicStats() {
     }
 
     if ($service_years_override !== '' && is_numeric($service_years_override)) {
-        $override_value = max(0, (int)$service_years_override);
-        if ($override_value > 0) {
-            $stats['service_years'] = $override_value;
-        }
+        $stats['service_years'] = max(0, (int)$service_years_override);
     }
 
     if ($stats['service_years'] <= 0) {
