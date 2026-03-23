@@ -1114,6 +1114,7 @@ $thankyou_text .= "It was a pleasure to host your *" . strip_tags($booking['even
 $thankyou_text .= "📅 " . convertToNepaliDate($booking['event_date']) . " | ✅ Paid\n\n";
 $thankyou_text .= "We hope everything was wonderful! 🎉\n\n";
 $thankyou_text .= "⭐ *Share Your Experience*\n";
+$thankyou_text .= "कृपया रिभ्यु लेख्न तलको लिङ्कमा क्लिक गर्नुहोस्।\n";
 $thankyou_text .= $google_review_link . "\n\n";
 $thankyou_text .= "*" . strip_tags($site_name_wa) . "*";
 $contact_phone_wa = getSetting('contact_phone', '');
