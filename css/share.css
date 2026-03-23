@@ -1,6 +1,157 @@
-/* Global page share button */
+/* ── Inline Section Share Button ── */
 .section-share-wrap {
-    display: none !important;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.section-share-btn {
+    background: #f8f9fa;
+    border: 1px solid #d9d9d9;
+    border-radius: .375rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #555;
+    font-size: .9rem;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: .45rem .85rem;
+    gap: 6px;
+    line-height: 1;
+}
+
+.section-share-btn:hover,
+.section-share-btn.active {
+    background: #f0f8f0;
+    color: #2e7d32;
+    border-color: #2e7d32;
+    box-shadow: 0 2px 8px rgba(46,125,50,0.15);
+}
+
+.section-share-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    padding: 6px;
+    min-width: 185px;
+    z-index: 200;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.section-share-dropdown.open {
+    display: block;
+}
+
+.share-opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 12px;
+    border-radius: 7px;
+    text-decoration: none;
+    color: #333;
+    font-size: 13px;
+    border: none;
+    background: none;
+    width: 100%;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.share-opt:hover {
+    background: #f5f5f5;
+    color: #111;
+    text-decoration: none;
+}
+
+.share-opt .fab.fa-whatsapp { color: #25D366; }
+.share-opt .fab.fa-facebook-f { color: #1877F2; }
+.share-opt .fas.fa-link { color: #555; }
+.share-opt .fas.fa-external-link-alt { color: #2e7d32; }
+
+/* Toast notification for copy confirmation */
+.share-copied-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: #2e7d32;
+    color: #fff;
+    padding: 9px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 9999;
+}
+
+.share-copied-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* When inside .section-heading-wrap: absolute top-right, circle icon button */
+.section-heading-wrap {
+    position: relative;
+}
+
+.section-heading-wrap > .section-share-wrap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-block;
+}
+
+.section-heading-wrap > .section-share-wrap .section-share-btn {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    gap: 0;
+    font-size: 13px;
+}
+
+/* Full-width inline variant (e.g. inside a flex button row) */
+.section-share-wrap.share-inline {
+    position: relative;
+    top: auto;
+    right: auto;
+    display: block;
+    width: 100%;
+}
+
+.section-share-wrap.share-inline .section-share-btn {
+    width: 100%;
+}
+
+.section-share-wrap.share-inline .section-share-dropdown {
+    left: 0;
+    right: 0;
+    min-width: 100%;
+}
+
+@media (max-width: 576px) {
+    .section-heading-wrap > .section-share-wrap {
+        top: -2px;
+        right: -2px;
+    }
+
+    .section-share-dropdown {
+        min-width: 170px;
+    }
 }
 
 .page-share-wrap {

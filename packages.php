@@ -37,7 +37,26 @@ if (!empty($service_categories)) {
                 <li class="breadcrumb-item active text-white" aria-current="page">Packages</li>
             </ol>
         </nav>
-        <h1 class="h3 mb-0 fw-bold"><i class="fas fa-box-open me-2"></i>हाम्रा सेवा प्याकेजहरू</h1>
+        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+            <h1 class="h3 mb-0 fw-bold"><i class="fas fa-box-open me-2"></i>हाम्रा सेवा प्याकेजहरू</h1>
+            <div class="section-share-wrap">
+                <button class="section-share-btn" type="button" title="Share" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-share-alt" aria-hidden="true"></i>
+                    <span>Share</span>
+                </button>
+                <div class="section-share-dropdown" role="menu" aria-label="Share options">
+                    <button class="share-opt share-copy" type="button" role="menuitem">
+                        <i class="fas fa-link" aria-hidden="true"></i> Copy link
+                    </button>
+                    <a class="share-opt share-whatsapp" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-whatsapp" aria-hidden="true"></i> Share on WhatsApp
+                    </a>
+                    <a class="share-opt share-facebook" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-facebook-f" aria-hidden="true"></i> Share on Facebook
+                    </a>
+                </div>
+            </div>
+        </div>
         <p class="mb-0 mt-1 text-white-75 small">Our Service Packages — तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
     </div>
 </div>
