@@ -27,6 +27,12 @@ foreach ($services as &$svc) {
 }
 unset($svc);
 
+// Fetch service packages grouped by category (same as frontend booking-step4.php)
+$packages_by_category = getServicePackagesByCategory();
+$packages_by_category = array_filter($packages_by_category, function ($cat) {
+    return !empty($cat['packages']);
+});
+
 // Fetch active payment methods
 $payment_methods = getActivePaymentMethods();
 
@@ -67,6 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     $selected_payment_methods = isset($_POST['payment_methods']) ? $_POST['payment_methods'] : [];
+    $selected_packages = isset($_POST['packages']) ? array_map('intval', (array)$_POST['packages']) : [];
+    $slot_price_override = (isset($_POST['slot_price_override']) && is_numeric($_POST['slot_price_override']) && $_POST['slot_price_override'] !== '') ? (float)$_POST['slot_price_override'] : null;
     $booking_status = $_POST['booking_status'];
     $payment_status = $_POST['payment_status'];
     $advance_payment_received = isset($_POST['advance_payment_received']) ? 1 : 0;
@@ -76,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
         // Check availability
-        if (!checkHallAvailability($hall_id, $event_date, $shift)) {
+        if (!checkHallAvailability($hall_id, $event_date, $shift, $start_time ?: null, $end_time ?: null)) {
             $error_message = 'This hall is not available for the selected date and shift.';
         } else {
             try {
@@ -89,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $customer_id = getOrCreateCustomer($full_name, $phone, $email, $address);
                 
                 // Calculate totals
-                $totals = calculateBookingTotal($hall_id, $selected_menus, $number_of_guests, $selected_services, $selected_designs);
+                $totals = calculateBookingTotal($hall_id, $selected_menus, $number_of_guests, $selected_services, $selected_designs, $selected_packages, $slot_price_override);
                 
                 // Insert booking
                 $sql = "INSERT INTO bookings (
@@ -151,6 +159,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($service) {
                             $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category) VALUES (?, ?, ?, ?, ?, ?)");
                             $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category']]);
+                        }
+                    }
+                }
+
+                // Insert selected service packages into booking_services
+                if (!empty($selected_packages)) {
+                    foreach ($selected_packages as $package_id) {
+                        $package_id = intval($package_id);
+                        if ($package_id <= 0) continue;
+                        try {
+                            $stmt = $db->prepare("SELECT name, price, description FROM service_packages WHERE id = ? AND status = 'active'");
+                            $stmt->execute([$package_id]);
+                            $package = $stmt->fetch();
+                            if ($package) {
+                                $insert = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                                $insert->execute([
+                                    $booking_id,
+                                    $package_id,
+                                    $package['name'],
+                                    $package['price'],
+                                    $package['description'] ?? '',
+                                    PACKAGE_SERVICE_CATEGORY,
+                                    USER_SERVICE_TYPE,
+                                    DEFAULT_SERVICE_QUANTITY,
+                                ]);
+                            }
+                        } catch (\Throwable $pkgErr) {
+                            error_log("Package insertion skipped for booking {$booking_id}, package_id={$package_id}: " . $pkgErr->getMessage());
                         }
                     }
                 }
@@ -358,6 +394,24 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                     </div>
 
+                    <!-- Time Slot Selection -->
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <div id="admin-selected-slot-info" class="alert alert-success py-2 d-none">
+                                <i class="fas fa-check-circle me-1"></i>
+                                <strong>Time Slot:</strong> <span id="admin-slot-name-display"></span>
+                                &bull; <span id="admin-slot-time-display"></span>
+                                <button type="button" class="btn-close float-end btn-sm" onclick="adminClearTimeSlot()" title="Clear selected slot"></button>
+                            </div>
+                            <input type="hidden" name="slot_id" id="admin-slot-id" value="<?php echo isset($_POST['slot_id']) ? intval($_POST['slot_id']) : ''; ?>">
+                            <input type="hidden" name="slot_price_override" id="admin-slot-price-override" value="<?php echo isset($_POST['slot_price_override']) && is_numeric($_POST['slot_price_override']) ? htmlspecialchars($_POST['slot_price_override']) : ''; ?>">
+                            <button type="button" id="admin-check-slots-btn" class="btn btn-outline-primary btn-sm" disabled onclick="adminOpenTimeSlotModal()">
+                                <i class="fas fa-clock me-1"></i> View Available Time Slots
+                            </button>
+                            <small class="text-muted ms-2">Or set shift/start/end manually below.</small>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -387,6 +441,87 @@ require_once __DIR__ . '/../includes/header.php';
                             </div>
                         </div>
                     </div>
+
+                    <?php if (!empty($packages_by_category)): ?>
+                    <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">Service Packages (Optional)</h6>
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <!-- Category filter buttons -->
+                            <div class="d-flex flex-wrap gap-2 mb-3" id="admin-pkg-category-btns">
+                                <?php $pkg_cat_idx = 0; foreach ($packages_by_category as $cat): ?>
+                                    <?php if (empty($cat['packages'])) continue; ?>
+                                    <button type="button"
+                                            class="btn btn-sm admin-pkg-category-btn <?php echo $pkg_cat_idx === 0 ? 'btn-success' : 'btn-outline-secondary'; ?>"
+                                            data-pkg-cat="admin-pkgcat<?php echo (int)$cat['id']; ?>">
+                                        <i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($cat['name']); ?>
+                                    </button>
+                                <?php $pkg_cat_idx++; endforeach; ?>
+                            </div>
+                            <!-- Per-category package panels -->
+                            <?php $pkg_cat_idx = 0; foreach ($packages_by_category as $cat): ?>
+                                <?php if (empty($cat['packages'])) continue; ?>
+                                <div class="admin-pkg-category-panel <?php echo $pkg_cat_idx > 0 ? 'd-none' : ''; ?>"
+                                     id="admin-pkgcat<?php echo (int)$cat['id']; ?>">
+                                    <div class="row g-3 mb-3">
+                                        <?php foreach ($cat['packages'] as $pkg): ?>
+                                            <div class="col-sm-6 col-lg-4">
+                                                <div class="card h-100 border admin-pkg-card" style="cursor:pointer;"
+                                                     onclick="document.getElementById('admin_pkg_<?php echo intval($pkg['id']); ?>').click()">
+                                                    <?php if (!empty($pkg['photos'])): ?>
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($pkg['photos'][0]); ?>"
+                                                             alt="<?php echo htmlspecialchars($pkg['name']); ?>"
+                                                             class="card-img-top"
+                                                             style="height:150px;object-fit:cover;">
+                                                    <?php else: ?>
+                                                        <div class="d-flex align-items-center justify-content-center bg-light"
+                                                             style="height:150px;">
+                                                            <i class="fas fa-box fa-2x text-muted"></i>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <div class="card-body p-2">
+                                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                                            <div class="form-check flex-grow-1 me-1">
+                                                                <input class="form-check-input admin-package-checkbox"
+                                                                       type="checkbox"
+                                                                       name="packages[]"
+                                                                       value="<?php echo $pkg['id']; ?>"
+                                                                       id="admin_pkg_<?php echo $pkg['id']; ?>"
+                                                                       data-price="<?php echo htmlspecialchars($pkg['price'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                       <?php echo (isset($_POST['packages']) && in_array($pkg['id'], $_POST['packages'])) ? 'checked' : ''; ?>
+                                                                       onclick="event.stopPropagation()">
+                                                                <label class="form-check-label fw-semibold small"
+                                                                       for="admin_pkg_<?php echo $pkg['id']; ?>"
+                                                                       onclick="event.stopPropagation()">
+                                                                    <?php echo htmlspecialchars($pkg['name']); ?>
+                                                                </label>
+                                                            </div>
+                                                            <span class="text-success fw-bold small text-nowrap">
+                                                                <?php echo formatCurrency($pkg['price']); ?>
+                                                            </span>
+                                                        </div>
+                                                        <?php if (!empty($pkg['description'])): ?>
+                                                            <p class="text-muted small mb-1"><?php echo htmlspecialchars($pkg['description']); ?></p>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($pkg['features'])): ?>
+                                                            <ul class="list-unstyled small mb-0">
+                                                                <?php foreach (array_slice($pkg['features'], 0, 4) as $feat): ?>
+                                                                    <li><i class="fas fa-check-circle text-success me-1"></i><?php echo htmlspecialchars($feat); ?></li>
+                                                                <?php endforeach; ?>
+                                                                <?php if (count($pkg['features']) > 4): ?>
+                                                                    <li class="text-muted"><i class="fas fa-ellipsis-h me-1"></i>+<?php echo count($pkg['features']) - 4; ?> more</li>
+                                                                <?php endif; ?>
+                                                            </ul>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php $pkg_cat_idx++; endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">Menus & Services</h6>
                     <div class="row">
@@ -890,6 +1025,218 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }());
 </script>
+
+<script>
+// Time slot modal and package category filter for admin Add Booking
+(function () {
+    var adminBaseUrl = '<?php echo BASE_URL; ?>';
+    var adminCur = (typeof adminCurrency !== 'undefined') ? adminCurrency : 'NPR';
+
+    function fmtPrice(amount) {
+        var num = parseFloat(amount) || 0;
+        return adminCur + ' ' + num.toLocaleString('en-NP', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function escHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // ── Enable "View Time Slots" button when hall + date are both set ─────────
+    function updateSlotsBtn() {
+        var hallId = document.getElementById('hall_id') ? document.getElementById('hall_id').value : '';
+        var eventDate = document.getElementById('event_date') ? document.getElementById('event_date').value : '';
+        var btn = document.getElementById('admin-check-slots-btn');
+        if (btn) btn.disabled = !(hallId && eventDate);
+    }
+
+    var hallSel = document.getElementById('hall_id');
+    var dateSel = document.getElementById('event_date');
+    if (hallSel) hallSel.addEventListener('change', updateSlotsBtn);
+    if (dateSel) dateSel.addEventListener('change', updateSlotsBtn);
+    updateSlotsBtn();
+
+    // ── Open time slot modal ─────────────────────────────────────────────────
+    window.adminOpenTimeSlotModal = function () {
+        var hallId = document.getElementById('hall_id') ? document.getElementById('hall_id').value : '';
+        var eventDate = document.getElementById('event_date') ? document.getElementById('event_date').value : '';
+        if (!hallId || !eventDate) return;
+
+        var content = document.getElementById('admin-time-slots-content');
+        if (content) {
+            content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div><div class="mt-2">Loading time slots...</div></div>';
+        }
+
+        var modalEl = document.getElementById('adminTimeSlotModal');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        fetch(adminBaseUrl + '/api/get-time-slots.php?hall_id=' + encodeURIComponent(hallId) + '&date=' + encodeURIComponent(eventDate))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!content) return;
+                if (!data.success || !data.slots || data.slots.length === 0) {
+                    content.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i>No time slots are configured for this hall. Set the shift and times manually below.</div>';
+                    return;
+                }
+                var html = '<div class="row g-3">';
+                // Pending slot selections stored as data attributes to avoid onclick injection
+                var slotDataMap = {};
+                data.slots.forEach(function (slot) {
+                    slotDataMap[slot.id] = slot;
+                    var avail = slot.available;
+                    var cardClass = avail ? 'border-success' : 'bg-light text-muted';
+                    var cursor = avail ? 'cursor:pointer;' : 'cursor:not-allowed;opacity:.6;';
+                    var dataAttrs = avail
+                        ? ' data-slot-id="' + slot.id + '"'
+                        : '';
+                    html += '<div class="col-md-4 col-sm-6">';
+                    html += '<div class="card h-100 admin-slot-card ' + cardClass + '" style="' + cursor + '"' + dataAttrs + '>';
+                    html += '<div class="card-body text-center py-3">';
+                    html += '<div class="fw-bold mb-1">' + escHtml(slot.slot_name) + '</div>';
+                    html += '<div class="small">' + escHtml(slot.start_time_display) + ' &ndash; ' + escHtml(slot.end_time_display) + '</div>';
+                    if (slot.price_override !== null) {
+                        html += '<div class="text-success fw-bold mt-1">' + fmtPrice(slot.price_override) + '</div>';
+                    }
+                    html += '<div class="mt-2">';
+                    html += avail
+                        ? '<span class="badge bg-success">Available</span>'
+                        : '<span class="badge bg-secondary">Booked</span>';
+                    html += '</div>';
+                    html += '</div></div></div>';
+                });
+                html += '</div>';
+                content.innerHTML = html;
+
+                // Attach click handlers using stored data (no inline onclick)
+                content.querySelectorAll('.admin-slot-card[data-slot-id]').forEach(function (card) {
+                    card.addEventListener('click', function () {
+                        var sid = parseInt(this.dataset.slotId, 10);
+                        var s = slotDataMap[sid];
+                        if (s) adminSelectTimeSlot(s.id, s.slot_name, s.start_time, s.end_time, s.price_override);
+                    });
+                });
+            })
+            .catch(function () {
+                if (content) content.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-1"></i>Error loading time slots. Please try again.</div>';
+            });
+    };
+
+    // ── Select a time slot: auto-fill shift/start/end and store slot_id ──────
+    window.adminSelectTimeSlot = function (slotId, slotName, startTime, endTime, priceOverride) {
+        // Derive shift from times — mirrors PHP deriveShiftFromTimes()
+        var sTotal = parseInt(startTime.substring(0, 2), 10) * 60 + parseInt(startTime.substring(3, 5), 10);
+        var eTotal = parseInt(endTime.substring(0, 2), 10) * 60 + parseInt(endTime.substring(3, 5), 10);
+        var shift;
+        if (eTotal <= 12 * 60) {
+            shift = 'morning';
+        } else if (sTotal >= 12 * 60 && eTotal <= 18 * 60) {
+            shift = 'afternoon';
+        } else if (sTotal >= 18 * 60) {
+            shift = 'evening';
+        } else {
+            shift = 'fullday';
+        }
+
+        var shiftSel = document.getElementById('shift');
+        if (shiftSel) shiftSel.value = shift;
+
+        var startHHMM = startTime.substring(0, 5);
+        var endHHMM   = endTime.substring(0, 5);
+        var startSel  = document.getElementById('start_time');
+        var endSel    = document.getElementById('end_time');
+        if (startSel) {
+            for (var i = 0; i < startSel.options.length; i++) {
+                if (startSel.options[i].value === startHHMM) { startSel.selectedIndex = i; break; }
+            }
+        }
+        if (endSel) {
+            for (var j = 0; j < endSel.options.length; j++) {
+                if (endSel.options[j].value === endHHMM) { endSel.selectedIndex = j; break; }
+            }
+        }
+
+        // Store slot ID and price override
+        var slotInput = document.getElementById('admin-slot-id');
+        if (slotInput) slotInput.value = slotId;
+        var priceInput = document.getElementById('admin-slot-price-override');
+        if (priceInput) priceInput.value = (priceOverride !== null && priceOverride !== undefined) ? priceOverride : '';
+
+        // Show selected slot info banner
+        var infoDiv = document.getElementById('admin-selected-slot-info');
+        var nameSpan = document.getElementById('admin-slot-name-display');
+        var timeSpan = document.getElementById('admin-slot-time-display');
+        if (infoDiv) infoDiv.classList.remove('d-none');
+        if (nameSpan) nameSpan.textContent = slotName;
+        if (timeSpan) timeSpan.textContent = startTime + ' – ' + endTime;
+
+        // Close the modal
+        var modalEl = document.getElementById('adminTimeSlotModal');
+        if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+    };
+
+    // ── Clear selected time slot ─────────────────────────────────────────────
+    window.adminClearTimeSlot = function () {
+        var slotInput = document.getElementById('admin-slot-id');
+        if (slotInput) slotInput.value = '';
+        var priceInput = document.getElementById('admin-slot-price-override');
+        if (priceInput) priceInput.value = '';
+        var infoDiv = document.getElementById('admin-selected-slot-info');
+        if (infoDiv) infoDiv.classList.add('d-none');
+    };
+
+    // ── Package category filter ──────────────────────────────────────────────
+    document.querySelectorAll('.admin-pkg-category-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var targetId = btn.dataset.pkgCat;
+            document.querySelectorAll('.admin-pkg-category-btn').forEach(function (b) {
+                b.classList.remove('btn-success');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-success');
+            document.querySelectorAll('.admin-pkg-category-panel').forEach(function (panel) {
+                panel.classList.toggle('d-none', panel.id !== targetId);
+            });
+        });
+    });
+
+    // ── Package card visual toggle (highlight on checkbox check) ────────────
+    document.querySelectorAll('.admin-package-checkbox').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            var card = this.closest('.admin-pkg-card');
+            if (card) card.classList.toggle('border-success', this.checked);
+        });
+        // Reflect initial checked state (on page reload with form error)
+        var card = cb.closest('.admin-pkg-card');
+        if (card && cb.checked) card.classList.add('border-success');
+    });
+}());
+</script>
+
+<!-- Time Slot Selection Modal -->
+<div class="modal fade" id="adminTimeSlotModal" tabindex="-1" aria-labelledby="adminTimeSlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adminTimeSlotModalLabel">
+                    <i class="fas fa-clock me-2 text-success"></i>Available Time Slots
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="admin-time-slots-content">
+                    <div class="text-center py-4 text-muted">Select a hall and event date to view available time slots.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php
 $extra_js = '<script src="' . BASE_URL . '/admin/js/admin-booking-calendar.js"></script>';
