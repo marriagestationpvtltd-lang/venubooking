@@ -4,7 +4,8 @@ $page_description = 'View detailed information about our service package includi
 $page_keywords    = 'service package details, venue package, event package, Nepal';
 require_once __DIR__ . '/includes/header.php';
 
-$package_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$package_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$package_id = $package_id ? (int) $package_id : 0;
 $package    = null;
 $features   = [];
 $photos     = [];
@@ -292,26 +293,23 @@ $package_share_id      = $package_id > 0 ? 'package-detail-' . $package_id : '';
     font-size: .95rem;
 }
 .section-share-wrap {
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: relative;
     display: inline-block;
 }
 .section-share-btn {
-    background: #fff;
+    background: #f8f9fa;
     border: 1px solid #d9d9d9;
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
+    border-radius: .375rem;
+    width: 100%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     color: #555;
-    font-size: 13px;
+    font-size: .95rem;
     transition: background 0.18s, color 0.18s, box-shadow 0.18s;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    padding: 0;
+    padding: .55rem 1rem;
     gap: 6px;
 }
 .section-share-btn:hover,
@@ -388,15 +386,6 @@ $package_share_id      = $package_id > 0 ? 'package-detail-' . $package_id : '';
     right: auto;
     display: block;
     width: 100%;
-}
-.section-share-wrap.share-inline .section-share-btn {
-    border-radius: .375rem;
-    width: 100%;
-    height: auto;
-    padding: .55rem 1rem;
-    font-size: .95rem;
-    justify-content: center;
-    background: #f8f9fa;
 }
 .section-share-wrap.share-inline .section-share-dropdown {
     left: 0;
@@ -500,7 +489,9 @@ $extra_js = '
             e.preventDefault();
             e.stopPropagation();
             var url = getShareUrl(waBtn.getAttribute(\'data-section\'));
-            waBtn.href = \'https://wa.me/?text=\' + encodeURIComponent(url);
+            var waShareUrl = \'https://wa.me/?text=\' + encodeURIComponent(url);
+            waBtn.href = waShareUrl;
+            window.open(waShareUrl, \'_blank\', \'noopener\');
             closeDropdowns();
             return;
         }
@@ -509,7 +500,9 @@ $extra_js = '
             e.preventDefault();
             e.stopPropagation();
             var url = getShareUrl(fbBtn.getAttribute(\'data-section\'));
-            fbBtn.href = \'https://www.facebook.com/sharer/sharer.php?u=\' + encodeURIComponent(url);
+            var fbShareUrl = \'https://www.facebook.com/sharer/sharer.php?u=\' + encodeURIComponent(url);
+            fbBtn.href = fbShareUrl;
+            window.open(fbShareUrl, \'_blank\', \'noopener\');
             closeDropdowns();
             return;
         }
