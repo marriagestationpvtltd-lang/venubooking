@@ -48,6 +48,10 @@ $selected_services = array_column($booking['services'], 'service_id');
 // Get currently selected payment methods
 $selected_payment_methods = array_column(getBookingPaymentMethods($booking_id), 'id');
 
+$recommended_advance = calculateAdvancePayment($booking['grand_total']);
+$payment_summary = calculatePaymentSummary($booking_id);
+$display_grand_total = floatval($payment_summary['grand_total']);
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF token
@@ -74,8 +78,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $post_selected_menus = isset($_POST['menus']) ? $_POST['menus'] : [];
     $post_selected_services = isset($_POST['services']) ? $_POST['services'] : [];
     $post_selected_payment_methods = isset($_POST['payment_methods']) ? $_POST['payment_methods'] : [];
-    $booking_status = $_POST['booking_status'];
     $payment_status = $_POST['payment_status'];
+    $advance_amount_input = isset($_POST['advance_amount_received']) ? trim($_POST['advance_amount_received']) : '';
+    $advance_amount_value = ($advance_amount_input !== '' && is_numeric($advance_amount_input)) ? floatval($advance_amount_input) : null;
+
+    $auto_status = getAutoStatusByPaymentStatus($payment_status);
+    $booking_status = $auto_status['booking_status'] ?? ($payment_status === 'cancelled' ? 'cancelled' : $booking['booking_status']);
+    $is_advance_received = $auto_status['advance_payment_received'] ?? ($payment_status === 'cancelled' ? 0 : $booking['advance_payment_received']);
+
+    $current_advance_amount = floatval($booking['advance_amount_received'] ?? 0);
+    if ($payment_status === 'partial') {
+        $advance_amount_received = ($advance_amount_value !== null) ? $advance_amount_value : $current_advance_amount;
+    } elseif ($payment_status === 'paid') {
+        $advance_amount_received = ($advance_amount_value !== null) ? $advance_amount_value : floatval($booking['grand_total']);
+    } else {
+        $advance_amount_received = 0.0;
+    }
     
     // Store old status for email notification
     $old_booking_status = $booking['booking_status'];
@@ -85,6 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validation
     if (empty($full_name) || empty($phone) || $hall_id <= 0 || empty($event_date) || $number_of_guests <= 0) {
         $error_message = 'Please fill in all required fields correctly.';
+    } elseif ($advance_amount_input !== '' && $advance_amount_value === null) {
+        $error_message = 'Advance amount must be a valid number.';
+    } elseif ($advance_amount_value !== null && $advance_amount_value < 0) {
+        $error_message = 'Advance amount cannot be negative.';
     } else {
         // Check availability (excluding current booking)
         $check_sql = "SELECT COUNT(*) as count FROM bookings 
@@ -109,7 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sql = "UPDATE bookings SET 
                         hall_id = ?, event_date = ?, start_time = ?, end_time = ?, shift = ?, 
                         event_type = ?, number_of_guests = ?, 
-                        special_requests = ?, booking_status = ?, payment_status = ?
+                        special_requests = ?, booking_status = ?, payment_status = ?,
+                        advance_payment_received = ?, advance_amount_received = ?
                         WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
@@ -124,6 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $special_requests,
                     $booking_status,
                     $payment_status,
+                    $is_advance_received,
+                    $advance_amount_received,
                     $booking_id
                 ]);
                 
@@ -164,6 +189,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Recalculate totals to include all services (user + admin)
                 recalculateBookingTotals($booking_id);
+
+                // Keep actual received amount in sync when payment status is marked paid
+                // and no explicit override amount was entered in the form.
+                if ($payment_status === 'paid' && $advance_amount_value === null) {
+                    $updated_total_stmt = $db->prepare("SELECT grand_total FROM bookings WHERE id = ?");
+                    $updated_total_stmt->execute([$booking_id]);
+                    $updated_booking_totals = $updated_total_stmt->fetch();
+                    $updated_grand_total = floatval($updated_booking_totals['grand_total'] ?? 0);
+                    $db->prepare("UPDATE bookings SET advance_amount_received = ? WHERE id = ?")->execute([$updated_grand_total, $booking_id]);
+                }
                 
                 // Link payment methods to booking
                 linkPaymentMethodsToBooking($booking_id, $post_selected_payment_methods);
@@ -200,11 +235,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $selected_menus = array_column($booking['menus'], 'menu_id');
                 $selected_services = array_column($booking['services'], 'service_id');
                 $selected_payment_methods = array_column(getBookingPaymentMethods($booking_id), 'id');
+                $recommended_advance = calculateAdvancePayment($booking['grand_total']);
+                $payment_summary = calculatePaymentSummary($booking_id);
+                $display_grand_total = floatval($payment_summary['grand_total']);
             }
         }
     }
     } // end CSRF-valid else
 }
+
+$display_payment_status = $booking['payment_status'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_status']) && in_array($_POST['payment_status'], ['pending', 'partial', 'paid', 'cancelled'], true)) {
+    $display_payment_status = $_POST['payment_status'];
+}
+
+$display_auto_status = getAutoStatusByPaymentStatus($display_payment_status);
+$display_booking_status = $display_auto_status['booking_status'] ?? ($display_payment_status === 'cancelled' ? 'cancelled' : $booking['booking_status']);
+
+$display_advance_amount = $booking['advance_amount_received'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['advance_amount_received'])) {
+    $display_advance_amount = trim($_POST['advance_amount_received']);
+}
+
+$display_advance_amount_numeric = is_numeric($display_advance_amount) ? floatval($display_advance_amount) : 0.0;
+$display_remaining_after_advance = max(0, $display_grand_total - $display_advance_amount_numeric);
+
+$status_badge_map = [
+    'confirmed' => 'success',
+    'payment_submitted' => 'info',
+    'pending' => 'warning',
+    'cancelled' => 'danger',
+    'completed' => 'primary'
+];
+
+$payment_status_ui_map = [
+    'pending' => [
+        'bookingStatus' => 'pending',
+        'label' => getBookingStatusLabel('pending'),
+        'badge' => 'warning',
+        'advanceRequired' => false
+    ],
+    'partial' => [
+        'bookingStatus' => 'confirmed',
+        'label' => getBookingStatusLabel('confirmed'),
+        'badge' => 'success',
+        'advanceRequired' => true
+    ],
+    'paid' => [
+        'bookingStatus' => 'completed',
+        'label' => getBookingStatusLabel('completed'),
+        'badge' => 'primary',
+        'advanceRequired' => true
+    ],
+    'cancelled' => [
+        'bookingStatus' => 'cancelled',
+        'label' => getBookingStatusLabel('cancelled'),
+        'badge' => 'danger',
+        'advanceRequired' => false
+    ]
+];
 
 // Include the HTML header only after all PHP processing (and potential redirects)
 require_once __DIR__ . '/../includes/header.php';
@@ -525,28 +614,62 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <div class="form-label fw-semibold">Booking Status</div>
-                                <input type="hidden" name="booking_status" value="<?php echo htmlspecialchars($booking['booking_status']); ?>">
-                                <div class="form-control-plaintext">
-                                    <span class="badge bg-<?php
-                                        echo $booking['booking_status'] == 'confirmed' ? 'success' :
-                                            ($booking['booking_status'] == 'payment_submitted' ? 'info' :
-                                            ($booking['booking_status'] == 'pending' ? 'warning' :
-                                            ($booking['booking_status'] == 'cancelled' ? 'danger' :
-                                            ($booking['booking_status'] == 'completed' ? 'primary' : 'secondary'))));
-                                    ?> px-2 py-1 fs-6"><?php echo getBookingStatusLabel($booking['booking_status']); ?></span>
+                                <div class="form-control-plaintext" id="booking-status-display">
+                                    <span class="badge bg-<?php echo htmlspecialchars($status_badge_map[$display_booking_status] ?? 'secondary', ENT_QUOTES, 'UTF-8'); ?> px-2 py-1 fs-6" id="booking-status-badge"><?php echo htmlspecialchars(getBookingStatusLabel($display_booking_status), ENT_QUOTES, 'UTF-8'); ?></span>
                                 </div>
+                                <input type="hidden" name="booking_status" value="<?php echo htmlspecialchars($display_booking_status, ENT_QUOTES, 'UTF-8'); ?>" id="booking_status">
+                                <small class="text-muted d-block mt-1">Booking status is auto-updated from payment status.</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="payment_status" class="form-label">Payment Status</label>
                                 <select class="form-select" id="payment_status" name="payment_status">
-                                    <option value="pending" <?php echo ($booking['payment_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="partial" <?php echo ($booking['payment_status'] == 'partial') ? 'selected' : ''; ?>>Partial</option>
-                                    <option value="paid" <?php echo ($booking['payment_status'] == 'paid') ? 'selected' : ''; ?>>Paid</option>
-                                    <option value="cancelled" <?php echo ($booking['payment_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+                                    <option value="pending" <?php echo ($display_payment_status == 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="partial" <?php echo ($display_payment_status == 'partial') ? 'selected' : ''; ?>>Partial</option>
+                                    <option value="paid" <?php echo ($display_payment_status == 'paid') ? 'selected' : ''; ?>>Paid</option>
+                                    <option value="cancelled" <?php echo ($display_payment_status == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                                 </select>
                                 <small class="text-muted">Flow: Pending → Partial → Paid</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="advance_amount_received" class="form-label">Advance Amount Received</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <input
+                                        type="number"
+                                        class="form-control"
+                                        id="advance_amount_received"
+                                        name="advance_amount_received"
+                                        min="0"
+                                        step="0.01"
+                                        value="<?php echo htmlspecialchars((string)$display_advance_amount, ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-default-partial="<?php echo htmlspecialchars(number_format($recommended_advance['amount'], 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-default-paid="<?php echo htmlspecialchars(number_format($display_grand_total, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                    >
+                                </div>
+                                <small class="text-muted" id="advance-amount-help">For partial payments, enter the actual advance received. For paid bookings, leaving it blank auto-fills the full total. Pending/cancelled clears the amount.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded bg-light p-3 h-100">
+                                <div class="d-flex justify-content-between small mb-2">
+                                    <span class="text-muted">Grand Total</span>
+                                    <strong><?php echo formatCurrency($display_grand_total); ?></strong>
+                                </div>
+                                <div class="d-flex justify-content-between small mb-2">
+                                    <span class="text-muted">Advance Recorded</span>
+                                    <strong><?php echo formatCurrency($display_advance_amount_numeric); ?></strong>
+                                </div>
+                                <div class="d-flex justify-content-between small">
+                                    <span class="text-muted">Remaining After Advance</span>
+                                    <strong><?php echo formatCurrency($display_remaining_after_advance); ?></strong>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -658,6 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // Shift → Time auto-fill for admin Edit Booking form
 (function() {
+    var paymentStatusMap = <?php echo json_encode($payment_status_ui_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     var shiftTimes = {
         'morning':   { start: '06:00', end: '12:00' },
         'afternoon': { start: '12:00', end: '18:00' },
@@ -667,6 +791,12 @@ document.addEventListener('DOMContentLoaded', function() {
     var shiftSel   = document.getElementById('shift');
     var startInput = document.getElementById('start_time');
     var endInput   = document.getElementById('end_time');
+    var paymentStatusInput = document.getElementById('payment_status');
+    var bookingStatusInput = document.getElementById('booking_status');
+    var bookingStatusBadge = document.getElementById('booking-status-badge');
+    var advanceAmountInput = document.getElementById('advance_amount_received');
+    var advanceAmountHelp  = document.getElementById('advance-amount-help');
+    var previousPaymentStatus = paymentStatusInput ? paymentStatusInput.value : null;
     if (shiftSel && startInput && endInput) {
         shiftSel.addEventListener('change', function() {
             var times = shiftTimes[this.value];
@@ -675,6 +805,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 endInput.value   = times.end;
             }
         });
+    }
+
+    function syncPaymentDetails(shouldAutofillAdvance) {
+        if (!paymentStatusInput || !bookingStatusInput || !bookingStatusBadge || !advanceAmountInput) {
+            return;
+        }
+
+        var config = paymentStatusMap[paymentStatusInput.value];
+        if (!config) {
+            return;
+        }
+
+        bookingStatusInput.value = config.bookingStatus;
+        bookingStatusBadge.className = 'badge bg-' + config.badge + ' px-2 py-1 fs-6';
+        bookingStatusBadge.textContent = config.label;
+
+        var shouldEnableAdvance = config.advanceRequired;
+        advanceAmountInput.readOnly = !shouldEnableAdvance;
+
+        if (!shouldEnableAdvance) {
+            advanceAmountInput.value = '';
+            if (advanceAmountHelp) {
+                advanceAmountHelp.textContent = 'Advance amount is cleared when payment status is pending or cancelled.';
+            }
+            return;
+        }
+
+        if (advanceAmountInput.value === '' && shouldAutofillAdvance) {
+            advanceAmountInput.value = paymentStatusInput.value === 'paid'
+                ? advanceAmountInput.dataset.defaultPaid
+                : advanceAmountInput.dataset.defaultPartial;
+        }
+
+        if (advanceAmountHelp) {
+            advanceAmountHelp.textContent = paymentStatusInput.value === 'paid'
+                ? 'Paid status defaults the advance amount to the full booking total unless you override it.'
+                : 'Partial status can store the actual advance amount received from the customer.';
+        }
+    }
+
+    if (paymentStatusInput) {
+        paymentStatusInput.addEventListener('change', function() {
+            var oldStatus = previousPaymentStatus;
+            previousPaymentStatus = paymentStatusInput.value;
+            syncPaymentDetails(oldStatus !== paymentStatusInput.value);
+        });
+        syncPaymentDetails(advanceAmountInput.value === '');
     }
 }());
 </script>
