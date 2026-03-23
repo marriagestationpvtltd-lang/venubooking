@@ -7,8 +7,12 @@ const DEFAULT_SITEMAP_PACKAGE_LIMIT = 10000;
 header('Content-Type: application/xml; charset=UTF-8');
 
 function getSitemapBaseUrl(): string {
-    if (!empty($_ENV['APP_URL'])) {
-        return rtrim($_ENV['APP_URL'], '/');
+    $appUrl = getenv('APP_URL');
+    if ($appUrl === false || $appUrl === '') {
+        $appUrl = $_ENV['APP_URL'] ?? '';
+    }
+    if (!empty($appUrl)) {
+        return rtrim($appUrl, '/');
     }
 
     $scheme = 'http';
@@ -81,7 +85,10 @@ $staticPages = [
 
 $packagePages = [];
 $pdo = getDB();
-$rawPackageLimit = $_ENV['SITEMAP_PACKAGE_LIMIT'] ?? '';
+$rawPackageLimit = getenv('SITEMAP_PACKAGE_LIMIT');
+if ($rawPackageLimit === false || $rawPackageLimit === '') {
+    $rawPackageLimit = $_ENV['SITEMAP_PACKAGE_LIMIT'] ?? '';
+}
 $packageLimit = DEFAULT_SITEMAP_PACKAGE_LIMIT;
 if ($rawPackageLimit !== '' && is_numeric($rawPackageLimit)) {
     $packageLimit = (int) $rawPackageLimit;
