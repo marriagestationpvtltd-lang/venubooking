@@ -27,7 +27,7 @@ function getSitemapBaseUrl(): string {
             $hostName = $parsedHost['host'] ?? '';
             $port = $parsedHost['port'] ?? null;
             $isIpHost = $hostName !== '' && filter_var($hostName, FILTER_VALIDATE_IP);
-            $isDomainHost = $hostName !== '' && preg_match('/^[a-z]/i', $hostName) && filter_var($hostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
+            $isDomainHost = $hostName !== '' && filter_var($hostName, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
             if ($isIpHost || $isDomainHost) {
                 $host = $hostName . ($port ? ':' . $port : '');
             }
@@ -51,7 +51,10 @@ function buildSitemapUrl(string $baseUrl, string $path): string {
 function getFileLastModified(string $path): string {
     $fullPath = __DIR__ . $path;
     if (file_exists($fullPath)) {
-        return gmdate('Y-m-d', filemtime($fullPath));
+        $timestamp = filemtime($fullPath);
+        if ($timestamp !== false) {
+            return gmdate('Y-m-d', $timestamp);
+        }
     }
 
     return gmdate('Y-m-d');
@@ -78,8 +81,10 @@ $packagePages = [];
 $pdo = getDB();
 $packageLimit = isset($_ENV['SITEMAP_PACKAGE_LIMIT']) ? (int) $_ENV['SITEMAP_PACKAGE_LIMIT'] : DEFAULT_SITEMAP_PACKAGE_LIMIT;
 $packageLimit = max(1, min(50000, $packageLimit));
-$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT ' . $packageLimit);
-$stmt->execute(['active']);
+$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT ?');
+$stmt->bindValue(1, 'active');
+$stmt->bindValue(2, $packageLimit, PDO::PARAM_INT);
+$stmt->execute();
 $packagePages = $stmt->fetchAll();
 
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
