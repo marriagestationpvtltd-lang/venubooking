@@ -17,6 +17,12 @@ if (!isLoggedIn()) {
     exit;
 }
 
+// Refresh the session idle-timeout counter so long uploads do not trigger
+// auto-logout, then release the session lock early to avoid blocking other
+// concurrent requests (e.g. keep-alive pings or page navigations).
+$_SESSION['last_activity'] = time();
+session_write_close();
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
     exit;
