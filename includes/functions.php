@@ -369,10 +369,11 @@ function formatBookingTime($time) {
 /**
  * Build the "Shift / Time" display string used in WhatsApp messages.
  *
- * Uses the booking's actual start/end times when available.  When they are
+ * Uses the booking's actual start/end times when available. When either is
  * absent (e.g. for bookings created before the time columns were added), the
- * function falls back to the default time range for the booking's shift so
- * that every WhatsApp message always contains a specific time window.
+ * function fills only the missing piece from the default time range for the
+ * booking's shift so that every WhatsApp message always contains a specific
+ * time window while preserving any booked availability times.
  *
  * @param  array  $booking  Booking row containing 'shift', 'start_time', 'end_time'
  * @return string           e.g. "Evening (06:00 PM – 11:00 PM)"
@@ -382,11 +383,15 @@ function getBookingShiftTimeDisplay($booking) {
     $start   = $booking['start_time'] ?? '';
     $end     = $booking['end_time']   ?? '';
 
-    // Fall back to shift defaults when explicit times are not stored
+    // Fall back to shift defaults only for missing time parts
     if (empty($start) || empty($end)) {
         $defaults = getShiftDefaultTimes($booking['shift'] ?? '');
-        $start    = $defaults['start'];
-        $end      = $defaults['end'];
+        if (empty($start)) {
+            $start = $defaults['start'];
+        }
+        if (empty($end)) {
+            $end = $defaults['end'];
+        }
     }
 
     if (!empty($start) && !empty($end)) {
