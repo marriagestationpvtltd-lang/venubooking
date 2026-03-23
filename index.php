@@ -485,6 +485,11 @@ if (!empty($service_categories)) {
                 <i class="fas fa-hand-pointer me-1"></i> Swipe left or right to explore packages
             </p>
         </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/packages.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>भ्युअल
+            </a>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -669,6 +674,11 @@ if (!empty($venues)):
             <i class="fas fa-building fa-3x text-muted mb-3"></i>
             <p class="text-muted">No venues found for the selected city.</p>
         </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/venues.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>भ्युअल
+            </a>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -733,6 +743,11 @@ if (!empty($gallery_cards)):
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>
+        </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/gallery.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>भ्युअल
+            </a>
         </div>
     </div>
 </section>
@@ -1150,6 +1165,11 @@ if (!empty($work_categories)):
                 endfor;
                 ?>
             </div>
+        </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/portfolio.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>भ्युअल
+            </a>
         </div>
     </div>
 </section>
@@ -1842,6 +1862,11 @@ if (!empty($vendors)):
                 <?php endforeach; ?>
             </div>
         </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/vendors.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>भ्युअल
+            </a>
+        </div>
     </div>
 </section>
 <?php endif; ?>
@@ -1912,6 +1937,11 @@ if (!empty($testimonial_images)):
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
+        </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/testimonials.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>भ्युअल
+            </a>
         </div>
     </div>
 </section>
