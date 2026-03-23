@@ -50,8 +50,8 @@ if ($package_id > 0) {
 
 $office_whatsapp       = getSetting('whatsapp_number', '');
 $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
-$package_share_url     = $package_id > 0 ? BASE_URL . '/package-detail.php?' . http_build_query(['id' => $package_id]) : '';
-$package_share_id      = $package_id > 0 ? 'package-detail-' . $package_id : '';
+$package_share_url     = $package_id ? BASE_URL . '/package-detail.php?' . http_build_query(['id' => $package_id]) : '';
+$package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 ?>
 
 <!-- Page Hero -->
