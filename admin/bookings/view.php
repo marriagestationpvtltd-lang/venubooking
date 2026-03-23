@@ -2027,7 +2027,7 @@ unset($_avail_svc);
                                             <input type="hidden" name="booking_service_id" value="<?php echo $svc_id; ?>">
                                             <input type="hidden" name="task_description" value="<?php echo htmlspecialchars($service['service_name']); ?>">
                                             <div class="row g-2 align-items-end">
-                                                <div class="col">
+                                                <div class="col inline-va-vendor-wrap">
                                                     <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Vendor <span class="text-danger">*</span></label>
                                                     <select name="vendor_id" class="form-select form-select-sm inline-va-vendor-select"
                                                             data-vendor-type-slug="<?php echo htmlspecialchars($svc_vt_slug); ?>"
@@ -2035,6 +2035,7 @@ unset($_avail_svc);
                                                             required style="font-size:.78rem;">
                                                         <option value="">&#x2014; Select Vendor &#x2014;</option>
                                                     </select>
+                                                    <div class="inline-va-vendor-photo-list mt-2"></div>
                                                 </div>
                                                 <div class="col-auto">
                                                     <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Amount</label>
@@ -3851,6 +3852,51 @@ unset($_avail_svc);
     height: 160px;
     border-radius: 50%;
 }
+.inline-va-vendor-photo-list {
+    display: grid;
+    gap: .45rem;
+}
+.inline-va-vendor-photo-item {
+    width: 100%;
+    border: 1px solid #dbe3ea;
+    background: #fff;
+    border-radius: .55rem;
+    padding: .45rem .55rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    text-align: left;
+    transition: all .18s ease;
+}
+.inline-va-vendor-photo-item:hover,
+.inline-va-vendor-photo-item:focus {
+    border-color: #198754;
+    background: #f5fff8;
+    box-shadow: 0 0 0 .12rem rgba(25,135,84,.12);
+}
+.inline-va-vendor-photo-item.active {
+    border-color: #198754;
+    background: #eaf8ef;
+    box-shadow: inset 0 0 0 1px rgba(25,135,84,.18);
+}
+.inline-va-vendor-photo-thumb,
+.inline-va-vendor-photo-placeholder {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.inline-va-vendor-photo-thumb {
+    object-fit: cover;
+}
+.inline-va-vendor-photo-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #6c757d;
+    color: #fff;
+    font-size: .95rem;
+}
 </style>
 
 <!-- Sequential WhatsApp Sender Modal -->
@@ -4015,12 +4061,39 @@ document.addEventListener('DOMContentLoaded', function() {
         selectEl.dataset.populated = '1'; // set flag early to prevent concurrent calls
         var resolved = resolveVendorTypeSlug(typeSlug, categoryLabel);
         selectEl.innerHTML = '<option value="">\u2014 Select Vendor \u2014</option>';
+        var listWrap = selectEl.parentElement ? selectEl.parentElement.querySelector('.inline-va-vendor-photo-list') : null;
+        if (listWrap) {
+            listWrap.innerHTML = '';
+        }
         if (resolved && vendorsByType[resolved] && vendorsByType[resolved].length > 0) {
             vendorsByType[resolved].forEach(function(v) {
                 var o = document.createElement('option');
                 o.value = v.id;
                 o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                if (v.photo) {
+                    o.dataset.photo = v.photo;
+                }
+                if (v.description) {
+                    o.dataset.description = v.description;
+                }
                 selectEl.appendChild(o);
+                if (listWrap) {
+                    var photoHtml = v.photo
+                        ? '<img src="' + esc(v.photo) + '" alt="' + esc(v.name) + '" class="inline-va-vendor-photo-thumb">'
+                        : '<span class="inline-va-vendor-photo-placeholder" aria-hidden="true"><i class="fas fa-user" aria-hidden="true"></i></span>';
+                    var cityHtml = v.city ? '<div class="small text-muted">' + esc(v.city) + '</div>' : '';
+                    var descHtml = v.description ? '<div class="small text-muted text-truncate">' + esc(v.description) + '</div>' : '';
+                    listWrap.insertAdjacentHTML('beforeend',
+                        '<button type="button" class="inline-va-vendor-photo-item" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
+                            photoHtml +
+                            '<span class="min-width-0 flex-grow-1">' +
+                                '<span class="d-block fw-semibold text-truncate">' + esc(v.name) + '</span>' +
+                                cityHtml +
+                                descHtml +
+                            '</span>' +
+                        '</button>'
+                    );
+                }
             });
         } else {
             // No vendor type match: show informational message
@@ -4029,7 +4102,19 @@ document.addEventListener('DOMContentLoaded', function() {
             o.disabled = true;
             o.textContent = '\u2014 No vendors available for this service type \u2014';
             selectEl.appendChild(o);
+            if (listWrap) {
+                listWrap.innerHTML = '<div class="small text-muted border rounded px-2 py-2 bg-light">\u2014 No vendors available for this service type \u2014</div>';
+            }
         }
+    }
+
+    function syncVendorPhotoSelection(selectEl) {
+        var listWrap = selectEl.parentElement ? selectEl.parentElement.querySelector('.inline-va-vendor-photo-list') : null;
+        if (!listWrap) return;
+        var selectedValue = selectEl.value || '';
+        listWrap.querySelectorAll('.inline-va-vendor-photo-item[data-vendor-id]').forEach(function(btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-vendor-id') === selectedValue);
+        });
     }
 
     // When a collapse relevant to inline vendor assignment opens, populate its vendor select
@@ -4040,6 +4125,23 @@ document.addEventListener('DOMContentLoaded', function() {
         var typeSlug = selectEl.dataset.vendorTypeSlug || '';
         var category = selectEl.dataset.serviceCategory || '';
         populateVendorSelect(selectEl, typeSlug, category);
+        syncVendorPhotoSelection(selectEl);
+    });
+
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.inline-va-vendor-photo-item[data-vendor-id]');
+        if (!btn) return;
+        var wrap = btn.closest('.inline-va-vendor-wrap');
+        var selectEl = wrap ? wrap.querySelector('.inline-va-vendor-select') : null;
+        if (!selectEl) return;
+        selectEl.value = btn.getAttribute('data-vendor-id') || '';
+        syncVendorPhotoSelection(selectEl);
+        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    document.addEventListener('change', function(e) {
+        if (!e.target || !e.target.classList || !e.target.classList.contains('inline-va-vendor-select')) return;
+        syncVendorPhotoSelection(e.target);
     });
 })();
 </script>
