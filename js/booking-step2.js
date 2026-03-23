@@ -472,8 +472,8 @@ function renderTimeSlots(slots, container) {
                         </div>
                         <div class="mt-2">
                             ${available
-                                ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Available</span>`
-                                : `<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>Already Booked</span>`
+                                ? `<span class="badge bg-success slot-status-badge"><i class="fas fa-check-circle me-1"></i>Available</span>`
+                                : `<span class="badge bg-secondary slot-status-badge"><i class="fas fa-ban me-1"></i>Already Booked</span>`
                             }
                         </div>
                     </div>
@@ -494,10 +494,20 @@ function renderTimeSlots(slots, container) {
             container.querySelectorAll('.time-slot-card.selected-slot').forEach(c => {
                 c.classList.remove('selected-slot', 'border-warning', 'shadow');
                 c.classList.add('border-success');
+                const badge = c.querySelector('.slot-status-badge');
+                if (badge) {
+                    badge.className = 'badge bg-success slot-status-badge';
+                    badge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Available';
+                }
             });
             // Highlight selected
             this.classList.add('selected-slot', 'border-warning', 'shadow');
             this.classList.remove('border-success');
+            const badge = this.querySelector('.slot-status-badge');
+            if (badge) {
+                badge.className = 'badge bg-primary slot-status-badge';
+                badge.innerHTML = '<i class="fas fa-check me-1"></i>Selected ✓';
+            }
 
             _selectedSlot = {
                 id: slotId,
