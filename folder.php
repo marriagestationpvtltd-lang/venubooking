@@ -14,6 +14,7 @@ require_once __DIR__ . '/includes/ZipStream.php';
 
 $db = getDB();
 $error_message = '';
+$zip_error_message = ''; // Non-fatal error shown as alert on the folder page
 $folder = null;
 $photos = [];
 
@@ -297,37 +298,51 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
             // Use streaming ZIP for instant download (like Google Drive)
             // Download starts immediately without waiting for full ZIP to be created
             $zipStream = new ZipStream($zip_filename);
+            $zip_stream_started = false;
             
-            // Start streaming - this sends headers and begins the download immediately
-            $zipStream->begin();
-            
-            $added_count = 0;
-            
-            // Stream each file directly to the browser
-            foreach ($valid_files as $file_info) {
-                if ($zipStream->addFile($file_info['path'], $file_info['zip_name'])) {
-                    $added_count++;
+            try {
+                // Start streaming - this sends headers and begins the download immediately
+                $zipStream->begin();
+                $zip_stream_started = true;
+                
+                $added_count = 0;
+                
+                // Stream each file directly to the browser
+                foreach ($valid_files as $file_info) {
+                    if ($zipStream->addFile($file_info['path'], $file_info['zip_name'])) {
+                        $added_count++;
+                        
+                        // Increment download count for this photo
+                        $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
+                        $update_stmt->execute([$file_info['photo_id']]);
+                    }
                     
-                    // Increment download count for this photo
-                    $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
-                    $update_stmt->execute([$file_info['photo_id']]);
+                    // Check if connection is still alive
+                    if (connection_aborted()) {
+                        break;
+                    }
                 }
                 
-                // Check if connection is still alive
-                if (connection_aborted()) {
-                    break;
+                // Finish the ZIP file (write central directory)
+                $zipStream->finish();
+                
+                // Increment folder total downloads
+                if ($added_count > 0) {
+                    $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
                 }
+                
+                exit;
+            } catch (Throwable $e) {
+                error_log('ZIP download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+                if ($zip_stream_started) {
+                    // Headers already sent as application/zip – cannot output HTML.
+                    // End the response here to avoid appending error HTML to the stream.
+                    exit;
+                }
+                // Headers not yet sent – show a non-fatal alert on the folder page
+                // so the user can still use the individual download option.
+                $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
             }
-            
-            // Finish the ZIP file (write central directory)
-            $zipStream->finish();
-            
-            // Increment folder total downloads
-            if ($added_count > 0) {
-                $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
-            }
-            
-            exit;
         }
     }
 }
@@ -851,6 +866,65 @@ if ($folder && !$error_message) {
         @keyframes dlIndeterminate {
             0%   { background-position: 200% 0; }
             100% { background-position: -200% 0; }
+        }
+
+        /* ── Photo Selection Mode ── */
+        .photo-card.selectable { cursor: pointer; }
+        .photo-card.selected {
+            outline: 3px solid var(--primary-green);
+            outline-offset: -2px;
+        }
+        .photo-select-overlay {
+            display: none;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 25;
+        }
+        .photo-select-overlay input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--primary-green);
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        body.select-mode .photo-select-overlay { display: block; }
+        body.select-mode .photo-card { cursor: pointer; }
+
+        /* ── Floating Selection Action Bar ── */
+        #selectionBar {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9000;
+            background: #fff;
+            border-radius: 50px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+            padding: 10px 18px;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+        #selectionBar.sel-active { display: flex; }
+        #selectionBar .sel-count {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--primary-green);
+            min-width: 80px;
+        }
+        #selectionBar .btn { border-radius: 50px; font-size: 0.88rem; }
+
+        /* ── Select-mode toggle button ── */
+        .select-mode-btn {
+            border-radius: 50px;
+            font-size: 0.88rem;
+        }
+        .select-mode-btn.active {
+            background: var(--primary-green);
+            color: #fff;
+            border-color: var(--primary-green);
         }
 
         /* Lightbox styles */
@@ -1468,6 +1542,13 @@ if ($folder && !$error_message) {
                 </p>
             </div>
         <?php else: ?>
+            <?php if ($zip_error_message): ?>
+            <div class="alert alert-warning alert-dismissible d-flex align-items-center gap-2 mb-3" role="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span><?php echo htmlspecialchars($zip_error_message); ?></span>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php endif; ?>
             <?php if ($show_banner_a): ?>
             <!-- Mobile Top Banner - Banner A at top on mobile only -->
             <div class="mobile-banner-top">
@@ -1614,6 +1695,14 @@ if ($folder && !$error_message) {
                             <p class="text-muted mt-1 mb-0">
                                 <small><i class="fas fa-file-image"></i> Downloads each file separately (no ZIP)</small>
                             </p>
+                            <!-- Select Photos toggle for individual selection -->
+                            <button type="button" id="selectModeBtn"
+                                    class="btn btn-outline-secondary mt-2 select-mode-btn"
+                                    aria-label="Select photos to download individually"
+                                    onclick="toggleSelectMode()">
+                                <i class="fas fa-check-square me-1"></i>
+                                फोटो छानेर डाउनलोड गर्नुहोस्
+                            </button>
                         <?php endif; ?>
                         
                         <?php if ($whatsapp_delete_url): ?>
@@ -1826,10 +1915,15 @@ if ($folder && !$error_message) {
                             $download_url_qs = '?token=' . urlencode($token) . '&download_photo=' . $photo['id'];
                             $photo_title_js = json_encode($photo['title'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                         ?>
-                            <div class="photo-card">
+                            <div class="photo-card" <?php if ($can_download): ?>data-download-url="<?php echo htmlspecialchars($download_url_qs, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?> onclick="handleCardClick(this, event)">
                                 <div class="photo-media">
+                                <?php if ($can_download): ?>
+                                    <div class="photo-select-overlay" onclick="event.stopPropagation(); togglePhotoSelection(this.closest('.photo-card'))">
+                                        <input type="checkbox" class="photo-checkbox" aria-label="Select" onclick="event.stopPropagation(); togglePhotoSelection(this.closest('.photo-card'))">
+                                    </div>
+                                <?php endif; ?>
                                 <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)">
+                                    <div class="video-container" onclick="handleMediaClick(event, function(){ openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>); })">
                                         <div class="video-play-overlay">
                                             <i class="fas fa-play-circle"></i>
                                         </div>
@@ -1844,7 +1938,7 @@ if ($folder && !$error_message) {
                                 <?php else: ?>
                                     <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>"
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)"
+                                         onclick="handleMediaClick(event, function(){ openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>); })"
                                          loading="lazy"
                                          class="lazy-img"
                                          onload="this.classList.add('loaded')"
@@ -1909,10 +2003,15 @@ if ($folder && !$error_message) {
                             $download_url_qs = '?token=' . urlencode($token) . '&download_photo=' . $photo['id'];
                             $photo_title_js = json_encode($photo['title'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                         ?>
-                            <div class="photo-card">
+                            <div class="photo-card" <?php if ($can_download): ?>data-download-url="<?php echo htmlspecialchars($download_url_qs, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?> onclick="handleCardClick(this, event)">
                                 <div class="photo-media">
+                                <?php if ($can_download): ?>
+                                    <div class="photo-select-overlay" onclick="event.stopPropagation(); togglePhotoSelection(this.closest('.photo-card'))">
+                                        <input type="checkbox" class="photo-checkbox" aria-label="Select" onclick="event.stopPropagation(); togglePhotoSelection(this.closest('.photo-card'))">
+                                    </div>
+                                <?php endif; ?>
                                 <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)">
+                                    <div class="video-container" onclick="handleMediaClick(event, function(){ openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>); })">
                                         <div class="video-play-overlay">
                                             <i class="fas fa-play-circle"></i>
                                         </div>
@@ -1927,7 +2026,7 @@ if ($folder && !$error_message) {
                                 <?php else: ?>
                                     <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)"
+                                         onclick="handleMediaClick(event, function(){ openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>); })"
                                          loading="lazy"
                                          class="lazy-img"
                                          onload="this.classList.add('loaded')"
@@ -2092,6 +2191,20 @@ if ($folder && !$error_message) {
         </div>
     </div>
 
+    <!-- Floating Selection Action Bar -->
+    <div id="selectionBar" role="toolbar" aria-label="Photo selection actions">
+        <span class="sel-count"><i class="fas fa-check-circle me-1"></i><span id="selCount">0</span> छानिएको</span>
+        <button class="btn btn-success btn-sm" onclick="downloadSelected()" aria-label="Download selected photos">
+            <i class="fas fa-download me-1"></i> डाउनलोड गर्नुहोस्
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="selectAllPhotos()" aria-label="Select all photos">
+            <i class="fas fa-check-double me-1"></i> सबै छान्नुहोस्
+        </button>
+        <button class="btn btn-outline-danger btn-sm" onclick="deselectAllPhotos()" aria-label="Deselect all photos">
+            <i class="fas fa-times me-1"></i> हटाउनुहोस्
+        </button>
+    </div>
+
     <div class="page-share-wrap" aria-label="Share this page">
         <button class="page-share-btn" type="button" aria-haspopup="true" aria-expanded="false">
             <i class="fas fa-share-alt" aria-hidden="true"></i>
@@ -2226,14 +2339,26 @@ if ($folder && !$error_message) {
 
             overlay.classList.add('dl-active');
 
-            // Helper function to show success state
+            // Helper: show success state and auto-hide overlay
             function showSuccess() {
                 dlTitle.textContent = 'Download Started!';
                 dlSize.textContent  = 'Check your browser downloads';
                 dlIcon.className    = 'fas fa-check-circle';
-                setTimeout(function() { 
-                    overlay.classList.remove('dl-active'); 
+                setTimeout(function() {
+                    overlay.classList.remove('dl-active');
                 }, 1500);
+            }
+
+            // Helper: show error state
+            function showError(msg) {
+                dlTitle.textContent = 'Download Failed';
+                dlSize.textContent  = msg || 'Please try again';
+                dlIcon.className    = 'fas fa-exclamation-circle';
+                dlBar.style.background = '#dc3545';
+                dlBar.style.width = '100%';
+                setTimeout(function() {
+                    overlay.classList.remove('dl-active');
+                }, 3000);
             }
 
             // Use hidden iframe for instant download (native browser download)
@@ -2247,31 +2372,42 @@ if ($folder && !$error_message) {
                 iframe.style.display = 'none';
                 document.body.appendChild(iframe);
             }
-            
-            // Timeout fallback: if server responds with attachment header, onload won't fire
+
+            // Timeout fallback: if server responds with attachment header,
+            // the iframe does NOT navigate so onload may not fire at all.
+            // After 800 ms we assume the download started successfully.
             var loadTimeout = setTimeout(showSuccess, 800);
-            
-            // Attach event handlers BEFORE setting src to avoid race condition
+
+            // Attach event handlers BEFORE setting src to avoid race condition.
             iframe.onload = function() {
                 clearTimeout(loadTimeout);
+                // Detect whether the iframe loaded an HTML error page.
+                // When the server sends Content-Disposition:attachment the iframe
+                // does not navigate – its body stays empty/unchanged.
+                // When it loads an HTML error page the body will have content.
+                try {
+                    var iWin = iframe.contentWindow;
+                    var iDoc = iWin ? (iframe.contentDocument || iWin.document) : null;
+                    if (iDoc && iDoc.body && iDoc.body.innerHTML.trim() !== '') {
+                        // Iframe navigated to an HTML error page
+                        showError('Server error – try individual download option below');
+                        return;
+                    }
+                } catch (e) {
+                    // Cross-origin access denied (shouldn't happen for same domain)
+                }
                 showSuccess();
             };
             iframe.onerror = function() {
                 clearTimeout(loadTimeout);
-                dlTitle.textContent = 'Download Failed';
-                dlSize.textContent  = 'Please try again';
-                dlIcon.className    = 'fas fa-exclamation-circle';
-                dlBar.style.background = '#dc3545';
-                setTimeout(function() { 
-                    overlay.classList.remove('dl-active'); 
-                }, 2500);
+                showError('Connection error – please try again');
             };
-            
+
             // Trigger download
             iframe.src = url;
 
-        return false;
-    }
+            return false;
+        }
 
         /**
          * Bulk Individual Download (no ZIP)
@@ -2356,6 +2492,99 @@ if ($folder && !$error_message) {
             // Small initial delay so the overlay is visible before first download fires
             setTimeout(triggerNext, 150);
             return false;
+        }
+
+        /* ── Photo Selection Mode ───────────────────────────────────── */
+
+        var _selectMode = false;
+
+        function toggleSelectMode() {
+            _selectMode = !_selectMode;
+            document.body.classList.toggle('select-mode', _selectMode);
+            var btn = document.getElementById('selectModeBtn');
+            if (btn) {
+                btn.classList.toggle('active', _selectMode);
+                if (_selectMode) {
+                    btn.innerHTML = '<i class="fas fa-times me-1"></i> छान्ने मोड बन्द गर्नुहोस्';
+                    btn.setAttribute('aria-label', 'Exit photo selection mode');
+                } else {
+                    btn.innerHTML = '<i class="fas fa-check-square me-1"></i> फोटो छानेर डाउनलोड गर्नुहोस्';
+                    btn.setAttribute('aria-label', 'Select photos to download individually');
+                }
+            }
+            if (!_selectMode) {
+                deselectAllPhotos();
+            }
+        }
+
+        /** Toggle selection state of a single photo card */
+        function togglePhotoSelection(card) {
+            if (!card || !card.dataset.downloadUrl) return;
+            var checked = !card.classList.contains('selected');
+            card.classList.toggle('selected', checked);
+            var cb = card.querySelector('.photo-checkbox');
+            if (cb) cb.checked = checked;
+            updateSelectionBar();
+        }
+
+        /** Called when a card is clicked; in select mode toggle selection,
+         *  otherwise do nothing (media onclick handlers fire separately). */
+        function handleCardClick(card, event) {
+            if (!_selectMode) return;
+            if (!card.dataset.downloadUrl) return;
+            togglePhotoSelection(card);
+        }
+
+        /** Called on media (img / video-container) click events.
+         *  In normal mode runs the callback (open lightbox).
+         *  In select mode toggles the card selection instead. */
+        function handleMediaClick(event, callback) {
+            if (_selectMode) {
+                // handled by parent card click
+                return;
+            }
+            callback();
+        }
+
+        function selectAllPhotos() {
+            document.querySelectorAll('.photo-card[data-download-url]').forEach(function(card) {
+                card.classList.add('selected');
+                var cb = card.querySelector('.photo-checkbox');
+                if (cb) cb.checked = true;
+            });
+            updateSelectionBar();
+        }
+
+        function deselectAllPhotos() {
+            document.querySelectorAll('.photo-card.selected').forEach(function(card) {
+                card.classList.remove('selected');
+                var cb = card.querySelector('.photo-checkbox');
+                if (cb) cb.checked = false;
+            });
+            updateSelectionBar();
+        }
+
+        function updateSelectionBar() {
+            var selected = document.querySelectorAll('.photo-card.selected');
+            var bar = document.getElementById('selectionBar');
+            var cnt = document.getElementById('selCount');
+            if (!bar) return;
+            if (selected.length > 0) {
+                bar.classList.add('sel-active');
+                if (cnt) cnt.textContent = selected.length;
+            } else {
+                bar.classList.remove('sel-active');
+            }
+        }
+
+        function downloadSelected() {
+            var selected = document.querySelectorAll('.photo-card.selected[data-download-url]');
+            if (selected.length === 0) return;
+            var urls = [];
+            selected.forEach(function(card) {
+                urls.push(card.dataset.downloadUrl);
+            });
+            bulkDownloadIndividual(urls);
         }
     </script>
     <script src="<?php echo BASE_URL; ?>/js/share.js"></script>
