@@ -108,6 +108,11 @@ try {
         $action_details . " for booking: {$booking['booking_number']}"
     );
 
+    // Send full-payment notification to customer when payment status is set to 'paid'
+    if ($new_payment_status === 'paid' && $old_payment_status !== 'paid') {
+        sendBookingNotification($booking_id, 'paid');
+    }
+
     // Return success response including auto-updated fields so the UI can reflect them
     echo json_encode([
         'success' => true,

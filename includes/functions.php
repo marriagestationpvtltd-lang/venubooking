@@ -2585,6 +2585,9 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     } elseif ($type === 'confirmed') {
         $admin_subject = 'Booking Confirmed - ' . $booking['booking_number'];
         $user_subject = 'Booking Confirmed - ' . $booking['booking_number'];
+    } elseif ($type === 'paid') {
+        $admin_subject = 'Full Payment Received - ' . $booking['booking_number'];
+        $user_subject = 'Payment Complete - Thank You! - ' . $booking['booking_number'];
     } else {
         $status_text = ucfirst($booking['booking_status']);
         $admin_subject = 'Booking Updated - ' . $booking['booking_number'];
@@ -2595,8 +2598,8 @@ function sendBookingNotification($booking_id, $type = 'new', $old_status = '') {
     $admin_message = generateBookingEmailHTML($booking, 'admin', $type, $old_status);
     $user_message = generateBookingEmailHTML($booking, 'user', $type, $old_status);
     
-    // Send to admin (skip for payment_request - that email goes to user only)
-    if ($type !== 'payment_request') {
+    // Send to admin (skip for payment_request and paid - those go to user only)
+    if ($type !== 'payment_request' && $type !== 'paid') {
         if (!empty($admin_email)) {
             $results['admin'] = sendEmail($admin_email, $admin_subject, $admin_message);
             if ($results['admin']) {
@@ -2634,6 +2637,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
     $contact_email = getSetting('contact_email', '');
     $contact_phone = getSetting('contact_phone', '');
     $whatsapp_number = getSetting('whatsapp_number', '');
+    $google_review_link = getSetting('google_review_link', '');
     
     ob_start();
     ?>
@@ -2671,6 +2675,7 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     if ($type === 'new') echo 'Booking Confirmation';
                     elseif ($type === 'payment_request') echo 'Payment Request';
                     elseif ($type === 'confirmed') echo 'Booking Confirmed ✅';
+                    elseif ($type === 'paid') echo 'Payment Complete ✅';
                     else echo 'Booking Update';
                 ?></h2>
             </div>
@@ -2699,6 +2704,10 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                     <?php elseif ($type === 'confirmed'): ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>We are pleased to confirm your booking. Please find your booking details below.</p>
+                    <?php elseif ($type === 'paid'): ?>
+                        <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
+                        <p>We are pleased to inform you that your full payment of <strong><?php echo formatCurrency($booking['grand_total']); ?></strong> for your <strong><?php echo htmlspecialchars($booking['event_type']); ?></strong> event has been received and your booking is now complete.</p>
+                        <p>It was our honour to be a part of your special occasion. Thank you sincerely for choosing <strong><?php echo htmlspecialchars($site_name); ?></strong>.</p>
                     <?php else: ?>
                         <p>Dear <?php echo htmlspecialchars($booking['full_name']); ?>,</p>
                         <p>Your booking status has been updated.</p>
@@ -2713,6 +2722,8 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                         <p><strong>Payment request sent for booking:</strong></p>
                     <?php elseif ($type === 'confirmed'): ?>
                         <p><strong>Booking confirmation sent for:</strong></p>
+                    <?php elseif ($type === 'paid'): ?>
+                        <p><strong>Full payment received for booking:</strong></p>
                     <?php else: ?>
                         <p><strong>Booking has been updated:</strong></p>
                         <?php if (!empty($old_status)): ?>
@@ -2951,6 +2962,20 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                 
                 <?php if ($recipient === 'user'): ?>
                     <p style="margin-top: 20px;">If you have any questions about your booking, please don't hesitate to contact us.</p>
+                <?php endif; ?>
+                
+                <?php if ($recipient === 'user' && $type === 'paid' && !empty($google_review_link)): ?>
+                <div class="booking-details" style="background-color: #f0f9f0; border-left: 4px solid #4CAF50; padding: 20px; margin-top: 20px;">
+                    <div class="section-title">Share Your Experience ⭐</div>
+                    <p>We would greatly appreciate it if you could take a moment to share your experience with us. Your feedback helps us serve you and others better.</p>
+                    <p style="text-align: center; margin: 15px 0;">
+                        <a href="<?php echo htmlspecialchars($google_review_link); ?>" 
+                           style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                            ⭐ Write a Google Review
+                        </a>
+                    </p>
+                    <p style="font-size: 13px; color: #555; text-align: center;">It only takes a minute and means the world to our team.</p>
+                </div>
                 <?php endif; ?>
                 
                 <?php if ($type === 'confirmed'):
