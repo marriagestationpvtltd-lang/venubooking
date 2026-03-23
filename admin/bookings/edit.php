@@ -30,8 +30,11 @@ if (!$booking) {
 // Fetch halls
 $halls = $db->query("SELECT h.id, h.name, v.name as venue_name, h.capacity FROM halls h INNER JOIN venues v ON h.venue_id = v.id WHERE h.status = 'active' ORDER BY v.name, h.name")->fetchAll();
 
-// Fetch menus for the currently selected hall
-$menus = getMenusForHall($booking['hall_id']);
+// Detect custom venue booking (hall_id is NULL)
+$is_custom_venue = empty($booking['hall_id']);
+
+// Fetch menus for the currently selected hall (empty for custom venue bookings)
+$menus = $is_custom_venue ? [] : getMenusForHall($booking['hall_id']);
 
 // Fetch services
 $services = $db->query("SELECT id, name, price, category, photo FROM additional_services WHERE status = 'active' ORDER BY category, name")->fetchAll();
@@ -71,6 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $event_type = trim($_POST['event_type']);
     $number_of_guests = intval($_POST['number_of_guests']);
     $special_requests = trim($_POST['special_requests']);
+    $custom_venue_name = trim($_POST['custom_venue_name'] ?? '');
+    $custom_hall_name  = trim($_POST['custom_hall_name'] ?? '');
     $post_selected_menus = isset($_POST['menus']) ? $_POST['menus'] : [];
     $post_selected_services = isset($_POST['services']) ? $_POST['services'] : [];
     $post_selected_payment_methods = isset($_POST['payment_methods']) ? $_POST['payment_methods'] : [];
@@ -83,20 +88,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status_changed = ($old_booking_status !== $booking_status) || ($old_payment_status !== $payment_status);
 
     // Validation
-    if (empty($full_name) || empty($phone) || $hall_id <= 0 || empty($event_date) || $number_of_guests <= 0) {
+    if (empty($full_name) || empty($phone) || ($hall_id <= 0 && empty($custom_venue_name)) || empty($event_date) || $number_of_guests <= 0) {
         $error_message = 'Please fill in all required fields correctly.';
     } else {
-        // Check availability (excluding current booking)
-        $check_sql = "SELECT COUNT(*) as count FROM bookings 
-                     WHERE hall_id = ? AND event_date = ? AND shift = ? 
-                     AND booking_status != 'cancelled' AND id != ?";
-        $check_stmt = $db->prepare($check_sql);
-        $check_stmt->execute([$hall_id, $event_date, $shift, $booking_id]);
-        $check_result = $check_stmt->fetch();
-        
-        if ($check_result['count'] > 0) {
-            $error_message = 'This hall is not available for the selected date and shift.';
-        } else {
+        // Check availability (excluding current booking) — only for hall-based bookings
+        $availability_ok = true;
+        if ($hall_id > 0) {
+            $check_sql = "SELECT COUNT(*) as count FROM bookings 
+                         WHERE hall_id = ? AND event_date = ? AND shift = ? 
+                         AND booking_status != 'cancelled' AND id != ?";
+            $check_stmt = $db->prepare($check_sql);
+            $check_stmt->execute([$hall_id, $event_date, $shift, $booking_id]);
+            $check_result = $check_stmt->fetch();
+            if ($check_result['count'] > 0) {
+                $error_message = 'This hall is not available for the selected date and shift.';
+                $availability_ok = false;
+            }
+        }
+        if ($availability_ok) {
             try {
                 $db->beginTransaction();
                 
@@ -106,15 +115,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$full_name, $phone, $email, $address, $customer_id]);
                 
                 // Update booking basic info (totals will be recalculated after services are inserted)
+                // For custom venue bookings hall_id is stored as NULL; clear custom fields when a hall is chosen
                 $sql = "UPDATE bookings SET 
-                        hall_id = ?, event_date = ?, start_time = ?, end_time = ?, shift = ?, 
+                        hall_id = ?, custom_venue_name = ?, custom_hall_name = ?,
+                        event_date = ?, start_time = ?, end_time = ?, shift = ?, 
                         event_type = ?, number_of_guests = ?, 
                         special_requests = ?, booking_status = ?, payment_status = ?
                         WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
                 $stmt->execute([
-                    $hall_id,
+                    $hall_id > 0 ? $hall_id : null,
+                    $hall_id > 0 ? null : $custom_venue_name,
+                    $hall_id > 0 ? null : $custom_hall_name,
                     $event_date,
                     $start_time ?: null,
                     $end_time   ?: null,
@@ -197,6 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Refresh booking data
                 $booking = getBookingDetails($booking_id);
+                $is_custom_venue = empty($booking['hall_id']);
                 $selected_menus = array_column($booking['menus'], 'menu_id');
                 $selected_services = array_column($booking['services'], 'service_id');
                 $selected_payment_methods = array_column(getBookingPaymentMethods($booking_id), 'id');
@@ -279,14 +293,32 @@ require_once __DIR__ . '/../includes/header.php';
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="hall_id" class="form-label">Hall <span class="text-danger">*</span></label>
-                                <select class="form-select" id="hall_id" name="hall_id" required>
-                                    <?php foreach ($halls as $hall): ?>
-                                        <option value="<?php echo $hall['id']; ?>" <?php echo ($booking['hall_id'] == $hall['id']) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($hall['venue_name']) . ' - ' . htmlspecialchars($hall['name']) . ' (' . $hall['capacity'] . ' pax)'; ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <?php if ($is_custom_venue): ?>
+                                    <label class="form-label">Venue / Location</label>
+                                    <div class="alert alert-info py-2 mb-2 small">
+                                        <i class="fas fa-map-marker-alt me-1"></i> This is a <strong>custom venue booking</strong> (no hall selected).
+                                    </div>
+                                    <input type="hidden" name="hall_id" value="0">
+                                    <label for="custom_venue_name" class="form-label">Venue Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="custom_venue_name" name="custom_venue_name"
+                                           value="<?php echo htmlspecialchars($booking['custom_venue_name'] ?? ''); ?>"
+                                           placeholder="e.g. Hotel Everest" required>
+                                    <div class="mt-2">
+                                        <label for="custom_hall_name" class="form-label">Hall / Location Name</label>
+                                        <input type="text" class="form-control" id="custom_hall_name" name="custom_hall_name"
+                                               value="<?php echo htmlspecialchars($booking['custom_hall_name'] ?? ''); ?>"
+                                               placeholder="e.g. Banquet Hall A">
+                                    </div>
+                                <?php else: ?>
+                                    <label for="hall_id" class="form-label">Hall <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="hall_id" name="hall_id" required>
+                                        <?php foreach ($halls as $hall): ?>
+                                            <option value="<?php echo $hall['id']; ?>" <?php echo ($booking['hall_id'] == $hall['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($hall['venue_name']) . ' - ' . htmlspecialchars($hall['name']) . ' (' . $hall['capacity'] . ' pax)'; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="col-md-6">
