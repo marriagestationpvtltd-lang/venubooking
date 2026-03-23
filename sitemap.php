@@ -77,6 +77,11 @@ function formatSitemapDate(?string $dateString): string {
         return $defaultDate;
     }
 
+    static $utcTimezone = null;
+    if ($utcTimezone === null) {
+        $utcTimezone = new DateTimeZone('UTC');
+    }
+
     $date = DateTime::createFromFormat('Y-m-d H:i:s', $dateString);
     if ($date === false) {
         try {
@@ -86,7 +91,7 @@ function formatSitemapDate(?string $dateString): string {
         }
     }
 
-    $date->setTimezone(new DateTimeZone('UTC'));
+    $date->setTimezone($utcTimezone);
     return $date->format('Y-m-d');
 }
 
