@@ -16,6 +16,37 @@ $service_categories = getServicePackagesByCategory();
 // Get office WhatsApp number early so it is available in the packages section
 $office_whatsapp       = getSetting('whatsapp_number', '');
 $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
+
+/**
+ * Returns the HTML for a share button widget for a given section ID.
+ * The button lets users copy a direct link or share via WhatsApp/Facebook.
+ *
+ * @param  string $sectionId  The HTML id of the target section (e.g. "section-packages").
+ * @return string             HTML markup for the share button and its dropdown.
+ */
+function getSectionShareButton(string $sectionId): string {
+    $escaped = htmlspecialchars($sectionId, ENT_QUOTES, 'UTF-8');
+    return '
+<div class="section-share-wrap" data-share-wrap="' . $escaped . '">
+    <button class="section-share-btn" type="button"
+            data-section="' . $escaped . '"
+            title="सेयर गर्नुहोस्"
+            aria-haspopup="true" aria-expanded="false">
+        <i class="fas fa-share-alt" aria-hidden="true"></i>
+    </button>
+    <div class="section-share-dropdown" role="menu" aria-label="Share options">
+        <button class="share-opt share-copy" type="button" data-section="' . $escaped . '" role="menuitem">
+            <i class="fas fa-link" aria-hidden="true"></i> लिंक कपी गर्नुहोस्
+        </button>
+        <a class="share-opt share-whatsapp" data-section="' . $escaped . '" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+            <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp मा सेयर
+        </a>
+        <a class="share-opt share-facebook" data-section="' . $escaped . '" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
+            <i class="fab fa-facebook-f" aria-hidden="true"></i> Facebook मा सेयर
+        </a>
+    </div>
+</div>';
+}
 ?>
 
 <!-- Hero Section -->
@@ -285,12 +316,13 @@ if (!empty($service_categories)) {
 ?>
 <?php if (!empty($all_service_packages)): ?>
 <!-- Service Packages Section -->
-<section class="service-packages-section">
+<section class="service-packages-section" id="section-packages">
     <div class="container">
-        <div class="text-center mb-4 reveal">
+        <div class="text-center mb-4 reveal section-heading-wrap">
             <span class="section-eyebrow">Service Packages</span>
             <h2 class="section-title">हाम्रा सेवा प्याकेजहरू</h2>
             <p class="section-subtitle mt-2">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+            <?php echo getSectionShareButton('section-packages'); ?>
         </div>
 
         <?php if (count($pkg_categories_present) > 1): ?>
@@ -449,12 +481,13 @@ if (!empty($service_categories)) {
 <?php endif; ?>
 
 <!-- Features Section -->
-<section class="features-section py-5">
+<section class="features-section py-5" id="section-features">
     <div class="container">
-        <div class="text-center mb-5 reveal">
+        <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Why Choose Us</span>
             <h2 class="section-title">हामीलाई किन छान्ने?</h2>
             <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">हाम्रो प्रिमियम सेवाले तपाईंको हरेक अनुष्ठानलाई अविस्मरणीय बनाउँछ।</p>
+            <?php echo getSectionShareButton('section-features'); ?>
         </div>
         <div class="row g-4 reveal-stagger">
             <div class="col-6 col-md-3">
@@ -503,12 +536,13 @@ $venues = getAllActiveVenues();
 if (!empty($venues)):
 ?>
 <!-- Venues Section -->
-<section class="venues-section py-5">
+<section class="venues-section py-5" id="section-venues">
     <div class="container">
-        <div class="text-center mb-4 reveal">
+        <div class="text-center mb-4 reveal section-heading-wrap">
             <span class="section-eyebrow">Our Venues</span>
             <h2 class="section-title">हाम्रा प्रिमियम स्थानहरू</h2>
             <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
+            <?php echo getSectionShareButton('section-venues'); ?>
         </div>
 
         <!-- City filter bar — auto-updates from booking form selection -->
@@ -646,12 +680,13 @@ if (!empty($gallery_cards)):
     }, $gallery_cards), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <!-- Gallery Section – Photo Cards -->
-<section class="gallery-section py-5 bg-light">
+<section class="gallery-section py-5 bg-light" id="section-gallery">
     <div class="container">
-        <div class="text-center mb-5 reveal">
+        <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Our Gallery</span>
             <h2 class="section-title">हाम्रा यादगार पलहरू</h2>
             <p class="text-muted mt-2">Moments we are proud to capture</p>
+            <?php echo getSectionShareButton('section-gallery'); ?>
         </div>
 
         <div class="photo-cards-grid">
@@ -1049,12 +1084,13 @@ if (!empty($work_categories)):
     $work_categories_json = json_encode($work_categories_js, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 <!-- Our Work – Folder Gallery Section -->
-<section class="work-photos-section py-5">
+<section class="work-photos-section py-5" id="section-work">
     <div class="container">
-        <div class="text-center mb-5 reveal">
+        <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Portfolio</span>
             <h2 class="section-title">हाम्रो काम</h2>
             <p class="text-muted mt-2">Browse our events by category</p>
+            <?php echo getSectionShareButton('section-work'); ?>
         </div>
 
         <!-- Marquee wrapper: cards scroll continuously; hovering pauses the animation -->
@@ -1652,12 +1688,13 @@ if (!empty($vendors)):
     });
 ?>
 <!-- Vendors Section -->
-<section class="vendors-section py-5">
+<section class="vendors-section py-5" id="section-vendors">
     <div class="container">
-        <div class="text-center mb-5 reveal">
+        <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Our Team</span>
             <h2 class="section-title">हाम्रा विशेषज्ञहरू</h2>
             <p class="text-muted mt-2">Meet the professionals who make your event special</p>
+            <?php echo getSectionShareButton('section-vendors'); ?>
         </div>
 
         <?php if (count($present_vendor_types) > 1): ?>
@@ -1806,12 +1843,13 @@ $testimonial_images = getImagesBySection('testimonial');
 if (!empty($testimonial_images)):
 ?>
 <!-- Testimonials Section -->
-<section class="testimonials-section py-5 bg-light">
+<section class="testimonials-section py-5 bg-light" id="section-testimonials">
     <div class="container">
-        <div class="text-center mb-5 reveal">
+        <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Testimonials</span>
             <h2 class="section-title">हाम्रा ग्राहकहरूका विचार</h2>
             <p class="text-muted mt-2">Memories made, moments cherished</p>
+            <?php echo getSectionShareButton('section-testimonials'); ?>
         </div>
 
         <div id="testimonialsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
@@ -1876,7 +1914,7 @@ $about_images = getImagesBySection('about');
 if (!empty($about_images)):
 ?>
 <!-- About Section -->
-<section class="about-section py-5">
+<section class="about-section py-5" id="section-about">
     <div class="container">
         <div class="row align-items-center g-5">
             <div class="col-lg-5 reveal">
@@ -1915,8 +1953,11 @@ if (!empty($about_images)):
                 <?php endif; ?>
             </div>
             <div class="col-lg-7 reveal">
-                <span class="section-eyebrow">About Us</span>
-                <h2 class="section-title mb-3">हाम्रो बारेमा</h2>
+                <div class="section-heading-wrap d-inline-block w-100">
+                    <span class="section-eyebrow">About Us</span>
+                    <h2 class="section-title mb-3">हाम्रो बारेमा</h2>
+                    <?php echo getSectionShareButton('section-about'); ?>
+                </div>
                 <?php
                 $about_desc = '';
                 foreach ($about_images as $aimg) {
@@ -2352,6 +2393,105 @@ document.addEventListener("DOMContentLoaded", function() {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.02); }
 }
+
+/* ── Section Share Button ── */
+.section-heading-wrap {
+    position: relative;
+}
+.section-share-wrap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-block;
+}
+.section-share-btn {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #555;
+    font-size: 13px;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: 0;
+}
+.section-share-btn:hover,
+.section-share-btn.active {
+    background: #f0f8f0;
+    color: #2e7d32;
+    border-color: #2e7d32;
+    box-shadow: 0 2px 8px rgba(46,125,50,0.15);
+}
+.section-share-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    padding: 6px;
+    min-width: 185px;
+    z-index: 200;
+    text-align: left;
+}
+.section-share-dropdown.open {
+    display: block;
+}
+.share-opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 12px;
+    border-radius: 7px;
+    text-decoration: none;
+    color: #333;
+    font-size: 13px;
+    border: none;
+    background: none;
+    width: 100%;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+.share-opt:hover {
+    background: #f5f5f5;
+    color: #111;
+    text-decoration: none;
+}
+.share-opt .fab.fa-whatsapp { color: #25D366; }
+.share-opt .fab.fa-facebook-f { color: #1877F2; }
+.share-opt .fas.fa-link { color: #555; }
+.share-copied-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: #2e7d32;
+    color: #fff;
+    padding: 9px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 9999;
+}
+.share-copied-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+@media (max-width: 576px) {
+    .section-share-wrap { top: -2px; right: -2px; }
+    .section-share-dropdown { right: 0; min-width: 170px; }
+}
 </style>
 <script>
 // ── Auto-scroll for multiple package category sliders ──
@@ -2723,6 +2863,133 @@ document.addEventListener("DOMContentLoaded", function() {
     btn.addEventListener("click", function() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     });
+}());
+</script>
+<script>
+// ── Section Share Buttons ──
+(function() {
+    // Toast notification
+    var toast = document.createElement(\'div\');
+    toast.className = \'share-copied-toast\';
+    document.body.appendChild(toast);
+    var toastTimer = null;
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add(\'show\');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { toast.classList.remove(\'show\'); }, 2500);
+    }
+
+    function getSectionUrl(sectionId) {
+        return window.location.origin + window.location.pathname + \'#\' + sectionId;
+    }
+
+    function closeAllDropdowns() {
+        document.querySelectorAll(\'.section-share-dropdown.open\').forEach(function(d) {
+            d.classList.remove(\'open\');
+        });
+        document.querySelectorAll(\'.section-share-btn.active\').forEach(function(b) {
+            b.classList.remove(\'active\');
+            b.setAttribute(\'aria-expanded\', \'false\');
+        });
+    }
+
+    function fallbackCopy(text) {
+        var el = document.createElement(\'textarea\');
+        el.value = text;
+        el.style.cssText = \'position:fixed;top:-9999px;left:-9999px;opacity:0;\';
+        document.body.appendChild(el);
+        el.select();
+        try {
+            document.execCommand(\'copy\');
+            showToast(\'✓ लिंक कपी भयो!\');
+        } catch(err) {
+            showToast(\'कपी गर्न सकिएन\');
+        }
+        document.body.removeChild(el);
+    }
+
+    document.addEventListener(\'click\', function(e) {
+        // Toggle share dropdown
+        var shareBtn = e.target.closest(\'.section-share-btn\');
+        if (shareBtn) {
+            e.stopPropagation();
+            var wrap = shareBtn.closest(\'.section-share-wrap\');
+            var dropdown = wrap ? wrap.querySelector(\'.section-share-dropdown\') : null;
+            if (!dropdown) return;
+            var isOpen = dropdown.classList.contains(\'open\');
+            closeAllDropdowns();
+            if (!isOpen) {
+                dropdown.classList.add(\'open\');
+                shareBtn.classList.add(\'active\');
+                shareBtn.setAttribute(\'aria-expanded\', \'true\');
+            }
+            return;
+        }
+
+        // Copy link
+        var copyBtn = e.target.closest(\'.share-copy\');
+        if (copyBtn) {
+            e.stopPropagation();
+            var sectionId = copyBtn.getAttribute(\'data-section\');
+            var url = getSectionUrl(sectionId);
+            if (navigator.share) {
+                navigator.share({ url: url }).catch(function() {});
+            } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    showToast(\'✓ लिंक कपी भयो!\');
+                }).catch(function() { fallbackCopy(url); });
+            } else {
+                fallbackCopy(url);
+            }
+            closeAllDropdowns();
+            return;
+        }
+
+        // WhatsApp share – set href dynamically so no referrer leaks
+        var waBtn = e.target.closest(\'.share-whatsapp\');
+        if (waBtn) {
+            e.stopPropagation();
+            var url = getSectionUrl(waBtn.getAttribute(\'data-section\'));
+            waBtn.href = \'https://wa.me/?text=\' + encodeURIComponent(url);
+            closeAllDropdowns();
+            return;
+        }
+
+        // Facebook share
+        var fbBtn = e.target.closest(\'.share-facebook\');
+        if (fbBtn) {
+            e.stopPropagation();
+            var url = getSectionUrl(fbBtn.getAttribute(\'data-section\'));
+            fbBtn.href = \'https://www.facebook.com/sharer/sharer.php?u=\' + encodeURIComponent(url);
+            closeAllDropdowns();
+            return;
+        }
+
+        // Close on outside click
+        if (!e.target.closest(\'.section-share-wrap\')) {
+            closeAllDropdowns();
+        }
+    });
+
+    // Deep-link: scroll to hash section on page load
+    function scrollToHashSection() {
+        var hash = window.location.hash;
+        if (!hash) return;
+        var target = document.querySelector(hash);
+        if (!target) return;
+        setTimeout(function() {
+            var nav = document.querySelector(\'.navbar\') || document.querySelector(\'nav\');
+            var navHeight = nav ? nav.offsetHeight : 70;
+            var top = target.getBoundingClientRect().top + window.pageYOffset - navHeight;
+            window.scrollTo({ top: top, behavior: \'smooth\' });
+        }, 350);
+    }
+    if (document.readyState === \'complete\') {
+        scrollToHashSection();
+    } else {
+        window.addEventListener(\'load\', scrollToHashSection);
+    }
 }());
 </script>
 
