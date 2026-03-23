@@ -2,6 +2,7 @@
 require_once __DIR__ . '/includes/db.php';
 
 const PACKAGE_DETAIL_PATH = '/package-detail.php';
+const DEFAULT_SITEMAP_PACKAGE_LIMIT = 10000;
 
 header('Content-Type: application/xml; charset=UTF-8');
 
@@ -32,7 +33,7 @@ function getSitemapBaseUrl(): string {
             }
         }
     }
-    $basePath = BASE_URL;
+    $basePath = defined('BASE_URL') ? BASE_URL : '';
     if ($host === '') {
         return rtrim($basePath, '/');
     }
@@ -75,7 +76,9 @@ $staticPages = [
 
 $packagePages = [];
 $pdo = getDB();
-$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT 10000');
+$packageLimit = isset($_ENV['SITEMAP_PACKAGE_LIMIT']) ? (int) $_ENV['SITEMAP_PACKAGE_LIMIT'] : DEFAULT_SITEMAP_PACKAGE_LIMIT;
+$packageLimit = max(1, min(50000, $packageLimit));
+$stmt = $pdo->prepare('SELECT id, updated_at, created_at FROM service_packages WHERE status = ? ORDER BY id LIMIT ' . $packageLimit);
 $stmt->execute(['active']);
 $packagePages = $stmt->fetchAll();
 
