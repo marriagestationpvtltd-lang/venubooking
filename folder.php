@@ -384,6 +384,26 @@ if ($whatsapp_number) {
 // $bulk_album_urls – only photos in the currently selected album (used in album drill-down view)
 // $bulk_all_files  – same as above but as [{url, filename}] for File System Access API downloads
 // $bulk_album_files – same but for current album
+
+/**
+ * Generate a unique safe filename for a photo, deduplicating against $seen.
+ * $seen is passed by reference and updated with the new name.
+ */
+function _fsa_safe_filename($title, $ext, array &$seen) {
+    $safe  = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $title);
+    $safe  = preg_replace('/_+/', '_', $safe);
+    $safe  = trim($safe, '_');
+    $base  = !empty($safe) ? $safe : 'photo';
+    $fname = $base . '.' . $ext;
+    if (isset($seen[$fname])) {
+        $seen[$fname]++;
+        $fname = $base . '_' . $seen[$fname] . '.' . $ext;
+    } else {
+        $seen[$fname] = 1;
+    }
+    return $fname;
+}
+
 $bulk_all_urls    = [];
 $bulk_album_urls  = [];
 $bulk_all_files   = [];
@@ -394,21 +414,11 @@ if ($folder && !$error_message) {
         if (!$folder['max_downloads'] || $_p['download_count'] < $folder['max_downloads']) {
             $_url = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
             $bulk_all_urls[] = $_url;
-            // Build safe filename (mirrors server-side download filename logic)
             $_ext   = strtolower(pathinfo($_p['image_path'], PATHINFO_EXTENSION));
-            $_safe  = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $_p['title']);
-            $_safe  = preg_replace('/_+/', '_', $_safe);
-            $_safe  = trim($_safe, '_');
-            $_base  = (!empty($_safe) ? $_safe : 'photo');
-            $_fname = $_base . '.' . $_ext;
-            // Handle duplicate filenames by appending a counter
-            if (isset($_seen_names_all[$_fname])) {
-                $_seen_names_all[$_fname]++;
-                $_fname = $_base . '_' . $_seen_names_all[$_fname] . '.' . $_ext;
-            } else {
-                $_seen_names_all[$_fname] = 1;
-            }
-            $bulk_all_files[] = ['url' => $_url, 'filename' => $_fname];
+            $bulk_all_files[] = [
+                'url'      => $_url,
+                'filename' => _fsa_safe_filename($_p['title'], $_ext, $_seen_names_all),
+            ];
         }
     }
     $_seen_names_album = [];
@@ -417,18 +427,10 @@ if ($folder && !$error_message) {
             $_url = '?token=' . urlencode($token) . '&download_photo=' . $_p['id'];
             $bulk_album_urls[] = $_url;
             $_ext   = strtolower(pathinfo($_p['image_path'], PATHINFO_EXTENSION));
-            $_safe  = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $_p['title']);
-            $_safe  = preg_replace('/_+/', '_', $_safe);
-            $_safe  = trim($_safe, '_');
-            $_base  = (!empty($_safe) ? $_safe : 'photo');
-            $_fname = $_base . '.' . $_ext;
-            if (isset($_seen_names_album[$_fname])) {
-                $_seen_names_album[$_fname]++;
-                $_fname = $_base . '_' . $_seen_names_album[$_fname] . '.' . $_ext;
-            } else {
-                $_seen_names_album[$_fname] = 1;
-            }
-            $bulk_album_files[] = ['url' => $_url, 'filename' => $_fname];
+            $bulk_album_files[] = [
+                'url'      => $_url,
+                'filename' => _fsa_safe_filename($_p['title'], $_ext, $_seen_names_album),
+            ];
         }
     }
 }
@@ -2728,7 +2730,11 @@ if ($folder && !$error_message) {
                 } catch (e) {
                     console.error('Download error for ' + file.filename, e);
                     // Abort any partially-written file and continue with the next
-                    if (currentWritable) { try { await currentWritable.abort(); } catch (_) {} }
+                    if (currentWritable) {
+                        try { await currentWritable.abort(); } catch (abortErr) {
+                            console.warn('Could not abort writable for ' + file.filename, abortErr);
+                        }
+                    }
                 }
 
                 // Update after each file
@@ -2816,9 +2822,10 @@ if ($folder && !$error_message) {
 
         /** Format bytes per second into a human-readable speed string. */
         function _formatBytes(bytes) {
-            if (bytes < 1024)            return bytes.toFixed(0) + ' B';
-            if (bytes < 1024 * 1024)     return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            var KB = 1024, MB = 1024 * 1024;
+            if (bytes < KB) return bytes.toFixed(0) + ' B';
+            if (bytes < MB) return (bytes / KB).toFixed(1) + ' KB';
+            return (bytes / MB).toFixed(1) + ' MB';
         }
 
         /* ── Auto-activate select mode with all photos pre-selected ─────── */
