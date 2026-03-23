@@ -463,18 +463,83 @@ if ($whatsapp_number) {
             text-overflow: ellipsis;
         }
         
-        .photo-card .download-btn {
-            width: 100%;
-            background: var(--primary-green);
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            color: white;
-            transition: background 0.3s;
+        /* ── Photo media wrapper (positions overlay button) ── */
+        .photo-media {
+            position: relative;
+            overflow: hidden;
         }
-        
-        .photo-card .download-btn:hover {
-            background: var(--dark-green);
+
+        /* ── WhatsApp-style circular download overlay button ── */
+        .photo-media-download {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.55);
+            border: 2px solid rgba(255, 255, 255, 0.75);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: opacity 0.2s ease, background 0.2s ease, transform 0.15s ease;
+            z-index: 20;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .photo-card:hover .photo-media-download {
+            opacity: 1;
+        }
+        .photo-media-download:hover {
+            background: rgba(76, 175, 80, 0.9);
+            border-color: #fff;
+            color: #fff;
+            transform: scale(1.12);
+        }
+        .photo-media-download.dl-limit-reached {
+            background: rgba(80, 80, 80, 0.55);
+            border-color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        /* On mobile/touch: always show the overlay download button */
+        @media (max-width: 768px) {
+            .photo-media-download {
+                opacity: 0.85;
+            }
+        }
+
+        /* ── Lightbox download button ── */
+        .lightbox-download-btn {
+            position: absolute;
+            top: 18px;
+            right: 70px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            color: #fff;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.15s ease;
+            z-index: 1010;
+            cursor: pointer;
+        }
+        .lightbox-download-btn.visible {
+            display: flex;
+        }
+        .lightbox-download-btn:hover {
+            background: rgba(76, 175, 80, 0.85);
+            border-color: #fff;
+            color: #fff;
+            transform: scale(1.08);
         }
         
         /* Video card styles */
@@ -1538,10 +1603,13 @@ if ($whatsapp_number) {
                             }
                             $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
                             $pf_icon = getFileTypeIcon($pf_ext);
+                            $download_url_qs = '?token=' . urlencode($token) . '&download_photo=' . $photo['id'];
+                            $photo_title_js = json_encode($photo['title'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                         ?>
                             <div class="photo-card">
+                                <div class="photo-media">
                                 <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')">
+                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)">
                                         <div class="video-play-overlay">
                                             <i class="fas fa-play-circle"></i>
                                         </div>
@@ -1556,7 +1624,7 @@ if ($whatsapp_number) {
                                 <?php else: ?>
                                     <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>"
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
+                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)"
                                          loading="lazy"
                                          class="lazy-img"
                                          onload="this.classList.add('loaded')"
@@ -1564,22 +1632,24 @@ if ($whatsapp_number) {
                                          style="cursor: pointer;">
                                 <?php endif; ?>
                                 
+                                <?php if ($can_download): ?>
+                                    <a href="<?php echo htmlspecialchars($download_url_qs, ENT_QUOTES, 'UTF-8'); ?>"
+                                       class="photo-media-download"
+                                       title="Download"
+                                       onclick="event.stopPropagation(); return startDownload(this.href, <?php echo $photo_title_js; ?>)">
+                                        <i class="fas fa-arrow-down"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="photo-media-download dl-limit-reached" title="Download limit reached">
+                                        <i class="fas fa-ban"></i>
+                                    </span>
+                                <?php endif; ?>
+                                </div>
+                                
                                 <div class="photo-info">
                                     <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
                                         <?php echo htmlspecialchars($photo['title']); ?>
                                     </div>
-                                    
-                                    <?php if ($can_download): ?>
-                                        <a href="?token=<?php echo urlencode($token); ?>&download_photo=<?php echo $photo['id']; ?>"
-                                           class="btn download-btn"
-                                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
-                                            <i class="fas fa-download me-1"></i> Download
-                                        </a>
-                                    <?php else: ?>
-                                        <button class="btn btn-secondary w-100" disabled>
-                                            <i class="fas fa-ban me-1"></i> Limit Reached
-                                        </button>
-                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1616,10 +1686,13 @@ if ($whatsapp_number) {
                             }
                             $can_download = !$folder['max_downloads'] || $photo['download_count'] < $folder['max_downloads'];
                             $pf_icon = getFileTypeIcon($pf_ext);
+                            $download_url_qs = '?token=' . urlencode($token) . '&download_photo=' . $photo['id'];
+                            $photo_title_js = json_encode($photo['title'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                         ?>
                             <div class="photo-card">
+                                <div class="photo-media">
                                 <?php if ($is_video): ?>
-                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')">
+                                    <div class="video-container" onclick="openVideoLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)">
                                         <div class="video-play-overlay">
                                             <i class="fas fa-play-circle"></i>
                                         </div>
@@ -1634,7 +1707,7 @@ if ($whatsapp_number) {
                                 <?php else: ?>
                                     <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>')"
+                                         onclick="openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>)"
                                          loading="lazy"
                                          class="lazy-img"
                                          onload="this.classList.add('loaded')"
@@ -1642,22 +1715,24 @@ if ($whatsapp_number) {
                                          style="cursor: pointer;">
                                 <?php endif; ?>
                                 
+                                <?php if ($can_download): ?>
+                                    <a href="<?php echo htmlspecialchars($download_url_qs, ENT_QUOTES, 'UTF-8'); ?>"
+                                       class="photo-media-download"
+                                       title="Download"
+                                       onclick="event.stopPropagation(); return startDownload(this.href, <?php echo $photo_title_js; ?>)">
+                                        <i class="fas fa-arrow-down"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="photo-media-download dl-limit-reached" title="Download limit reached">
+                                        <i class="fas fa-ban"></i>
+                                    </span>
+                                <?php endif; ?>
+                                </div>
+                                
                                 <div class="photo-info">
                                     <div class="photo-title" title="<?php echo htmlspecialchars($photo['title']); ?>">
                                         <?php echo htmlspecialchars($photo['title']); ?>
                                     </div>
-                                    
-                                    <?php if ($can_download): ?>
-                                        <a href="?token=<?php echo urlencode($token); ?>&download_photo=<?php echo $photo['id']; ?>"
-                                           class="btn download-btn"
-                                           onclick="return startDownload(this.href, <?php echo json_encode(htmlspecialchars($photo['title'])); ?>)">
-                                            <i class="fas fa-download me-1"></i> Download
-                                        </a>
-                                    <?php else: ?>
-                                        <button class="btn btn-secondary w-100" disabled>
-                                            <i class="fas fa-ban me-1"></i> Limit Reached
-                                        </button>
-                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1759,12 +1834,18 @@ if ($whatsapp_number) {
     <!-- Lightbox for image preview -->
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
         <span class="lightbox-close">&times;</span>
+        <a id="lightbox-download-btn" class="lightbox-download-btn" title="Download" onclick="event.stopPropagation()">
+            <i class="fas fa-arrow-down"></i>
+        </a>
         <img src="" alt="Preview" id="lightbox-image">
     </div>
     
     <!-- Lightbox for video preview -->
     <div class="lightbox" id="video-lightbox" onclick="closeVideoLightbox()">
         <span class="lightbox-close">&times;</span>
+        <a id="video-lightbox-download-btn" class="lightbox-download-btn" title="Download" onclick="event.stopPropagation()">
+            <i class="fas fa-arrow-down"></i>
+        </a>
         <video id="lightbox-video" controls onclick="event.stopPropagation()">
             <source src="" id="lightbox-video-src" type="video/mp4">
         </video>
@@ -1807,8 +1888,21 @@ if ($whatsapp_number) {
             img.parentNode.replaceChild(placeholder, img);
         }
         
-        function openLightbox(src) {
+        function openLightbox(src, downloadUrl, title) {
             document.getElementById('lightbox-image').src = src;
+            var dlBtn = document.getElementById('lightbox-download-btn');
+            if (dlBtn) {
+                if (downloadUrl) {
+                    dlBtn.href = downloadUrl;
+                    dlBtn.classList.add('visible');
+                    dlBtn.onclick = function(e) {
+                        e.stopPropagation();
+                        return startDownload(downloadUrl, title || '');
+                    };
+                } else {
+                    dlBtn.classList.remove('visible');
+                }
+            }
             document.getElementById('lightbox').classList.add('active');
         }
         
@@ -1816,7 +1910,7 @@ if ($whatsapp_number) {
             document.getElementById('lightbox').classList.remove('active');
         }
         
-        function openVideoLightbox(src) {
+        function openVideoLightbox(src, downloadUrl, title) {
             var video = document.getElementById('lightbox-video');
             var sourceEl = document.getElementById('lightbox-video-src');
             // Determine MIME type from file extension
@@ -1831,6 +1925,19 @@ if ($whatsapp_number) {
             sourceEl.src = src;
             sourceEl.type = mimeMap[ext] || 'video/mp4';
             video.load();
+            var dlBtn = document.getElementById('video-lightbox-download-btn');
+            if (dlBtn) {
+                if (downloadUrl) {
+                    dlBtn.href = downloadUrl;
+                    dlBtn.classList.add('visible');
+                    dlBtn.onclick = function(e) {
+                        e.stopPropagation();
+                        return startDownload(downloadUrl, title || '');
+                    };
+                } else {
+                    dlBtn.classList.remove('visible');
+                }
+            }
             document.getElementById('video-lightbox').classList.add('active');
         }
         
