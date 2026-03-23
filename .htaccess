@@ -88,8 +88,13 @@ Options +FollowSymLinks
     # Allow uploads up to 55 MB (covers the 50 MB photo limit with some headroom)
     php_value upload_max_filesize 55M
     php_value post_max_size 60M
-    php_value max_execution_time 300
+    # Download scripts disable their own time limit via set_time_limit(0).
+    # Use 3600 s (1 h) here as a safety ceiling for all other scripts.
+    php_value max_execution_time 3600
     php_value max_input_time 300
+    # Disable zlib output compression globally so download scripts are not
+    # forced to fight against a hidden buffer they cannot ob_end_clean() away.
+    php_flag zlib.output_compression Off
 </IfModule>
 
 <IfModule mod_php8.c>
@@ -99,8 +104,21 @@ Options +FollowSymLinks
     php_flag log_errors On
     php_value upload_max_filesize 55M
     php_value post_max_size 60M
-    php_value max_execution_time 300
+    php_value max_execution_time 3600
     php_value max_input_time 300
+    php_flag zlib.output_compression Off
+</IfModule>
+
+# ============================================================================
+# DISABLE RESPONSE COMPRESSION FOR FILE DOWNLOAD SCRIPTS
+# ============================================================================
+# folder.php and download.php stream binary files directly to the client.
+# Allowing mod_deflate to compress these responses causes the server to
+# buffer the entire output before sending it, which produces incomplete
+# downloads for large files and prevents the instant-start behaviour.
+<IfModule mod_deflate.c>
+    SetEnvIfNoCase Request_URI folder\.php no-gzip dont-vary
+    SetEnvIfNoCase Request_URI download\.php no-gzip dont-vary
 </IfModule>
 
 # ============================================================================

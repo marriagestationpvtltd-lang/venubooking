@@ -71,12 +71,22 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
         // Prepare for large file download
         // Disable time limit for large file transfers
         @set_time_limit(0);
-        
-        // Disable output buffering to allow immediate streaming
-        if (ob_get_level()) {
+
+        // Disable PHP's zlib output compression first — must be done
+        // before clearing output buffers so the hidden zlib layer is
+        // removed before we flush any content to the client.
+        @ini_set('zlib.output_compression', '0');
+
+        // Disable ALL output buffering levels (there can be more than
+        // one: PHP's own ob layer plus a possible zlib/gzip handler).
+        while (ob_get_level()) {
             ob_end_clean();
         }
-        
+
+        // Prevent Apache/Nginx from re-compressing the file response.
+        @apache_setenv('no-gzip', '1');
+        @apache_setenv('dont-vary', '1');
+
         // Get file size as an unsigned string to handle files larger than 2 GB
         // correctly on 32-bit PHP builds where filesize() can overflow.
         $file_size = sprintf('%u', filesize($file_path));
@@ -86,19 +96,24 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
         header('Content-Disposition: attachment; filename="' . $download_filename . '"');
         header('Content-Length: ' . $file_size);
         header('Content-Transfer-Encoding: binary');
+        // Tell proxies/servers not to encode (compress) the response;
+        // this ensures the browser receives the exact byte count and
+        // that the download starts immediately without buffering.
+        header('Content-Encoding: identity');
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         header('Cache-Control: post-check=0, pre-check=0', false);
         header('Pragma: no-cache');
         header('Expires: 0');
-        
+
         // Flush headers to browser immediately
         flush();
-        
-        // Stream the file in chunks for large files
+
+        // Stream the file in 1 MB chunks.  Larger chunks mean far fewer
+        // flush() round-trips, so the first bytes reach the browser
+        // quickly and the overall transfer is faster.
         $handle = fopen($file_path, 'rb');
         if ($handle !== false) {
-            // Use 8KB chunks for efficient streaming
-            $chunk_size = 8 * 1024;
+            $chunk_size = 1024 * 1024; // 1 MB
             while (!feof($handle)) {
                 echo fread($handle, $chunk_size);
                 // Flush output buffer to send data immediately
