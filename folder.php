@@ -251,6 +251,23 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
     $photos_to_zip = ($has_subfolders && $current_album !== null)
         ? $visible_photos
         : $photos;
+
+    // Optional: filter to only selected photo IDs (passed as comma-separated integers)
+    if (!empty($_GET['ids'])) {
+        $filter_ids = [];
+        foreach (explode(',', $_GET['ids']) as $_raw_id) {
+            $_id = intval(trim($_raw_id));
+            if ($_id > 0) {
+                $filter_ids[] = $_id;
+            }
+        }
+        if (!empty($filter_ids)) {
+            $photos_to_zip = array_values(array_filter($photos_to_zip, function ($p) use ($filter_ids) {
+                return in_array((int)$p['id'], $filter_ids, true);
+            }));
+        }
+    }
+
     if (empty($photos_to_zip)) {
         $error_message = 'No photos to download.';
     } else {
@@ -2444,9 +2461,10 @@ if ($folder && !$error_message) {
             var current = 0;
 
             // Initialise the progress overlay
-            dlBar.style.width      = '0%';
-            dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
-            dlBar.style.animation  = '';
+            dlBar.style.width           = '0%';
+            dlBar.style.background      = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+            dlBar.style.backgroundSize  = '';
+            dlBar.style.animation       = '';
             dlPct.textContent      = '0%';
             dlTitle.textContent    = 'Downloading Files\u2026';
             dlFile.textContent     = '0 of ' + total + ' file' + (total !== 1 ? 's' : '');
@@ -2693,13 +2711,79 @@ if ($folder && !$error_message) {
 
         /**
          * Core download-now handler. Accepts an array of {url, filename} objects.
-         * Downloads immediately to the browser's default Downloads folder using
-         * fetch() with streaming progress tracking + Blob anchor-click trigger.
+         * For multiple files: downloads as a single ZIP (no per-file save dialogs,
+         * photos preserved in their original uploaded format).
+         * For a single file: uses fetch() with progress tracking + Blob anchor-click.
          * Falls back to iframe-based download on very old browsers without fetch.
          */
         async function downloadNow(files) {
             if (!files || files.length === 0) return false;
 
+            var zipAllowed = <?php echo ($folder && !empty($folder['allow_zip_download'])) ? 'true' : 'false'; ?>;
+
+            // ── Multiple files: use ZIP download ───────────────────────────────
+            // Downloading each file individually triggers a browser save dialog for
+            // every photo.  Bundling into a single ZIP means only one dialog (or
+            // none when the browser auto-saves to Downloads), and each photo is
+            // stored inside the ZIP in its original uploaded format.
+            if (files.length > 1 && zipAllowed) {
+                var ids = [];
+                files.forEach(function(f) {
+                    var m = f.url.match(/download_photo=(\d+)/);
+                    if (m) { ids.push(m[1]); }
+                });
+
+                if (ids.length > 0) {
+                    var zipUrl = '?token=' + encodeURIComponent(<?php echo json_encode($token, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)
+                               + '&download_all=1&ids=' + ids.join(',');
+
+                    // Show a brief "Preparing…" state in the progress overlay
+                    var overlay = document.getElementById('downloadProgressOverlay');
+                    var dlBar   = document.getElementById('dlBar');
+                    var dlPct   = document.getElementById('dlPercent');
+                    var dlTitle = document.getElementById('dlTitle');
+                    var dlFile  = document.getElementById('dlFilename');
+                    var dlSize  = document.getElementById('dlSizeInfo');
+                    var dlIcon  = document.getElementById('dlIcon');
+                    var dlEta   = document.getElementById('dlEta');
+                    var dlSpd   = document.getElementById('dlSpeed');
+                    if (overlay) {
+                        dlBar.style.width           = '100%';
+                        dlBar.style.background      = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
+                        dlBar.style.backgroundSize  = '200% 100%';
+                        dlBar.style.animation       = 'dlIndeterminate 1.5s linear infinite';
+                        dlPct.textContent      = '';
+                        dlTitle.textContent    = 'ZIP डाउनलोड तयार हुँदैछ…';
+                        dlFile.textContent     = ids.length + ' फाइलहरू';
+                        dlSize.textContent     = '';
+                        dlEta.textContent      = 'कृपया पर्खनुहोस्…';
+                        dlSpd.textContent      = '';
+                        dlIcon.className       = 'fas fa-spinner fa-spin';
+                        overlay.classList.add('dl-active');
+                        // Hide the overlay after 4 s.  The streaming ZIP starts sending bytes
+                        // immediately, so the browser's own download indicator takes over
+                        // within that window; keeping it longer would only confuse the user.
+                        setTimeout(function() { overlay.classList.remove('dl-active'); }, 4000);
+                    }
+
+                    // Trigger the ZIP download without navigating away from the page.
+                    // The server sends Content-Disposition:attachment so the browser saves
+                    // the file instead of navigating to the URL.
+                    var a = document.createElement('a');
+                    a.href = zipUrl;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    // Remove the anchor after 1 s — long enough for the browser to
+                    // initiate the request but short enough not to pollute the DOM.
+                    setTimeout(function() {
+                        if (a.parentNode) { a.parentNode.removeChild(a); }
+                    }, 1000);
+                    return false;
+                }
+            }
+
+            // ── Single file (or ZIP disabled): fetch + Blob approach ──────────
             if (typeof fetch === 'undefined') {
                 // Very old browser fallback – no progress possible
                 return bulkDownloadIndividual(files.map(function(f) { return f.url; }));
@@ -2761,9 +2845,10 @@ if ($folder && !$error_message) {
             var startTime    = Date.now();
 
             // Show overlay immediately — no picker dialog, starts right away
-            dlBar.style.width      = '0%';
-            dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
-            dlBar.style.animation  = '';
+            dlBar.style.width           = '0%';
+            dlBar.style.background      = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+            dlBar.style.backgroundSize  = '';
+            dlBar.style.animation       = '';
             dlPct.textContent      = '0%';
             dlTitle.textContent    = 'तपाईंको फोटो डाउनलोड हुँदैछ…';
             dlFile.textContent     = '';
@@ -2782,6 +2867,7 @@ if ($folder && !$error_message) {
                     if (!response.ok) throw new Error('HTTP ' + response.status);
 
                     var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
+                    var contentType   = (response.headers.get('Content-Type') || 'application/octet-stream').split(';')[0].trim();
                     if (contentLength > 0) { knownBytes += contentLength; }
                     var reader        = response.body.getReader();
                     var chunks        = [];
@@ -2817,8 +2903,10 @@ if ($folder && !$error_message) {
                         }
                     }
 
-                    // Save file to the browser's default Downloads folder via Blob anchor
-                    var blob      = new Blob(chunks);
+                    // Save file to the browser's default Downloads folder via Blob anchor.
+                    // Setting the MIME type on the Blob preserves the original file format
+                    // so the browser recognises the file correctly when it is opened.
+                    var blob      = new Blob(chunks, { type: contentType });
                     var objectUrl = URL.createObjectURL(blob);
                     var anchor    = document.createElement('a');
                     anchor.href     = objectUrl;
