@@ -105,6 +105,93 @@ function getFileTypeIcon($ext) {
 }
 
 
+/**
+ * Detect the MIME type of a file without throwing exceptions.
+ *
+ * Tries, in order:
+ *  1. PHP's finfo extension (most accurate).
+ *  2. mime_content_type() built-in (available on most hosts).
+ *  3. Extension-based lookup table (last-resort fallback).
+ *
+ * Error-suppression operators (@) are used on all calls so that a
+ * misconfigured extension or an unreadable magic database never causes a
+ * PHP warning or a TypeError (e.g. finfo_file() receiving false in PHP 8).
+ *
+ * Always returns a non-empty string — never throws and never returns false —
+ * so callers can safely pass the result directly into a Content-Type header.
+ *
+ * @param string $file_path Absolute path to the file.
+ * @return string MIME type string.
+ */
+function detectMimeType($file_path) {
+    // 1. finfo (preferred – most accurate)
+    if (function_exists('finfo_open')) {
+        $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo !== false) {
+            $mime = @finfo_file($finfo, $file_path);
+            @finfo_close($finfo);
+            if ($mime !== false && $mime !== '') {
+                return $mime;
+            }
+        }
+    }
+
+    // 2. mime_content_type()
+    if (function_exists('mime_content_type')) {
+        $mime = @mime_content_type($file_path);
+        if ($mime !== false && $mime !== '') {
+            return $mime;
+        }
+    }
+
+    // 3. Extension-based fallback
+    $ext = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+    $mime_map = [
+        'jpg'  => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png'  => 'image/png',
+        'gif'  => 'image/gif',
+        'webp' => 'image/webp',
+        'bmp'  => 'image/bmp',
+        'tiff' => 'image/tiff',
+        'tif'  => 'image/tiff',
+        'heic' => 'image/heic',
+        'heif' => 'image/heif',
+        'svg'  => 'image/svg+xml',
+        'mp4'  => 'video/mp4',
+        'mov'  => 'video/quicktime',
+        'avi'  => 'video/x-msvideo',
+        'wmv'  => 'video/x-ms-wmv',
+        'webm' => 'video/webm',
+        'mkv'  => 'video/x-matroska',
+        'mpg'  => 'video/mpeg',
+        'mpeg' => 'video/mpeg',
+        '3gp'  => 'video/3gpp',
+        'm4v'  => 'video/x-m4v',
+        'ogg'  => 'video/ogg',
+        'mp3'  => 'audio/mpeg',
+        'wav'  => 'audio/wav',
+        'aac'  => 'audio/aac',
+        'flac' => 'audio/flac',
+        'pdf'  => 'application/pdf',
+        'zip'  => 'application/zip',
+        'rar'  => 'application/x-rar-compressed',
+        'tar'  => 'application/x-tar',
+        'gz'   => 'application/gzip',
+        '7z'   => 'application/x-7z-compressed',
+        'doc'  => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls'  => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt'  => 'application/vnd.ms-powerpoint',
+        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'txt'  => 'text/plain',
+        'csv'  => 'text/csv',
+    ];
+    return isset($mime_map[$ext]) ? $mime_map[$ext] : 'application/octet-stream';
+}
+
+
 function getValueOrDefault($value, $default = 'N/A') {
     // Check for null or empty string
     if (is_null($value) || $value === '') {
