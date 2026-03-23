@@ -156,6 +156,13 @@ if (!is_dir($folder_upload_dir)) {
         echo json_encode(['success' => false, 'message' => 'Failed to create upload directory.']);
         exit;
     }
+    // Ensure directories are world-executable/readable so the web server can
+    // serve files regardless of which system user PHP and Apache run as.
+    @chmod($folder_upload_dir, 0755);
+    $folders_base_dir = UPLOAD_PATH . 'folders/';
+    if (is_dir($folders_base_dir)) {
+        @chmod($folders_base_dir, 0755);
+    }
 }
 
 $file_type_label = $is_photo ? 'photo' : ($is_video ? 'video' : 'file');
@@ -217,6 +224,11 @@ if (!file_exists($output_path) || filesize($output_path) === 0) {
     echo json_encode(['success' => false, 'message' => 'Assembled file is missing or empty. Please check server disk space and permissions.']);
     exit;
 }
+
+// Ensure the assembled file is world-readable so the web server can serve it
+// regardless of the system umask (which may create files as 0600 on some
+// shared-hosting configurations, preventing Apache/Nginx from reading them).
+@chmod($output_path, 0644);
 
 // ---------------------------------------------------------------
 // Validate assembled file
