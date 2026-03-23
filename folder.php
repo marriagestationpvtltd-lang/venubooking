@@ -1364,6 +1364,21 @@ if ($whatsapp_number) {
             .mobile-banner-item {
                 border-radius: 10px;
             }
+            /* On mobile: Banner A moves to top, hide it from the bottom section */
+            .mobile-banner-a-in-bottom {
+                display: none;
+            }
+        }
+
+        /* Mobile top banner - Banner A at top, only on mobile */
+        .mobile-banner-top {
+            display: none;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 575px) {
+            .mobile-banner-top {
+                display: block;
+            }
         }
     </style>
 </head>
@@ -1407,6 +1422,22 @@ if ($whatsapp_number) {
                 </p>
             </div>
         <?php else: ?>
+            <?php if ($show_banner_a): ?>
+            <!-- Mobile Top Banner - Banner A at top on mobile only -->
+            <div class="mobile-banner-top">
+                <div class="mobile-banner-item">
+                    <?php if (!empty($banner_a_link)): ?>
+                    <a href="<?php echo htmlspecialchars($banner_a_link); ?>" target="_blank" rel="noopener noreferrer">
+                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner" loading="lazy">
+                        <span class="banner-badge">Ad</span>
+                    </a>
+                    <?php else: ?>
+                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner" loading="lazy">
+                    <span class="banner-badge">Ad</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
             <!-- Folder Header -->
             <div class="folder-header">
                 <div class="folder-header-accent"></div>
@@ -1843,7 +1874,7 @@ if ($whatsapp_number) {
                 </div>
                 <div class="mobile-banners-grid <?php echo ($show_banner_a && $show_banner_b) ? 'has-two-banners' : ''; ?>">
                     <?php if ($show_banner_a): ?>
-                    <div class="mobile-banner-item">
+                    <div class="mobile-banner-item mobile-banner-a-in-bottom">
                         <?php if (!empty($banner_a_link)): ?>
                         <a href="<?php echo htmlspecialchars($banner_a_link); ?>" target="_blank" rel="noopener noreferrer">
                             <img src="<?php echo UPLOAD_URL . htmlspecialchars($banner_a_image); ?>" alt="Sponsored Banner" loading="lazy">
