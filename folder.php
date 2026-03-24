@@ -325,53 +325,116 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
         if (empty($valid_files)) {
             $error_message = 'No valid files to download.';
         } else {
-            // Use streaming ZIP for instant download (like Google Drive)
-            // Download starts immediately without waiting for full ZIP to be created
-            $zip_stream_started = false;
-            
-            try {
-                $zipStream = new ZipStream($zip_filename);
-                // Start streaming - this sends headers and begins the download immediately
-                $zipStream->begin();
-                $zip_stream_started = true;
-                
-                $added_count = 0;
-                
-                // Stream each file directly to the browser
-                foreach ($valid_files as $file_info) {
-                    if ($zipStream->addFile($file_info['path'], $file_info['zip_name'])) {
-                        $added_count++;
-                        
-                        // Increment download count for this photo
-                        $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
-                        $update_stmt->execute([$file_info['photo_id']]);
-                    }
-                    
-                    // Check if connection is still alive
-                    if (connection_aborted()) {
-                        break;
+            // Prefer ZipArchive (PHP built-in) – creates the ZIP to a temp file then
+            // serves it with readfile().  This is more reliable than streaming on
+            // shared-hosting servers where output buffering / gzip middleware can
+            // corrupt a live binary stream.  Falls back to the custom ZipStream
+            // streamer when the zip extension is not available.
+            if (class_exists('ZipArchive')) {
+                // ── ZipArchive path ──────────────────────────────────────────────
+                $temp_zip = @tempnam(sys_get_temp_dir(), 'vb_zip_');
+                if ($temp_zip === false) {
+                    $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
+                } else {
+                    try {
+                        $zip = new ZipArchive();
+                        $opened = $zip->open($temp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+                        if ($opened !== true) {
+                            throw new RuntimeException('ZipArchive::open failed with code ' . $opened);
+                        }
+
+                        $added_count = 0;
+                        foreach ($valid_files as $file_info) {
+                            if ($zip->addFile($file_info['path'], $file_info['zip_name'])) {
+                                $added_count++;
+                            }
+                        }
+                        $zip->close();
+
+                        if ($added_count === 0) {
+                            @unlink($temp_zip);
+                            $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
+                        } else {
+                            $zip_size = filesize($temp_zip);
+
+                            // Disable time limit and output compression before serving
+                            @set_time_limit(0);
+                            @ini_set('zlib.output_compression', '0');
+                            $ob_max = ob_get_level() + 1; // safety cap
+                            while (ob_get_level() > 0 && --$ob_max > 0) {
+                                if (!ob_end_clean()) {
+                                    break;
+                                }
+                            }
+                            @apache_setenv('no-gzip', '1');
+                            @apache_setenv('dont-vary', '1');
+
+                            header('Content-Type: application/zip');
+                            header('Content-Disposition: attachment; filename="' . $zip_filename . '"');
+                            header('Content-Length: ' . $zip_size);
+                            header('Content-Transfer-Encoding: binary');
+                            header('Content-Encoding: identity');
+                            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+                            header('Cache-Control: post-check=0, pre-check=0', false);
+                            header('Pragma: no-cache');
+                            header('Expires: 0');
+                            flush();
+
+                            readfile($temp_zip);
+                            @unlink($temp_zip);
+
+                            // Batch-update download counts in a single query
+                            $photo_ids = array_column($valid_files, 'photo_id');
+                            $placeholders = implode(',', array_fill(0, count($photo_ids), '?'));
+                            $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id IN ($placeholders)")->execute($photo_ids);
+                            $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
+
+                            exit;
+                        }
+                    } catch (Throwable $e) {
+                        error_log('ZIP download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+                        @unlink($temp_zip);
+                        if (headers_sent()) {
+                            exit;
+                        }
+                        $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
                     }
                 }
-                
-                // Finish the ZIP file (write central directory)
-                $zipStream->finish();
-                
-                // Increment folder total downloads
-                if ($added_count > 0) {
-                    $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
-                }
-                
-                exit;
-            } catch (Throwable $e) {
-                error_log('ZIP download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
-                if ($zip_stream_started || headers_sent()) {
-                    // Headers already sent as application/zip – cannot output HTML.
-                    // End the response here to avoid appending error HTML to the stream.
+            } else {
+                // ── ZipStream fallback (streaming, no temp file) ─────────────────
+                $zip_stream_started = false;
+
+                try {
+                    $zipStream = new ZipStream($zip_filename);
+                    $zipStream->begin();
+                    $zip_stream_started = true;
+
+                    $added_count = 0;
+                    foreach ($valid_files as $file_info) {
+                        if ($zipStream->addFile($file_info['path'], $file_info['zip_name'])) {
+                            $added_count++;
+                            $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
+                            $update_stmt->execute([$file_info['photo_id']]);
+                        }
+                        if (connection_aborted()) {
+                            break;
+                        }
+                    }
+
+                    $zipStream->finish();
+
+                    if ($added_count > 0) {
+                        $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
+                    }
+
                     exit;
+                } catch (Throwable $e) {
+                    error_log('ZIP download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+                    if ($zip_stream_started || headers_sent()) {
+                        exit;
+                    }
+                    $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
                 }
-                // Headers not yet sent – show a non-fatal alert on the folder page
-                // so the user can still use the individual download option.
-                $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
             }
         }
     }
