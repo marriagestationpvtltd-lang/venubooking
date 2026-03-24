@@ -48,6 +48,14 @@ foreach ($sections as $key => $label) {
     $stmt->execute([$key]);
     $section_card_info[$key] = $stmt->fetch(PDO::FETCH_ASSOC);
 }
+
+// Fetch active gallery card groups for the gallery section group selector
+$gallery_groups_stmt = $db->query(
+    "SELECT id, title, display_order FROM gallery_card_groups
+      WHERE status = 'active'
+      ORDER BY display_order ASC, title ASC"
+);
+$gallery_groups = $gallery_groups_stmt->fetchAll();
 ?>
 
 <!-- Include Image Upload Handler CSS -->
@@ -139,6 +147,42 @@ foreach ($sections as $key => $label) {
                         <small class="text-muted">Photos in the same category are displayed together in one folder card (like menu → sub-menu structure).</small>
                     </div>
 
+                    <!-- Gallery Card Group – only shown when section = gallery -->
+                    <div class="mb-3" id="galleryCardGroupField" style="display:none;">
+                        <label for="card_group_id" class="form-label">Gallery Card Group</label>
+                        <div class="d-flex gap-2 align-items-start">
+                            <div class="flex-grow-1">
+                                <?php if (!empty($gallery_groups)): ?>
+                                <select class="form-select" id="card_group_id" name="card_group_id">
+                                    <option value="">— Auto-group (no named group) —</option>
+                                    <?php foreach ($gallery_groups as $gg): ?>
+                                        <option value="<?php echo (int)$gg['id']; ?>">
+                                            <?php echo htmlspecialchars($gg['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php else: ?>
+                                <select class="form-select" id="card_group_id" name="card_group_id">
+                                    <option value="">— No groups yet —</option>
+                                </select>
+                                <?php endif; ?>
+                            </div>
+                            <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/add.php"
+                               class="btn btn-outline-secondary btn-sm" target="_blank"
+                               title="Create a new gallery card group">
+                                <i class="fas fa-plus"></i> New
+                            </a>
+                        </div>
+                        <small class="text-muted">
+                            Assign photos to a named card group (e.g., <em>Asmita &amp; Suman's Wedding</em>).
+                            <?php if (empty($gallery_groups)): ?>
+                            <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/add.php" target="_blank">Create a gallery card group</a> first.
+                            <?php else: ?>
+                            <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/index.php" target="_blank">Manage card groups</a>.
+                            <?php endif; ?>
+                        </small>
+                    </div>
+
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="2" 
@@ -220,15 +264,16 @@ foreach ($sections as $key => $label) {
 
 <script>
 (function () {
-    var sectionSel  = document.getElementById('section');
-    var catField    = document.getElementById('eventCategoryField');
-    var catSelect   = document.getElementById('event_category_select');
-    var customWrap  = document.getElementById('customCategoryWrap');
-    var customInput = document.getElementById('event_category_custom');
-    var hiddenInput = document.getElementById('event_category');
-    var sectionInfo = document.getElementById('sectionInfo');
-    var currentPhotos = document.getElementById('currentPhotos');
-    var currentCards = document.getElementById('currentCards');
+    var sectionSel       = document.getElementById('section');
+    var catField         = document.getElementById('eventCategoryField');
+    var catSelect        = document.getElementById('event_category_select');
+    var customWrap       = document.getElementById('customCategoryWrap');
+    var customInput      = document.getElementById('event_category_custom');
+    var hiddenInput      = document.getElementById('event_category');
+    var sectionInfo      = document.getElementById('sectionInfo');
+    var currentPhotos    = document.getElementById('currentPhotos');
+    var currentCards     = document.getElementById('currentCards');
+    var galleryGroupField = document.getElementById('galleryCardGroupField');
 
     function toggleCategoryField() {
         if (sectionSel.value === 'work_photos') {
@@ -237,7 +282,11 @@ foreach ($sections as $key => $label) {
             catField.style.display = 'none';
             hiddenInput.value = '';
         }
-        
+
+        if (galleryGroupField) {
+            galleryGroupField.style.display = (sectionSel.value === 'gallery') ? '' : 'none';
+        }
+
         // Show section info
         var selectedOption = sectionSel.options[sectionSel.selectedIndex];
         if (sectionSel.value && selectedOption) {

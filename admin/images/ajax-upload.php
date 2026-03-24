@@ -34,6 +34,9 @@ $display_order = intval($_POST['display_order'] ?? 0);
 $status = $_POST['status'] ?? 'active';
 $event_category = ($section === 'work_photos') ? trim($_POST['event_category'] ?? '') : null;
 if ($event_category === '') $event_category = null;
+// card_group_id for named gallery card groups (gallery section only)
+$card_group_id_raw = ($section === 'gallery') ? intval($_POST['card_group_id'] ?? 0) : 0;
+$card_group_id = ($card_group_id_raw > 0) ? $card_group_id_raw : null;
 
 // Validation
 if (empty($section)) {
@@ -44,6 +47,17 @@ if (empty($section)) {
 if ($section === 'work_photos' && empty($event_category)) {
     echo json_encode(['success' => false, 'message' => 'Please select an event category for Our Work photos.']);
     exit;
+}
+
+// Validate card_group_id exists when provided
+$card_group_warning = null;
+if ($card_group_id !== null) {
+    $gcg_check = $db->prepare("SELECT id FROM gallery_card_groups WHERE id = ? AND status = 'active'");
+    $gcg_check->execute([$card_group_id]);
+    if (!$gcg_check->fetch()) {
+        $card_group_id = null; // fall back to auto-grouping
+        $card_group_warning = 'Selected gallery card group was not found or is inactive. Photo saved without a named group.';
+    }
 }
 
 // Check if file was uploaded
@@ -164,10 +178,10 @@ $file_title = $title_base ?: pathinfo($file['name'], PATHINFO_FILENAME);
 
 // Insert into database
 try {
-    $sql = "INSERT INTO site_images (title, description, image_path, section, card_id, event_category, display_order, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO site_images (title, description, image_path, section, card_id, card_group_id, event_category, display_order, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $db->prepare($sql);
-    $result = $stmt->execute([$file_title, $description, $filename, $section, $card_id, $event_category, $display_order, $status]);
+    $result = $stmt->execute([$file_title, $description, $filename, $section, $card_id, $card_group_id, $event_category, $display_order, $status]);
     
     if ($result) {
         $image_id = $db->lastInsertId();
@@ -176,12 +190,14 @@ try {
         echo json_encode([
             'success' => true,
             'message' => 'Image uploaded successfully!',
+            'warning' => $card_group_warning,
             'image' => [
                 'id' => $image_id,
                 'title' => $file_title,
                 'filename' => $filename,
                 'section' => $section,
                 'card_id' => $card_id,
+                'card_group_id' => $card_group_id,
                 'url' => UPLOAD_URL . $filename
             ]
         ]);

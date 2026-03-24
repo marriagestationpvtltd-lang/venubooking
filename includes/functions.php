@@ -2162,10 +2162,21 @@ function getImagesBySection($section, $limit = null) {
 function getImagesByCards($section) {
     $db = getDB();
 
-    $sql = "SELECT id, title, description, image_path, section, card_id, display_order
-            FROM site_images
-            WHERE section = ? AND status = 'active'
-            ORDER BY card_id, display_order, created_at";
+    // Join with gallery_card_groups to get named group title and ordering.
+    // Images assigned to a named group are ordered by group display_order then card_group_id.
+    // Legacy images (card_group_id IS NULL) fall back to auto card_id ordering.
+    $sql = "SELECT si.id, si.title, si.description, si.image_path, si.section,
+                   si.card_id, si.card_group_id, si.display_order,
+                   gcg.title AS card_group_title, gcg.display_order AS group_display_order
+            FROM site_images si
+            LEFT JOIN gallery_card_groups gcg
+                   ON si.card_group_id = gcg.id AND gcg.status = 'active'
+            WHERE si.section = ? AND si.status = 'active'
+            ORDER BY
+                CASE WHEN si.card_group_id IS NOT NULL THEN COALESCE(gcg.display_order, 0) ELSE 99999 END ASC,
+                CASE WHEN si.card_group_id IS NOT NULL THEN si.card_group_id ELSE si.card_id END ASC,
+                si.display_order ASC,
+                si.created_at ASC";
 
     $stmt = $db->prepare($sql);
     $stmt->execute([$section]);
@@ -2174,11 +2185,16 @@ function getImagesByCards($section) {
     $cards = [];
     foreach ($images as &$image) {
         $image['image_url'] = UPLOAD_URL . $image['image_path'];
-        $cid = (int)$image['card_id'];
-        if (!isset($cards[$cid])) {
-            $cards[$cid] = [];
+        // Group by named card group when assigned, otherwise by auto card_id
+        if (!empty($image['card_group_id'])) {
+            $key = 'g_' . (int)$image['card_group_id'];
+        } else {
+            $key = 'c_' . (int)$image['card_id'];
         }
-        $cards[$cid][] = $image;
+        if (!isset($cards[$key])) {
+            $cards[$key] = [];
+        }
+        $cards[$key][] = $image;
     }
 
     // Re-index to a plain 0-based array
