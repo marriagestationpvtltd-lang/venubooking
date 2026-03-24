@@ -91,7 +91,7 @@ if (empty($token)) {
                 return true;
             }));
         }
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log('Folder page error: ' . $e->getMessage());
         $error_message = 'Unable to load folder. Please try again later.';
     }
@@ -180,11 +180,28 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
             } else {
                 $file_path = UPLOAD_PATH . $photo['image_path'];
                 
-                // Security: Verify file is within uploads directory
+                // Security: Verify file is within uploads directory.
+                // Uses realpath() for strict boundary checking when available.
+                // Falls back to a path-traversal guard when realpath() cannot
+                // resolve paths (e.g. open_basedir restrictions on shared hosting).
                 $real_upload_path = realpath(UPLOAD_PATH);
-                $real_file_path = realpath($file_path);
-                
-                if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
+                $real_file_path   = realpath($file_path);
+
+                $is_safe_path = false;
+                if ($real_file_path !== false && $real_upload_path !== false) {
+                    $is_safe_path = strpos($real_file_path, rtrim($real_upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0
+                                    && file_exists($file_path);
+                } elseif (file_exists($file_path)) {
+                    // realpath() unavailable: use same path-traversal guard as the
+                    // photo filter applied on page load (lines 66-70).
+                    $safe_p = str_replace('\\', '/', $photo['image_path']);
+                    $is_safe_path = $safe_p !== ''
+                                    && strpos($safe_p, '../') === false
+                                    && strpos($safe_p, '/..') === false
+                                    && $safe_p[0] !== '/';
+                }
+
+                if ($is_safe_path) {
                     // Detect MIME type using robust helper (handles missing/broken finfo extension)
                     $mime_type = detectMimeType($file_path);
 
@@ -340,6 +357,12 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
 
 // Handle Download All as ZIP - Using streaming for instant downloads (like Google Drive)
 if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] === '1' && $folder['allow_zip_download']) {
+    // Disable PHP execution time limit as early as possible so the file-validation
+    // loop (which calls detectMimeType() for every photo) cannot timeout on large
+    // folders before the ZIP creation even starts.  This is especially important on
+    // shared-hosting servers where the default max_execution_time is 30–60 seconds.
+    @set_time_limit(0);
+
     // When inside an album, only ZIP photos from that album; otherwise ZIP everything
     $photos_to_zip = ($has_subfolders && $current_album !== null)
         ? $visible_photos
@@ -385,9 +408,23 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
         foreach ($photos_to_zip as $photo) {
             $file_path = UPLOAD_PATH . $photo['image_path'];
             $real_file_path = realpath($file_path);
-            
-            // Security check: verify file is within uploads directory
-            if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
+
+            // Security check: verify file is within uploads directory.
+            // Falls back to a path-traversal guard when realpath() cannot resolve
+            // paths (e.g. open_basedir restrictions on shared hosting).
+            $file_is_safe = false;
+            if ($real_file_path !== false && $real_upload_path !== false) {
+                $file_is_safe = strpos($real_file_path, rtrim($real_upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0
+                                && file_exists($file_path);
+            } elseif (file_exists($file_path)) {
+                $safe_p = str_replace('\\', '/', $photo['image_path']);
+                $file_is_safe = $safe_p !== ''
+                                && strpos($safe_p, '../') === false
+                                && strpos($safe_p, '/..') === false
+                                && $safe_p[0] !== '/';
+            }
+
+            if ($file_is_safe) {
                 // Derive extension from actual file MIME type so ZIP entries have
                 // the correct extension even if image_path used the original
                 // uploaded filename extension (which may not match the content).
@@ -426,12 +463,9 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
         if (empty($valid_files)) {
             $error_message = 'No valid files to download.';
         } else {
-            // Disable time limit and output compression before any ZIP work begins
-            // so neither the build step (ZipArchive) nor the streaming step
-            // (ZipStream) is interrupted by PHP's execution timer.  This is
-            // especially important on shared-hosting servers where the default
-            // max_execution_time is typically 30–60 seconds.
-            @set_time_limit(0);
+            // Disable output compression before any ZIP work begins so neither the
+            // build step (ZipArchive) nor the streaming step (ZipStream) is
+            // interrupted.
             @ini_set('zlib.output_compression', '0');
             $ob_max = ob_get_level() + 1; // safety cap
             while (ob_get_level() > 0 && --$ob_max > 0) {
