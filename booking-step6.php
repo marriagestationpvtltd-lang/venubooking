@@ -259,6 +259,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 'services'           => $selected_services,
                 'selected_designs'   => $selected_designs,
                 'packages'           => $selected_packages,
+                'selected_slots'     => $booking_data['selected_slots'] ?? [],
+                'slot_id'            => $booking_data['slot_id'] ?? null,
                 'full_name'          => $full_name,
                 'phone'              => $phone,
                 'email'              => $email,

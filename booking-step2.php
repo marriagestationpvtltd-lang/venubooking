@@ -264,14 +264,14 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title" id="timeSlotModalLabel">
-                    <i class="fas fa-clock me-2"></i>Select a Time Slot — <span id="tsModalHallName"></span>
+                    <i class="fas fa-clock me-2"></i>Select Time Slots — <span id="tsModalHallName"></span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p class="text-muted mb-3">
                     <i class="fas fa-info-circle me-1"></i>
-                    Please select an available time slot for your event. Slots already booked on <strong id="tsModalDate"></strong> are shown as unavailable.
+                    Select one or more available time slots for your event on <strong id="tsModalDate"></strong>. You can pick multiple consecutive slots — the booking will span from the earliest start to the latest end time. Slots already booked are shown as unavailable.
                 </p>
                 <div id="timeSlotsContainer">
                     <div class="text-center py-4">

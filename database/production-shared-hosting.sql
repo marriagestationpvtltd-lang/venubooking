@@ -200,6 +200,19 @@ CREATE TABLE IF NOT EXISTS hall_time_slots (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: booking_time_slots (junction: booking ↔ individual hall_time_slots)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS booking_time_slots (
+    id                INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    booking_id        INT NOT NULL,
+    hall_time_slot_id INT NOT NULL,
+    CONSTRAINT fk_bts_booking   FOREIGN KEY (booking_id)        REFERENCES bookings(id)        ON DELETE CASCADE,
+    CONSTRAINT fk_bts_hall_slot FOREIGN KEY (hall_time_slot_id) REFERENCES hall_time_slots(id) ON DELETE CASCADE,
+    INDEX idx_bts_booking   (booking_id),
+    INDEX idx_bts_hall_slot (hall_time_slot_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- TABLE: additional_services
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS additional_services (
@@ -1422,3 +1435,30 @@ END$$
 DELIMITER ;
 CALL upgrade_hall_time_slots();
 DROP PROCEDURE IF EXISTS upgrade_hall_time_slots;
+
+-- ============================================================================
+-- UPGRADE: Create booking_time_slots table for existing installations
+-- ============================================================================
+DELIMITER $$
+DROP PROCEDURE IF EXISTS upgrade_booking_time_slots$$
+CREATE PROCEDURE upgrade_booking_time_slots()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_time_slots'
+    ) THEN
+        CREATE TABLE booking_time_slots (
+            id                INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            booking_id        INT NOT NULL,
+            hall_time_slot_id INT NOT NULL,
+            CONSTRAINT fk_bts_booking   FOREIGN KEY (booking_id)        REFERENCES bookings(id)        ON DELETE CASCADE,
+            CONSTRAINT fk_bts_hall_slot FOREIGN KEY (hall_time_slot_id) REFERENCES hall_time_slots(id) ON DELETE CASCADE,
+            INDEX idx_bts_booking   (booking_id),
+            INDEX idx_bts_hall_slot (hall_time_slot_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    END IF;
+END$$
+DELIMITER ;
+CALL upgrade_booking_time_slots();
+DROP PROCEDURE IF EXISTS upgrade_booking_time_slots;

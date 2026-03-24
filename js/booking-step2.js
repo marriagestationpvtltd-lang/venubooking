@@ -330,8 +330,8 @@ function showVenues() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Select hall (with optional time slot) and proceed to next step
-function selectHall(hallId, hallName, venueName, basePrice, capacity, slotId) {
+// Select hall (with optional time slot IDs) and proceed to next step
+function selectHall(hallId, hallName, venueName, basePrice, capacity, slotIds) {
     // Save selected hall to session
     const hallData = {
         id: hallId,
@@ -341,8 +341,9 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity, slotId) {
         capacity: capacity
     };
 
-    if (slotId !== undefined && slotId !== null) {
-        hallData.slot_id = slotId;
+    if (slotIds !== undefined && slotIds !== null) {
+        // Normalise: always send as array for the API
+        hallData.slot_ids = Array.isArray(slotIds) ? slotIds : [slotIds];
     }
     
     // Show loading indicator
@@ -382,12 +383,12 @@ function selectHall(hallId, hallName, venueName, basePrice, capacity, slotId) {
 
 // ── Time Slot Modal ─────────────────────────────────────────────────────────
 
-let _pendingHall = null;   // stores hall data while user picks a slot
-let _selectedSlot = null;  // the slot the user has chosen
+let _pendingHall = null;    // stores hall data while user picks slots
+let _selectedSlots = [];    // array of slot objects the user has chosen
 
 function openTimeSlotModal(hallId, hallName, venueName, basePrice, capacity) {
     _pendingHall = { hallId, hallName, venueName, basePrice, capacity };
-    _selectedSlot = null;
+    _selectedSlots = [];
 
     // Populate modal header
     const nameEl = document.getElementById('tsModalHallName');
@@ -490,35 +491,37 @@ function renderTimeSlots(slots, container) {
         if (!slots.find(s => s.id === slotId && s.available)) return;
 
         card.addEventListener('click', function() {
-            // Deselect all
-            container.querySelectorAll('.time-slot-card.selected-slot').forEach(c => {
-                c.classList.remove('selected-slot', 'border-warning', 'shadow');
-                c.classList.add('border-success');
-                const badge = c.querySelector('.slot-status-badge');
+            const existingIdx = _selectedSlots.findIndex(s => s.id === slotId);
+            const badge = this.querySelector('.slot-status-badge');
+
+            if (existingIdx >= 0) {
+                // Deselect this slot
+                _selectedSlots.splice(existingIdx, 1);
+                this.classList.remove('selected-slot', 'border-warning', 'shadow');
+                this.classList.add('border-success');
                 if (badge) {
                     badge.className = 'badge bg-success slot-status-badge';
                     badge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Available';
                 }
-            });
-            // Highlight selected
-            this.classList.add('selected-slot', 'border-warning', 'shadow');
-            this.classList.remove('border-success');
-            const badge = this.querySelector('.slot-status-badge');
-            if (badge) {
-                badge.className = 'badge bg-primary slot-status-badge';
-                badge.innerHTML = '<i class="fas fa-check me-1"></i>Selected ✓';
+            } else {
+                // Select this slot
+                _selectedSlots.push({
+                    id: slotId,
+                    name: this.getAttribute('data-slot-name'),
+                    start: this.getAttribute('data-start'),
+                    end: this.getAttribute('data-end'),
+                    price: slotPrice !== '' ? parseFloat(slotPrice) : null
+                });
+                this.classList.add('selected-slot', 'border-warning', 'shadow');
+                this.classList.remove('border-success');
+                if (badge) {
+                    badge.className = 'badge bg-primary slot-status-badge';
+                    badge.innerHTML = '<i class="fas fa-check me-1"></i>Selected';
+                }
             }
 
-            _selectedSlot = {
-                id: slotId,
-                name: this.getAttribute('data-slot-name'),
-                start: this.getAttribute('data-start'),
-                end: this.getAttribute('data-end'),
-                price: slotPrice !== '' ? parseFloat(slotPrice) : null
-            };
-
             const confirmBtn = document.getElementById('confirmSlotBtn');
-            if (confirmBtn) confirmBtn.disabled = false;
+            if (confirmBtn) confirmBtn.disabled = _selectedSlots.length === 0;
         });
     });
 }
@@ -529,20 +532,29 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!confirmBtn) return;
 
     confirmBtn.addEventListener('click', function() {
-        if (!_selectedSlot || !_pendingHall) return;
+        if (_selectedSlots.length === 0 || !_pendingHall) return;
 
         const modal = bootstrap.Modal.getInstance(document.getElementById('timeSlotModal'));
         if (modal) modal.hide();
 
-        // Use slot price override if present, else hall base price
-        const effectivePrice = (_selectedSlot.price !== null) ? _selectedSlot.price : _pendingHall.basePrice;
+        // Sort selected slots by start time to determine the aggregate window
+        const sorted = [..._selectedSlots].sort((a, b) => a.start.localeCompare(b.start));
+        const aggStart = sorted[0].start.substring(0, 5);
+        const aggEnd   = sorted[sorted.length - 1].end.substring(0, 5);
 
-        // Update the summary bar with selected slot info
+        // Total effective price: sum slot overrides; fall back to hall base price per slot
+        const effectivePrice = _selectedSlots.reduce(function(sum, s) {
+            return sum + (s.price !== null ? s.price : _pendingHall.basePrice);
+        }, 0);
+
+        // Update the summary bar
         const slotDisplay = document.getElementById('selectedSlotDisplay');
         if (slotDisplay) {
-            slotDisplay.textContent = ' | \u23F0 ' + _selectedSlot.name + ' (' + _selectedSlot.start.substring(0,5) + ' – ' + _selectedSlot.end.substring(0,5) + ')';
+            slotDisplay.textContent = ' | \u23F0 ' + aggStart + ' \u2013 ' + aggEnd;
             slotDisplay.style.display = '';
         }
+
+        const slotIds = sorted.map(s => s.id);
 
         selectHall(
             _pendingHall.hallId,
@@ -550,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
             _pendingHall.venueName,
             effectivePrice,
             _pendingHall.capacity,
-            _selectedSlot.id
+            slotIds
         );
     });
 });

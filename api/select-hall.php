@@ -3,7 +3,7 @@
  * API: Select Hall
  * Validates the requested hall against the database before saving to session,
  * ensuring data integrity and preventing foreign-key constraint violations.
- * Also validates and stores the chosen time slot.
+ * Also validates and stores the chosen time slot(s) – supports multiple slots.
  */
 
 require_once __DIR__ . '/../config/database.php';
@@ -24,8 +24,17 @@ if (!isset($input['id']) || !is_numeric($input['id'])) {
 
 $hall_id = intval($input['id']);
 
-// Validate and extract time slot data
-$slot_id = isset($input['slot_id']) && is_numeric($input['slot_id']) ? intval($input['slot_id']) : null;
+// Accept slot_ids[] array (new multi-slot flow) OR legacy single slot_id
+$slot_ids = [];
+if (isset($input['slot_ids']) && is_array($input['slot_ids'])) {
+    foreach ($input['slot_ids'] as $sid) {
+        if (is_numeric($sid) && intval($sid) > 0) {
+            $slot_ids[] = intval($sid);
+        }
+    }
+} elseif (isset($input['slot_id']) && is_numeric($input['slot_id'])) {
+    $slot_ids = [intval($input['slot_id'])];
+}
 
 try {
     $db = getDB();
@@ -47,34 +56,50 @@ try {
         exit;
     }
 
-    // Validate time slot when provided
-    $slot_data = null;
-    if ($slot_id !== null) {
+    // Validate each requested time slot and build the slot data list
+    $slot_data_list = [];
+    $event_date = $_SESSION['booking_data']['event_date'] ?? '';
+
+    foreach ($slot_ids as $sid) {
         $slot_stmt = $db->prepare(
             "SELECT * FROM hall_time_slots WHERE id = ? AND hall_id = ? AND status = 'active'"
         );
-        $slot_stmt->execute([$slot_id, $hall_id]);
+        $slot_stmt->execute([$sid, $hall_id]);
         $slot_data = $slot_stmt->fetch();
 
         if (!$slot_data) {
-            echo json_encode(['success' => false, 'message' => 'Selected time slot is not valid. Please choose again.']);
+            echo json_encode(['success' => false, 'message' => 'One or more selected time slots are not valid. Please choose again.']);
             exit;
         }
 
-        // Re-check availability for the slot (race-condition guard)
-        $event_date = $_SESSION['booking_data']['event_date'] ?? '';
+        // Re-check availability for each slot (race-condition guard)
         if (!empty($event_date)) {
-            if (!checkTimeSlotAvailability($hall_id, $event_date, $slot_data['start_time'], $slot_data['end_time'])) {
-                echo json_encode(['success' => false, 'message' => 'This time slot was just booked by someone else. Please select a different slot.']);
+            if (!checkIndividualSlotAvailability($sid, $hall_id, $event_date)) {
+                echo json_encode(['success' => false, 'message' => 'One of the selected time slots was just booked by someone else. Please select a different slot.']);
                 exit;
             }
         }
+
+        $slot_data_list[] = $slot_data;
     }
 
-    // Determine effective price (slot override or hall base price)
-    $effective_price = ($slot_data && $slot_data['price_override'] !== null)
-        ? (float)$slot_data['price_override']
-        : (float)$hall['base_price'];
+    // Sort slots by start time so aggregate calculation is correct
+    usort($slot_data_list, fn($a, $b) => strcmp($a['start_time'], $b['start_time']));
+
+    // Determine effective price:
+    //   multi-slot  → sum of each slot's price_override (or hall base_price per slot when no override)
+    //   no slots    → hall base_price
+    if (!empty($slot_data_list)) {
+        $total_price = 0;
+        foreach ($slot_data_list as $sd) {
+            $total_price += ($sd['price_override'] !== null)
+                ? (float)$sd['price_override']
+                : (float)$hall['base_price'];
+        }
+        $effective_price = $total_price;
+    } else {
+        $effective_price = (float)$hall['base_price'];
+    }
 
     $_SESSION['selected_hall'] = [
         'id'         => (int)$hall['id'],
@@ -84,14 +109,34 @@ try {
         'capacity'   => (int)$hall['capacity'],
     ];
 
-    // Store time slot in booking_data session
-    if ($slot_data) {
-        $shift = deriveShiftFromTimes($slot_data['start_time'], $slot_data['end_time']);
+    // Store time slot data in booking_data session
+    if (!empty($slot_data_list)) {
+        // Aggregate: earliest start → latest end
+        $agg_start = $slot_data_list[0]['start_time'];
+        $agg_end   = $slot_data_list[count($slot_data_list) - 1]['end_time'];
+
+        $shift = deriveShiftFromTimes($agg_start, $agg_end);
         $_SESSION['booking_data']['shift']      = $shift;
-        $_SESSION['booking_data']['start_time'] = substr($slot_data['start_time'], 0, 5);
-        $_SESSION['booking_data']['end_time']   = substr($slot_data['end_time'],   0, 5);
-        $_SESSION['booking_data']['slot_id']    = (int)$slot_data['id'];
-        $_SESSION['booking_data']['slot_name']  = $slot_data['slot_name'];
+        $_SESSION['booking_data']['start_time'] = substr($agg_start, 0, 5);
+        $_SESSION['booking_data']['end_time']   = substr($agg_end,   0, 5);
+
+        // Build per-slot detail array (used by createBooking to populate junction table)
+        $selected_slots = [];
+        foreach ($slot_data_list as $sd) {
+            $selected_slots[] = [
+                'id'             => (int)$sd['id'],
+                'slot_name'      => $sd['slot_name'],
+                'start_time'     => substr($sd['start_time'], 0, 5),
+                'end_time'       => substr($sd['end_time'],   0, 5),
+                'price_override' => $sd['price_override'] !== null ? (float)$sd['price_override'] : null,
+            ];
+        }
+        $_SESSION['booking_data']['selected_slots'] = $selected_slots;
+
+        // Backward-compatible single-slot keys (used by display code in later steps)
+        $_SESSION['booking_data']['slot_id']   = (int)$slot_data_list[0]['id'];
+        $slot_names = array_map(fn($s) => $s['slot_name'], $slot_data_list);
+        $_SESSION['booking_data']['slot_name'] = implode(', ', $slot_names);
     }
 
     echo json_encode([
