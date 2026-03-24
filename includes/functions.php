@@ -4598,3 +4598,139 @@ function generateSharedFolderThumbnail(string $source_path, string $target_path,
 
     return $result;
 }
+
+/**
+ * Compress an uploaded image file in-place.
+ *
+ * Resizes the image so that neither dimension exceeds $max_size pixels while
+ * preserving the aspect ratio, then re-encodes it at the given quality level.
+ * The original file is replaced with the compressed version.
+ *
+ * - JPEG / WebP: re-encoded at $quality (0-100).
+ * - PNG: alpha channel is preserved; $quality is mapped to PNG compression level.
+ * - GIF: skipped (animated GIFs would lose animation).
+ *
+ * If the image already fits within $max_size on both dimensions the function
+ * returns true without modifying the file.
+ *
+ * @param string $image_path  Absolute path to the uploaded image file.
+ * @param int    $max_size    Maximum pixel size for the longer edge (default 2048).
+ * @param int    $quality     JPEG/WebP quality 0-100 (default 85).
+ * @return bool               true on success or when no resize was needed; false on error.
+ */
+function compressUploadedImage(string $image_path, int $max_size = 2048, int $quality = 85): bool
+{
+    if (!function_exists('imagecreatefromjpeg')) {
+        return false;
+    }
+
+    $image_info = @getimagesize($image_path);
+    if (!$image_info) {
+        return false;
+    }
+
+    $mime   = $image_info['mime'];
+    $orig_w = (int)$image_info[0];
+    $orig_h = (int)$image_info[1];
+
+    // Skip animated GIFs – GD only captures the first frame; nothing to do
+    if ($mime === 'image/gif') {
+        return true;
+    }
+
+    // Nothing to do if the image already fits
+    if ($orig_w <= $max_size && $orig_h <= $max_size) {
+        return true;
+    }
+
+    // Load source image
+    switch ($mime) {
+        case 'image/jpeg':
+            $src = @imagecreatefromjpeg($image_path);
+            break;
+        case 'image/png':
+            $src = @imagecreatefrompng($image_path);
+            break;
+        case 'image/webp':
+            $src = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($image_path) : false;
+            break;
+        default:
+            return false;
+    }
+
+    if (!$src) {
+        return false;
+    }
+
+    // Calculate new dimensions (maintain aspect ratio)
+    if ($orig_w > $orig_h) {
+        $new_w = $max_size;
+        $new_h = (int)round($orig_h * $max_size / $orig_w);
+    } else {
+        $new_h = $max_size;
+        $new_w = (int)round($orig_w * $max_size / $orig_h);
+    }
+    $new_w = max(1, $new_w);
+    $new_h = max(1, $new_h);
+
+    $dst = imagecreatetruecolor($new_w, $new_h);
+    if (!$dst) {
+        imagedestroy($src);
+        return false;
+    }
+
+    if ($mime === 'image/png') {
+        // Preserve transparency for PNG
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
+        $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+        imagefilledrectangle($dst, 0, 0, $new_w, $new_h, $transparent);
+    } else {
+        // White background for JPEG/WebP
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefill($dst, 0, 0, $white);
+    }
+
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $new_w, $new_h, $orig_w, $orig_h);
+    imagedestroy($src);
+
+    // Write to a temporary file first, then atomically replace the original
+    $tmp_path = $image_path . '.tmp';
+
+    switch ($mime) {
+        case 'image/jpeg':
+            $ok = @imagejpeg($dst, $tmp_path, $quality);
+            break;
+        case 'image/png':
+            // Map quality (0-100) to PNG compression level (0-9).
+            // Higher quality → lower compression level → better quality, larger file.
+            // e.g. quality=85 → level=2 (light compression, retains most detail)
+            $png_level = max(0, min(9, (int)round((100 - $quality) / 10)));
+            $ok = @imagepng($dst, $tmp_path, $png_level);
+            break;
+        case 'image/webp':
+            $ok = function_exists('imagewebp') ? @imagewebp($dst, $tmp_path, $quality) : false;
+            break;
+        default:
+            imagedestroy($dst);
+            return false;
+    }
+
+    imagedestroy($dst);
+
+    if ($ok && file_exists($tmp_path) && filesize($tmp_path) > 0) {
+        // rename() is atomic on the same filesystem; fall back to copy+unlink
+        if (@rename($tmp_path, $image_path)) {
+            return true;
+        }
+        if (@copy($tmp_path, $image_path)) {
+            @unlink($tmp_path);
+            return true;
+        }
+        @unlink($tmp_path);
+    } elseif (file_exists($tmp_path)) {
+        @unlink($tmp_path);
+    }
+
+    return false;
+}

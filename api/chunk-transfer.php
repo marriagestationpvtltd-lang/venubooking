@@ -301,6 +301,12 @@ if ($is_photo && @getimagesize($output_path) === false) {
 // Persist to database
 // ---------------------------------------------------------------
 
+// Compress oversized photos server-side so stored files stay at a manageable
+// size regardless of the original upload dimensions.
+if ($is_photo && compressUploadedImage($output_path)) {
+    $total_size = filesize($output_path);
+}
+
 // Generate a thumbnail for photo uploads to save bandwidth on the public folder page.
 $thumbnail_relative_path = null;
 if ($is_photo) {

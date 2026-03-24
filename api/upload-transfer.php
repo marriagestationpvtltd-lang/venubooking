@@ -187,14 +187,10 @@ if ($is_photo && @getimagesize($file['tmp_name']) === false) {
 
 // Size limits — for standard (non-chunked) uploads.
 // Videos > PHP's upload_max_filesize must use chunked upload (api/chunk-transfer.php).
-$max_photo_size  = 50 * 1024 * 1024;        // 50 MB
+// Photos are compressed server-side after upload, so no strict size limit is applied.
 $max_video_size  = 512 * 1024 * 1024;        // 512 MB (server limit enforced by PHP ini anyway)
 $max_file_size   = 5  * 1024 * 1024 * 1024; // 5 GB for generic files
 
-if ($is_photo && $file['size'] > $max_photo_size) {
-    echo json_encode(['success' => false, 'message' => 'Photo exceeds 50 MB limit.']);
-    exit;
-}
 if ($is_video && $file['size'] > $max_video_size) {
     echo json_encode(['success' => false, 'message' => 'Video exceeds 512 MB. Large videos are automatically uploaded in chunks — please use the drag & drop area on the transfer page.']);
     exit;
@@ -243,6 +239,13 @@ if (!file_exists($dest_path) || filesize($dest_path) === 0) {
 // Persist to database
 // ---------------------------------------------------------------
 
+// Compress oversized photos server-side so stored files stay at a manageable
+// size regardless of the original upload dimensions.
+$stored_file_size = $file['size'];
+if ($is_photo && compressUploadedImage($dest_path)) {
+    $stored_file_size = filesize($dest_path);
+}
+
 // Generate a thumbnail for photo uploads to save bandwidth on the public folder page.
 $thumbnail_relative_path = null;
 if ($is_photo) {
@@ -271,7 +274,7 @@ try {
         $file_type,
         $title,
         $relative_path,
-        $file['size'],
+        $stored_file_size,
         $thumbnail_relative_path,
         $download_token,
     ]);

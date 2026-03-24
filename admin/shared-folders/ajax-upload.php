@@ -265,6 +265,13 @@ if (!file_exists($upload_path) || filesize($upload_path) === 0) {
     exit;
 }
 
+// Compress oversized photos server-side so stored files stay at a manageable
+// size regardless of the original upload dimensions.
+$stored_file_size = $file['size'];
+if ($is_photo && compressUploadedImage($upload_path)) {
+    $stored_file_size = filesize($upload_path);
+}
+
 $thumbnail_relative_path = null;
 
 // Generate a thumbnail for photo uploads to serve small previews to users
@@ -321,7 +328,7 @@ try {
         $file_type,
         $title, 
         $relative_path, 
-        $file['size'],
+        $stored_file_size,
         $thumbnail_relative_path,
         $download_token, 
         $current_user['id']
@@ -361,7 +368,7 @@ try {
                 'title' => $title,
                 'filename' => $filename,
                 'file_type' => $file_type,
-                'file_size' => $file['size'],
+                'file_size' => $stored_file_size,
                 'url' => UPLOAD_URL . $relative_path
             ]
         ]);
