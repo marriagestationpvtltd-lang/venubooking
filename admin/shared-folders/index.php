@@ -195,7 +195,14 @@ $folder_base_url = BASE_URL . '/folder.php?token=';
                                         </small>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($folder['created_by_name'] ?? 'Unknown'); ?></td>
+                                <td><?php echo htmlspecialchars($folder['created_by_name'] ?? ($folder['transfer_source'] === 'public' ? 'Public Transfer' : 'Unknown')); ?>
+                                    <?php if (($folder['transfer_source'] ?? 'admin') === 'public'): ?>
+                                        <br><span class="badge bg-purple" style="background:#7c3aed!important;font-size:.7rem;">Public Transfer</span>
+                                        <?php if (!empty($folder['sender_email'])): ?>
+                                            <br><small class="text-muted"><i class="fas fa-envelope"></i> <?php echo htmlspecialchars($folder['sender_email']); ?></small>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo date('M d, Y H:i', strtotime($folder['created_at'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($folder['created_at']); ?></small></td>
                                 <td>
                                     <div class="btn-group btn-group-sm">

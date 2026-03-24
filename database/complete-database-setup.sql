@@ -582,6 +582,9 @@ CREATE TABLE IF NOT EXISTS shared_folders (
     status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
     allow_zip_download TINYINT(1) DEFAULT 1 COMMENT 'Allow downloading all photos as ZIP',
     show_preview TINYINT(1) DEFAULT 1 COMMENT 'Show photo previews to users. If 0, only ZIP download is shown',
+    sender_email VARCHAR(255) NULL DEFAULT NULL COMMENT 'Email of the sender for public transfers',
+    sender_message TEXT NULL DEFAULT NULL COMMENT 'Optional message from sender to recipient',
+    transfer_source ENUM('admin', 'public') NOT NULL DEFAULT 'admin' COMMENT 'Origin: admin-created folder or public transfer',
     created_by INT NULL COMMENT 'Admin user who created the folder',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -589,7 +592,8 @@ CREATE TABLE IF NOT EXISTS shared_folders (
     INDEX idx_download_token (download_token),
     INDEX idx_status (status),
     INDEX idx_expires_at (expires_at),
-    INDEX idx_created_at (created_at)
+    INDEX idx_created_at (created_at),
+    INDEX idx_transfer_source (transfer_source)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS shared_photos (
