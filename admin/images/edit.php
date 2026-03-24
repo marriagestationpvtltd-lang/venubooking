@@ -39,6 +39,14 @@ $event_categories = [
     'Other Events',
 ];
 
+// Fetch active gallery card groups for the group selector
+$gallery_groups_stmt = $db->query(
+    "SELECT id, title, display_order FROM gallery_card_groups
+      WHERE status = 'active'
+      ORDER BY display_order ASC, title ASC"
+);
+$gallery_groups = $gallery_groups_stmt->fetchAll();
+
 // Get image ID
 $image_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -68,6 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // event_category only applies to work_photos
     $event_category = ($section === 'work_photos') ? trim($_POST['event_category'] ?? '') : null;
     if ($event_category === '') $event_category = null;
+    // card_group_id only applies to gallery section
+    $card_group_id_raw = ($section === 'gallery') ? intval($_POST['card_group_id'] ?? 0) : 0;
+    $card_group_id = ($card_group_id_raw > 0) ? $card_group_id_raw : null;
 
     // Validation
     if (empty($title) || empty($section)) {
@@ -113,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Update database if no errors
         if (empty($error_message)) {
             try {
-                $sql = "UPDATE site_images SET title = ?, description = ?, section = ?, event_category = ?, display_order = ?, status = ?, image_path = ? WHERE id = ?";
+                $sql = "UPDATE site_images SET title = ?, description = ?, section = ?, event_category = ?, card_group_id = ?, display_order = ?, status = ?, image_path = ? WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
                 $result = $stmt->execute([
@@ -121,6 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $description,
                     $section,
                     $event_category,
+                    $card_group_id,
                     $display_order,
                     $status,
                     $new_filename,
@@ -133,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $image['description'] = $description;
                     $image['section'] = $section;
                     $image['event_category'] = $event_category;
+                    $image['card_group_id'] = $card_group_id;
                     $image['display_order'] = $display_order;
                     $image['status'] = $status;
                     $image['image_path'] = $new_filename;
@@ -300,6 +313,40 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
                                 <small class="text-muted">Photos in the same category appear together in one folder card.</small>
                             </div>
 
+                            <!-- Gallery Card Group – only shown when section = gallery -->
+                            <div class="mb-3" id="galleryCardGroupField"
+                                 style="<?php echo $image['section'] === 'gallery' ? '' : 'display:none;'; ?>">
+                                <label for="card_group_id" class="form-label">Gallery Card Group</label>
+                                <div class="d-flex gap-2 align-items-start">
+                                    <div class="flex-grow-1">
+                                        <?php if (!empty($gallery_groups)): ?>
+                                        <select class="form-select" id="card_group_id" name="card_group_id">
+                                            <option value="">— Auto-group (no named group) —</option>
+                                            <?php foreach ($gallery_groups as $gg): ?>
+                                                <option value="<?php echo (int)$gg['id']; ?>"
+                                                    <?php echo ((int)($image['card_group_id'] ?? 0) === (int)$gg['id']) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($gg['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <?php else: ?>
+                                        <select class="form-select" id="card_group_id" name="card_group_id">
+                                            <option value="">— No groups yet —</option>
+                                        </select>
+                                        <?php endif; ?>
+                                    </div>
+                                    <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/add.php"
+                                       class="btn btn-outline-secondary btn-sm" target="_blank"
+                                       title="Create a new gallery card group">
+                                        <i class="fas fa-plus"></i> New
+                                    </a>
+                                </div>
+                                <small class="text-muted">
+                                    Assign this photo to a named card group.
+                                    <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/index.php" target="_blank">Manage card groups</a>.
+                                </small>
+                            </div>
+
                             <div class="mb-3">
                                 <label for="image" class="form-label">Replace Image (Optional)</label>
                                 <input type="file" class="form-control" id="image" name="image" accept="image/*">
@@ -324,12 +371,13 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
 
 <script>
 (function () {
-    var sectionSel  = document.getElementById('section');
-    var catField    = document.getElementById('eventCategoryField');
-    var catSelect   = document.getElementById('event_category_select');
-    var customWrap  = document.getElementById('customCategoryWrap');
-    var customInput = document.getElementById('event_category_custom');
-    var hiddenInput = document.getElementById('event_category');
+    var sectionSel       = document.getElementById('section');
+    var catField         = document.getElementById('eventCategoryField');
+    var catSelect        = document.getElementById('event_category_select');
+    var customWrap       = document.getElementById('customCategoryWrap');
+    var customInput      = document.getElementById('event_category_custom');
+    var hiddenInput      = document.getElementById('event_category');
+    var galleryGroupField = document.getElementById('galleryCardGroupField');
 
     function toggleCategoryField() {
         if (sectionSel.value === 'work_photos') {
@@ -337,6 +385,10 @@ $image_exists = file_exists(UPLOAD_PATH . $image['image_path']);
         } else {
             catField.style.display = 'none';
             hiddenInput.value = '';
+        }
+
+        if (galleryGroupField) {
+            galleryGroupField.style.display = (sectionSel.value === 'gallery') ? '' : 'none';
         }
     }
 

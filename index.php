@@ -681,9 +681,12 @@ if (!empty($gallery_cards)):
 
         <div class="photo-cards-grid">
             <?php foreach ($gallery_cards as $ci => $card):
-                $preview     = $card[0];
-                $total       = count($card);
-                $extra       = $total - 1;
+                $preview      = $card[0];
+                $total        = count($card);
+                $extra        = $total - 1;
+                $card_caption = !empty($preview['card_group_title'])
+                    ? $preview['card_group_title']
+                    : ($preview['title'] ?? '');
             ?>
             <div class="photo-card" role="button" tabindex="0"
                  data-card-index="<?php echo $ci; ?>"
@@ -707,9 +710,9 @@ if (!empty($gallery_cards)):
                     </div>
                 </div>
 
-                <?php if (!empty($preview['title'])): ?>
+                <?php if (!empty($card_caption)): ?>
                 <div class="photo-card-caption">
-                    <?php echo htmlspecialchars($preview['title'], ENT_QUOTES, 'UTF-8'); ?>
+                    <?php echo htmlspecialchars($card_caption, ENT_QUOTES, 'UTF-8'); ?>
                 </div>
                 <?php endif; ?>
             </div>
