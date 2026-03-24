@@ -4645,9 +4645,24 @@ function compressUploadedImage(string $image_path, int $max_size = 2048, int $qu
         return true;
     }
 
-    // Nothing to do if the image already fits
+    // Determine output dimensions.
+    // Always re-encode (even when no resize is needed) so that high-quality
+    // originals stored at a very low compression ratio are brought down to the
+    // target $quality.  This is important for raw camera photos that may fit
+    // within the pixel limit but still occupy tens of megabytes.
     if ($orig_w <= $max_size && $orig_h <= $max_size) {
-        return true;
+        $new_w = $orig_w;
+        $new_h = $orig_h;
+    } else {
+        if ($orig_w > $orig_h) {
+            $new_w = $max_size;
+            $new_h = (int)round($orig_h * $max_size / $orig_w);
+        } else {
+            $new_h = $max_size;
+            $new_w = (int)round($orig_w * $max_size / $orig_h);
+        }
+        $new_w = max(1, $new_w);
+        $new_h = max(1, $new_h);
     }
 
     // Load source image
@@ -4668,17 +4683,6 @@ function compressUploadedImage(string $image_path, int $max_size = 2048, int $qu
     if (!$src) {
         return false;
     }
-
-    // Calculate new dimensions (maintain aspect ratio)
-    if ($orig_w > $orig_h) {
-        $new_w = $max_size;
-        $new_h = (int)round($orig_h * $max_size / $orig_w);
-    } else {
-        $new_h = $max_size;
-        $new_w = (int)round($orig_w * $max_size / $orig_h);
-    }
-    $new_w = max(1, $new_w);
-    $new_h = max(1, $new_h);
 
     $dst = imagecreatetruecolor($new_w, $new_h);
     if (!$dst) {
