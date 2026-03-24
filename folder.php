@@ -124,6 +124,45 @@ if ($has_subfolders && $current_album !== null) {
 }
 // If $has_subfolders && $current_album === null → top-level subfolder card view (no $visible_photos needed)
 
+// Shared MIME-type → file-extension map used when generating download filenames.
+// Using the server-detected MIME type (rather than the stored image_path extension)
+// ensures the downloaded file always has an extension that matches its real format.
+// Files uploaded via chunk or transfer handlers preserve the original filename
+// extension which may not match the actual file content.
+$mime_ext_map = [
+    'image/jpeg'                   => 'jpg',
+    'image/pjpeg'                  => 'jpg',
+    'image/png'                    => 'png',
+    'image/gif'                    => 'gif',
+    'image/webp'                   => 'webp',
+    'image/bmp'                    => 'bmp',
+    'image/tiff'                   => 'tiff',
+    'image/heic'                   => 'heic',
+    'image/heif'                   => 'heif',
+    'image/svg+xml'                => 'svg',
+    'image/x-icon'                 => 'ico',
+    'video/mp4'                    => 'mp4',
+    'video/quicktime'              => 'mov',
+    'video/x-msvideo'              => 'avi',
+    'video/x-ms-wmv'               => 'wmv',
+    'video/webm'                   => 'webm',
+    'video/x-matroska'             => 'mkv',
+    'video/mpeg'                   => 'mpg',
+    'video/3gpp'                   => '3gp',
+    'video/x-m4v'                  => 'm4v',
+    'video/ogg'                    => 'ogv',
+    'audio/mpeg'                   => 'mp3',
+    'audio/wav'                    => 'wav',
+    'audio/aac'                    => 'aac',
+    'audio/flac'                   => 'flac',
+    'audio/ogg'                    => 'ogg',
+    'audio/x-m4a'                  => 'm4a',
+    'application/pdf'              => 'pdf',
+    'application/zip'              => 'zip',
+    'application/x-rar-compressed' => 'rar',
+    'application/x-7z-compressed'  => '7z',
+];
+
 // Handle individual photo download
 if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['download_photo'])) {
     try {
@@ -155,9 +194,17 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                     
                     // Detect MIME type using robust helper (handles missing/broken finfo extension)
                     $mime_type = detectMimeType($file_path);
-                    
-                    // Generate download filename
+
+                    // Generate download filename.
+                    // Derive the extension from the actual detected MIME type so that the
+                    // downloaded file always has an extension that matches its real format.
+                    // Files uploaded via chunk or transfer handlers store the original
+                    // filename extension (e.g. .jpg for a file that is actually WebP), so
+                    // relying solely on image_path would produce a format mismatch.
                     $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
+                    if (!empty($mime_ext_map[$mime_type])) {
+                        $ext = $mime_ext_map[$mime_type];
+                    }
                     $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
                     $safe_title = preg_replace('/_+/', '_', $safe_title);
                     $safe_title = trim($safe_title, '_');
@@ -288,15 +335,23 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
         $valid_files = [];
         $real_upload_path = realpath(UPLOAD_PATH);
         $file_counter = [];
-        
+
         foreach ($photos_to_zip as $photo) {
             $file_path = UPLOAD_PATH . $photo['image_path'];
             $real_file_path = realpath($file_path);
             
             // Security check: verify file is within uploads directory
             if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
-                // Generate safe filename for inside ZIP
+                // Derive extension from actual file MIME type so ZIP entries have
+                // the correct extension even if image_path used the original
+                // uploaded filename extension (which may not match the content).
                 $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
+                $actual_mime = detectMimeType($file_path);
+                if (!empty($mime_ext_map[$actual_mime])) {
+                    $ext = $mime_ext_map[$actual_mime];
+                }
+
+                // Generate safe filename for inside ZIP
                 $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
                 $safe_title = preg_replace('/_+/', '_', $safe_title);
                 $safe_title = trim($safe_title, '_');
@@ -2959,6 +3014,22 @@ if ($folder && !$error_message) {
 
                     var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
                     var contentType   = (response.headers.get('Content-Type') || 'application/octet-stream').split(';')[0].trim();
+                    // Resolve the save filename from the server's Content-Disposition
+                    // header.  The server derives the extension from the actual file
+                    // format (detectMimeType / finfo), which is authoritative — the
+                    // stored image_path extension may differ from the real format when
+                    // files were uploaded via chunk or transfer handlers that preserve
+                    // the original filename extension.  Falling back to file.filename
+                    // (from _dlFiles) is safe for files where both agree.
+                    var resolvedFilename = file.filename;
+                    var _cdHdr = response.headers.get('Content-Disposition');
+                    if (_cdHdr) {
+                        var _cdMatch = _cdHdr.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+                        if (_cdMatch && _cdMatch[1]) {
+                            var _sf = _cdMatch[1].replace(/['"]/g, '').trim();
+                            if (_sf) { resolvedFilename = _sf; }
+                        }
+                    }
                     if (contentLength > 0) { knownBytes += contentLength; }
                     var reader        = response.body.getReader();
                     var chunks        = [];
@@ -2997,11 +3068,13 @@ if ($folder && !$error_message) {
                     // Save file to the browser's default Downloads folder via Blob anchor.
                     // Setting the MIME type on the Blob preserves the original file format
                     // so the browser recognises the file correctly when it is opened.
+                    // Use resolvedFilename (from Content-Disposition) so the extension
+                    // always matches the actual file format detected server-side.
                     var blob      = new Blob(chunks, { type: contentType });
                     var objectUrl = URL.createObjectURL(blob);
                     var anchor    = document.createElement('a');
                     anchor.href     = objectUrl;
-                    anchor.download = file.filename;
+                    anchor.download = resolvedFilename;
                     anchor.style.display = 'none';
                     document.body.appendChild(anchor);
                     anchor.click();
