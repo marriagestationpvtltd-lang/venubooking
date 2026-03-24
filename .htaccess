@@ -119,6 +119,48 @@ Options +FollowSymLinks
 <IfModule mod_deflate.c>
     SetEnvIfNoCase Request_URI folder\.php no-gzip dont-vary
     SetEnvIfNoCase Request_URI download\.php no-gzip dont-vary
+
+    # Enable gzip compression for text-based content (HTML, CSS, JS, JSON, XML).
+    # This reduces bandwidth for all pages by 60–80% with negligible CPU cost.
+    # The above SetEnvIf rules already exclude folder.php and download.php.
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml text/javascript
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+    AddOutputFilterByType DEFLATE application/json application/xml application/xhtml+xml
+</IfModule>
+
+# ============================================================================
+# BROWSER CACHING – REDUCE REPEAT BANDWIDTH
+# ============================================================================
+# Uploaded images and static vendor assets never change under the same URL,
+# so telling browsers to cache them for 7 days means repeat visitors download
+# them once instead of on every page view.
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg  "access plus 7 days"
+    ExpiresByType image/png   "access plus 7 days"
+    ExpiresByType image/webp  "access plus 7 days"
+    ExpiresByType image/gif   "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 7 days"
+    ExpiresByType text/css    "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType application/x-javascript "access plus 7 days"
+    ExpiresByType font/woff   "access plus 30 days"
+    ExpiresByType font/woff2  "access plus 30 days"
+    ExpiresByType application/font-woff  "access plus 30 days"
+    ExpiresByType application/font-woff2 "access plus 30 days"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "(?i)\.(jpg|jpeg|png|gif|webp|bmp|ico|svg)$">
+        Header set Cache-Control "public, max-age=604800, must-revalidate"
+    </FilesMatch>
+    <FilesMatch "(?i)\.(css|js)$">
+        Header set Cache-Control "public, max-age=604800, must-revalidate"
+    </FilesMatch>
+    <FilesMatch "(?i)\.(woff|woff2|ttf|otf|eot)$">
+        Header set Cache-Control "public, max-age=2592000, immutable"
+    </FilesMatch>
 </IfModule>
 
 # ============================================================================

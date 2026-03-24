@@ -2070,6 +2070,11 @@ if ($folder && !$error_message) {
                         $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
                         foreach ($visible_photos as $photo): 
                             $file_url = UPLOAD_URL . $photo['image_path'];
+                            // Use the thumbnail for preview in the grid (much smaller than full-res),
+                            // falling back to the full-resolution URL for older photos without a thumbnail.
+                            $preview_url = (!empty($photo['thumbnail_path']))
+                                ? UPLOAD_URL . $photo['thumbnail_path']
+                                : $file_url;
                             $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
                             // Determine file type, treating image extensions as photos even if stored as 'file'
                             $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
@@ -2109,7 +2114,7 @@ if ($folder && !$error_message) {
                                         <span class="badge bg-secondary file-type-badge">FILE</span>
                                     </div>
                                 <?php else: ?>
-                                    <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                    <img src="<?php echo htmlspecialchars($preview_url, ENT_QUOTES, 'UTF-8'); ?>"
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                          onclick="handleMediaClick(event, function(){ openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>); })"
                                          loading="lazy"
@@ -2158,6 +2163,11 @@ if ($folder && !$error_message) {
                         $video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mpg', 'mpeg', '3gp', 'm4v', 'ogg'];
                         foreach ($photos as $photo): 
                             $file_url = UPLOAD_URL . $photo['image_path'];
+                            // Use the thumbnail for preview in the grid (much smaller than full-res),
+                            // falling back to the full-resolution URL for older photos without a thumbnail.
+                            $preview_url = (!empty($photo['thumbnail_path']))
+                                ? UPLOAD_URL . $photo['thumbnail_path']
+                                : $file_url;
                             $pf_ext = strtolower(pathinfo($photo['image_path'], PATHINFO_EXTENSION));
                             // Determine file type, treating image extensions as photos even if stored as 'file'
                             $is_video = isset($photo['file_type']) && $photo['file_type'] === 'video';
@@ -2197,7 +2207,7 @@ if ($folder && !$error_message) {
                                         <span class="badge bg-secondary file-type-badge">FILE</span>
                                     </div>
                                 <?php else: ?>
-                                    <img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>" 
+                                    <img src="<?php echo htmlspecialchars($preview_url, ENT_QUOTES, 'UTF-8'); ?>" 
                                          alt="<?php echo htmlspecialchars($photo['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                          onclick="handleMediaClick(event, function(){ openLightbox('<?php echo htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8'); ?>', <?php echo $can_download ? json_encode($download_url_qs, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null'; ?>, <?php echo $photo_title_js; ?>); })"
                                          loading="lazy"
