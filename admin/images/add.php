@@ -279,7 +279,7 @@ foreach ($sections as $key => $label) {
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.85,
-        maxFileSize: 10 * 1024 * 1024, // 10MB - matches server limit
+        maxFileSize: 50 * 1024 * 1024, // 50MB - large raw photos are compressed client-side before upload
         autoUpload: true, // Start upload immediately after file selection
         uploadUrl: 'ajax-upload.php',
         onUploadStart: function() {

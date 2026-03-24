@@ -62,7 +62,7 @@ $file = [
 
 // Allowed types
 $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-$max_size = 10 * 1024 * 1024; // 10MB (increased since client compresses)
+$max_size = 50 * 1024 * 1024; // 50MB – raw camera photos are compressed server-side after upload
 
 // Validate upload error
 if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -95,7 +95,7 @@ if ($image_info === false) {
 
 // Validate file size
 if ($file['size'] > $max_size) {
-    echo json_encode(['success' => false, 'message' => 'File exceeds 10MB limit.']);
+    echo json_encode(['success' => false, 'message' => 'File exceeds 50MB limit.']);
     exit;
 }
 
@@ -152,6 +152,12 @@ if (!move_uploaded_file($file['tmp_name'], $upload_path)) {
     echo json_encode(['success' => false, 'message' => 'Failed to save file.']);
     exit;
 }
+
+// Compress / resize the image server-side so stored files are always web-optimised.
+// This handles large raw camera photos that may bypass client-side compression.
+// GIFs are skipped automatically; other formats are resized to ≤ 2048 px and
+// re-encoded at 85 % quality.
+compressUploadedImage($upload_path);
 
 // Determine title
 $file_title = $title_base ?: pathinfo($file['name'], PATHINFO_FILENAME);
