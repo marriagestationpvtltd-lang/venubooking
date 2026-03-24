@@ -240,12 +240,6 @@ if ($is_photo) {
         echo json_encode(['success' => false, 'message' => 'Assembled file is not a valid image.']);
         exit;
     }
-    $max_photo_size = 50 * 1024 * 1024; // 50 MB
-    if ($total_size > $max_photo_size) {
-        unlink($output_path);
-        echo json_encode(['success' => false, 'message' => 'Photo exceeds 50 MB limit.']);
-        exit;
-    }
 }
 
 if ($is_video) {
@@ -305,6 +299,12 @@ if (!$is_photo && !$is_video) {
 // ---------------------------------------------------------------
 // Persist to database
 // ---------------------------------------------------------------
+
+// Compress oversized photos server-side so stored files stay at a manageable
+// size regardless of the original upload dimensions.
+if ($is_photo && compressUploadedImage($output_path)) {
+    $total_size = filesize($output_path);
+}
 
 $thumbnail_relative_path = null;
 

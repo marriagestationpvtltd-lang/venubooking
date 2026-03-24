@@ -27,7 +27,7 @@ class ImageUploadHandler {
             maxWidth: 1920,
             maxHeight: 1920,
             quality: 0.85,
-            maxFileSize: 50 * 1024 * 1024,           // 50 MB for photos/general files
+            maxFileSize: 500 * 1024 * 1024,           // 500 MB for photos/general files (compressed server-side)
             maxVideoSize: 50 * 1024 * 1024 * 1024,   // 50 GB for videos
             maxOtherFileSize: 50 * 1024 * 1024 * 1024, // 50 GB for any other file
             allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
