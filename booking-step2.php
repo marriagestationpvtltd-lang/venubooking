@@ -283,6 +283,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                 </div>
             </div>
             <div class="modal-footer">
+                <div id="slotSelectionPreview" class="me-auto text-success fw-semibold small" style="display:none;"></div>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-success" id="confirmSlotBtn" disabled>
                     <i class="fas fa-check me-1"></i>Confirm &amp; Continue
