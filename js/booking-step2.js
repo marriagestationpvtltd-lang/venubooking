@@ -460,6 +460,7 @@ function renderTimeSlots(slots, container) {
                      data-start="${escapeHtml(slot.start_time)}"
                      data-end="${escapeHtml(slot.end_time)}"
                      data-price="${slot.price_override !== null ? parseFloat(slot.price_override) : ''}"
+                     data-available="${available ? '1' : '0'}"
                      style="${available ? 'cursor:pointer;' : 'cursor:not-allowed;'}">
                     <div class="card-body d-flex flex-column justify-content-between">
                         <div>
@@ -488,7 +489,7 @@ function renderTimeSlots(slots, container) {
     container.querySelectorAll('.time-slot-card').forEach(card => {
         const slotId = parseInt(card.getAttribute('data-slot-id'), 10);
         const slotPrice = card.getAttribute('data-price');
-        if (!slots.find(s => s.id === slotId && s.available)) return;
+        if (card.getAttribute('data-available') !== '1') return;
 
         card.addEventListener('click', function() {
             const existingIdx = _selectedSlots.findIndex(s => s.id === slotId);

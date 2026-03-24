@@ -365,14 +365,14 @@ section.py-5 .btn-success.btn-lg:hover {
 }
 
 .time-slot-card.selected-slot {
-    background-color: #d1f0e0 !important;
-    border-color: #198754 !important;
+    background-color: #fff3cd !important;
+    border-color: #ffc107 !important;
     border-width: 3px !important;
-    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.3) !important;
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3) !important;
 }
 
 .time-slot-card.selected-slot .card-title {
-    color: #0a5c36 !important;
+    color: #856404 !important;
 }
 
 .time-slot-card .slot-status-badge {
