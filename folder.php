@@ -1902,7 +1902,7 @@ if ($folder && !$error_message) {
                                 डाउनलोड नाउ (<?php echo count($_ind_urls); ?>)
                             </button>
                             <p class="text-muted mt-2 mb-0">
-                                <small><i class="fas fa-folder-open"></i> फोल्डर छनौट गरेर डाउनलोड गर्नुहोस्</small>
+                                <small><i class="fas fa-download"></i> सबै फाइलहरू एकैचोटि डाउनलोड गर्नुहोस्</small>
                             </p>
                             <!-- Select Photos toggle for deselecting individual photos -->
                             <button type="button" id="selectModeBtn"
@@ -1983,7 +1983,7 @@ if ($folder && !$error_message) {
                             डाउनलोड नाउ (<?php echo count($bulk_all_urls); ?>)
                         </button>
                         <p style="color:var(--text-secondary);" class="mt-3 mb-0">
-                            <small><i class="fas fa-folder-open me-1"></i> फोल्डर छनौट गरेर डाउनलोड गर्नुहोस्</small>
+                            <small><i class="fas fa-download me-1"></i> सबै फाइलहरू एकैचोटि डाउनलोड गर्नुहोस्</small>
                         </p>
 
                         <?php if ($whatsapp_delete_url): ?>
@@ -2624,29 +2624,19 @@ if ($folder && !$error_message) {
             return false;
         }
 
-        /* Saved File System Access API directory handle.
-         * Once the user picks a save folder it is reused for all subsequent
-         * individual photo downloads within the same page visit so the browser
-         * asks only once instead of every time. */
-        var _savedDirHandle = null;
-
         /**
-         * Download a single photo.
+         * Download a single photo/video/file.
          *
-         * If the browser supports the File System Access API
-         * (window.showDirectoryPicker — available in Chromium-based browsers) the
-         * user is prompted to choose a save folder the very first time.  All later
-         * individual photo downloads on the same page visit reuse that folder
-         * automatically, with no additional prompts.
+         * Uses the browser's native download mechanism (hidden iframe with
+         * Content-Disposition:attachment response).  This approach:
+         *   – works on all browsers including iOS Safari and Android Chrome
+         *   – never loads the file into JavaScript memory (safe for large videos)
+         *   – hands off to the browser's own download manager immediately
          *
-         * On browsers that do not support showDirectoryPicker (Firefox, Safari) the
-         * function falls back to a fetch + Blob download which saves to the
-         * browser's default Downloads folder.
-         *
-         * @param {string} url         Relative download URL (?token=…&download_photo=…)
+         * @param {string} url         Download URL (?token=…&download_photo=…)
          * @param {string} displayName Photo title used as filename fallback
          */
-        async function singlePhotoDownload(url, displayName) {
+        function singlePhotoDownload(url, displayName) {
             // Resolve the correct filename (with extension) from the pre-built file list.
             // _dlFiles entries have the form { url: '?token=…&download_photo=ID', filename: 'Title.ext' }.
             // this.href (full URL) vs _dlFiles URL (relative) differ, so match by photo ID.
@@ -2663,30 +2653,10 @@ if ($folder && !$error_message) {
             }
             var filename = fileEntry ? fileEntry.filename : (displayName || 'photo');
 
-            // Reuse previously chosen folder without prompting the user again.
-            if (_savedDirHandle) {
-                bulkDownloadIndividual([url], _savedDirHandle);
-                return false;
-            }
-
-            // Offer folder selection if the browser supports it.
-            if (window.showDirectoryPicker) {
-                try {
-                    _savedDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                } catch (e) {
-                    if (e.name !== 'AbortError') {
-                        console.error('showDirectoryPicker error:', e);
-                    }
-                    _savedDirHandle = null;
-                }
-                if (_savedDirHandle) {
-                    bulkDownloadIndividual([url], _savedDirHandle);
-                    return false;
-                }
-            }
-
-            // Fallback: fetch + Blob → browser's default Downloads folder.
-            await fetchDownloadFiles([{ url: url, filename: filename }], null, null);
+            // Use the iframe-based startDownload helper which triggers the browser's
+            // native download manager.  The server sends Content-Disposition:attachment
+            // so the browser saves the file to the Downloads folder automatically.
+            startDownload(url, filename);
             return false;
         }
 
@@ -3038,44 +3008,20 @@ if ($folder && !$error_message) {
                 }
             }
 
-            // ── Single file (or ZIP disabled): fetch + Blob approach ──────────
-            if (typeof fetch === 'undefined') {
-                // Very old browser fallback – no progress possible
-                return bulkDownloadIndividual(files.map(function(f) { return f.url; }));
+            // ── Single file (or ZIP disabled): use native browser download ────
+            // For a single file use the iframe-based startDownload helper which
+            // hands the transfer off to the browser's own download manager without
+            // loading the file into JavaScript memory (important for large videos).
+            if (files.length === 1) {
+                startDownload(files[0].url, files[0].filename);
+                return false;
             }
 
-            // localStorage key: "folderDl_<token>" — tracks downloaded filenames for resume support
-            var lsKey       = 'folderDl_' + <?php echo json_encode($token, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-            var doneSet     = new Set();
-            try {
-                var stored = localStorage.getItem(lsKey);
-                if (stored) { JSON.parse(stored).forEach(function(n) { doneSet.add(n); }); }
-            } catch (e) { /* ignore storage errors */ }
-
-            var alreadyDone = files.filter(function(f) { return doneSet.has(f.filename); });
-            var remaining   = files.filter(function(f) { return !doneSet.has(f.filename); });
-
-            if (alreadyDone.length > 0 && remaining.length > 0) {
-                var choice = await showResumeDialog(alreadyDone.length, remaining.length);
-                if (choice === null) return false;
-                if (choice === 'remaining') { files = remaining; }
-                // choice === 'all' → clear history and re-download everything
-                if (choice === 'all') {
-                    try { localStorage.removeItem(lsKey); } catch (e) {}
-                    doneSet.clear();
-                }
-            } else if (alreadyDone.length > 0 && remaining.length === 0) {
-                // All files already downloaded — give user option to re-download instead of silently doing nothing
-                var choice = await showResumeDialog(alreadyDone.length, 0);
-                if (choice === null || choice === 'remaining') return false;
-                // choice === 'all' → clear history and download everything again
-                try { localStorage.removeItem(lsKey); } catch (e) {}
-                doneSet.clear();
-            }
-
-            if (files.length === 0) return false;
-            await fetchDownloadFiles(files, lsKey, doneSet);
-            return false;
+            // ── Multiple files, ZIP disabled: sequential iframe downloads ──────
+            // bulkDownloadIndividual with a null directoryHandle fires each URL
+            // through a hidden iframe (900 ms apart) so the browser's download
+            // manager handles each file natively.
+            return bulkDownloadIndividual(files.map(function(f) { return f.url; }), null);
         }
 
         /**
