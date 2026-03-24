@@ -1944,7 +1944,7 @@ if ($folder && !$error_message) {
                                     <a href="<?php echo htmlspecialchars($download_url_qs, ENT_QUOTES, 'UTF-8'); ?>"
                                        class="photo-media-download"
                                        title="Download"
-                                       onclick="event.stopPropagation(); return startDownload(this.href, <?php echo $photo_title_js; ?>)">
+                                       onclick="event.stopPropagation(); singlePhotoDownload(this.href, <?php echo $photo_title_js; ?>); return false;">
                                         <i class="fas fa-arrow-down"></i>
                                     </a>
                                 <?php else: ?>
@@ -2032,7 +2032,7 @@ if ($folder && !$error_message) {
                                     <a href="<?php echo htmlspecialchars($download_url_qs, ENT_QUOTES, 'UTF-8'); ?>"
                                        class="photo-media-download"
                                        title="Download"
-                                       onclick="event.stopPropagation(); return startDownload(this.href, <?php echo $photo_title_js; ?>)">
+                                       onclick="event.stopPropagation(); singlePhotoDownload(this.href, <?php echo $photo_title_js; ?>); return false;">
                                         <i class="fas fa-arrow-down"></i>
                                     </a>
                                 <?php else: ?>
@@ -2204,9 +2204,15 @@ if ($folder && !$error_message) {
         <div style="background:#fff;border-radius:20px;padding:30px 28px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:dlFadeIn 0.3s ease;">
             <div style="font-size:2.5rem;color:#f59e0b;margin-bottom:12px;"><i class="fas fa-folder-open"></i></div>
             <h5 style="font-weight:700;margin-bottom:8px;color:#333;">पहिले डाउनलोड भइसकेका फाइलहरू</h5>
-            <p style="color:#555;margin-bottom:20px;">
+            <!-- Shown when some files remain (partial resume) -->
+            <p id="resumeDescPartial" style="color:#555;margin-bottom:20px;">
                 <strong><span id="resumeAlreadyCount">0</span> फाइलहरू</strong> पहिले नै यस फोल्डरमा डाउनलोड भइसकेका छन्।<br>
                 के तपाईं बाँकी <strong><span id="resumeRemainingCount">0</span> फाइलहरू</strong> मात्र डाउनलोड गर्नुहुन्छ?
+            </p>
+            <!-- Shown when all files have already been downloaded -->
+            <p id="resumeDescAll" style="color:#555;margin-bottom:20px;display:none;">
+                <strong><span id="resumeAllCount">0</span> फाइलहरू</strong> पहिले नै डाउनलोड भइसकेका छन्।<br>
+                के तपाईं सबै फेरि डाउनलोड गर्न चाहनुहुन्छ?
             </p>
             <div style="display:flex;flex-direction:column;gap:8px;">
                 <button id="resumeBtnRemaining" class="btn btn-success">
@@ -2275,7 +2281,8 @@ if ($folder && !$error_message) {
                     dlBtn.classList.add('visible');
                     dlBtn.onclick = function(e) {
                         e.stopPropagation();
-                        return startDownload(downloadUrl, title || '');
+                        singlePhotoDownload(downloadUrl, title || '');
+                        return false;
                     };
                 } else {
                     dlBtn.classList.remove('visible');
@@ -2310,7 +2317,8 @@ if ($folder && !$error_message) {
                     dlBtn.classList.add('visible');
                     dlBtn.onclick = function(e) {
                         e.stopPropagation();
-                        return startDownload(downloadUrl, title || '');
+                        singlePhotoDownload(downloadUrl, title || '');
+                        return false;
                     };
                 } else {
                     dlBtn.classList.remove('visible');
@@ -2435,6 +2443,73 @@ if ($folder && !$error_message) {
 
             return false;
         }
+
+        /* Saved File System Access API directory handle.
+         * Once the user picks a save folder it is reused for all subsequent
+         * individual photo downloads within the same page visit so the browser
+         * asks only once instead of every time. */
+        var _savedDirHandle = null;
+
+        /**
+         * Download a single photo.
+         *
+         * If the browser supports the File System Access API
+         * (window.showDirectoryPicker — available in Chromium-based browsers) the
+         * user is prompted to choose a save folder the very first time.  All later
+         * individual photo downloads on the same page visit reuse that folder
+         * automatically, with no additional prompts.
+         *
+         * On browsers that do not support showDirectoryPicker (Firefox, Safari) the
+         * function falls back to a fetch + Blob download which saves to the
+         * browser's default Downloads folder.
+         *
+         * @param {string} url         Relative download URL (?token=…&download_photo=…)
+         * @param {string} displayName Photo title used as filename fallback
+         */
+        async function singlePhotoDownload(url, displayName) {
+            // Resolve the correct filename (with extension) from the pre-built file list.
+            // _dlFiles entries have the form { url: '?token=…&download_photo=ID', filename: 'Title.ext' }.
+            // this.href (full URL) vs _dlFiles URL (relative) differ, so match by photo ID.
+            var idMatch   = (typeof url === 'string') ? url.match(/[?&]download_photo=(\d+)/) : null;
+            var photoId   = idMatch ? idMatch[1] : null;
+            var fileEntry = null;
+            if (photoId) {
+                for (var _i = 0; _i < _dlFiles.length; _i++) {
+                    if (_dlFiles[_i].url.indexOf('download_photo=' + photoId) !== -1) {
+                        fileEntry = _dlFiles[_i];
+                        break;
+                    }
+                }
+            }
+            var filename = fileEntry ? fileEntry.filename : (displayName || 'photo');
+
+            // Reuse previously chosen folder without prompting the user again.
+            if (_savedDirHandle) {
+                bulkDownloadIndividual([url], _savedDirHandle);
+                return false;
+            }
+
+            // Offer folder selection if the browser supports it.
+            if (window.showDirectoryPicker) {
+                try {
+                    _savedDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                } catch (e) {
+                    if (e.name !== 'AbortError') {
+                        console.error('showDirectoryPicker error:', e);
+                    }
+                    _savedDirHandle = null;
+                }
+                if (_savedDirHandle) {
+                    bulkDownloadIndividual([url], _savedDirHandle);
+                    return false;
+                }
+            }
+
+            // Fallback: fetch + Blob → browser's default Downloads folder.
+            await fetchDownloadFiles([{ url: url, filename: filename }], null, null);
+            return false;
+        }
+
 
         /**
          * Bulk Individual Download (no ZIP)
@@ -2810,8 +2885,12 @@ if ($folder && !$error_message) {
                     doneSet.clear();
                 }
             } else if (alreadyDone.length > 0 && remaining.length === 0) {
-                _showDlCompleteMessage('तपाईंको सबै फोटो पहिले नै डाउनलोड भइसकेका छन्!', alreadyDone.length);
-                return false;
+                // All files already downloaded — give user option to re-download instead of silently doing nothing
+                var choice = await showResumeDialog(alreadyDone.length, 0);
+                if (choice === null || choice === 'remaining') return false;
+                // choice === 'all' → clear history and download everything again
+                try { localStorage.removeItem(lsKey); } catch (e) {}
+                doneSet.clear();
             }
 
             if (files.length === 0) return false;
@@ -2995,6 +3074,24 @@ if ($folder && !$error_message) {
                 document.getElementById('resumeAlreadyCount').textContent   = alreadyCount;
                 document.getElementById('resumeRemainingCount').textContent = remainingCount;
 
+                // When nothing remains, hide the "download remaining only" button and show
+                // the "all already done" description; otherwise show the partial-resume description.
+                var btnRemaining  = document.getElementById('resumeBtnRemaining');
+                var descPartial   = document.getElementById('resumeDescPartial');
+                var descAll       = document.getElementById('resumeDescAll');
+                var allCountSpan  = document.getElementById('resumeAllCount');
+
+                if (remainingCount === 0) {
+                    btnRemaining.style.display = 'none';
+                    if (allCountSpan) allCountSpan.textContent = alreadyCount;
+                    if (descPartial) descPartial.style.display = 'none';
+                    if (descAll)     descAll.style.display     = '';
+                } else {
+                    btnRemaining.style.display = '';
+                    if (descPartial) descPartial.style.display = '';
+                    if (descAll)     descAll.style.display     = 'none';
+                }
+
                 function cleanup(value) {
                     modal.style.display              = 'none';
                     btnRemaining.onclick             = null;
@@ -3003,7 +3100,6 @@ if ($folder && !$error_message) {
                     resolve(value);
                 }
 
-                var btnRemaining = document.getElementById('resumeBtnRemaining');
                 var btnAll       = document.getElementById('resumeBtnAll');
                 var btnCancel    = document.getElementById('resumeBtnCancel');
                 btnRemaining.onclick = function() { cleanup('remaining'); };
