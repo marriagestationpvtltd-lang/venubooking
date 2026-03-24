@@ -314,6 +314,7 @@ if (isset($_POST['update_hall']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
