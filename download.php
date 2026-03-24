@@ -57,10 +57,6 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
         $real_file_path = realpath($file_path);
         
         if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
-            // Increment download count
-            $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
-            $update_stmt->execute([$photo['id']]);
-            
             // Detect MIME type using robust helper (handles missing/broken finfo extension)
             $mime_type = detectMimeType($file_path);
             
@@ -91,35 +87,91 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
             @apache_setenv('no-gzip', '1');
             @apache_setenv('dont-vary', '1');
 
-            // Get file size as an unsigned string to handle files larger than 2 GB
+            // Get file size as an unsigned value to handle files larger than 2 GB
             // correctly on 32-bit PHP builds where filesize() can overflow.
             $file_size = sprintf('%u', filesize($file_path));
 
-            // Send file for download with proper headers
+            // ── HTTP Range (resumable download) support ──────────────────────────
+            // Mirrors the chunked-upload approach: the client (browser/download
+            // manager) can request any byte range so that interrupted downloads can
+            // be resumed without restarting from the beginning.  This is especially
+            // important on shared-hosting connections that may drop mid-transfer.
+            $range_start  = 0;
+            $range_end    = (int)$file_size - 1;
+            $is_range_req = false;
+
+            $http_range = isset($_SERVER['HTTP_RANGE']) ? trim($_SERVER['HTTP_RANGE']) : '';
+            if ($http_range !== '') {
+                if (preg_match('/^bytes=(\d*)-(\d*)$/i', $http_range, $rm)) {
+                    $req_start = ($rm[1] !== '') ? (int)$rm[1] : 0;
+                    $req_end   = ($rm[2] !== '') ? (int)$rm[2] : (int)$file_size - 1;
+
+                    // Clamp end to last byte
+                    if ($req_end >= (int)$file_size) {
+                        $req_end = (int)$file_size - 1;
+                    }
+
+                    if ($req_start > $req_end || $req_start >= (int)$file_size) {
+                        // Invalid range — 416 Range Not Satisfiable
+                        header('HTTP/1.1 416 Requested Range Not Satisfiable');
+                        header('Content-Range: bytes */' . $file_size);
+                        exit;
+                    }
+
+                    $range_start  = $req_start;
+                    $range_end    = $req_end;
+                    $is_range_req = true;
+                }
+            }
+
+            $content_length = $range_end - $range_start + 1;
+
+            // Only count a new download for the first (or only) request.
+            // Subsequent range requests for the same file are continuations.
+            if (!$is_range_req || $range_start === 0) {
+                $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
+                $update_stmt->execute([$photo['id']]);
+            }
+
+            // Send response headers
             header('Content-Type: ' . $mime_type);
             header('Content-Disposition: attachment; filename="' . $download_filename . '"');
-            header('Content-Length: ' . $file_size);
             header('Content-Transfer-Encoding: binary');
             // Tell proxies/servers not to encode (compress) the response;
             // this ensures the browser receives the exact byte count and
             // that the download starts immediately without buffering.
             header('Content-Encoding: identity');
+            // Advertise range support so browsers and download managers know
+            // they can resume interrupted transfers.
+            header('Accept-Ranges: bytes');
             header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
             header('Cache-Control: post-check=0, pre-check=0', false);
             header('Pragma: no-cache');
             header('Expires: 0');
 
+            if ($is_range_req) {
+                header('HTTP/1.1 206 Partial Content');
+                header('Content-Range: bytes ' . $range_start . '-' . $range_end . '/' . $file_size);
+                header('Content-Length: ' . $content_length);
+            } else {
+                header('Content-Length: ' . $file_size);
+            }
+
             // Flush headers to browser immediately
             flush();
 
-            // Stream the file in 1 MB chunks.  Larger chunks mean far fewer
-            // flush() round-trips, so the first bytes reach the browser
-            // quickly and the overall transfer is faster.
+            // Stream the requested byte range in 1 MB chunks.
             $handle = fopen($file_path, 'rb');
             if ($handle !== false) {
+                if ($range_start > 0) {
+                    fseek($handle, $range_start);
+                }
+                $remaining  = $content_length;
                 $chunk_size = 1024 * 1024; // 1 MB
-                while (!feof($handle)) {
-                    echo fread($handle, $chunk_size);
+                while ($remaining > 0 && !feof($handle)) {
+                    $read = min($chunk_size, $remaining);
+                    echo fread($handle, $read);
+                    $remaining -= $read;
                     // Flush output buffer to send data immediately
                     flush();
                     // Check if connection is still alive
