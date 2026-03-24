@@ -546,6 +546,54 @@ function deriveShiftFromTimes($start_time, $end_time) {
 }
 
 /**
+ * Check if a specific hall time slot is available for a given date.
+ *
+ * Uses the booking_time_slots junction table (precise per-slot check) when
+ * available, then falls back to a time-overlap check against legacy bookings
+ * that were created before the junction table existed.
+ *
+ * @param int    $hall_time_slot_id  hall_time_slots.id
+ * @param int    $hall_id
+ * @param string $date               YYYY-MM-DD
+ * @return bool  TRUE if the slot is available, FALSE if already booked
+ */
+function checkIndividualSlotAvailability($hall_time_slot_id, $hall_id, $date) {
+    $db = getDB();
+
+    // 1. Check via the junction table (covers new multi-slot bookings)
+    $stmt1 = $db->prepare(
+        "SELECT COUNT(*) AS cnt
+           FROM booking_time_slots bts
+           JOIN bookings b ON b.id = bts.booking_id
+          WHERE bts.hall_time_slot_id = ?
+            AND b.event_date          = ?
+            AND b.booking_status     != 'cancelled'"
+    );
+    $stmt1->execute([$hall_time_slot_id, $date]);
+    if ((int)$stmt1->fetch()['cnt'] > 0) return false;
+
+    // 2. Fallback: time-overlap check for legacy bookings that have no junction records
+    $slot_stmt = $db->prepare("SELECT start_time, end_time FROM hall_time_slots WHERE id = ?");
+    $slot_stmt->execute([$hall_time_slot_id]);
+    $slot = $slot_stmt->fetch();
+    if (!$slot) return false;
+
+    $stmt2 = $db->prepare(
+        "SELECT COUNT(*) AS cnt
+           FROM bookings b
+      LEFT JOIN booking_time_slots bts ON bts.booking_id = b.id
+          WHERE b.hall_id          = ?
+            AND b.event_date       = ?
+            AND b.booking_status  != 'cancelled'
+            AND b.start_time       < ?
+            AND b.end_time         > ?
+            AND bts.id IS NULL"
+    );
+    $stmt2->execute([$hall_id, $date, $slot['end_time'], $slot['start_time']]);
+    return (int)$stmt2->fetch()['cnt'] === 0;
+}
+
+/**
  * Check if a hall has a time overlap with an existing booking.
  *
  * Two time ranges overlap when one starts before the other ends.
@@ -640,11 +688,10 @@ function getHallTimeSlots($hall_id, $active_only = true) {
 function getAvailableTimeSlotsForHall($hall_id, $date) {
     $slots = getHallTimeSlots($hall_id);
     foreach ($slots as &$slot) {
-        $slot['available'] = checkTimeSlotAvailability(
+        $slot['available'] = checkIndividualSlotAvailability(
+            $slot['id'],
             $hall_id,
-            $date,
-            $slot['start_time'],
-            $slot['end_time']
+            $date
         );
     }
     unset($slot);
@@ -1456,6 +1503,34 @@ function createBooking($data) {
             ]);
 
             $booking_id = $db->lastInsertId();
+
+            // Insert individual time slot records into the junction table.
+            // selected_slots is an array of ['id', 'slot_name', 'start_time', 'end_time'];
+            // slot_id (legacy single-slot key) is also supported for backward compat.
+            $slot_ids_to_insert = [];
+            if (!empty($data['selected_slots']) && is_array($data['selected_slots'])) {
+                foreach ($data['selected_slots'] as $sl) {
+                    $sid = isset($sl['id']) ? intval($sl['id']) : 0;
+                    if ($sid > 0) $slot_ids_to_insert[] = $sid;
+                }
+            } elseif (!empty($data['slot_id'])) {
+                $slot_ids_to_insert[] = intval($data['slot_id']);
+            }
+            // Deduplicate to ensure no duplicate rows in the junction table
+            $slot_ids_to_insert = array_values(array_unique($slot_ids_to_insert));
+            if (!empty($slot_ids_to_insert) && !$is_custom) {
+                $bts_stmt = $db->prepare(
+                    "INSERT INTO booking_time_slots (booking_id, hall_time_slot_id) VALUES (?, ?)"
+                );
+                foreach ($slot_ids_to_insert as $sid) {
+                    try {
+                        $bts_stmt->execute([$booking_id, $sid]);
+                    } catch (\Throwable $btsErr) {
+                        error_log("booking_time_slots insert error: " . $btsErr->getMessage());
+                        // Non-fatal: continue with the rest of the booking
+                    }
+                }
+            }
 
             // Insert booking menus
             if (!empty($data['menus'])) {

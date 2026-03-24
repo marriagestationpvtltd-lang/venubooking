@@ -169,6 +169,19 @@ CREATE TABLE IF NOT EXISTS hall_time_slots (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: booking_time_slots (junction: booking ↔ individual hall_time_slots)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS booking_time_slots (
+    id                INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    booking_id        INT NOT NULL,
+    hall_time_slot_id INT NOT NULL,
+    CONSTRAINT fk_bts_booking   FOREIGN KEY (booking_id)        REFERENCES bookings(id)        ON DELETE CASCADE,
+    CONSTRAINT fk_bts_hall_slot FOREIGN KEY (hall_time_slot_id) REFERENCES hall_time_slots(id) ON DELETE CASCADE,
+    INDEX idx_bts_booking   (booking_id),
+    INDEX idx_bts_hall_slot (hall_time_slot_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- TABLE: additional_services
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS additional_services (
