@@ -1680,6 +1680,18 @@ if ($folder && !$error_message) {
                             <?php if ($folder['description']): ?>
                                 <p class="folder-description"><?php echo nl2br(htmlspecialchars($folder['description'])); ?></p>
                             <?php endif; ?>
+                            <?php if (($folder['transfer_source'] ?? 'admin') === 'public'): ?>
+                                <div style="margin-top:10px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:.9rem;color:#1e40af;">
+                                    <i class="fas fa-paper-plane" style="margin-right:6px;"></i>
+                                    <strong>Shared via file transfer</strong>
+                                    <?php if (!empty($folder['sender_email'])): ?>
+                                        — from <em><?php echo htmlspecialchars($folder['sender_email']); ?></em>
+                                    <?php endif; ?>
+                                    <?php if (!empty($folder['sender_message'])): ?>
+                                        <p style="margin:6px 0 0;font-style:italic;color:#1e3a8a;">"<?php echo nl2br(htmlspecialchars($folder['sender_message'])); ?>"</p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
 
                         <div class="stats-badges">
