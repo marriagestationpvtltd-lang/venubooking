@@ -183,10 +183,21 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
 
             // Only count a new download for the first (or only) request.
             // Subsequent range requests for the same file are continuations.
+            // Wrapped in its own try-catch so that a missing column or any other
+            // DB error never prevents the file from being served to the user.
             if (!$is_range_req || $range_start === 0) {
-                $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
-                $update_stmt->execute([$photo['id']]);
+                try {
+                    $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
+                    $update_stmt->execute([$photo['id']]);
+                } catch (Throwable $e) {
+                    error_log('Download count update failed: ' . $e->getMessage());
+                }
             }
+
+            // Release the PHP session lock before the potentially long file
+            // transfer so that other requests from the same user are not blocked
+            // while the download is in progress.
+            session_write_close();
 
             // Send response headers
             header('Content-Type: ' . $mime_type);

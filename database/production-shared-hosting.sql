@@ -1462,3 +1462,33 @@ END$$
 DELIMITER ;
 CALL upgrade_booking_time_slots();
 DROP PROCEDURE IF EXISTS upgrade_booking_time_slots;
+
+-- ============================================================================
+-- UPGRADE: Add shared_folders.total_downloads for existing installations
+-- ============================================================================
+-- This column was present in the original CREATE TABLE statement but was never
+-- included in the ALTER TABLE upgrade procedures.  On older installations the
+-- column may therefore be absent, causing a PDOException when folder.php tries
+-- to increment it after a single-photo download and showing the user
+-- "Access Denied – Download failed. Please try again."
+DROP PROCEDURE IF EXISTS upgrade_shared_folders_total_downloads;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_shared_folders_total_downloads()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'shared_folders'
+          AND column_name = 'total_downloads'
+    ) THEN
+        ALTER TABLE shared_folders
+            ADD COLUMN total_downloads INT DEFAULT 0
+            COMMENT 'Total download count across all photos'
+            AFTER max_downloads;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL upgrade_shared_folders_total_downloads();
+DROP PROCEDURE IF EXISTS upgrade_shared_folders_total_downloads;
