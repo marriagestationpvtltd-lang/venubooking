@@ -563,14 +563,13 @@ $banner_b_enabled = getSetting('folder_banner_b_enabled') === '1';
 // WhatsApp deletion request message (bilingual) with folder reference
 $_whatsapp_folder_name = !empty($folder['folder_name']) ? strip_tags($folder['folder_name']) : '';
 $_whatsapp_folder_url  = BASE_URL . '/folder.php?token=' . urlencode($token);
-$whatsapp_delete_message  = "Photo Deletion Request / फोटो डिलिट अनुरोध\n\n";
+$whatsapp_delete_message  = "Photo Deletion Request\n\n";
 if (!empty($_whatsapp_folder_name)) {
     $whatsapp_delete_message .= "Folder: *" . $_whatsapp_folder_name . "*\n";
     $whatsapp_delete_message .= "Link: " . $_whatsapp_folder_url . "\n\n";
 }
 $whatsapp_delete_message .= "I have downloaded my photos and request that they be removed from your system for privacy reasons.\n\n";
-$whatsapp_delete_message .= "मैले मेरो फोटो डाउनलोड गरिसकेँ। कृपया प्राइभेसीको कारण मेरो फोटो तपाईँहरूको सिस्टमबाट हटाइदिनुहोला।\n\n";
-$whatsapp_delete_message .= "Thank you / धन्यवाद";
+$whatsapp_delete_message .= "Thank you";
 $whatsapp_delete_url = '';
 if ($whatsapp_number) {
     $clean_whatsapp = preg_replace('/[^0-9]/', '', $whatsapp_number);
@@ -634,7 +633,7 @@ if ($folder && !$error_message) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="ne">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -650,11 +649,11 @@ if ($folder && !$error_message) {
         echo ' - ' . htmlspecialchars($site_name);
     ?></title>
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 CSS (local) -->
+    <link href="<?php echo BASE_URL; ?>/admin/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome (local) -->
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/admin/vendor/fontawesome/css/all.min.css">
 
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/share.css">
     
@@ -1899,10 +1898,10 @@ if ($folder && !$error_message) {
                                     id="downloadNowBtn"
                                     onclick="return downloadNowSelected()">
                                 <i class="fas fa-download me-2"></i>
-                                डाउनलोड नाउ (<?php echo count($_ind_urls); ?>)
+                                Download Now (<?php echo count($_ind_urls); ?>)
                             </button>
                             <p class="text-muted mt-2 mb-0">
-                                <small><i class="fas fa-download"></i> सबै फाइलहरू एकैचोटि डाउनलोड गर्नुहोस्</small>
+                                <small><i class="fas fa-download"></i> Download all files at once</small>
                             </p>
                             <!-- Select Photos toggle for deselecting individual photos -->
                             <button type="button" id="selectModeBtn"
@@ -1910,7 +1909,7 @@ if ($folder && !$error_message) {
                                     aria-label="Exit photo selection mode"
                                     onclick="toggleSelectMode()">
                                 <i class="fas fa-times me-1"></i>
-                                छान्ने मोड बन्द गर्नुहोस्
+                                Exit Selection Mode
                             </button>
                         <?php endif; ?>
                         
@@ -1922,10 +1921,10 @@ if ($folder && !$error_message) {
                                rel="noopener noreferrer"
                                class="whatsapp-delete-btn">
                                 <i class="fab fa-whatsapp"></i>
-                                मैले फोटो डाउनलोड गरेँ, कृपया डिलिट गरिदिनुस्
+                                I downloaded my photos — please delete them
                             </a>
                             <p class="whatsapp-delete-note">
-                                <i class="fas fa-info-circle"></i> फोटो डाउनलोड गरिसकेपछि माथिको बटन थिच्नुहोस्
+                                <i class="fas fa-info-circle"></i> Press this button after you finish downloading
                             </p>
                         </div>
                         <?php endif; ?>
@@ -1965,25 +1964,25 @@ if ($folder && !$error_message) {
                         <i class="fas fa-file-archive" style="font-size: 2.8rem; color: var(--primary-green);"></i>
                     </div>
                     <h4 class="mb-2 fw-bold" style="color:var(--text-primary);">
-                        फाइलहरू डाउनलोड गर्नुहोस्
+                        Download Files
                     </h4>
                     <?php 
                     $file_count = count($photos);
-                    $file_text = $file_count !== 1 ? 'फाइलहरू छन्' : 'फाइल छ';
+                    $file_text = $file_count !== 1 ? 'files' : 'file';
                     ?>
                     <p style="color:var(--text-secondary);" class="mb-4">
-                        यस फोल्डरमा <?php echo $file_count; ?> <?php echo $file_text; ?>।<br>
-                        तलको बटनहरू थिचेर फाइलहरू डाउनलोड गर्नुहोस्।
+                        This folder contains <?php echo $file_count; ?> <?php echo $file_text; ?>.<br>
+                        Click the button below to download.
                     </p>
                     <?php if (!empty($bulk_all_urls)): ?>
                         <button type="button"
                                 class="btn btn-success btn-lg download-all-btn mt-3 px-5 py-3"
                                 onclick="return downloadNow(<?php echo json_encode($bulk_all_files, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
                             <i class="fas fa-download me-2"></i>
-                            डाउनलोड नाउ (<?php echo count($bulk_all_urls); ?>)
+                            Download Now (<?php echo count($bulk_all_urls); ?>)
                         </button>
                         <p style="color:var(--text-secondary);" class="mt-3 mb-0">
-                            <small><i class="fas fa-download me-1"></i> सबै फाइलहरू एकैचोटि डाउनलोड गर्नुहोस्</small>
+                            <small><i class="fas fa-download me-1"></i> Download all files at once</small>
                         </p>
 
                         <?php if ($whatsapp_delete_url): ?>
@@ -1994,17 +1993,17 @@ if ($folder && !$error_message) {
                                rel="noopener noreferrer"
                                class="whatsapp-delete-btn">
                                 <i class="fab fa-whatsapp"></i>
-                                मैले फोटो डाउनलोड गरेँ, कृपया डिलिट गरिदिनुस्
+                                I downloaded my photos — please delete them
                             </a>
                             <p class="whatsapp-delete-note">
-                                <i class="fas fa-info-circle"></i> फोटो डाउनलोड गरिसकेपछि माथिको बटन थिच्नुहोस्
+                                <i class="fas fa-info-circle"></i> Press this button after you finish downloading
                             </p>
                         </div>
                         <?php endif; ?>
                     <?php else: ?>
                         <div class="alert alert-info d-inline-block">
                             <i class="fas fa-folder-open me-2"></i>
-                            यस फोल्डरमा अहिले कुनै फाइल छैन।
+                            This folder is empty.
                         </div>
                     <?php endif; ?>
                 </div>
@@ -2344,8 +2343,8 @@ if ($folder && !$error_message) {
         </video>
     </div>
     
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS (local) -->
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- Download Progress Overlay -->
     <div id="downloadProgressOverlay">
@@ -2367,15 +2366,15 @@ if ($folder && !$error_message) {
 
     <!-- Floating Selection Action Bar -->
     <div id="selectionBar" role="toolbar" aria-label="Photo selection actions">
-        <span class="sel-count"><i class="fas fa-check-circle me-1"></i><span id="selCount">0</span> छानिएको</span>
+        <span class="sel-count"><i class="fas fa-check-circle me-1"></i><span id="selCount">0</span> selected</span>
         <button class="btn btn-success btn-sm" onclick="downloadNowSelected()" aria-label="Download selected photos">
-            <i class="fas fa-download me-1"></i> डाउनलोड नाउ
+            <i class="fas fa-download me-1"></i> Download Now
         </button>
         <button class="btn btn-outline-secondary btn-sm" onclick="selectAllPhotos()" aria-label="Select all photos">
-            <i class="fas fa-check-double me-1"></i> सबै छान्नुहोस्
+            <i class="fas fa-check-double me-1"></i> Select All
         </button>
         <button class="btn btn-outline-danger btn-sm" onclick="deselectAllPhotos()" aria-label="Deselect all photos">
-            <i class="fas fa-times me-1"></i> हटाउनुहोस्
+            <i class="fas fa-times me-1"></i> Deselect All
         </button>
     </div>
 
@@ -2383,26 +2382,26 @@ if ($folder && !$error_message) {
     <div id="resumeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
         <div style="background:#fff;border-radius:20px;padding:30px 28px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:dlFadeIn 0.3s ease;">
             <div style="font-size:2.5rem;color:#f59e0b;margin-bottom:12px;"><i class="fas fa-folder-open"></i></div>
-            <h5 style="font-weight:700;margin-bottom:8px;color:#333;">पहिले डाउनलोड भइसकेका फाइलहरू</h5>
+            <h5 style="font-weight:700;margin-bottom:8px;color:#333;">Previously Downloaded Files</h5>
             <!-- Shown when some files remain (partial resume) -->
             <p id="resumeDescPartial" style="color:#555;margin-bottom:20px;">
-                <strong><span id="resumeAlreadyCount">0</span> फाइलहरू</strong> पहिले नै यस फोल्डरमा डाउनलोड भइसकेका छन्।<br>
-                के तपाईं बाँकी <strong><span id="resumeRemainingCount">0</span> फाइलहरू</strong> मात्र डाउनलोड गर्नुहुन्छ?
+                <strong><span id="resumeAlreadyCount">0</span> files</strong> were already downloaded from this folder.<br>
+                Do you want to download only the remaining <strong><span id="resumeRemainingCount">0</span> files</strong>?
             </p>
             <!-- Shown when all files have already been downloaded -->
             <p id="resumeDescAll" style="color:#555;margin-bottom:20px;display:none;">
-                <strong><span id="resumeAllCount">0</span> फाइलहरू</strong> पहिले नै डाउनलोड भइसकेका छन्।<br>
-                के तपाईं सबै फेरि डाउनलोड गर्न चाहनुहुन्छ?
+                <strong><span id="resumeAllCount">0</span> files</strong> have already been downloaded.<br>
+                Would you like to download all of them again?
             </p>
             <div style="display:flex;flex-direction:column;gap:8px;">
                 <button id="resumeBtnRemaining" class="btn btn-success">
-                    <i class="fas fa-download me-2"></i>हो, बाँकी फाइलहरू मात्र डाउनलोड गर्नुहोस्
+                    <i class="fas fa-download me-2"></i>Yes, download remaining files only
                 </button>
                 <button id="resumeBtnAll" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-redo me-2"></i>सबै फेरि डाउनलोड गर्नुहोस्
+                    <i class="fas fa-redo me-2"></i>Download all again
                 </button>
                 <button id="resumeBtnCancel" class="btn btn-outline-danger btn-sm">
-                    <i class="fas fa-times me-2"></i>रद्द गर्नुहोस्
+                    <i class="fas fa-times me-2"></i>Cancel
                 </button>
             </div>
         </div>
@@ -2833,10 +2832,10 @@ if ($folder && !$error_message) {
             if (btn) {
                 btn.classList.toggle('active', _selectMode);
                 if (_selectMode) {
-                    btn.innerHTML = '<i class="fas fa-times me-1"></i> छान्ने मोड बन्द गर्नुहोस्';
+                    btn.innerHTML = '<i class="fas fa-times me-1"></i> Exit Selection Mode';
                     btn.setAttribute('aria-label', 'Exit photo selection mode');
                 } else {
-                    btn.innerHTML = '<i class="fas fa-check-square me-1"></i> फोटो छानेर डाउनलोड गर्नुहोस्';
+                    btn.innerHTML = '<i class="fas fa-check-square me-1"></i> Select Photos to Download';
                     btn.setAttribute('aria-label', 'Select photos to download individually');
                 }
             }
@@ -2978,10 +2977,10 @@ if ($folder && !$error_message) {
                         dlBar.style.backgroundSize  = '200% 100%';
                         dlBar.style.animation       = 'dlIndeterminate 1.5s linear infinite';
                         dlPct.textContent      = '';
-                        dlTitle.textContent    = 'ZIP डाउनलोड तयार हुँदैछ…';
-                        dlFile.textContent     = ids.length + ' फाइलहरू';
+                        dlTitle.textContent    = 'Preparing ZIP download…';
+                        dlFile.textContent     = ids.length + ' files';
                         dlSize.textContent     = '';
-                        dlEta.textContent      = 'कृपया पर्खनुहोस्…';
+                        dlEta.textContent      = 'Please wait…';
                         dlSpd.textContent      = '';
                         dlIcon.className       = 'fas fa-spinner fa-spin';
                         overlay.classList.add('dl-active');
@@ -3055,11 +3054,11 @@ if ($folder && !$error_message) {
             dlBar.style.backgroundSize  = '';
             dlBar.style.animation       = '';
             dlPct.textContent      = '0%';
-            dlTitle.textContent    = 'तपाईंको फोटो डाउनलोड हुँदैछ…';
+            dlTitle.textContent    = 'Downloading your files…';
             dlFile.textContent     = '';
-            dlEta.textContent      = 'गणना गर्दै…';
+            dlEta.textContent      = 'Calculating…';
             dlSpd.textContent      = '';
-            dlSize.textContent     = '0 / ' + total + ' फाइलहरू';
+            dlSize.textContent     = '0 / ' + total + ' files';
             dlIcon.className       = 'fas fa-spinner fa-spin';
             overlay.classList.add('dl-active');
 
@@ -3106,7 +3105,7 @@ if ($folder && !$error_message) {
                         var overallPct = (completed + filePct) / total;
                         dlBar.style.width  = Math.round(overallPct * 100) + '%';
                         dlPct.textContent  = Math.round(overallPct * 100) + '%';
-                        dlSize.textContent = (completed + 1) + ' / ' + total + ' फाइलहरू';
+                        dlSize.textContent = (completed + 1) + ' / ' + total + ' files';
 
                         // Speed and byte-based ETA
                         var elapsed = (Date.now() - startTime) / 1000;
@@ -3166,7 +3165,7 @@ if ($folder && !$error_message) {
                 var pct = Math.round((completed / total) * 100);
                 dlBar.style.width  = pct + '%';
                 dlPct.textContent  = pct + '%';
-                dlSize.textContent = completed + ' / ' + total + ' फाइलहरू';
+                dlSize.textContent = completed + ' / ' + total + ' files';
                 var elapsed2 = (Date.now() - startTime) / 1000;
                 if (elapsed2 > 0.5 && completed > 0) {
                     var bps2 = totalBytes / elapsed2;
@@ -3181,7 +3180,7 @@ if ($folder && !$error_message) {
                 }
             }
 
-            _showDlCompleteMessage('तपाईंको फोटो डाउनलोड भइसक्यो!', completed);
+            _showDlCompleteMessage('Download complete!', completed);
         }
 
         /** Show download-complete state in the overlay, then auto-hide after 3 s. */
@@ -3200,7 +3199,7 @@ if ($folder && !$error_message) {
             dlPct.textContent  = '100%';
             dlTitle.textContent = title;
             dlFile.textContent  = '';
-            dlSize.textContent  = 'सबै ' + count + ' फाइलहरू डाउनलोड भए';
+            dlSize.textContent  = 'All ' + count + ' files downloaded';
             dlEta.textContent   = '';
             dlSpd.textContent   = '';
             dlIcon.className    = 'fas fa-check-circle';
@@ -3254,12 +3253,12 @@ if ($folder && !$error_message) {
             });
         }
 
-        /** Format seconds into a Nepali-language approximate time string. */
+        /** Format seconds into a human-readable approximate time string. */
         function _formatEta(seconds) {
             if (!isFinite(seconds) || seconds <= 0) return '';
-            if (seconds < 60)   return Math.ceil(seconds) + ' सेकेन्डमा';
-            if (seconds < 3600) return Math.ceil(seconds / 60) + ' मिनेटमा';
-            return Math.ceil(seconds / 3600) + ' घण्टामा';
+            if (seconds < 60)   return Math.ceil(seconds) + 's';
+            if (seconds < 3600) return Math.ceil(seconds / 60) + 'min';
+            return Math.ceil(seconds / 3600) + 'hr';
         }
 
         /** Format bytes per second into a human-readable speed string. */
@@ -3277,7 +3276,7 @@ if ($folder && !$error_message) {
             var btn = document.getElementById('selectModeBtn');
             if (btn) {
                 btn.classList.add('active');
-                btn.innerHTML = '<i class="fas fa-times me-1"></i> छान्ने मोड बन्द गर्नुहोस्';
+                btn.innerHTML = '<i class="fas fa-times me-1"></i> Exit Selection Mode';
                 btn.setAttribute('aria-label', 'Exit photo selection mode');
             }
             // Pre-select all downloadable photos and fire change events for accessibility
