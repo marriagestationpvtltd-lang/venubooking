@@ -364,7 +364,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                 exit;
             } catch (Throwable $e) {
                 error_log('ZIP download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
-                if ($zip_stream_started) {
+                if ($zip_stream_started || headers_sent()) {
                     // Headers already sent as application/zip – cannot output HTML.
                     // End the response here to avoid appending error HTML to the stream.
                     exit;

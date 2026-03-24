@@ -52,9 +52,14 @@ class ZipStream {
         // explicitly before any output buffering cleanup.
         @ini_set('zlib.output_compression', '0');
 
-        // Disable output buffering for immediate streaming
-        while (ob_get_level()) {
-            ob_end_clean();
+        // Disable output buffering for immediate streaming.
+        // Break out if ob_end_clean() fails (non-removable handler) to avoid
+        // an infinite loop on PHP configurations that use non-removable output
+        // handlers (e.g. some zlib/gzip setups or security extensions).
+        while (ob_get_level() > 0) {
+            if (!ob_end_clean()) {
+                break;
+            }
         }
 
         // Ask Apache/Nginx not to apply mod_deflate / gzip on this response.
@@ -146,16 +151,17 @@ class ZipStream {
                 . $zipPathBytes;
         }
 
-        echo $localHeader;
-        flush();
-
-        $localHeaderSize = strlen($localHeader);
-
-        // Open file and stream its content, computing CRC-32 on the fly
+        // Open the file BEFORE writing any output.  If fopen() fails we can
+        // return cleanly without emitting a corrupt partial local-file header.
         $fileHandle = fopen($filePath, 'rb');
         if ($fileHandle === false) {
             return false;
         }
+
+        echo $localHeader;
+        flush();
+
+        $localHeaderSize = strlen($localHeader);
 
         $crcContext    = hash_init('crc32b');
         $chunkSize     = 64 * 1024; // 64 KB chunks
