@@ -242,6 +242,20 @@ if (!file_exists($dest_path) || filesize($dest_path) === 0) {
 // ---------------------------------------------------------------
 // Persist to database
 // ---------------------------------------------------------------
+
+// Generate a thumbnail for photo uploads to save bandwidth on the public folder page.
+$thumbnail_relative_path = null;
+if ($is_photo) {
+    $thumb_dir_rel = 'folders/' . $folder_id . '/thumbs/';
+    $thumb_dir_abs = UPLOAD_PATH . $thumb_dir_rel;
+    $thumb_fname   = pathinfo($filename, PATHINFO_FILENAME) . '_thumb.jpg';
+    $thumb_abs     = $thumb_dir_abs . $thumb_fname;
+    if (generateSharedFolderThumbnail($dest_path, $thumb_abs, 600)) {
+        @chmod($thumb_abs, 0644);
+        $thumbnail_relative_path = $thumb_dir_rel . $thumb_fname;
+    }
+}
+
 $download_token = bin2hex(random_bytes(32));
 $title_raw      = pathinfo($file['name'], PATHINFO_FILENAME);
 $title          = $title_raw !== '' ? $title_raw : ucfirst($file_type) . ' ' . date('Y-m-d H:i:s');
@@ -249,8 +263,8 @@ $title          = $title_raw !== '' ? $title_raw : ucfirst($file_type) . ' ' . d
 try {
     $stmt = $db->prepare(
         "INSERT INTO shared_photos
-            (folder_id, file_type, title, description, image_path, file_size, download_token, status, created_by)
-         VALUES (?, ?, ?, '', ?, ?, ?, 'active', NULL)"
+            (folder_id, file_type, title, description, image_path, file_size, thumbnail_path, download_token, status, created_by)
+         VALUES (?, ?, ?, '', ?, ?, ?, ?, 'active', NULL)"
     );
     $stmt->execute([
         $folder_id,
@@ -258,6 +272,7 @@ try {
         $title,
         $relative_path,
         $file['size'],
+        $thumbnail_relative_path,
         $download_token,
     ]);
     $file_id = (int) $db->lastInsertId();

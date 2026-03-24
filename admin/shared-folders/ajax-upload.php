@@ -267,6 +267,19 @@ if (!file_exists($upload_path) || filesize($upload_path) === 0) {
 
 $thumbnail_relative_path = null;
 
+// Generate a thumbnail for photo uploads to serve small previews to users
+// and save bandwidth on the public folder page.
+if ($is_photo) {
+    $thumb_dir_rel = 'folders/' . $folder_id . '/thumbs/';
+    $thumb_dir_abs = UPLOAD_PATH . $thumb_dir_rel;
+    $thumb_fname   = pathinfo($filename, PATHINFO_FILENAME) . '_thumb.jpg';
+    $thumb_abs     = $thumb_dir_abs . $thumb_fname;
+    if (generateSharedFolderThumbnail($upload_path, $thumb_abs, 600)) {
+        @chmod($thumb_abs, 0644);
+        $thumbnail_relative_path = $thumb_dir_rel . $thumb_fname;
+    }
+}
+
 // If replacing an existing file, delete the old physical file and database record
 $replace_existing_id = 0;
 $old_image_path = null;
