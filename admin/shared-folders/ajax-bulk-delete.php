@@ -89,7 +89,7 @@ try {
             $real_upload_path = realpath(UPLOAD_PATH);
             $real_file_path = realpath($file_path);
             
-            if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0) {
+            if ($real_file_path && $real_upload_path && strpos($real_file_path, rtrim($real_upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0) {
                 if (file_exists($file_path)) {
                     unlink($file_path);
                 }
@@ -99,7 +99,7 @@ try {
             if (!empty($photo['thumbnail_path'])) {
                 $thumb_path = UPLOAD_PATH . $photo['thumbnail_path'];
                 $real_thumb_path = realpath($thumb_path);
-                if ($real_thumb_path && $real_upload_path && strpos($real_thumb_path, $real_upload_path) === 0) {
+                if ($real_thumb_path && $real_upload_path && strpos($real_thumb_path, rtrim($real_upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0) {
                     @unlink($thumb_path);
                 }
             }
