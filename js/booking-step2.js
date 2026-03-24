@@ -397,9 +397,11 @@ function openTimeSlotModal(hallId, hallName, venueName, basePrice, capacity) {
     const dateEl = document.getElementById('tsModalDate');
     if (dateEl) dateEl.textContent = bookingData.event_date || '';
 
-    // Disable confirm button until a slot is selected
+    // Disable confirm button and reset preview until a slot is selected
     const confirmBtn = document.getElementById('confirmSlotBtn');
     if (confirmBtn) confirmBtn.disabled = true;
+    const preview = document.getElementById('slotSelectionPreview');
+    if (preview) { preview.style.display = 'none'; preview.textContent = ''; }
 
     // Show loading spinner inside modal body
     const container = document.getElementById('timeSlotsContainer');
@@ -523,8 +525,58 @@ function renderTimeSlots(slots, container) {
 
             const confirmBtn = document.getElementById('confirmSlotBtn');
             if (confirmBtn) confirmBtn.disabled = _selectedSlots.length === 0;
+
+            // Update the live consolidated time preview inside the modal
+            updateSlotSelectionPreview();
         });
     });
+}
+
+/**
+ * Compute and display the consolidated booking time range inside the modal.
+ * Called every time a slot is selected or deselected.
+ */
+function updateSlotSelectionPreview() {
+    const preview = document.getElementById('slotSelectionPreview');
+    if (!preview) return;
+
+    if (_selectedSlots.length === 0) {
+        preview.style.display = 'none';
+        preview.textContent = '';
+        return;
+    }
+
+    const { aggStart, aggEnd } = getAggregateSlotTimes(_selectedSlots);
+
+    const fmt = t => {
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12  = h % 12 || 12;
+        return h12 + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+    };
+
+    const count = _selectedSlots.length;
+    const label = count === 1
+        ? '1 slot selected'
+        : count + ' slots selected';
+
+    preview.textContent = '⏰ ' + label + ': ' + fmt(aggStart) + ' – ' + fmt(aggEnd);
+    preview.style.display = '';
+}
+
+/**
+ * Return the consolidated { aggStart, aggEnd } (HH:MM) across all provided slots.
+ * Uses Math.min/Math.max over all start/end times for correctness regardless of selection order.
+ * @param  {Array} slots  Array of slot objects with .start and .end (HH:MM or HH:MM:SS)
+ * @return {{ aggStart: string, aggEnd: string }}
+ */
+function getAggregateSlotTimes(slots) {
+    const starts = slots.map(s => s.start.substring(0, 5));
+    const ends   = slots.map(s => s.end.substring(0, 5));
+    return {
+        aggStart: starts.reduce((a, b) => (a < b ? a : b)),
+        aggEnd:   ends.reduce((a, b) => (a > b ? a : b))
+    };
 }
 
 // Wire up confirm button (once, at DOMContentLoaded)
@@ -538,10 +590,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = bootstrap.Modal.getInstance(document.getElementById('timeSlotModal'));
         if (modal) modal.hide();
 
-        // Sort selected slots by start time to determine the aggregate window
+        // Consolidated time window: earliest start → latest end
+        const { aggStart, aggEnd } = getAggregateSlotTimes(_selectedSlots);
+
+        // Sort slot IDs by start time (used for junction-table insertion order)
         const sorted = [..._selectedSlots].sort((a, b) => a.start.localeCompare(b.start));
-        const aggStart = sorted[0].start.substring(0, 5);
-        const aggEnd   = sorted[sorted.length - 1].end.substring(0, 5);
 
         // Total effective price: sum slot overrides; fall back to hall base price per slot
         const effectivePrice = _selectedSlots.reduce(function(sum, s) {
@@ -551,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update the summary bar
         const slotDisplay = document.getElementById('selectedSlotDisplay');
         if (slotDisplay) {
-            slotDisplay.textContent = ' | \u23F0 ' + aggStart + ' \u2013 ' + aggEnd;
+            slotDisplay.textContent = ' | ⏰ ' + aggStart + ' – ' + aggEnd;
             slotDisplay.style.display = '';
         }
 

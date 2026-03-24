@@ -111,9 +111,11 @@ try {
 
     // Store time slot data in booking_data session
     if (!empty($slot_data_list)) {
-        // Aggregate: earliest start → latest end
-        $agg_start = $slot_data_list[0]['start_time'];
-        $agg_end   = $slot_data_list[count($slot_data_list) - 1]['end_time'];
+        // Aggregate: earliest start → latest end (use min/max to handle any slot ordering)
+        $all_starts = array_column($slot_data_list, 'start_time');
+        $all_ends   = array_column($slot_data_list, 'end_time');
+        $agg_start  = min($all_starts);
+        $agg_end    = max($all_ends);
 
         $shift = deriveShiftFromTimes($agg_start, $agg_end);
         $_SESSION['booking_data']['shift']      = $shift;

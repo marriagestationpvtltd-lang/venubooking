@@ -39,6 +39,10 @@ $selected_services = $_SESSION['selected_services'] ?? [];
 $selected_designs  = $_SESSION['selected_designs'] ?? [];
 $selected_packages = $_SESSION['selected_packages'] ?? [];
 
+// Determine whether multiple slots were selected so we can show the
+// consolidated time range rather than a comma-separated list of slot labels.
+$multi_slot = count($booking_data['selected_slots'] ?? []) > 1;
+
 // Calculate final totals — if this fails on a GET request the page cannot render
 // correctly, so redirect back to the beginning.  On a POST submission (final booking
 // confirmation) we keep the user on the page and surface the error so they can retry.
@@ -662,13 +666,13 @@ require_once __DIR__ . '/includes/header.php';
                             <strong><?php echo date('F d, Y', strtotime($booking_data['event_date'])); ?></strong><br>
                             <small class="text-muted"><?php echo convertToNepaliDate($booking_data['event_date']); ?></small><br>
                             <small class="text-success">
-                                <?php if (!empty($booking_data['slot_name'])): ?>
+                                <?php if (!$multi_slot && !empty($booking_data['slot_name'])): ?>
                                     <?php echo htmlspecialchars($booking_data['slot_name']); ?>
-                                <?php elseif (!empty($booking_data['shift'])): ?>
+                                <?php elseif (!$multi_slot && !empty($booking_data['shift'])): ?>
                                     <?php echo ucfirst($booking_data['shift']); ?>
                                 <?php endif; ?>
                                 <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>
-                                    &nbsp;•&nbsp;<?php echo formatBookingTime($booking_data['start_time']); ?> – <?php echo formatBookingTime($booking_data['end_time']); ?>
+                                    <?php echo ($multi_slot ? '' : '&nbsp;•&nbsp;') . formatBookingTime($booking_data['start_time']); ?> – <?php echo formatBookingTime($booking_data['end_time']); ?>
                                 <?php endif; ?>
                             </small>
                         </div>
@@ -809,9 +813,9 @@ require_once __DIR__ . '/includes/header.php';
                                 <small class="text-muted d-block mb-1"><i class="fas fa-calendar-check me-1"></i>Event</small>
                                 <div><strong><?php echo sanitize($booking_data['event_type']); ?></strong></div>
                                 <div><small><?php echo date('M d, Y', strtotime($booking_data['event_date'])); ?> (<?php echo convertToNepaliDate($booking_data['event_date']); ?>)
-                                <?php if (!empty($booking_data['slot_name'])): ?>
+                                <?php if (!$multi_slot && !empty($booking_data['slot_name'])): ?>
                                     • <?php echo htmlspecialchars($booking_data['slot_name']); ?>
-                                <?php elseif (!empty($booking_data['shift'])): ?>
+                                <?php elseif (!$multi_slot && !empty($booking_data['shift'])): ?>
                                     • <?php echo ucfirst($booking_data['shift']); ?>
                                 <?php endif; ?>
                                 <?php if (!empty($booking_data['start_time']) && !empty($booking_data['end_time'])): ?>
