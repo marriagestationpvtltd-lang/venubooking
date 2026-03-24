@@ -52,16 +52,71 @@ if (!$error_message && isset($_GET['download']) && $_GET['download'] === '1') {
     try {
         $file_path = UPLOAD_PATH . $photo['image_path'];
         
-        // Security: Verify file is within uploads directory
+        // Security: Verify file is within uploads directory.
+        // Uses realpath() for strict boundary checking when available.
+        // Falls back to a path-traversal guard when realpath() cannot
+        // resolve paths (e.g. open_basedir restrictions on shared hosting).
         $real_upload_path = realpath(UPLOAD_PATH);
-        $real_file_path = realpath($file_path);
-        
-        if ($real_file_path && $real_upload_path && strpos($real_file_path, $real_upload_path) === 0 && file_exists($file_path)) {
+        $real_file_path   = realpath($file_path);
+
+        $is_safe = false;
+        if ($real_file_path !== false && $real_upload_path !== false) {
+            $is_safe = strpos($real_file_path, rtrim($real_upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0
+                       && file_exists($file_path);
+        } elseif (file_exists($file_path)) {
+            $safe_p  = str_replace('\\', '/', $photo['image_path']);
+            $is_safe = $safe_p !== ''
+                       && strpos($safe_p, '../') === false
+                       && strpos($safe_p, '/..') === false
+                       && $safe_p[0] !== '/';
+        }
+
+        // Shared MIME-type → file-extension map used when generating download filenames.
+        $mime_ext_map = [
+            'image/jpeg'                   => 'jpg',
+            'image/pjpeg'                  => 'jpg',
+            'image/png'                    => 'png',
+            'image/gif'                    => 'gif',
+            'image/webp'                   => 'webp',
+            'image/bmp'                    => 'bmp',
+            'image/tiff'                   => 'tiff',
+            'image/heic'                   => 'heic',
+            'image/heif'                   => 'heif',
+            'image/svg+xml'                => 'svg',
+            'image/x-icon'                 => 'ico',
+            'video/mp4'                    => 'mp4',
+            'video/quicktime'              => 'mov',
+            'video/x-msvideo'              => 'avi',
+            'video/x-ms-wmv'               => 'wmv',
+            'video/webm'                   => 'webm',
+            'video/x-matroska'             => 'mkv',
+            'video/mpeg'                   => 'mpg',
+            'video/3gpp'                   => '3gp',
+            'video/x-m4v'                  => 'm4v',
+            'video/ogg'                    => 'ogv',
+            'audio/mpeg'                   => 'mp3',
+            'audio/wav'                    => 'wav',
+            'audio/aac'                    => 'aac',
+            'audio/flac'                   => 'flac',
+            'audio/ogg'                    => 'ogg',
+            'audio/x-m4a'                  => 'm4a',
+            'application/pdf'              => 'pdf',
+            'application/zip'              => 'zip',
+            'application/x-rar-compressed' => 'rar',
+            'application/x-7z-compressed'  => '7z',
+        ];
+
+        if ($is_safe) {
             // Detect MIME type using robust helper (handles missing/broken finfo extension)
             $mime_type = detectMimeType($file_path);
-            
-            // Generate download filename (ASCII-safe for cross-platform compatibility)
+
+            // Generate download filename.
+            // Derive the extension from the actual detected MIME type so that the
+            // downloaded file always has an extension that matches its real format.
             $ext = pathinfo($photo['image_path'], PATHINFO_EXTENSION);
+            if (!empty($mime_ext_map[$mime_type])) {
+                $ext = $mime_ext_map[$mime_type];
+            }
             // Transliterate Nepali/Unicode to ASCII and sanitize
             $safe_title = preg_replace('/[^a-zA-Z0-9_\-\.\s]/u', '_', $photo['title']);
             $safe_title = preg_replace('/_+/', '_', $safe_title); // Remove consecutive underscores

@@ -338,6 +338,8 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                     $error_message = 'File not found.';
                 }
             }
+        } else {
+            $error_message = 'Photo not found or no longer available.';
         }
     } catch (Throwable $e) {
         error_log('Photo download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
