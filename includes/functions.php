@@ -4587,10 +4587,17 @@ function generateSharedFolderThumbnail(string $source_path, string $target_path,
 
     // Ensure the target directory exists
     $target_dir = dirname($target_path);
-    if (!is_dir($target_dir) && !mkdir($target_dir, 0750, true)) {
+    if (!is_dir($target_dir) && !mkdir($target_dir, 0755, true)) {
         imagedestroy($thumb);
         error_log("generateSharedFolderThumbnail: failed to create directory {$target_dir}");
         return false;
+    }
+    // Ensure the directory is world-executable/readable so the web server can
+    // serve thumbnails regardless of which system user PHP and Apache run as.
+    // (Some shared-hosting servers apply a restrictive umask that overrides
+    // the mode passed to mkdir, leaving the directory as 0700 or 0750.)
+    if (!chmod($target_dir, 0755)) {
+        error_log("generateSharedFolderThumbnail: failed to chmod directory {$target_dir}");
     }
 
     $result = imagejpeg($thumb, $target_path, 85);

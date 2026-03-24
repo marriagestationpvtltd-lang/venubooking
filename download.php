@@ -273,11 +273,11 @@ $whatsapp_number = getSetting('whatsapp_number');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Download File - <?php echo htmlspecialchars($site_name); ?></title>
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap 5 CSS (local) -->
+    <link href="<?php echo BASE_URL; ?>/admin/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome (local) -->
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/admin/vendor/fontawesome/css/all.min.css">
 
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/share.css">
     
@@ -664,8 +664,8 @@ $whatsapp_number = getSetting('whatsapp_number');
         </div>
     </div>
     
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS (local) -->
+    <script src="<?php echo BASE_URL; ?>/admin/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- Download Progress Overlay -->
     <div id="downloadProgressOverlay">
