@@ -178,8 +178,14 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                         <?php
                         $menu_items = getMenuItems($menu['id']);
                         $is_selected = in_array($menu['id'], $selected_menus);
+                        // Build grouped items for JS summary panel
+                        $menu_items_for_js = [];
+                        foreach ($menu_items as $mi) {
+                            $cat = $mi['category'] ?? '';
+                            $menu_items_for_js[] = ['category' => $cat, 'item_name' => $mi['item_name']];
+                        }
                         ?>
-                        <div class="col-md-6 col-lg-4" data-menu-name="<?php echo htmlspecialchars($menu['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="col-md-6 col-lg-4" data-menu-name="<?php echo htmlspecialchars($menu['name'], ENT_QUOTES, 'UTF-8'); ?>" data-menu-items="<?php echo htmlspecialchars(json_encode($menu_items_for_js), ENT_QUOTES, 'UTF-8'); ?>">
                             <div class="menu-card card h-100 <?php echo $is_selected ? 'selected' : ''; ?>">
                                 <?php if ($menu['image']): ?>
                                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($menu['image'], ENT_QUOTES, 'UTF-8'); ?>" 
