@@ -38,6 +38,8 @@ $selected_menus = $_SESSION['selected_menus'] ?? [];
 $selected_services = $_SESSION['selected_services'] ?? [];
 $selected_designs  = $_SESSION['selected_designs'] ?? [];
 $selected_packages = $_SESSION['selected_packages'] ?? [];
+$menu_selections         = $_SESSION['menu_selections'] ?? [];
+$menu_special_instructions = $_SESSION['menu_special_instructions'] ?? '';
 
 // Determine whether multiple slots were selected so we can show the
 // consolidated time range rather than a comma-separated list of slot labels.
@@ -48,7 +50,7 @@ $multi_slot = count($booking_data['selected_slots'] ?? []) > 1;
 // confirmation) we keep the user on the page and surface the error so they can retry.
 $totals_error = '';
 try {
-    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs, $selected_packages);
+    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs, $selected_packages, null, $menu_selections);
 } catch (\Throwable $e) {
     error_log('Failed to calculate booking totals: ' . $e->getMessage());
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -79,6 +81,18 @@ if (!empty($selected_menus)) {
                 $menu['items'] = $itemsStmt->fetchAll();
             }
         }
+
+        // Load custom menu selections for display
+        if (!empty($menu_selections)) {
+            foreach ($menu_details as &$menu_det) {
+                $mid = intval($menu_det['id']);
+                if (isset($menu_selections[$mid])) {
+                    $menu_det['custom_structure'] = getMenuStructure($mid);
+                    $menu_det['custom_selections'] = $menu_selections[$mid];
+                }
+            }
+        }
+        unset($menu_det);
     } catch (\Throwable $e) {
         error_log('Failed to load menu details: ' . $e->getMessage());
         $menu_details = [];
@@ -269,7 +283,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 'phone'              => $phone,
                 'email'              => $email,
                 'address'            => $address,
-                'special_requests'   => $special_requests
+                'special_requests'   => $special_requests,
+                'menu_selections'            => $menu_selections,
+                'menu_special_instructions'  => $menu_special_instructions,
             ]);
         } catch (\Throwable $e) {
             error_log('Unexpected booking error: ' . $e->getMessage());
@@ -704,8 +720,33 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="mb-2">
                                     <small><strong><?php echo sanitize($menu['name']); ?></strong></small><br>
                                     <small class="text-success"><?php echo formatCurrency($menu['price_per_person']); ?>/pax</small>
+                                    <?php if (!empty($menu['custom_structure']) && !empty($menu['custom_selections'])): ?>
+                                        <div class="mt-1 ms-2">
+                                            <?php foreach ($menu['custom_structure'] as $section): ?>
+                                                <?php foreach ($section['groups'] as $group): ?>
+                                                    <?php
+                                                    $gid = intval($group['id']);
+                                                    $chosen = isset($menu['custom_selections'][$gid]) ? $menu['custom_selections'][$gid] : [];
+                                                    $chosen_ids = array_map('intval', $chosen);
+                                                    $selected_items = array_filter($group['items'], function($it) use ($chosen_ids) {
+                                                        return in_array(intval($it['id']), $chosen_ids);
+                                                    });
+                                                    ?>
+                                                    <?php if (!empty($selected_items)): ?>
+                                                        <div class="small text-muted">
+                                                            <span class="fw-semibold text-success"><?php echo sanitize($group['group_name']); ?>:</span>
+                                                            <?php echo sanitize(implode(', ', array_column(array_values($selected_items), 'item_name'))); ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                <?php endforeach; ?>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
+                            <?php if (!empty($menu_special_instructions)): ?>
+                                <div class="small text-muted mt-1"><em><i class="fas fa-comment-alt me-1"></i><?php echo sanitize($menu_special_instructions); ?></em></div>
+                            <?php endif; ?>
                             <hr class="my-2">
                         <?php endif; ?>
 

@@ -11,6 +11,41 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
     exit;
 }
 
+// Handle POST: save selections and redirect to step 4
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Save selected menu IDs
+    $raw_menus = $_POST['menus'] ?? [];
+    $clean_menus = array_values(array_filter(array_map('intval', $raw_menus), function($v) { return $v > 0; }));
+    $_SESSION['selected_menus'] = $clean_menus;
+
+    // Save custom menu item selections: [menu_id => [group_id => [item_id, ...]]]
+    $menu_selections_json = $_POST['menu_selections_json'] ?? '';
+    $menu_selections = [];
+    if (!empty($menu_selections_json)) {
+        $decoded = json_decode($menu_selections_json, true);
+        if (is_array($decoded)) {
+            // Sanitize: only int keys and int values
+            foreach ($decoded as $mid => $groups) {
+                $mid_int = intval($mid);
+                if ($mid_int <= 0 || !is_array($groups)) continue;
+                $menu_selections[$mid_int] = [];
+                foreach ($groups as $gid => $item_ids) {
+                    $gid_int = intval($gid);
+                    if ($gid_int <= 0 || !is_array($item_ids)) continue;
+                    $menu_selections[$mid_int][$gid_int] = array_values(array_filter(array_map('intval', $item_ids)));
+                }
+            }
+        }
+    }
+    $_SESSION['menu_selections'] = $menu_selections;
+
+    // Save special instructions
+    $_SESSION['menu_special_instructions'] = trim(strip_tags($_POST['menu_special_instructions'] ?? ''));
+
+    header('Location: booking-step4.php');
+    exit;
+}
+
 // Include HTML header only after all redirects have been handled
 require_once __DIR__ . '/includes/header.php';
 
@@ -123,7 +158,7 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                 </div>
             </form>
         <?php else: ?>
-            <form id="menuForm" method="POST" action="booking-step4.php">
+            <form id="menuForm" method="POST" action="booking-step3.php">
                 <div class="mb-4" id="menuSearchWrapper">
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
@@ -230,6 +265,34 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                     <?php endforeach; ?>
                 </div>
 
+                <!-- Hidden field storing the JSON of custom menu item selections -->
+                <input type="hidden" name="menu_selections_json" id="menuSelectionsJson" value="">
+
+                <!-- Special Instructions -->
+                <div class="mt-4" id="menuSpecialInstructions">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-comment-alt me-2 text-success"></i>Special Instructions</h5>
+                            <p class="text-muted small">Any special dietary requirements or menu customization notes?</p>
+                            <textarea class="form-control" name="menu_special_instructions" id="menuSpecialInstructionsText" rows="3"
+                                      placeholder="e.g. No garlic in soups, extra spicy starters, nut-free desserts..."><?php echo sanitize($_SESSION['menu_special_instructions'] ?? ''); ?></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Menu Selection Panel (shown when menu with sections is selected) -->
+                <div id="customMenuPanel" class="mt-4" style="display:none;">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Customize Your Menu Selections</h5>
+                            <small>Choose items from each group as specified</small>
+                        </div>
+                        <div class="card-body" id="customMenuPanelBody">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mt-4">
                     <div class="col-md-6">
                         <a href="booking-step2.php" class="btn btn-outline-secondary btn-lg w-100">
@@ -277,8 +340,12 @@ const bookingData = ' . json_encode($booking_data) . ';
 const hallPrice = ' . $hall_price . ';
 const guestsCount = ' . $booking_data['guests'] . ';
 const taxRate = ' . $tax_rate . ';
+const BASE_URL = ' . json_encode(BASE_URL) . ';
+const menuSelectionsSession = ' . json_encode($_SESSION['menu_selections'] ?? []) . ';
+const menuSpecialInstructionsSession = ' . json_encode($_SESSION['menu_special_instructions'] ?? '') . ';
 </script>
 <script src="' . BASE_URL . '/js/booking-step3.js"></script>
+<script src="' . BASE_URL . '/js/booking-step3-menu.js"></script>
 ';
 require_once __DIR__ . '/includes/footer.php';
 ?>
