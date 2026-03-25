@@ -454,6 +454,14 @@
             const menuNameEl = card ? card.querySelector('.card-title') : null;
             const menuName = menuNameEl ? menuNameEl.textContent.trim() : ('Menu #' + menuId);
 
+            // Get pre-defined items from data attribute (set on the column wrapper in PHP)
+            const menuCol = cb ? cb.closest('[data-menu-items]') : null;
+            let menuItemsData = [];
+            try {
+                menuItemsData = menuCol && menuCol.dataset.menuItems
+                    ? JSON.parse(menuCol.dataset.menuItems) : [];
+            } catch (e) { menuItemsData = []; }
+
             const row = document.createElement('div');
             row.className = idx > 0 ? 'pt-3' : '';
 
@@ -467,9 +475,12 @@
                 '<span class="fw-bold" style="font-size:0.95rem;color:#14532d;">' + escapeHtml(menuName) + '</span>';
             row.appendChild(titleRow);
 
-            // Show custom item selections grouped by section → group
+            // Determine if this menu has a customisable section/group structure
             const structure = menuStructures[menuId];
-            if (structure && currentSelections[menuId]) {
+            const hasSections = structure && structure.sections && structure.sections.length > 0;
+
+            if (hasSections && currentSelections[menuId]) {
+                // Custom-selection menu: show individually chosen items grouped by section → group
                 let hasAnySelection = false;
 
                 structure.sections.forEach(function (section) {
@@ -554,6 +565,57 @@
                         'please choose items from the customization panel above.</span>';
                     row.appendChild(noSelMsg);
                 }
+            } else if (menuItemsData.length > 0) {
+                // Simple (pre-defined) menu: show all included items grouped by category
+                const grouped = {};
+                const categoryOrder = [];
+                menuItemsData.forEach(function (item) {
+                    const cat = item.category || '';
+                    if (!Object.prototype.hasOwnProperty.call(grouped, cat)) {
+                        grouped[cat] = [];
+                        categoryOrder.push(cat);
+                    }
+                    grouped[cat].push(item.item_name);
+                });
+
+                const itemsWrap = document.createElement('div');
+                itemsWrap.className = 'rounded-3 p-3';
+                itemsWrap.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;';
+
+                categoryOrder.forEach(function (cat) {
+                    const groupWrap = document.createElement('div');
+                    groupWrap.className = 'mb-2';
+
+                    if (cat) {
+                        const catLabel = document.createElement('div');
+                        catLabel.className = 'mb-1';
+                        catLabel.innerHTML =
+                            '<span class="fw-medium" style="font-size:0.8rem;color:#374151;">' +
+                            escapeHtml(cat) + '</span>';
+                        groupWrap.appendChild(catLabel);
+                    }
+
+                    const chipsWrap = document.createElement('div');
+                    chipsWrap.className = 'd-flex flex-wrap gap-1';
+                    grouped[cat].forEach(function (itemName) {
+                        const chip = document.createElement('span');
+                        chip.style.cssText =
+                            'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;' +
+                            'border-radius:20px;background:#dcfce7;border:1px solid #86efac;' +
+                            'font-size:0.78rem;font-weight:500;color:#14532d;';
+                        chip.innerHTML =
+                            '<svg style="width:10px;height:10px;flex-shrink:0;" viewBox="0 0 12 12" fill="none">' +
+                            '<circle cx="6" cy="6" r="5.5" fill="#15803d"/>' +
+                            '<path d="M3.5 6l2 2 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+                            '</svg>' +
+                            escapeHtml(itemName);
+                        chipsWrap.appendChild(chip);
+                    });
+                    groupWrap.appendChild(chipsWrap);
+                    itemsWrap.appendChild(groupWrap);
+                });
+
+                row.appendChild(itemsWrap);
             }
 
             body.appendChild(row);
