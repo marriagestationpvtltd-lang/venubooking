@@ -2281,7 +2281,33 @@ footer a:hover {
    PHOTO CARDS GRID (Gallery – max 10 photos per card)
    =================================================== */
 
-/* Responsive grid: 3 columns → 2 → 1 */
+/* Auto-scroll carousel wrapper */
+.gallery-scroll-outer {
+    position: relative;
+    overflow: hidden;
+    /* fade edges for a polished look */
+    mask-image: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
+}
+
+.gallery-scroll-track {
+    display: flex;
+    gap: 1.25rem;
+    /* animation is driven by JS; starting state: no transform */
+    will-change: transform;
+    user-select: none;
+}
+
+.gallery-scroll-track .photo-card {
+    flex: 0 0 280px;
+    width: 280px;
+}
+
+@media (max-width: 575px) {
+    .gallery-scroll-track .photo-card { flex: 0 0 220px; width: 220px; }
+}
+
+/* Responsive grid: 3 columns → 2 → 1 (kept for any non-carousel uses) */
 .photo-cards-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
