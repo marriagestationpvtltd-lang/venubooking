@@ -455,42 +455,91 @@
             const menuName = menuNameEl ? menuNameEl.textContent.trim() : ('Menu #' + menuId);
 
             const row = document.createElement('div');
-            row.className = 'mb-2';
+            row.className = 'mb-3';
 
+            // Menu title row
             const titleRow = document.createElement('div');
-            titleRow.className = 'd-flex align-items-center gap-2 mb-1';
+            titleRow.className = 'd-flex align-items-center gap-2 mb-2';
             const icon = document.createElement('i');
-            icon.className = 'fas fa-utensils text-success';
+            icon.className = 'fas fa-utensils text-primary';
             const nameEl = document.createElement('strong');
+            nameEl.className = 'fs-6';
             nameEl.textContent = menuName;
             titleRow.appendChild(icon);
             titleRow.appendChild(nameEl);
             row.appendChild(titleRow);
 
-            // Show custom item selections grouped by section if structure is loaded
+            // Show custom item selections grouped by section → group
             const structure = menuStructures[menuId];
             if (structure && currentSelections[menuId]) {
+                let hasAnySelection = false;
+
                 structure.sections.forEach(function (section) {
-                    const sectionItems = [];
+                    // Collect groups with selections in this section
+                    const groupsWithItems = [];
                     section.groups.forEach(function (group) {
                         const sel = currentSelections[menuId][group.id];
                         if (sel && sel.size > 0) {
+                            const itemNames = [];
                             group.items.forEach(function (item) {
                                 if (sel.has(item.id)) {
-                                    sectionItems.push(escapeHtml(item.item_name));
+                                    itemNames.push(item.item_name);
                                 }
                             });
+                            if (itemNames.length > 0) {
+                                groupsWithItems.push({ groupName: group.group_name, items: itemNames });
+                            }
                         }
                     });
-                    if (sectionItems.length > 0) {
-                        const sectionRow = document.createElement('div');
-                        sectionRow.className = 'small ms-3 mb-1 text-muted';
-                        sectionRow.innerHTML =
-                            '<span class="fw-semibold">' + escapeHtml(section.section_name) + ':</span> ' +
-                            sectionItems.join(', ');
-                        row.appendChild(sectionRow);
-                    }
+
+                    if (groupsWithItems.length === 0) return;
+                    hasAnySelection = true;
+
+                    // Section heading
+                    const sectionEl = document.createElement('div');
+                    sectionEl.className = 'ms-3 mb-2';
+
+                    const sectionTitle = document.createElement('div');
+                    sectionTitle.className = 'text-muted fw-semibold small mb-1 text-uppercase';
+                    sectionTitle.style.letterSpacing = '0.05em';
+                    sectionTitle.innerHTML = '<i class="fas fa-layer-group me-1"></i>' + escapeHtml(section.section_name);
+                    sectionEl.appendChild(sectionTitle);
+
+                    groupsWithItems.forEach(function (g) {
+                        const groupWrap = document.createElement('div');
+                        groupWrap.className = 'ms-2 mb-1';
+
+                        // Group label
+                        const groupLabel = document.createElement('div');
+                        groupLabel.className = 'small fw-medium text-dark mb-1';
+                        groupLabel.innerHTML = '<i class="fas fa-chevron-right me-1 text-muted" style="font-size:0.7rem;"></i>' + escapeHtml(g.groupName) + ':';
+                        groupWrap.appendChild(groupLabel);
+
+                        // Item badges
+                        const badgesWrap = document.createElement('div');
+                        badgesWrap.className = 'd-flex flex-wrap gap-1 ms-2';
+                        g.items.forEach(function (itemName) {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge rounded-pill text-dark border';
+                            badge.style.cssText = 'background:#e8f5e9;border-color:#a5d6a7!important;font-size:0.78rem;font-weight:500;padding:4px 10px;';
+                            badge.innerHTML = '<i class="fas fa-check-circle me-1" style="color:#2e7d32;font-size:0.7rem;"></i>' + escapeHtml(itemName);
+                            badgesWrap.appendChild(badge);
+                        });
+                        groupWrap.appendChild(badgesWrap);
+                        sectionEl.appendChild(groupWrap);
+                    });
+
+                    row.appendChild(sectionEl);
                 });
+
+                // If menu has a structure but nothing selected yet, show a prompt
+                if (!hasAnySelection) {
+                    const noSelMsg = document.createElement('div');
+                    noSelMsg.className = 'ms-3 text-muted small fst-italic';
+                    noSelMsg.setAttribute('role', 'status');
+                    noSelMsg.innerHTML = '<i class="fas fa-exclamation-circle me-1 text-warning" aria-hidden="true"></i>No items selected yet — please choose items from the customization panel above.';
+                    row.appendChild(noSelMsg);
+                }
             }
 
             body.appendChild(row);

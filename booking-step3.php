@@ -286,17 +286,24 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                 <!-- Hidden field storing the JSON of custom menu item selections -->
                 <input type="hidden" name="menu_selections_json" id="menuSelectionsJson" value="">
 
-                <!-- Selected Menus Summary (shown when any menus are selected) -->
+                <!-- Selected Menus Confirmation Summary (shown when any menus are selected) -->
                 <div id="selectedMenusSummary" class="mt-4" style="display:none;">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header border-0 bg-success text-white">
+                        <div class="card-header border-0 text-white" style="background:linear-gradient(135deg,#1d4ed8 0%,#1e40af 100%);">
                             <div class="d-flex align-items-center gap-2">
-                                <i class="fas fa-check-circle fs-5"></i>
-                                <div class="fw-bold">Selected Menus</div>
+                                <i class="fas fa-clipboard-check fs-5"></i>
+                                <div>
+                                    <div class="fw-bold">अगाडि बढ्नु अघि आफ्नो छनोट पुष्टि गर्नुहोस्</div>
+                                    <div class="opacity-75" style="font-size:0.8rem;">Confirm your selections before proceeding</div>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body p-3" id="selectedMenusSummaryBody">
                             <!-- Populated by JS -->
+                        </div>
+                        <div class="card-footer bg-light border-0 text-muted small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            माथिका छनोट गरिएका आइटमहरू सही छन् भने "Continue" थिच्नुहोस् — Please verify the items above are correct before continuing.
                         </div>
                     </div>
                 </div>
