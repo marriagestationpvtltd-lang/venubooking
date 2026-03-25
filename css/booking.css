@@ -799,12 +799,51 @@ html {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.5rem;
+    cursor: pointer;
+    padding: 0.25rem 0.35rem;
+    margin-left: -0.35rem;
+    margin-right: -0.35rem;
+    border-radius: 6px;
+    transition: background 0.12s ease;
+}
+
+.cmp-group-head:hover {
+    background: rgba(34, 197, 94, 0.06);
 }
 
 .cmp-group-title {
     font-weight: 600;
     font-size: 0.85rem;
     color: #374151;
+}
+
+.cmp-group-title .cmp-group-toggle {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.cmp-group--collapsed .cmp-group-title .cmp-group-toggle {
+    transform: rotate(-90deg);
+}
+
+.cmp-group--collapsed .cmp-items-grid {
+    display: none;
+}
+
+.cmp-group-summary {
+    display: none;
+    font-size: 0.73rem;
+    color: #059669;
+    padding: 0 0 0.3rem 1.2rem;
+    line-height: 1.4;
+}
+
+.cmp-group--collapsed .cmp-group-summary {
+    display: block;
+}
+
+.cmp-group-summary:empty {
+    display: none !important;
 }
 
 .cmp-group-limit {

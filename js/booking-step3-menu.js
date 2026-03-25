@@ -108,13 +108,15 @@
 
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'cmp-group';
+                groupDiv.dataset.groupId = group.id;
+                groupDiv.dataset.menuId = menuId;
 
                 const groupHead = document.createElement('div');
                 groupHead.className = 'cmp-group-head';
 
                 const groupTitle = document.createElement('span');
                 groupTitle.className = 'cmp-group-title';
-                groupTitle.innerHTML = '<i class="fas fa-angle-right me-1 text-success"></i>' + escapeHtml(group.group_name);
+                groupTitle.innerHTML = '<i class="fas fa-angle-down me-1 text-success cmp-group-toggle"></i>' + escapeHtml(group.group_name);
                 groupHead.appendChild(groupTitle);
 
                 if (group.choose_limit) {
@@ -129,7 +131,16 @@
                     groupHead.appendChild(gLim);
                 }
 
+                groupHead.addEventListener('click', function () {
+                    toggleGroupCollapse(groupDiv);
+                });
+
                 groupDiv.appendChild(groupHead);
+
+                // Summary: shows selected item names when group is collapsed
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'cmp-group-summary';
+                groupDiv.appendChild(summaryDiv);
 
                 const itemsGrid = document.createElement('div');
                 itemsGrid.className = 'cmp-items-grid';
@@ -249,6 +260,17 @@
 
         updateCounters(menuId);
         serializeSelections();
+        updateGroupSummary(menuId, groupId);
+
+        // Auto-collapse this group when its limit is reached, then expand the next one
+        if (!isSelected && groupLimit &&
+                currentSelections[menuId][groupId].size >= parseInt(groupLimit)) {
+            const groupEl = findGroupEl(menuId, groupId);
+            if (groupEl && !groupEl.classList.contains('cmp-group--collapsed')) {
+                collapseGroup(groupEl);
+                expandNextGroup(groupEl);
+            }
+        }
     }
 
     function updateCounters(menuId) {
@@ -303,6 +325,106 @@
         }, 3000);
     }
 
+    function collapseGroup(groupEl) {
+        groupEl.classList.add('cmp-group--collapsed');
+    }
+
+    function expandGroup(groupEl) {
+        groupEl.classList.remove('cmp-group--collapsed');
+    }
+
+    function toggleGroupCollapse(groupEl) {
+        if (groupEl.classList.contains('cmp-group--collapsed')) {
+            expandGroup(groupEl);
+        } else {
+            collapseGroup(groupEl);
+        }
+    }
+
+    // Returns the .cmp-group element for a given menu/group ID pair without
+    // constructing a CSS selector from untrusted values.
+    function findGroupEl(menuId, groupId) {
+        const mId = String(menuId);
+        const gId = String(groupId);
+        return Array.from(document.querySelectorAll('.cmp-group')).find(function (el) {
+            return el.dataset.menuId === mId && el.dataset.groupId === gId;
+        }) || null;
+    }
+
+    function expandNextGroup(currentGroupEl) {
+        const groupsWrap = currentGroupEl.closest('.cmp-groups');
+        if (!groupsWrap) return;
+        const allGroups = Array.from(groupsWrap.querySelectorAll('.cmp-group'));
+        const idx = allGroups.indexOf(currentGroupEl);
+        if (idx >= 0 && idx + 1 < allGroups.length) {
+            expandGroup(allGroups[idx + 1]);
+            // Small delay lets the CSS transition start before the browser calculates scroll position
+            setTimeout(function () {
+                allGroups[idx + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 50);
+        }
+    }
+
+    function updateGroupSummary(menuId, groupId) {
+        const groupEl = findGroupEl(menuId, groupId);
+        if (!groupEl) return;
+        const summaryEl = groupEl.querySelector('.cmp-group-summary');
+        if (!summaryEl) return;
+
+        const selections = currentSelections[menuId] && currentSelections[menuId][groupId]
+            ? currentSelections[menuId][groupId] : new Set();
+
+        if (selections.size === 0) {
+            summaryEl.textContent = '';
+            return;
+        }
+
+        const structure = menuStructures[menuId];
+        if (!structure) return;
+
+        const selectedNames = [];
+        structure.sections.forEach(function (section) {
+            section.groups.forEach(function (g) {
+                if (parseInt(g.id) === parseInt(groupId)) {
+                    g.items.forEach(function (item) {
+                        if (selections.has(item.id)) {
+                            selectedNames.push(item.item_name);
+                        }
+                    });
+                }
+            });
+        });
+
+        summaryEl.textContent = selectedNames.join(', ');
+    }
+
+    function updateAllGroupSummaries(menuId) {
+        const structure = menuStructures[menuId];
+        if (!structure) return;
+        structure.sections.forEach(function (section) {
+            section.groups.forEach(function (group) {
+                updateGroupSummary(menuId, group.id);
+            });
+        });
+    }
+
+    function autoCollapseFilledGroups(menuId) {
+        const structure = menuStructures[menuId];
+        if (!structure) return;
+        structure.sections.forEach(function (section) {
+            section.groups.forEach(function (group) {
+                const limit = parseInt(group.choose_limit);
+                if (!limit) return;
+                const count = currentSelections[menuId] && currentSelections[menuId][group.id]
+                    ? currentSelections[menuId][group.id].size : 0;
+                if (count >= limit) {
+                    const groupEl = findGroupEl(menuId, group.id);
+                    if (groupEl) collapseGroup(groupEl);
+                }
+            });
+        });
+    }
+
     function serializeSelections() {
         const result = {};
         Object.entries(currentSelections).forEach(function ([mid, groups]) {
@@ -351,6 +473,13 @@
         panel.innerHTML = '';
         if (hasAnyStructure) {
             allPanels.forEach(function (p) { panel.appendChild(p); });
+            // Restore summaries and auto-collapse groups that are already full (e.g. from session)
+            checkedIds.forEach(function (menuId) {
+                if (menuStructures[menuId]) {
+                    updateAllGroupSummaries(menuId);
+                    autoCollapseFilledGroups(menuId);
+                }
+            });
             if (panelContainer) panelContainer.style.display = '';
             if (specialInstructions) specialInstructions.style.display = '';
             // Hide non-selected menu cards so the user focuses on customizing the chosen menu
