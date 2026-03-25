@@ -2055,7 +2055,7 @@ if ($folder && !$error_message) {
                     <?php if (!empty($bulk_all_urls)): ?>
                         <button type="button"
                                 class="btn btn-success btn-lg download-all-btn mt-3 px-5 py-3"
-                                onclick="return downloadNow(<?php echo json_encode($bulk_all_files, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
+                                onclick="return confirmAndDownloadNow(<?php echo json_encode($bulk_all_files, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)">
                             <i class="fas fa-download me-2"></i>
                             Download Now (<?php echo count($bulk_all_urls); ?>)
                         </button>
@@ -2495,6 +2495,24 @@ if ($folder && !$error_message) {
         </div>
     </div>
 
+    <!-- Download Confirmation Dialog -->
+    <div id="dlConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10001;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+        <div style="background:#fff;border-radius:20px;padding:30px 28px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:dlFadeIn 0.3s ease;">
+            <div style="font-size:2.5rem;color:#28a745;margin-bottom:12px;"><i class="fas fa-file-download"></i></div>
+            <h5 style="font-weight:700;margin-bottom:8px;color:#333;">Download File</h5>
+            <p style="color:#555;margin-bottom:6px;" id="dlConfirmMessage">Do you want to download this file?</p>
+            <p style="font-weight:600;color:#333;word-break:break-all;margin-bottom:20px;font-size:0.95rem;" id="dlConfirmFilename"></p>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <button id="dlConfirmYes" class="btn btn-success">
+                    <i class="fas fa-download me-2"></i>Yes, Download
+                </button>
+                <button id="dlConfirmCancel" class="btn btn-outline-danger btn-sm">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="page-share-wrap" aria-label="Share this page">
         <button class="page-share-btn" type="button" aria-haspopup="true" aria-expanded="false">
             <i class="fas fa-share-alt" aria-hidden="true"></i>
@@ -2779,10 +2797,10 @@ if ($folder && !$error_message) {
             }
             var filename = fileEntry ? fileEntry.filename : (displayName || 'photo');
 
-            // Use the iframe-based startDownload helper which triggers the browser's
-            // native download manager.  The server sends Content-Disposition:attachment
-            // so the browser saves the file to the Downloads folder automatically.
-            startDownload(url, filename);
+            // Show confirmation dialog with the filename before downloading.
+            showDownloadConfirm(filename, 'Do you want to download this file?', function() {
+                startDownload(url, filename);
+            });
             return false;
         }
 
@@ -3053,10 +3071,66 @@ if ($folder && !$error_message) {
          * Entry point for "Download Now" button.
          * Uses File System Access API when available, falls back to iframe method.
          */
+        /**
+         * Show a download confirmation dialog.
+         * @param {string}   filename  - The filename (or description) to display.
+         * @param {string}   message   - The question/message to show above the filename.
+         * @param {Function} onConfirm - Callback invoked when the user clicks "Yes, Download".
+         */
+        function showDownloadConfirm(filename, message, onConfirm) {
+            var modal  = document.getElementById('dlConfirmModal');
+            var msgEl  = document.getElementById('dlConfirmMessage');
+            var nameEl = document.getElementById('dlConfirmFilename');
+            var yesBtn = document.getElementById('dlConfirmYes');
+            var noBtn  = document.getElementById('dlConfirmCancel');
+
+            msgEl.textContent  = message  || 'Do you want to download this file?';
+            nameEl.textContent = filename || '';
+
+            function closeModal() { modal.style.display = 'none'; }
+
+            // Use {once:true} so each listener auto-removes after first invocation,
+            // preventing handler accumulation across multiple openings of the dialog.
+            yesBtn.addEventListener('click', function() {
+                closeModal();
+                if (typeof onConfirm === 'function') { onConfirm(); }
+            }, { once: true });
+            noBtn.addEventListener('click', closeModal, { once: true });
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) { closeModal(); }
+            }, { once: true });
+
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Show confirmation dialog then call downloadNow() for the given file list.
+         * Used by "Download All" buttons that pass a pre-built file list.
+         */
+        function confirmAndDownloadNow(files) {
+            if (!files || files.length === 0) return false;
+            var count   = files.length;
+            var label   = count === 1 ? (files[0].filename || '1 file') : count + ' files';
+            var message = count === 1
+                ? 'Do you want to download this file?'
+                : 'Do you want to download all ' + count + ' files?';
+            showDownloadConfirm(label, message, function() { downloadNow(files); });
+            return false;
+        }
+
         function downloadNowSelected() {
             var files = getSelectedFiles();
             if (files.length === 0) return false;
-            downloadNow(files);
+            var count = files.length;
+            var label = count === 1
+                ? (files[0].filename || '1 file')
+                : count + ' files';
+            var message = count === 1
+                ? 'Do you want to download this file?'
+                : 'Do you want to download ' + count + ' selected files?';
+            showDownloadConfirm(label, message, function() {
+                downloadNow(files);
+            });
             return false;
         }
 
