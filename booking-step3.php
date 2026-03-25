@@ -286,6 +286,21 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                 <!-- Hidden field storing the JSON of custom menu item selections -->
                 <input type="hidden" name="menu_selections_json" id="menuSelectionsJson" value="">
 
+                <!-- Selected Menus Summary (shown when any menus are selected) -->
+                <div id="selectedMenusSummary" class="mt-4" style="display:none;">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header border-0 bg-success text-white">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-check-circle fs-5"></i>
+                                <div class="fw-bold">Selected Menus</div>
+                            </div>
+                        </div>
+                        <div class="card-body p-3" id="selectedMenusSummaryBody">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Special Instructions -->
                 <div class="mt-4" id="menuSpecialInstructions" style="display:none;">
                     <div class="card border-0 bg-light">

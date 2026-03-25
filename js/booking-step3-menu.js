@@ -84,11 +84,20 @@
             sectionHead.appendChild(sectionTitle);
 
             if (section.choose_limit) {
+                // Calculate current section total from already-restored session data
+                let sectionCurrent = 0;
+                if (currentSelections[menuId]) {
+                    section.groups.forEach(function (g) {
+                        if (currentSelections[menuId][g.id]) {
+                            sectionCurrent += currentSelections[menuId][g.id].size;
+                        }
+                    });
+                }
                 const limBadge = document.createElement('span');
                 limBadge.className = 'cmp-limit-badge';
                 const counter = document.createElement('span');
                 counter.id = 'sec-counter-' + menuId + '-' + section.id;
-                counter.textContent = '0';
+                counter.textContent = String(sectionCurrent);
                 limBadge.appendChild(document.createTextNode('Select '));
                 limBadge.appendChild(counter);
                 limBadge.appendChild(document.createTextNode(' / ' + section.choose_limit));
@@ -262,6 +271,7 @@
         updateCounters(menuId);
         serializeSelections();
         updateGroupSummary(menuId, groupId);
+        updateSelectedSummary();
 
         // Auto-collapse this group when its limit is reached, then expand the next one
         if (!isSelected && groupLimit &&
@@ -407,6 +417,77 @@
         });
     }
 
+    function updateSelectedSummary() {
+        const summaryDiv = document.getElementById('selectedMenusSummary');
+        if (!summaryDiv) return;
+
+        const checkedIds = getCheckedMenuIds();
+        if (checkedIds.length === 0) {
+            summaryDiv.style.display = 'none';
+            return;
+        }
+
+        const body = document.getElementById('selectedMenusSummaryBody');
+        if (!body) return;
+
+        summaryDiv.style.display = '';
+        body.innerHTML = '';
+
+        checkedIds.forEach(function (menuId, idx) {
+            const cb = document.querySelector('.menu-checkbox[value="' + menuId + '"]');
+            const card = cb ? cb.closest('.menu-card') : null;
+            const menuNameEl = card ? card.querySelector('.card-title') : null;
+            const menuName = menuNameEl ? menuNameEl.textContent.trim() : ('Menu #' + menuId);
+
+            const row = document.createElement('div');
+            row.className = 'mb-2';
+
+            const titleRow = document.createElement('div');
+            titleRow.className = 'd-flex align-items-center gap-2 mb-1';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-utensils text-success';
+            const nameEl = document.createElement('strong');
+            nameEl.textContent = menuName;
+            titleRow.appendChild(icon);
+            titleRow.appendChild(nameEl);
+            row.appendChild(titleRow);
+
+            // Show custom item selections grouped by section if structure is loaded
+            const structure = menuStructures[menuId];
+            if (structure && currentSelections[menuId]) {
+                structure.sections.forEach(function (section) {
+                    const sectionItems = [];
+                    section.groups.forEach(function (group) {
+                        const sel = currentSelections[menuId][group.id];
+                        if (sel && sel.size > 0) {
+                            group.items.forEach(function (item) {
+                                if (sel.has(item.id)) {
+                                    sectionItems.push(escapeHtml(item.item_name));
+                                }
+                            });
+                        }
+                    });
+                    if (sectionItems.length > 0) {
+                        const sectionRow = document.createElement('div');
+                        sectionRow.className = 'small ms-3 mb-1 text-muted';
+                        sectionRow.innerHTML =
+                            '<span class="fw-semibold">' + escapeHtml(section.section_name) + ':</span> ' +
+                            sectionItems.join(', ');
+                        row.appendChild(sectionRow);
+                    }
+                });
+            }
+
+            body.appendChild(row);
+
+            if (idx < checkedIds.length - 1) {
+                const sep = document.createElement('hr');
+                sep.className = 'my-2';
+                body.appendChild(sep);
+            }
+        });
+    }
+
     function autoCollapseFilledGroups(menuId) {
         const structure = menuStructures[menuId];
         if (!structure) return;
@@ -500,6 +581,7 @@
 
         updateAllCounters();
         serializeSelections();
+        updateSelectedSummary();
     }
 
     function updateAllCounters() {
@@ -513,6 +595,7 @@
             if (!e.target.checked) {
                 delete currentSelections[menuId];
             }
+            updateSelectedSummary();
             refreshCustomPanel();
         }
     });
@@ -529,6 +612,7 @@
     function init() {
         const checkedMenus = getCheckedMenuIds();
         if (checkedMenus.length > 0) {
+            updateSelectedSummary();
             refreshCustomPanel();
         }
     }
