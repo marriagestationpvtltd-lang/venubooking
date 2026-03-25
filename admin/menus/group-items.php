@@ -44,13 +44,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($item_name)) {
             $error = 'Item name is required.';
         } else {
-            try {
-                $db->prepare("INSERT INTO menu_group_items (menu_group_id, item_name, sub_category, extra_charge, display_order) VALUES (?, ?, ?, ?, ?)")
-                   ->execute([$group_id, $item_name, $sub_category, $extra_charge, $display_order]);
-                $success = 'Item added successfully.';
-            } catch (\Throwable $e) {
-                error_log("Add group item error: " . $e->getMessage());
-                $error = 'Failed to add item.';
+            $photo_filename = null;
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['photo'], 'menu_item');
+                if ($upload_result['success']) {
+                    $photo_filename = $upload_result['filename'];
+                } else {
+                    $error = $upload_result['message'];
+                }
+            }
+            if (empty($error)) {
+                try {
+                    $db->prepare("INSERT INTO menu_group_items (menu_group_id, item_name, sub_category, photo, extra_charge, display_order) VALUES (?, ?, ?, ?, ?, ?)")
+                       ->execute([$group_id, $item_name, $sub_category, $photo_filename, $extra_charge, $display_order]);
+                    $success = 'Item added successfully.';
+                } catch (\Throwable $e) {
+                    error_log("Add group item error: " . $e->getMessage());
+                    if ($photo_filename) deleteUploadedFile($photo_filename);
+                    $error = 'Failed to add item.';
+                }
             }
         }
     } elseif ($action === 'edit') {
@@ -64,21 +76,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($item_id <= 0 || empty($item_name)) {
             $error = 'Invalid data.';
         } else {
-            try {
-                $db->prepare("UPDATE menu_group_items SET item_name=?, sub_category=?, extra_charge=?, display_order=?, status=? WHERE id=? AND menu_group_id=?")
-                   ->execute([$item_name, $sub_category, $extra_charge, $display_order, $status, $item_id, $group_id]);
-                $success = 'Item updated successfully.';
-            } catch (\Throwable $e) {
-                error_log("Edit group item error: " . $e->getMessage());
-                $error = 'Failed to update item.';
+            $has_new_file  = isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE;
+            $wants_remove  = isset($_POST['remove_photo']) && $_POST['remove_photo'] === '1';
+            $photo_changed = false;
+            $existing_photo = null;
+            $new_photo = null;
+
+            if ($has_new_file || $wants_remove) {
+                // Fetch current photo only when a photo operation is requested
+                $existing_stmt = $db->prepare("SELECT photo FROM menu_group_items WHERE id=? AND menu_group_id=?");
+                $existing_stmt->execute([$item_id, $group_id]);
+                $existing_photo = $existing_stmt->fetchColumn();
+                $photo_changed = true;
+
+                if ($has_new_file) {
+                    $upload_result = handleImageUpload($_FILES['photo'], 'menu_item');
+                    if ($upload_result['success']) {
+                        $new_photo = $upload_result['filename'];
+                    } else {
+                        $error = $upload_result['message'];
+                        $photo_changed = false;
+                    }
+                }
+                // If wants_remove (and no new file) $new_photo stays null
+            }
+
+            if (empty($error)) {
+                try {
+                    if ($photo_changed) {
+                        $db->prepare("UPDATE menu_group_items SET item_name=?, sub_category=?, photo=?, extra_charge=?, display_order=?, status=? WHERE id=? AND menu_group_id=?")
+                           ->execute([$item_name, $sub_category, $new_photo, $extra_charge, $display_order, $status, $item_id, $group_id]);
+                        if ($existing_photo && $existing_photo !== $new_photo) {
+                            deleteUploadedFile($existing_photo);
+                        }
+                    } else {
+                        $db->prepare("UPDATE menu_group_items SET item_name=?, sub_category=?, extra_charge=?, display_order=?, status=? WHERE id=? AND menu_group_id=?")
+                           ->execute([$item_name, $sub_category, $extra_charge, $display_order, $status, $item_id, $group_id]);
+                    }
+                    $success = 'Item updated successfully.';
+                } catch (\Throwable $e) {
+                    error_log("Edit group item error: " . $e->getMessage());
+                    if ($new_photo) {
+                        deleteUploadedFile($new_photo);
+                    }
+                    $error = 'Failed to update item.';
+                }
             }
         }
     } elseif ($action === 'delete') {
         $item_id = intval($_POST['item_id'] ?? 0);
         if ($item_id > 0) {
             try {
+                $photo_stmt = $db->prepare("SELECT photo FROM menu_group_items WHERE id=? AND menu_group_id=?");
+                $photo_stmt->execute([$item_id, $group_id]);
+                $photo_to_delete = $photo_stmt->fetchColumn();
                 $db->prepare("DELETE FROM menu_group_items WHERE id=? AND menu_group_id=?")
                    ->execute([$item_id, $group_id]);
+                if ($photo_to_delete) deleteUploadedFile($photo_to_delete);
                 $success = 'Item deleted.';
             } catch (\Throwable $e) {
                 error_log("Delete group item error: " . $e->getMessage());
@@ -121,16 +175,20 @@ $items = $items_stmt->fetchAll();
 <div class="card mb-4">
     <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-plus"></i> Add New Item</h6></div>
     <div class="card-body">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="add">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Item Name <span class="text-danger">*</span></label>
                     <input type="text" name="item_name" class="form-control" placeholder="e.g. Veg Clear Soup" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Sub Category <small class="text-muted">(display only)</small></label>
                     <input type="text" name="sub_category" class="form-control" placeholder="e.g. Paneer Snacks">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Photo <small class="text-muted">(optional, circular icon)</small></label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Extra Charge</label>
@@ -143,8 +201,8 @@ $items = $items_stmt->fetchAll();
                     <label class="form-label">Order</label>
                     <input type="number" name="display_order" class="form-control" value="0" min="0">
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-success w-100"><i class="fas fa-plus"></i> Add Item</button>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100"><i class="fas fa-plus"></i> Add</button>
                 </div>
             </div>
         </form>
@@ -163,6 +221,7 @@ $items = $items_stmt->fetchAll();
                 <thead class="table-light">
                     <tr>
                         <th>Order</th>
+                        <th>Photo</th>
                         <th>Item Name</th>
                         <th>Sub Category</th>
                         <th>Extra Charge</th>
@@ -174,6 +233,14 @@ $items = $items_stmt->fetchAll();
                     <?php foreach ($items as $item): ?>
                     <tr>
                         <td><?php echo intval($item['display_order']); ?></td>
+                        <td>
+                            <?php if (!empty($item['photo'])): ?>
+                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($item['photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     alt="" style="width:36px;height:36px;object-fit:cover;border-radius:50%;border:2px solid #e5e7eb;">
+                            <?php else: ?>
+                                <span class="text-muted small">—</span>
+                            <?php endif; ?>
+                        </td>
                         <td><strong><?php echo sanitize($item['item_name']); ?></strong></td>
                         <td><?php echo $item['sub_category'] ? sanitize($item['sub_category']) : '<em class="text-muted">–</em>'; ?></td>
                         <td><?php echo floatval($item['extra_charge']) > 0 ? '<span class="badge bg-warning text-dark">' . formatCurrency($item['extra_charge']) . '</span>' : '<em class="text-muted">Included</em>'; ?></td>
@@ -196,7 +263,7 @@ $items = $items_stmt->fetchAll();
                                     <h5 class="modal-title">Edit Item</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <form method="POST">
+                                <form method="POST" enctype="multipart/form-data">
                                     <div class="modal-body">
                                         <input type="hidden" name="action" value="edit">
                                         <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
@@ -207,6 +274,23 @@ $items = $items_stmt->fetchAll();
                                         <div class="mb-3">
                                             <label class="form-label">Sub Category</label>
                                             <input type="text" name="sub_category" class="form-control" value="<?php echo sanitize($item['sub_category'] ?? ''); ?>">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Photo <small class="text-muted">(optional, shown as circular icon)</small></label>
+                                            <?php if (!empty($item['photo'])): ?>
+                                                <div class="mb-2 d-flex align-items-center gap-2">
+                                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($item['photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                         alt="" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:2px solid #e5e7eb;">
+                                                    <div>
+                                                        <small class="text-muted d-block">Current photo</small>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="remove_photo" value="1" id="removeItemPhoto<?php echo $item['id']; ?>">
+                                                            <label class="form-check-label text-danger small" for="removeItemPhoto<?php echo $item['id']; ?>">Remove photo</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                            <input type="file" name="photo" class="form-control" accept="image/*">
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Extra Charge</label>
