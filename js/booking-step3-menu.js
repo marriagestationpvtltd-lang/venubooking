@@ -119,6 +119,12 @@
                 groupTitle.innerHTML = '<i class="fas fa-angle-down me-1 text-success cmp-group-toggle"></i>' + escapeHtml(group.group_name);
                 groupHead.appendChild(groupTitle);
 
+                // Inline selected-items preview — always visible in the header when items are chosen
+                const previewEl = document.createElement('span');
+                previewEl.className = 'cmp-group-selected-preview';
+                previewEl.id = 'grp-preview-' + menuId + '-' + group.id;
+                groupHead.appendChild(previewEl);
+
                 if (group.choose_limit) {
                     const gLim = document.createElement('span');
                     gLim.className = 'cmp-group-limit';
@@ -136,11 +142,6 @@
                 });
 
                 groupDiv.appendChild(groupHead);
-
-                // Summary: shows selected item names when group is collapsed
-                const summaryDiv = document.createElement('div');
-                summaryDiv.className = 'cmp-group-summary';
-                groupDiv.appendChild(summaryDiv);
 
                 const itemsGrid = document.createElement('div');
                 itemsGrid.className = 'cmp-items-grid';
@@ -366,16 +367,14 @@
     }
 
     function updateGroupSummary(menuId, groupId) {
-        const groupEl = findGroupEl(menuId, groupId);
-        if (!groupEl) return;
-        const summaryEl = groupEl.querySelector('.cmp-group-summary');
-        if (!summaryEl) return;
+        const previewEl = document.getElementById('grp-preview-' + menuId + '-' + groupId);
+        if (!previewEl) return;
 
         const selections = currentSelections[menuId] && currentSelections[menuId][groupId]
             ? currentSelections[menuId][groupId] : new Set();
 
         if (selections.size === 0) {
-            summaryEl.textContent = '';
+            previewEl.textContent = '';
             return;
         }
 
@@ -395,7 +394,7 @@
             });
         });
 
-        summaryEl.textContent = selectedNames.join(', ');
+        previewEl.textContent = '\u2713 ' + selectedNames.join(', ');
     }
 
     function updateAllGroupSummaries(menuId) {
