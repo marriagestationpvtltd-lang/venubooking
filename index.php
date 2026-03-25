@@ -3,7 +3,33 @@ $page_title = 'Book Your Event';
 $extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">';
 require_once __DIR__ . '/includes/header.php';
 
-// Get ALL banner images (not limited to 1)
+// Load privacy policy for gallery popup (first active policy requiring acceptance)
+$gallery_privacy_policy = null;
+try {
+    $all_policies = getPolicyPagesRequiringAcceptance();
+    if (!empty($all_policies)) {
+        $gallery_privacy_policy = getPolicyPageBySlug($all_policies[0]['slug']);
+    }
+} catch (\Throwable $e) {
+    error_log('Failed to load gallery privacy policy: ' . $e->getMessage());
+}
+
+// Load terms & conditions page for display below booking button
+$terms_policy = null;
+try {
+    // Re-fetch policies here to guard against $all_policies being undefined
+    $all_policies_for_terms = !empty($all_policies) ? $all_policies : getPolicyPagesRequiringAcceptance();
+    $terms_policy = getPolicyPageBySlug('terms-conditions');
+    if (!$terms_policy) {
+        $terms_policy = getPolicyPageBySlug('terms-and-conditions');
+    }
+    if (!$terms_policy && !empty($all_policies_for_terms)) {
+        // Fallback: use the first available policy
+        $terms_policy = getPolicyPageBySlug($all_policies_for_terms[0]['slug'] ?? '');
+    }
+} catch (\Throwable $e) {
+    error_log('Failed to load terms policy: ' . $e->getMessage());
+}
 $banner_images = getImagesBySection('banner');
 $banner_image = !empty($banner_images) ? $banner_images[0] : null;
 
@@ -192,6 +218,35 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                                 <i class="fas fa-calendar-check me-2"></i> ONLINE BOOKING
                             </button>
                         </form>
+                        <?php if ($terms_policy): ?>
+                        <div class="booking-terms-preview mt-3">
+                            <div class="booking-terms-header d-flex align-items-center justify-content-between mb-1"
+                                 role="button" tabindex="0" id="bookingTermsToggle"
+                                 aria-expanded="false" aria-controls="bookingTermsBody">
+                                <span class="small fw-semibold text-muted">
+                                    <i class="fas fa-file-contract me-1 text-success"></i>
+                                    <?php echo htmlspecialchars($terms_policy['title'], ENT_QUOTES, 'UTF-8'); ?>
+                                </span>
+                                <i class="fas fa-chevron-down text-muted booking-terms-chevron" style="font-size:0.75rem;transition:transform 0.2s;"></i>
+                            </div>
+                            <div id="bookingTermsBody" class="booking-terms-body" style="display:none;">
+                                <div class="booking-terms-scroll small text-muted"
+                                     style="max-height:160px;overflow-y:auto;padding:8px 10px;background:#f8f9fa;border-radius:6px;border:1px solid #dee2e6;line-height:1.5;">
+                                    <?php
+                                    $allowed_tags = '<p><br><strong><b><em><i><ul><ol><li><h1><h2><h3><h4><h5><h6><a><span>';
+                                    echo strip_tags($terms_policy['content'] ?? '', $allowed_tags);
+                                    ?>
+                                </div>
+                                <div class="mt-1 text-end">
+                                    <a href="<?php echo BASE_URL; ?>/policy.php?slug=<?php echo urlencode($terms_policy['slug']); ?>"
+                                       target="_blank" rel="noopener noreferrer"
+                                       class="small text-success">
+                                        <i class="fas fa-external-link-alt me-1"></i>View Full Terms
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -586,6 +641,41 @@ if (!empty($gallery_cards)):
     </div>
 </div>
 
+<?php if ($gallery_privacy_policy): ?>
+<!-- Gallery Privacy Policy Acceptance Modal -->
+<div id="galleryPrivacyModal" class="gallery-privacy-modal" role="dialog" aria-modal="true"
+     aria-labelledby="galleryPrivacyModalTitle" style="display:none;">
+    <div class="gallery-privacy-backdrop"></div>
+    <div class="gallery-privacy-content">
+        <div class="gallery-privacy-header">
+            <i class="fas fa-shield-alt me-2 text-success"></i>
+            <span id="galleryPrivacyModalTitle"><?php echo htmlspecialchars($gallery_privacy_policy['title'], ENT_QUOTES, 'UTF-8'); ?></span>
+        </div>
+        <div class="gallery-privacy-body" id="galleryPrivacyBody">
+            <?php
+            $allowed_tags = '<p><br><strong><b><em><i><ul><ol><li><h1><h2><h3><h4><h5><h6><a><span>';
+            echo strip_tags($gallery_privacy_policy['content'] ?? '', $allowed_tags);
+            ?>
+        </div>
+        <div class="gallery-privacy-scroll-hint" id="galleryPrivacyScrollHint">
+            <i class="fas fa-arrow-down me-1"></i> Scroll down to read and accept
+        </div>
+        <div class="gallery-privacy-footer">
+            <a href="<?php echo BASE_URL; ?>/policy.php?slug=<?php echo urlencode($gallery_privacy_policy['slug']); ?>"
+               target="_blank" rel="noopener noreferrer" class="gallery-privacy-link">
+                <i class="fas fa-external-link-alt me-1"></i>View Full Policy
+            </a>
+            <button id="galleryPrivacyDecline" class="gallery-privacy-btn gallery-privacy-btn-decline" type="button">
+                Decline
+            </button>
+            <button id="galleryPrivacyAccept" class="gallery-privacy-btn gallery-privacy-btn-accept" type="button" disabled>
+                <i class="fas fa-check me-1"></i>Accept &amp; View Photos
+            </button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
 // Photo-card slider modal with zoom functionality
 (function() {
@@ -819,6 +909,8 @@ if (!empty($gallery_cards)):
         document.body.classList.add("modal-open");
         showSlide(startIndex || 0);
     }
+    // Expose globally so the privacy modal handler (separate IIFE) can call it
+    window._galleryOpenModal = openModal;
 
     function closeModal() {
         modal.style.display = "none";
@@ -833,10 +925,26 @@ if (!empty($gallery_cards)):
     function nextSlide() { resetZoom(); showSlide(current + 1); }
 
     // Open cards on click / keyboard
+    // Show privacy policy acceptance modal first (if not already accepted this session)
+    var GALLERY_PRIVACY_KEY = 'galleryPrivacyAccepted';
+    var privacyModal    = document.getElementById("galleryPrivacyModal");
+    var privacyAccepted = (sessionStorage.getItem(GALLERY_PRIVACY_KEY) === '1');
+    window._galleryPendingCardIndex = -1;
+    window._GALLERY_PRIVACY_KEY     = GALLERY_PRIVACY_KEY;
+
+    function openWithPrivacyCheck(ci) {
+        if (!privacyModal || privacyAccepted) {
+            openModal(ci, 0);
+            return;
+        }
+        window._galleryPendingCardIndex = ci;
+        if (typeof window.showPrivacyModal === 'function') window.showPrivacyModal();
+    }
+
     document.querySelectorAll(".photo-card").forEach(function(card) {
         function open() {
             var ci = parseInt(card.dataset.cardIndex, 10);
-            openModal(ci, 0);
+            openWithPrivacyCheck(ci);
         }
         card.addEventListener("click", open);
         card.addEventListener("keydown", function(e) {
@@ -870,6 +978,87 @@ if (!empty($gallery_cards)):
         var dx = e.changedTouches[0].pageX - swipeX;
         if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
     }, { passive: true });
+})();
+
+// Gallery Privacy Policy Modal
+(function() {
+    var privacyModal  = document.getElementById("galleryPrivacyModal");
+    if (!privacyModal) return;
+
+    var body          = document.getElementById("galleryPrivacyBody");
+    var acceptBtn     = document.getElementById("galleryPrivacyAccept");
+    var declineBtn    = document.getElementById("galleryPrivacyDecline");
+    var scrollHint    = document.getElementById("galleryPrivacyScrollHint");
+
+    window.showPrivacyModal = function() {
+        privacyModal.style.display = "flex";
+        document.body.classList.add("modal-open");
+        // Reset scroll and button state each time
+        body.scrollTop = 0;
+        acceptBtn.disabled = true;
+        if (scrollHint) scrollHint.style.display = "block";
+    };
+
+    function hidePrivacyModal() {
+        privacyModal.style.display = "none";
+        document.body.classList.remove("modal-open");
+    }
+
+    // Enable Accept button only after scrolling to bottom
+    body.addEventListener("scroll", function() {
+        var atBottom = body.scrollHeight - body.scrollTop <= body.clientHeight + 10;
+        if (atBottom) {
+            acceptBtn.disabled = false;
+            if (scrollHint) scrollHint.style.display = "none";
+        }
+    });
+
+    acceptBtn.addEventListener("click", function() {
+        var key = window._GALLERY_PRIVACY_KEY || 'galleryPrivacyAccepted';
+        sessionStorage.setItem(key, '1');
+        hidePrivacyModal();
+        var ci = window._galleryPendingCardIndex;
+        if (ci !== undefined && ci >= 0 && typeof window._galleryOpenModal === 'function') {
+            window._galleryOpenModal(ci, 0);
+            window._galleryPendingCardIndex = -1;
+        }
+    });
+
+    declineBtn.addEventListener("click", function() {
+        hidePrivacyModal();
+        window._galleryPendingCardIndex = -1;
+    });
+
+    privacyModal.querySelector(".gallery-privacy-backdrop").addEventListener("click", function() {
+        hidePrivacyModal();
+        window._galleryPendingCardIndex = -1;
+    });
+
+    document.addEventListener("keydown", function(e) {
+        if (privacyModal.style.display === "flex" && e.key === "Escape") {
+            hidePrivacyModal();
+            window._galleryPendingCardIndex = -1;
+        }
+    });
+})();
+
+// Booking terms toggle
+(function() {
+    var toggle = document.getElementById("bookingTermsToggle");
+    if (!toggle) return;
+    var body    = document.getElementById("bookingTermsBody");
+    var chevron = toggle.querySelector(".booking-terms-chevron");
+
+    function toggleTerms() {
+        var expanded = toggle.getAttribute("aria-expanded") === "true";
+        toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
+        body.style.display = expanded ? "none" : "block";
+        if (chevron) chevron.style.transform = expanded ? "" : "rotate(180deg)";
+    }
+    toggle.addEventListener("click", toggleTerms);
+    toggle.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTerms(); }
+    });
 })();
 
 // Gallery auto-scroll carousel
