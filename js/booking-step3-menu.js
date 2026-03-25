@@ -1,6 +1,7 @@
 /**
  * booking-step3-menu.js
  * Handles custom menu item selection UI on booking step 3.
+ * Professional card-based design with click-to-select items.
  */
 (function () {
     'use strict';
@@ -9,6 +10,8 @@
     const menuStructures = {};
     // currentSelections[menu_id][group_id] = Set of item_ids
     const currentSelections = {};
+    // Currency symbol injected by PHP; fallback to 'Rs.' if not available
+    const currencySymbol = (typeof CURRENCY !== 'undefined' ? CURRENCY : 'Rs.');
 
     // Initialize from session data if available
     if (typeof menuSelectionsSession !== 'undefined' && menuSelectionsSession) {
@@ -18,6 +21,12 @@
                 currentSelections[parseInt(mid)][parseInt(gid)] = new Set(item_ids.map(Number));
             });
         });
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str != null ? String(str) : ''));
+        return div.innerHTML;
     }
 
     function getCheckedMenuIds() {
@@ -45,156 +54,171 @@
         if (!currentSelections[menuId]) currentSelections[menuId] = {};
 
         const container = document.createElement('div');
-        container.className = 'menu-structure-panel mb-4';
+        container.className = 'cmp-panel';
         container.dataset.menuId = menuId;
 
-        const header = document.createElement('h6');
-        header.className = 'text-success fw-bold border-bottom pb-2 mb-3';
-        header.innerHTML = '<i class="fas fa-utensils me-2"></i>' + structure.menu_name;
-        container.appendChild(header);
+        // Menu header
+        const menuHeader = document.createElement('div');
+        menuHeader.className = 'cmp-menu-header';
+        menuHeader.innerHTML =
+            '<span class="cmp-menu-icon"><i class="fas fa-utensils"></i></span>' +
+            '<div class="cmp-menu-title-block">' +
+            '<span class="cmp-menu-title">' + escapeHtml(structure.menu_name) + '</span>' +
+            '<span class="cmp-menu-sub">Select your preferred items from each category below</span>' +
+            '</div>';
+        container.appendChild(menuHeader);
 
-        structure.sections.forEach(section => {
-            const sectionDiv = document.createElement('div');
-            sectionDiv.className = 'mb-4';
+        structure.sections.forEach(function (section) {
+            if (!section.groups || section.groups.length === 0) return;
 
-            const sectionHeader = document.createElement('div');
-            sectionHeader.className = 'd-flex justify-content-between align-items-center mb-2 bg-light rounded p-2';
+            const sectionWrap = document.createElement('div');
+            sectionWrap.className = 'cmp-section';
+
+            // Section header
+            const sectionHead = document.createElement('div');
+            sectionHead.className = 'cmp-section-head';
 
             const sectionTitle = document.createElement('span');
-            sectionTitle.className = 'fw-semibold text-uppercase';
+            sectionTitle.className = 'cmp-section-title';
             sectionTitle.textContent = section.section_name;
-            sectionHeader.appendChild(sectionTitle);
+            sectionHead.appendChild(sectionTitle);
 
             if (section.choose_limit) {
-                const limitBadge = document.createElement('span');
-                limitBadge.className = 'badge bg-info';
-                const sectionCounter = document.createElement('span');
-                sectionCounter.id = 'sec-counter-' + menuId + '-' + section.id;
-                sectionCounter.textContent = '0';
-                limitBadge.textContent = 'Choose up to: ';
-                limitBadge.appendChild(sectionCounter);
-                limitBadge.appendChild(document.createTextNode('/' + section.choose_limit));
-                sectionHeader.appendChild(limitBadge);
+                const limBadge = document.createElement('span');
+                limBadge.className = 'cmp-limit-badge';
+                const counter = document.createElement('span');
+                counter.id = 'sec-counter-' + menuId + '-' + section.id;
+                counter.textContent = '0';
+                limBadge.appendChild(document.createTextNode('Select '));
+                limBadge.appendChild(counter);
+                limBadge.appendChild(document.createTextNode(' / ' + section.choose_limit));
+                sectionHead.appendChild(limBadge);
             }
 
-            sectionDiv.appendChild(sectionHeader);
+            sectionWrap.appendChild(sectionHead);
 
-            section.groups.forEach(group => {
+            // Groups
+            const groupsWrap = document.createElement('div');
+            groupsWrap.className = 'cmp-groups';
+
+            section.groups.forEach(function (group) {
                 if (!currentSelections[menuId][group.id]) {
                     currentSelections[menuId][group.id] = new Set();
                 }
 
                 const groupDiv = document.createElement('div');
-                groupDiv.className = 'ms-2 mb-3';
+                groupDiv.className = 'cmp-group';
 
-                const groupHeader = document.createElement('div');
-                groupHeader.className = 'd-flex justify-content-between align-items-center mb-2';
+                const groupHead = document.createElement('div');
+                groupHead.className = 'cmp-group-head';
 
                 const groupTitle = document.createElement('span');
-                groupTitle.className = 'fw-semibold text-dark';
-                groupTitle.textContent = group.group_name;
-                groupHeader.appendChild(groupTitle);
+                groupTitle.className = 'cmp-group-title';
+                groupTitle.innerHTML = '<i class="fas fa-angle-right me-1 text-success"></i>' + escapeHtml(group.group_name);
+                groupHead.appendChild(groupTitle);
 
                 if (group.choose_limit) {
-                    const glimitSpan = document.createElement('span');
-                    glimitSpan.className = 'badge bg-warning text-dark';
-                    const groupCounter = document.createElement('span');
-                    groupCounter.id = 'grp-counter-' + menuId + '-' + group.id;
-                    groupCounter.textContent = currentSelections[menuId][group.id].size;
-                    glimitSpan.textContent = 'Choose up to: ';
-                    glimitSpan.appendChild(groupCounter);
-                    glimitSpan.appendChild(document.createTextNode('/' + group.choose_limit));
-                    groupHeader.appendChild(glimitSpan);
+                    const gLim = document.createElement('span');
+                    gLim.className = 'cmp-group-limit';
+                    const gCounter = document.createElement('span');
+                    gCounter.id = 'grp-counter-' + menuId + '-' + group.id;
+                    gCounter.textContent = currentSelections[menuId][group.id].size;
+                    gLim.appendChild(document.createTextNode('Max: '));
+                    gLim.appendChild(gCounter);
+                    gLim.appendChild(document.createTextNode('/' + group.choose_limit));
+                    groupHead.appendChild(gLim);
                 }
 
-                groupDiv.appendChild(groupHeader);
+                groupDiv.appendChild(groupHead);
 
                 const itemsGrid = document.createElement('div');
-                itemsGrid.className = 'row g-2';
+                itemsGrid.className = 'cmp-items-grid';
 
-                group.items.forEach(item => {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-4 col-6';
+                group.items.forEach(function (item) {
+                    const isSelected = currentSelections[menuId][group.id].has(item.id);
 
-                    const label = document.createElement('label');
-                    label.className = 'form-check d-flex align-items-start gap-2 border rounded p-2 item-label';
-                    label.style.cursor = 'pointer';
+                    const itemCard = document.createElement('div');
+                    itemCard.className = 'cmp-item' + (isSelected ? ' cmp-item--selected' : '');
+                    itemCard.dataset.menuId = menuId;
+                    itemCard.dataset.groupId = group.id;
+                    itemCard.dataset.sectionId = section.id;
+                    itemCard.dataset.itemId = item.id;
+                    itemCard.dataset.groupLimit = group.choose_limit || '';
+                    itemCard.dataset.sectionLimit = section.choose_limit || '';
 
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'form-check-input mt-1 flex-shrink-0 menu-item-checkbox';
-                    checkbox.value = item.id;
-                    checkbox.dataset.menuId = menuId;
-                    checkbox.dataset.groupId = group.id;
-                    checkbox.dataset.sectionId = section.id;
-                    checkbox.dataset.groupLimit = group.choose_limit || '';
-                    checkbox.dataset.sectionLimit = section.choose_limit || '';
-                    checkbox.dataset.extraCharge = item.extra_charge || 0;
+                    // Check indicator
+                    const checkIcon = document.createElement('div');
+                    checkIcon.className = 'cmp-item-check';
+                    checkIcon.innerHTML = '<i class="fas fa-check"></i>';
+                    itemCard.appendChild(checkIcon);
 
-                    // Restore selection from session
-                    if (currentSelections[menuId][group.id] && currentSelections[menuId][group.id].has(item.id)) {
-                        checkbox.checked = true;
-                        label.classList.add('border-success', 'bg-light');
-                    }
+                    // Item body
+                    const body = document.createElement('div');
+                    body.className = 'cmp-item-body';
 
-                    const itemContent = document.createElement('div');
-                    itemContent.className = 'flex-grow-1';
-
-                    const itemName = document.createElement('div');
-                    itemName.className = 'small fw-medium';
-                    itemName.textContent = item.item_name;
-                    itemContent.appendChild(itemName);
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'cmp-item-name';
+                    nameEl.textContent = item.item_name;
+                    body.appendChild(nameEl);
 
                     if (item.sub_category) {
-                        const subCat = document.createElement('div');
-                        subCat.className = 'text-muted small';
-                        subCat.style.fontSize = '0.75em';
-                        subCat.textContent = item.sub_category;
-                        itemContent.appendChild(subCat);
+                        const subEl = document.createElement('div');
+                        subEl.className = 'cmp-item-sub';
+                        subEl.textContent = item.sub_category;
+                        body.appendChild(subEl);
                     }
 
                     if (parseFloat(item.extra_charge) > 0) {
-                        const extraBadge = document.createElement('span');
-                        extraBadge.className = 'badge bg-warning text-dark mt-1';
-                        extraBadge.style.fontSize = '0.7em';
-                        extraBadge.textContent = '+Rs.' + parseFloat(item.extra_charge).toFixed(2);
-                        itemContent.appendChild(extraBadge);
+                        const extraEl = document.createElement('div');
+                        extraEl.className = 'cmp-item-extra';
+                        extraEl.textContent = '+' + currencySymbol + Math.round(parseFloat(item.extra_charge));
+                        body.appendChild(extraEl);
                     }
 
-                    label.appendChild(checkbox);
-                    label.appendChild(itemContent);
-                    col.appendChild(label);
-                    itemsGrid.appendChild(col);
+                    itemCard.appendChild(body);
 
-                    checkbox.addEventListener('change', function () {
-                        handleItemCheck(this, menuId, group.id, section.id, group.choose_limit, section.choose_limit, label);
+                    // Hidden checkbox for form-based compatibility
+                    const hiddenCb = document.createElement('input');
+                    hiddenCb.type = 'checkbox';
+                    hiddenCb.className = 'menu-item-checkbox d-none';
+                    hiddenCb.value = item.id;
+                    hiddenCb.dataset.menuId = menuId;
+                    hiddenCb.dataset.groupId = group.id;
+                    hiddenCb.checked = isSelected;
+                    itemCard.appendChild(hiddenCb);
+
+                    itemCard.addEventListener('click', function () {
+                        toggleItem(this, menuId, group.id, section.id, group.choose_limit, section.choose_limit);
                     });
+
+                    itemsGrid.appendChild(itemCard);
                 });
 
                 groupDiv.appendChild(itemsGrid);
-                sectionDiv.appendChild(groupDiv);
+                groupsWrap.appendChild(groupDiv);
             });
 
-            container.appendChild(sectionDiv);
+            sectionWrap.appendChild(groupsWrap);
+            container.appendChild(sectionWrap);
         });
 
         return container;
     }
 
-    function handleItemCheck(checkbox, menuId, groupId, sectionId, groupLimit, sectionLimit, label) {
-        const isChecked = checkbox.checked;
-        const itemId = parseInt(checkbox.value);
+    function toggleItem(card, menuId, groupId, sectionId, groupLimit, sectionLimit) {
+        const itemId = parseInt(card.dataset.itemId);
+        const isSelected = card.classList.contains('cmp-item--selected');
 
         if (!currentSelections[menuId]) currentSelections[menuId] = {};
         if (!currentSelections[menuId][groupId]) currentSelections[menuId][groupId] = new Set();
 
-        // Get current section total
+        // Calculate current section total
         const structure = menuStructures[menuId];
         let sectionTotal = 0;
         if (structure && sectionLimit) {
-            structure.sections.forEach(s => {
+            structure.sections.forEach(function (s) {
                 if (s.id == sectionId) {
-                    s.groups.forEach(g => {
+                    s.groups.forEach(function (g) {
                         if (currentSelections[menuId][g.id]) {
                             sectionTotal += currentSelections[menuId][g.id].size;
                         }
@@ -203,24 +227,24 @@
             });
         }
 
-        if (isChecked) {
-            // Check group limit
+        if (!isSelected) {
             if (groupLimit && currentSelections[menuId][groupId].size >= parseInt(groupLimit)) {
-                checkbox.checked = false;
                 showLimitAlert('You can only choose up to ' + groupLimit + ' items from this group.');
                 return;
             }
-            // Check section limit
             if (sectionLimit && sectionTotal >= parseInt(sectionLimit)) {
-                checkbox.checked = false;
                 showLimitAlert('You can only choose up to ' + sectionLimit + ' items from this section.');
                 return;
             }
             currentSelections[menuId][groupId].add(itemId);
-            label.classList.add('border-success', 'bg-light');
+            card.classList.add('cmp-item--selected');
+            const cb = card.querySelector('.menu-item-checkbox');
+            if (cb) cb.checked = true;
         } else {
             currentSelections[menuId][groupId].delete(itemId);
-            label.classList.remove('border-success', 'bg-light');
+            card.classList.remove('cmp-item--selected');
+            const cb = card.querySelector('.menu-item-checkbox');
+            if (cb) cb.checked = false;
         }
 
         updateCounters(menuId);
@@ -231,9 +255,9 @@
         const structure = menuStructures[menuId];
         if (!structure) return;
 
-        structure.sections.forEach(section => {
+        structure.sections.forEach(function (section) {
             let sectionTotal = 0;
-            section.groups.forEach(group => {
+            section.groups.forEach(function (group) {
                 const count = currentSelections[menuId] && currentSelections[menuId][group.id]
                     ? currentSelections[menuId][group.id].size : 0;
                 sectionTotal += count;
@@ -256,7 +280,6 @@
             alertDiv.style.cssText = 'top:80px;right:20px;z-index:9999;max-width:350px;';
             document.body.appendChild(alertDiv);
         }
-        // Build alert content safely to avoid XSS
         alertDiv.innerHTML = '';
         const icon = document.createElement('i');
         icon.className = 'fas fa-exclamation-triangle me-2';
@@ -270,27 +293,26 @@
         alertDiv.appendChild(msgSpan);
         alertDiv.appendChild(closeBtn);
         alertDiv.classList.add('show');
-        setTimeout(() => {
+        setTimeout(function () {
             if (alertDiv) {
                 alertDiv.classList.remove('show');
-                // Remove from DOM after transition to avoid accumulation
-                setTimeout(() => { if (alertDiv && alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 300);
+                setTimeout(function () {
+                    if (alertDiv && alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv);
+                }, 300);
             }
         }, 3000);
     }
 
     function serializeSelections() {
         const result = {};
-        Object.entries(currentSelections).forEach(([mid, groups]) => {
+        Object.entries(currentSelections).forEach(function ([mid, groups]) {
             const menuId = parseInt(mid, 10);
-            // Guard: skip non-numeric menu IDs to prevent CSS selector injection
             if (isNaN(menuId) || menuId <= 0) return;
-            // Only serialize for checked menus
             const checkbox = document.querySelector('.menu-checkbox[value="' + menuId + '"]');
             if (!checkbox || !checkbox.checked) return;
 
             result[menuId] = {};
-            Object.entries(groups).forEach(([gid, itemSet]) => {
+            Object.entries(groups).forEach(function ([gid, itemSet]) {
                 if (itemSet.size > 0) {
                     result[menuId][parseInt(gid)] = Array.from(itemSet);
                 }
@@ -308,7 +330,7 @@
         const checkedIds = getCheckedMenuIds();
         const panelContainer = document.getElementById('customMenuPanel');
 
-        panel.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading menu customization...</div>';
+        panel.innerHTML = '<div class="cmp-loading"><i class="fas fa-spinner fa-spin me-2"></i>Loading menu options...</div>';
 
         const allPanels = [];
         let hasAnyStructure = false;
@@ -324,7 +346,7 @@
 
         panel.innerHTML = '';
         if (hasAnyStructure) {
-            allPanels.forEach(p => panel.appendChild(p));
+            allPanels.forEach(function (p) { panel.appendChild(p); });
             if (panelContainer) panelContainer.style.display = '';
         } else {
             if (panelContainer) panelContainer.style.display = 'none';
@@ -335,7 +357,7 @@
     }
 
     function updateAllCounters() {
-        Object.keys(menuStructures).forEach(mid => updateCounters(parseInt(mid)));
+        Object.keys(menuStructures).forEach(function (mid) { updateCounters(parseInt(mid)); });
     }
 
     // Listen to menu checkbox changes
@@ -343,7 +365,6 @@
         if (e.target && e.target.classList.contains('menu-checkbox')) {
             const menuId = parseInt(e.target.value);
             if (!e.target.checked) {
-                // Clear selections for unchecked menu
                 delete currentSelections[menuId];
             }
             refreshCustomPanel();
