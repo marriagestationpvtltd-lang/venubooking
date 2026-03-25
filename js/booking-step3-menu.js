@@ -448,13 +448,17 @@
         summaryDiv.style.display = '';
         body.innerHTML = '';
 
-        checkedIds.forEach(function (menuId, idx) {
+        // Horizontal grid: menus side by side, auto-fill columns
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;';
+
+        checkedIds.forEach(function (menuId) {
             const cb = document.querySelector('.menu-checkbox[value="' + menuId + '"]');
             const card = cb ? cb.closest('.menu-card') : null;
             const menuNameEl = card ? card.querySelector('.card-title') : null;
             const menuName = menuNameEl ? menuNameEl.textContent.trim() : ('Menu #' + menuId);
 
-            // Get pre-defined items from data attribute (set on the column wrapper in PHP)
+            // Get pre-defined items from data attribute
             const menuCol = cb ? cb.closest('[data-menu-items]') : null;
             let menuItemsData = [];
             try {
@@ -462,111 +466,57 @@
                     ? JSON.parse(menuCol.dataset.menuItems) : [];
             } catch (e) { menuItemsData = []; }
 
-            const row = document.createElement('div');
-            row.className = idx > 0 ? 'pt-3' : '';
+            // Menu cell
+            const cell = document.createElement('div');
+            cell.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;min-width:0;';
 
-            // Menu title row
-            const titleRow = document.createElement('div');
-            titleRow.className = 'd-flex align-items-center gap-2 mb-3';
-            titleRow.innerHTML =
-                '<span class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0" ' +
-                'style="width:32px;height:32px;background:#dcfce7;">' +
-                '<i class="fas fa-utensils" style="color:#15803d;font-size:0.8rem;"></i></span>' +
-                '<span class="fw-bold" style="font-size:0.95rem;color:#14532d;">' + escapeHtml(menuName) + '</span>';
-            row.appendChild(titleRow);
+            // Compact menu title
+            cell.innerHTML =
+                '<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">' +
+                '<i class="fas fa-utensils" style="color:#15803d;font-size:0.7rem;flex-shrink:0;"></i>' +
+                '<span style="font-size:0.82rem;font-weight:600;color:#14532d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                escapeHtml(menuName) + '</span></div>';
 
-            // Determine if this menu has a customisable section/group structure
+            // Determine structure
             const structure = menuStructures[menuId];
             const hasSections = structure && structure.sections && structure.sections.length > 0;
 
             if (hasSections && currentSelections[menuId]) {
-                // Custom-selection menu: show individually chosen items grouped by section → group
+                // Custom-selection menu: compact rows per group
                 let hasAnySelection = false;
+                const linesWrap = document.createElement('div');
 
                 structure.sections.forEach(function (section) {
-                    // Collect groups with selections in this section
-                    const groupsWithItems = [];
                     section.groups.forEach(function (group) {
                         const sel = currentSelections[menuId][group.id];
-                        if (sel && sel.size > 0) {
-                            const itemNames = [];
-                            group.items.forEach(function (item) {
-                                if (sel.has(parseInt(item.id))) {
-                                    itemNames.push(item.item_name);
-                                }
-                            });
-                            if (itemNames.length > 0) {
-                                groupsWithItems.push({ groupName: group.group_name, items: itemNames });
-                            }
-                        }
-                    });
-
-                    if (groupsWithItems.length === 0) return;
-                    hasAnySelection = true;
-
-                    // Section block
-                    const sectionEl = document.createElement('div');
-                    sectionEl.className = 'mb-3 rounded-3 p-3';
-                    sectionEl.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;';
-
-                    const sectionTitle = document.createElement('div');
-                    sectionTitle.className = 'd-flex align-items-center gap-2 mb-2';
-                    sectionTitle.innerHTML =
-                        '<i class="fas fa-tag" style="color:#64748b;font-size:0.7rem;"></i>' +
-                        '<span class="fw-semibold text-uppercase" style="font-size:0.7rem;color:#64748b;letter-spacing:0.07em;">' +
-                        escapeHtml(section.section_name) + '</span>';
-                    sectionEl.appendChild(sectionTitle);
-
-                    groupsWithItems.forEach(function (g) {
-                        const groupWrap = document.createElement('div');
-                        groupWrap.className = 'mb-2';
-
-                        // Group label
-                        const groupLabel = document.createElement('div');
-                        groupLabel.className = 'mb-1';
-                        groupLabel.innerHTML =
-                            '<span class="fw-medium" style="font-size:0.8rem;color:#374151;">' +
-                            escapeHtml(g.groupName) + '</span>';
-                        groupWrap.appendChild(groupLabel);
-
-                        // Item chips
-                        const chipsWrap = document.createElement('div');
-                        chipsWrap.className = 'd-flex flex-wrap gap-1';
-                        g.items.forEach(function (itemName) {
-                            const chip = document.createElement('span');
-                            chip.style.cssText =
-                                'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;' +
-                                'border-radius:20px;background:#dcfce7;border:1px solid #86efac;' +
-                                'font-size:0.78rem;font-weight:500;color:#14532d;';
-                            chip.innerHTML =
-                                '<svg style="width:10px;height:10px;flex-shrink:0;" viewBox="0 0 12 12" fill="none">' +
-                                '<circle cx="6" cy="6" r="5.5" fill="#15803d"/>' +
-                                '<path d="M3.5 6l2 2 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-                                '</svg>' +
-                                escapeHtml(itemName);
-                            chipsWrap.appendChild(chip);
+                        if (!sel || sel.size === 0) return;
+                        const itemNames = [];
+                        group.items.forEach(function (item) {
+                            if (sel.has(parseInt(item.id))) itemNames.push(item.item_name);
                         });
-                        groupWrap.appendChild(chipsWrap);
-                        sectionEl.appendChild(groupWrap);
-                    });
+                        if (itemNames.length === 0) return;
+                        hasAnySelection = true;
 
-                    row.appendChild(sectionEl);
+                        const line = document.createElement('div');
+                        line.style.cssText = 'margin-bottom:4px;';
+                        line.innerHTML =
+                            '<span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-right:3px;">' +
+                            escapeHtml(group.group_name) + ':</span>' +
+                            itemNames.map(function (n) { return compactChip(n); }).join(' ');
+                        linesWrap.appendChild(line);
+                    });
                 });
 
-                // If menu has a structure but nothing is selected yet, show a prompt
                 if (!hasAnySelection) {
-                    const noSelMsg = document.createElement('div');
-                    noSelMsg.className = 'rounded-3 p-3 d-flex align-items-center gap-2';
-                    noSelMsg.style.cssText = 'background:#fffbeb;border:1px solid #fde68a;';
-                    noSelMsg.setAttribute('role', 'status');
-                    noSelMsg.innerHTML =
-                        '<i class="fas fa-exclamation-circle" style="color:#d97706;" aria-hidden="true"></i>' +
-                        '<span class="small" style="color:#92400e;">No items selected yet — ' +
-                        'please choose items from the customization panel above.</span>';
-                    row.appendChild(noSelMsg);
+                    linesWrap.setAttribute('role', 'status');
+                    linesWrap.innerHTML =
+                        '<span style="font-size:0.72rem;color:#d97706;">' +
+                        '<i class="fas fa-exclamation-circle" aria-hidden="true"></i> No items selected yet</span>';
                 }
+                cell.appendChild(linesWrap);
+
             } else if (menuItemsData.length > 0) {
-                // Simple (pre-defined) menu: show all included items grouped by category
+                // Simple menu: compact rows per category
                 const grouped = {};
                 const categoryOrder = [];
                 menuItemsData.forEach(function (item) {
@@ -578,55 +528,33 @@
                     grouped[cat].push(item.item_name);
                 });
 
-                const itemsWrap = document.createElement('div');
-                itemsWrap.className = 'rounded-3 p-3';
-                itemsWrap.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;';
-
+                const linesWrap = document.createElement('div');
                 categoryOrder.forEach(function (cat) {
-                    const groupWrap = document.createElement('div');
-                    groupWrap.className = 'mb-2';
-
-                    if (cat) {
-                        const catLabel = document.createElement('div');
-                        catLabel.className = 'mb-1';
-                        catLabel.innerHTML =
-                            '<span class="fw-medium" style="font-size:0.8rem;color:#374151;">' +
-                            escapeHtml(cat) + '</span>';
-                        groupWrap.appendChild(catLabel);
-                    }
-
-                    const chipsWrap = document.createElement('div');
-                    chipsWrap.className = 'd-flex flex-wrap gap-1';
-                    grouped[cat].forEach(function (itemName) {
-                        const chip = document.createElement('span');
-                        chip.style.cssText =
-                            'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;' +
-                            'border-radius:20px;background:#dcfce7;border:1px solid #86efac;' +
-                            'font-size:0.78rem;font-weight:500;color:#14532d;';
-                        chip.innerHTML =
-                            '<svg style="width:10px;height:10px;flex-shrink:0;" viewBox="0 0 12 12" fill="none">' +
-                            '<circle cx="6" cy="6" r="5.5" fill="#15803d"/>' +
-                            '<path d="M3.5 6l2 2 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-                            '</svg>' +
-                            escapeHtml(itemName);
-                        chipsWrap.appendChild(chip);
-                    });
-                    groupWrap.appendChild(chipsWrap);
-                    itemsWrap.appendChild(groupWrap);
+                    const line = document.createElement('div');
+                    line.style.cssText = 'margin-bottom:4px;';
+                    line.innerHTML =
+                        (cat ? '<span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-right:3px;">' +
+                            escapeHtml(cat) + ':</span>' : '') +
+                        grouped[cat].map(function (n) { return compactChip(n); }).join(' ');
+                    linesWrap.appendChild(line);
                 });
-
-                row.appendChild(itemsWrap);
+                cell.appendChild(linesWrap);
             }
 
-            body.appendChild(row);
-
-            if (idx < checkedIds.length - 1) {
-                const sep = document.createElement('hr');
-                sep.className = 'my-1';
-                sep.style.cssText = 'border-color:#e2e8f0;';
-                body.appendChild(sep);
-            }
+            grid.appendChild(cell);
         });
+
+        body.appendChild(grid);
+    }
+
+    function compactChip(name) {
+        return '<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px;' +
+            'border-radius:20px;background:#dcfce7;border:1px solid #86efac;' +
+            'font-size:0.72rem;font-weight:500;color:#14532d;">' +
+            '<svg style="width:8px;height:8px;flex-shrink:0;" viewBox="0 0 12 12" fill="none">' +
+            '<circle cx="6" cy="6" r="5.5" fill="#15803d"/>' +
+            '<path d="M3.5 6l2 2 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+            '</svg>' + escapeHtml(name) + '</span>';
     }
 
     function autoCollapseFilledGroups(menuId) {
