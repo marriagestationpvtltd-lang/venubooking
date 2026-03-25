@@ -184,6 +184,56 @@ CREATE TABLE IF NOT EXISTS hall_menus (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: menu_sections (sections within a menu for custom item selection)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS menu_sections (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    menu_id INT NOT NULL,
+    section_name VARCHAR(255) NOT NULL,
+    choose_limit INT DEFAULT NULL COMMENT 'NULL = no section-level limit, use group limits',
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
+    INDEX idx_menu_sections_menu_id (menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: menu_groups (groups within a menu section)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS menu_groups (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    menu_section_id INT NOT NULL,
+    group_name VARCHAR(255) NOT NULL,
+    photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional thumbnail photo for the group',
+    choose_limit INT DEFAULT NULL COMMENT 'NULL = inherit from section, >0 = per-group limit',
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (menu_section_id) REFERENCES menu_sections(id) ON DELETE CASCADE,
+    INDEX idx_menu_groups_section_id (menu_section_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: menu_group_items (items within a menu group with optional extra charges)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS menu_group_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    menu_group_id INT NOT NULL,
+    item_name VARCHAR(255) NOT NULL,
+    sub_category VARCHAR(255) DEFAULT NULL COMMENT 'Display-only label, e.g. Paneer Snacks',
+    extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '0 = included in base price',
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (menu_group_id) REFERENCES menu_groups(id) ON DELETE CASCADE,
+    INDEX idx_menu_group_items_group_id (menu_group_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- TABLE: hall_time_slots
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS hall_time_slots (
@@ -367,6 +417,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     tax_amount DECIMAL(10, 2) DEFAULT 0,
     grand_total DECIMAL(10, 2) NOT NULL,
     special_requests TEXT,
+    menu_special_instructions TEXT DEFAULT NULL COMMENT 'Special instructions for the menu entered during booking',
     booking_status ENUM('pending', 'payment_submitted', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
     payment_status ENUM('pending', 'partial', 'paid', 'cancelled') DEFAULT 'pending',
     advance_payment_received TINYINT(1) DEFAULT 0 COMMENT 'Whether advance payment has been received (0=No, 1=Yes)',
@@ -391,9 +442,31 @@ CREATE TABLE IF NOT EXISTS booking_menus (
     price_per_person DECIMAL(10, 2) NOT NULL,
     number_of_guests INT NOT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
+    extra_total DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Sum of extra_charge values from custom item selections',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_id) REFERENCES menus(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: booking_menu_item_selections (immutable snapshot of custom item selections)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS booking_menu_item_selections (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    menu_id INT NOT NULL,
+    menu_name VARCHAR(255) NOT NULL,
+    section_name VARCHAR(255) NOT NULL,
+    group_name VARCHAR(255) NOT NULL,
+    item_name VARCHAR(255) NOT NULL,
+    sub_category VARCHAR(255) DEFAULT NULL,
+    extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    menu_section_id INT DEFAULT NULL,
+    menu_group_id INT DEFAULT NULL,
+    menu_item_id INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    INDEX idx_bmis_booking_id (booking_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
@@ -1578,3 +1651,145 @@ DELIMITER ;
 
 CALL upgrade_gallery_card_groups();
 DROP PROCEDURE IF EXISTS upgrade_gallery_card_groups;
+
+-- ============================================================================
+-- UPGRADE: Create custom menu selection tables and add new columns
+-- ============================================================================
+-- Adds menu_sections, menu_groups, menu_group_items, booking_menu_item_selections
+-- tables and the extra_total / menu_special_instructions columns required by
+-- the "Customize Your Menu Selections" feature in booking-step3.
+-- Safe to run on fresh installs (tables/columns already exist via CREATE TABLE
+-- IF NOT EXISTS above) and on existing installs (all checks are idempotent).
+
+DROP PROCEDURE IF EXISTS upgrade_custom_menu_selection;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_custom_menu_selection()
+BEGIN
+    -- 1. Create menu_sections if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'menu_sections'
+    ) THEN
+        CREATE TABLE menu_sections (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            menu_id INT NOT NULL,
+            section_name VARCHAR(255) NOT NULL,
+            choose_limit INT DEFAULT NULL COMMENT 'NULL = no section-level limit, use group limits',
+            display_order INT NOT NULL DEFAULT 0,
+            status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
+            INDEX idx_menu_sections_menu_id (menu_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    END IF;
+
+    -- 2. Create menu_groups if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'menu_groups'
+    ) THEN
+        CREATE TABLE menu_groups (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            menu_section_id INT NOT NULL,
+            group_name VARCHAR(255) NOT NULL,
+            photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional thumbnail photo for the group',
+            choose_limit INT DEFAULT NULL COMMENT 'NULL = inherit from section, >0 = per-group limit',
+            display_order INT NOT NULL DEFAULT 0,
+            status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (menu_section_id) REFERENCES menu_sections(id) ON DELETE CASCADE,
+            INDEX idx_menu_groups_section_id (menu_section_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    END IF;
+
+    -- 3. Add photo column to menu_groups if missing (for installs that created the
+    --    table before add_photo_to_menu_groups.sql was applied)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'menu_groups'
+          AND column_name = 'photo'
+    ) THEN
+        ALTER TABLE menu_groups
+            ADD COLUMN photo VARCHAR(255) DEFAULT NULL
+                COMMENT 'Optional thumbnail photo for the group'
+            AFTER group_name;
+    END IF;
+
+    -- 4. Create menu_group_items if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'menu_group_items'
+    ) THEN
+        CREATE TABLE menu_group_items (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            menu_group_id INT NOT NULL,
+            item_name VARCHAR(255) NOT NULL,
+            sub_category VARCHAR(255) DEFAULT NULL COMMENT 'Display-only label, e.g. Paneer Snacks',
+            extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '0 = included in base price',
+            display_order INT NOT NULL DEFAULT 0,
+            status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (menu_group_id) REFERENCES menu_groups(id) ON DELETE CASCADE,
+            INDEX idx_menu_group_items_group_id (menu_group_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    END IF;
+
+    -- 5. Create booking_menu_item_selections if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'booking_menu_item_selections'
+    ) THEN
+        CREATE TABLE booking_menu_item_selections (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            booking_id INT NOT NULL,
+            menu_id INT NOT NULL,
+            menu_name VARCHAR(255) NOT NULL,
+            section_name VARCHAR(255) NOT NULL,
+            group_name VARCHAR(255) NOT NULL,
+            item_name VARCHAR(255) NOT NULL,
+            sub_category VARCHAR(255) DEFAULT NULL,
+            extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            menu_section_id INT DEFAULT NULL,
+            menu_group_id INT DEFAULT NULL,
+            menu_item_id INT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+            INDEX idx_bmis_booking_id (booking_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    END IF;
+
+    -- 6. Add extra_total to booking_menus if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_menus'
+          AND column_name = 'extra_total'
+    ) THEN
+        ALTER TABLE booking_menus
+            ADD COLUMN extra_total DECIMAL(10,2) NOT NULL DEFAULT 0.00
+                COMMENT 'Sum of extra_charge values from custom item selections'
+            AFTER total_price;
+    END IF;
+
+    -- 7. Add menu_special_instructions to bookings if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'menu_special_instructions'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN menu_special_instructions TEXT DEFAULT NULL
+                COMMENT 'Special instructions for the menu entered during booking'
+            AFTER special_requests;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL upgrade_custom_menu_selection();
+DROP PROCEDURE IF EXISTS upgrade_custom_menu_selection;
