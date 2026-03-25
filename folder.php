@@ -530,40 +530,49 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                                 $added_count++;
                             }
                         }
-                        $zip->close();
+                        $zip_closed = $zip->close();
 
                         if ($added_count === 0) {
                             @unlink($temp_zip);
                             $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
+                        } elseif ($zip_closed === false) {
+                            @unlink($temp_zip);
+                            error_log('ZIP download error: ZipArchive::close() returned false for ' . $temp_zip);
+                            $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
                         } else {
                             $zip_size = filesize($temp_zip);
+                            if ($zip_size === false || $zip_size === 0) {
+                                @unlink($temp_zip);
+                                $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
+                            } else {
 
-                            // Release session lock before streaming so other
-                            // requests from the same user are not blocked during
-                            // the potentially long file transfer.
-                            session_write_close();
+                                // Release session lock before streaming so other
+                                // requests from the same user are not blocked during
+                                // the potentially long file transfer.
+                                session_write_close();
 
-                            header('Content-Type: application/zip');
-                            header('Content-Disposition: attachment; filename="' . $zip_filename . '"');
-                            header('Content-Length: ' . $zip_size);
-                            header('Content-Transfer-Encoding: binary');
-                            header('Content-Encoding: identity');
-                            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-                            header('Cache-Control: post-check=0, pre-check=0', false);
-                            header('Pragma: no-cache');
-                            header('Expires: 0');
-                            flush();
+                                header('Content-Type: application/zip');
+                                header('Content-Disposition: attachment; filename="' . $zip_filename . '"');
+                                header('Content-Length: ' . $zip_size);
+                                header('Content-Transfer-Encoding: binary');
+                                header('Content-Encoding: identity');
+                                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+                                header('Cache-Control: post-check=0, pre-check=0', false);
+                                header('Pragma: no-cache');
+                                header('Expires: 0');
+                                flush();
 
-                            readfile($temp_zip);
-                            @unlink($temp_zip);
+                                readfile($temp_zip);
+                                @unlink($temp_zip);
 
-                            // Batch-update download counts in a single query
-                            $photo_ids = array_column($valid_files, 'photo_id');
-                            $placeholders = implode(',', array_fill(0, count($photo_ids), '?'));
-                            $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id IN ($placeholders)")->execute($photo_ids);
-                            $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
+                                // Batch-update download counts in a single query
+                                $photo_ids = array_column($valid_files, 'photo_id');
+                                $placeholders = implode(',', array_fill(0, count($photo_ids), '?'));
+                                $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id IN ($placeholders)")->execute($photo_ids);
+                                $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + ? WHERE id = ?")->execute([$added_count, $folder['id']]);
 
-                            exit;
+                                exit;
+                            }
                         }
                     } catch (Throwable $e) {
                         error_log('ZIP download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
@@ -3154,7 +3163,6 @@ if ($folder && !$error_message) {
                     }
                     var a = document.createElement('a');
                     a.href = zipUrl;
-                    a.download = 'photos.zip';
                     a.style.display = 'none';
                     document.body.appendChild(a);
                     a.click();
