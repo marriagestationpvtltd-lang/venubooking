@@ -35,13 +35,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($group_name)) {
             $error = 'Group name is required.';
         } else {
-            try {
-                $db->prepare("INSERT INTO menu_groups (menu_section_id, group_name, choose_limit, display_order) VALUES (?, ?, ?, ?)")
-                   ->execute([$section_id, $group_name, $choose_limit, $display_order]);
-                $success = 'Group added successfully.';
-            } catch (\Throwable $e) {
-                error_log("Add group error: " . $e->getMessage());
-                $error = 'Failed to add group.';
+            $photo_filename = null;
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['photo'], 'menu_group');
+                if ($upload_result['success']) {
+                    $photo_filename = $upload_result['filename'];
+                } else {
+                    $error = $upload_result['message'];
+                }
+            }
+            if (empty($error)) {
+                try {
+                    $db->prepare("INSERT INTO menu_groups (menu_section_id, group_name, photo, choose_limit, display_order) VALUES (?, ?, ?, ?, ?)")
+                       ->execute([$section_id, $group_name, $photo_filename, $choose_limit, $display_order]);
+                    $success = 'Group added successfully.';
+                } catch (\Throwable $e) {
+                    error_log("Add group error: " . $e->getMessage());
+                    if ($photo_filename) deleteUploadedFile($photo_filename);
+                    $error = 'Failed to add group.';
+                }
             }
         }
     } elseif ($action === 'edit') {
@@ -54,21 +66,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($group_id <= 0 || empty($group_name)) {
             $error = 'Invalid data.';
         } else {
-            try {
-                $db->prepare("UPDATE menu_groups SET group_name=?, choose_limit=?, display_order=?, status=? WHERE id=? AND menu_section_id=?")
-                   ->execute([$group_name, $choose_limit, $display_order, $status, $group_id, $section_id]);
-                $success = 'Group updated successfully.';
-            } catch (\Throwable $e) {
-                error_log("Edit group error: " . $e->getMessage());
-                $error = 'Failed to update group.';
+            // Fetch existing photo so we can delete it if replaced
+            $existing_stmt = $db->prepare("SELECT photo FROM menu_groups WHERE id=? AND menu_section_id=?");
+            $existing_stmt->execute([$group_id, $section_id]);
+            $existing_photo = $existing_stmt->fetchColumn();
+
+            $new_photo = $existing_photo; // keep existing by default
+            if (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload_result = handleImageUpload($_FILES['photo'], 'menu_group');
+                if ($upload_result['success']) {
+                    $new_photo = $upload_result['filename'];
+                } else {
+                    $error = $upload_result['message'];
+                }
+            }
+            // Allow explicit removal of photo
+            if (isset($_POST['remove_photo']) && $_POST['remove_photo'] === '1') {
+                $new_photo = null;
+            }
+
+            if (empty($error)) {
+                try {
+                    $db->prepare("UPDATE menu_groups SET group_name=?, photo=?, choose_limit=?, display_order=?, status=? WHERE id=? AND menu_section_id=?")
+                       ->execute([$group_name, $new_photo, $choose_limit, $display_order, $status, $group_id, $section_id]);
+                    // Delete old file only after successful update
+                    if ($existing_photo && $existing_photo !== $new_photo) {
+                        deleteUploadedFile($existing_photo);
+                    }
+                    $success = 'Group updated successfully.';
+                } catch (\Throwable $e) {
+                    error_log("Edit group error: " . $e->getMessage());
+                    // Roll back newly uploaded file on DB failure
+                    if ($new_photo && $new_photo !== $existing_photo) {
+                        deleteUploadedFile($new_photo);
+                    }
+                    $error = 'Failed to update group.';
+                }
             }
         }
     } elseif ($action === 'delete') {
         $group_id = intval($_POST['group_id'] ?? 0);
         if ($group_id > 0) {
             try {
+                $photo_stmt = $db->prepare("SELECT photo FROM menu_groups WHERE id=? AND menu_section_id=?");
+                $photo_stmt->execute([$group_id, $section_id]);
+                $photo_to_delete = $photo_stmt->fetchColumn();
                 $db->prepare("DELETE FROM menu_groups WHERE id=? AND menu_section_id=?")
                    ->execute([$group_id, $section_id]);
+                if ($photo_to_delete) deleteUploadedFile($photo_to_delete);
                 $success = 'Group deleted.';
             } catch (\Throwable $e) {
                 error_log("Delete group error: " . $e->getMessage());
@@ -103,19 +148,23 @@ $groups = $groups_stmt->fetchAll();
 <div class="card mb-4">
     <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-plus"></i> Add New Group</h6></div>
     <div class="card-body">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="add">
             <div class="row g-3">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label class="form-label">Group Name <span class="text-danger">*</span></label>
                     <input type="text" name="group_name" class="form-control" placeholder="e.g. VEG STARTERS, NON-VEG STARTERS" required>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Choose Limit <small class="text-muted">(blank = use section limit)</small></label>
-                    <input type="number" name="choose_limit" class="form-control" min="1" placeholder="e.g. 5">
+                    <label class="form-label">Photo <small class="text-muted">(optional, shown as icon)</small></label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Display Order</label>
+                    <label class="form-label">Choose Limit <small class="text-muted">(blank = section limit)</small></label>
+                    <input type="number" name="choose_limit" class="form-control" min="1" placeholder="e.g. 5">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Order</label>
                     <input type="number" name="display_order" class="form-control" value="0" min="0">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -139,6 +188,7 @@ $groups = $groups_stmt->fetchAll();
                     <tr>
                         <th>Order</th>
                         <th>Group Name</th>
+                        <th>Photo</th>
                         <th>Choose Limit</th>
                         <th>Status</th>
                         <th>Items</th>
@@ -155,6 +205,14 @@ $groups = $groups_stmt->fetchAll();
                     <tr>
                         <td><?php echo intval($group['display_order']); ?></td>
                         <td><strong><?php echo sanitize($group['group_name']); ?></strong></td>
+                        <td>
+                            <?php if (!empty($group['photo'])): ?>
+                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($group['photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                     alt="" style="width:40px;height:40px;object-fit:cover;border-radius:50%;border:2px solid #e5e7eb;">
+                            <?php else: ?>
+                                <span class="text-muted small">—</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo $group['choose_limit'] !== null ? intval($group['choose_limit']) : '<em class="text-muted">Section-level</em>'; ?></td>
                         <td><span class="badge bg-<?php echo $group['status'] === 'active' ? 'success' : 'secondary'; ?>"><?php echo ucfirst(sanitize($group['status'])); ?></span></td>
                         <td><a href="group-items.php?group_id=<?php echo $group['id']; ?>&section_id=<?php echo $section_id; ?>&menu_id=<?php echo $menu_id; ?>" class="badge bg-primary text-decoration-none"><?php echo $item_count; ?> items</a></td>
@@ -177,13 +235,30 @@ $groups = $groups_stmt->fetchAll();
                                     <h5 class="modal-title">Edit Group</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <form method="POST">
+                                <form method="POST" enctype="multipart/form-data">
                                     <div class="modal-body">
                                         <input type="hidden" name="action" value="edit">
                                         <input type="hidden" name="group_id" value="<?php echo $group['id']; ?>">
                                         <div class="mb-3">
                                             <label class="form-label">Group Name <span class="text-danger">*</span></label>
                                             <input type="text" name="group_name" class="form-control" value="<?php echo sanitize($group['group_name']); ?>" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Photo <small class="text-muted">(optional, shown as icon next to group name)</small></label>
+                                            <?php if (!empty($group['photo'])): ?>
+                                                <div class="mb-2 d-flex align-items-center gap-2">
+                                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($group['photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                         alt="" style="width:50px;height:50px;object-fit:cover;border-radius:50%;border:2px solid #e5e7eb;">
+                                                    <div>
+                                                        <small class="text-muted d-block">Current photo</small>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="remove_photo" value="1" id="removePhoto<?php echo $group['id']; ?>">
+                                                            <label class="form-check-label text-danger small" for="removePhoto<?php echo $group['id']; ?>">Remove photo</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                            <input type="file" name="photo" class="form-control" accept="image/*">
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Choose Limit <small class="text-muted">(blank = use section limit)</small></label>

@@ -116,7 +116,22 @@
 
                 const groupTitle = document.createElement('span');
                 groupTitle.className = 'cmp-group-title';
-                groupTitle.innerHTML = '<i class="fas fa-angle-down me-1 text-success cmp-group-toggle"></i>' + escapeHtml(group.group_name);
+
+                const toggleIcon = document.createElement('i');
+                toggleIcon.className = 'fas fa-angle-down me-1 text-success cmp-group-toggle';
+                groupTitle.appendChild(toggleIcon);
+
+                if (group.photo) {
+                    const photoWrap = document.createElement('span');
+                    photoWrap.className = 'cmp-group-photo';
+                    const photoImg = document.createElement('img');
+                    photoImg.src = BASE_URL + '/uploads/' + encodeURIComponent(group.photo);
+                    photoImg.alt = escapeHtml(group.group_name);
+                    photoWrap.appendChild(photoImg);
+                    groupTitle.appendChild(photoWrap);
+                }
+
+                groupTitle.appendChild(document.createTextNode(group.group_name));
                 groupHead.appendChild(groupTitle);
 
                 if (group.choose_limit) {
