@@ -465,195 +465,6 @@ if (!empty($service_categories)) {
 </section>
 <?php endif; ?>
 
-<!-- Features Section -->
-<section class="features-section py-5" id="section-features">
-    <div class="container">
-        <div class="text-center mb-5 reveal section-heading-wrap">
-            <span class="section-eyebrow">Why Choose Us</span>
-            <h2 class="section-title">हामीलाई किन छान्ने?</h2>
-            <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">हाम्रो प्रिमियम सेवाले तपाईंको हरेक अनुष्ठानलाई अविस्मरणीय बनाउँछ।</p>
-            <?php echo getSectionShareButton('section-features', BASE_URL . '/about.php'); ?>
-        </div>
-        <div class="row g-4 reveal-stagger">
-            <div class="col-6 col-md-3">
-                <div class="pro-feature-card pfc-green">
-                    <div class="pro-feature-icon">
-                        <i class="fas fa-building"></i>
-                    </div>
-                    <h5>Multiple Venues</h5>
-                    <p>Choose from our premium venues across the city for every occasion</p>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="pro-feature-card pfc-orange">
-                    <div class="pro-feature-icon">
-                        <i class="fas fa-utensils"></i>
-                    </div>
-                    <h5>Delicious Menus</h5>
-                    <p>Wide variety of menu options to suit every taste and budget</p>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="pro-feature-card pfc-purple">
-                    <div class="pro-feature-icon">
-                        <i class="fas fa-tags"></i>
-                    </div>
-                    <h5>Transparent Pricing</h5>
-                    <p>No hidden charges — clear and upfront pricing for all services</p>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="pro-feature-card pfc-teal">
-                    <div class="pro-feature-icon">
-                        <i class="fas fa-headset"></i>
-                    </div>
-                    <h5>24/7 Support</h5>
-                    <p>Our dedicated team is always here to help you at every step</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<?php
-// Get all active venues for carousel
-$venues = getAllActiveVenues();
-if (!empty($venues)):
-?>
-<!-- Venues Section -->
-<section class="venues-section py-5" id="section-venues">
-    <div class="container">
-        <div class="text-center mb-4 reveal section-heading-wrap">
-            <span class="section-eyebrow">Our Venues</span>
-            <h2 class="section-title">हाम्रा प्रिमियम स्थानहरू</h2>
-            <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
-            <?php echo getSectionShareButton('section-venues', BASE_URL . '/venues.php'); ?>
-        </div>
-
-        <!-- City filter bar — auto-updates from booking form selection -->
-        <div class="venues-filter-bar mb-4 d-flex flex-wrap justify-content-center gap-2" id="venueCityFilters">
-            <button type="button" class="btn btn-outline-success venue-city-btn active" data-city-id="">
-                <i class="fas fa-globe-asia me-1"></i> All Cities
-            </button>
-            <?php foreach ($cities as $city): ?>
-                <button type="button" class="btn btn-outline-success venue-city-btn"
-                        data-city-id="<?php echo (int)$city['id']; ?>">
-                    <i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($city['name'], ENT_QUOTES, 'UTF-8'); ?>
-                </button>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Venue slideshow — one row, scrolls horizontally when there are many venues -->
-        <div class="venues-slider-wrapper">
-            <button class="venues-slider-btn venues-slider-prev" id="venuesSliderPrev" aria-label="Previous venues" disabled>
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <div class="venues-slider-viewport" id="venuesSliderViewport">
-                <div class="venues-slider-track" id="venuesGrid">
-                    <?php foreach ($venues as $venue): 
-                        $images_to_display = [];
-                        if (!empty($venue['gallery_images']) && count($venue['gallery_images']) > 0) {
-                            $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
-                            foreach ($venue['gallery_images'] as $gallery_image) {
-                                $safe_url = $upload_url_base . rawurlencode($gallery_image['image_path']);
-                                $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                            }
-                        } elseif (!empty($venue['image'])) {
-                            $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
-                            $safe_url = $upload_url_base . rawurlencode($venue['image']);
-                            $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
-                        } else {
-                            $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
-                        }
-                        $carousel_id = 'venueImageCarousel' . $venue['id'];
-                        $description = sanitize($venue['description']);
-                        $truncated_description = mb_strlen($description) > 100 ? mb_substr($description, 0, 100) . '...' : $description;
-                        // Build 360° panoramic URL if the venue has one
-                        $home_pano_url = '';
-                        if (!empty($venue['pano_image'])) {
-                            $home_pano_fn = basename($venue['pano_image']);
-                            if (preg_match(SAFE_FILENAME_PATTERN, $home_pano_fn) && file_exists(UPLOAD_PATH . $home_pano_fn)) {
-                                $home_pano_url = UPLOAD_URL . rawurlencode($home_pano_fn);
-                            }
-                        }
-                    ?>
-                        <div class="venue-slide">
-                            <div class="venue-card-home card h-100 shadow-sm">
-                                <?php if (count($images_to_display) > 1): ?>
-                                    <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
-                                        <div class="carousel-inner">
-                                            <?php foreach ($images_to_display as $img_index => $image_url): ?>
-                                                <div class="carousel-item <?php echo $img_index === 0 ? 'active' : ''; ?>">
-                                                    <div class="venue-image-home" style="background-image: url('<?php echo $image_url; ?>');"></div>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                        <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="prev">
-                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Previous</span>
-                                        </button>
-                                        <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="next">
-                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Next</span>
-                                        </button>
-                                        <div class="carousel-indicators-counter">
-                                            <span class="badge bg-dark bg-opacity-75">
-                                                <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="card-img-top venue-image-home" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
-                                <?php endif; ?>
-
-                                <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
-                                    <p class="card-text">
-                                        <i class="fas fa-map-marker-alt text-success"></i>
-                                        <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
-                                    </p>
-                                    <p class="card-text text-muted flex-grow-1">
-                                        <?php echo $truncated_description; ?>
-                                    </p>
-                                    <?php if (!empty($home_pano_url)): ?>
-                                    <button type="button"
-                                            class="btn btn-outline-primary w-100 home-pano-btn mb-2"
-                                            data-pano-url="<?php echo htmlspecialchars($home_pano_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                            data-venue-name="<?php echo htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                        <i class="fas fa-street-view"></i> View 360°
-                                    </button>
-                                    <?php endif; ?>
-                                    <button type="button"
-                                            class="btn btn-success w-100 venue-book-btn mt-auto"
-                                            data-venue-id="<?php echo $venue['id']; ?>"
-                                            data-venue-name="<?php echo sanitize($venue['name']); ?>">
-                                        <i class="fas fa-calendar-check"></i> Book Now
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <button class="venues-slider-btn venues-slider-next" id="venuesSliderNext" aria-label="Next venues">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-
-        <!-- Empty state (hidden by default) -->
-        <div id="venuesEmptyState" class="text-center py-5 d-none">
-            <i class="fas fa-building fa-3x text-muted mb-3"></i>
-            <p class="text-muted">No venues found for the selected city.</p>
-        </div>
-        <div class="text-center mt-4">
-            <a href="<?php echo BASE_URL; ?>/venues.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
-                <i class="fas fa-eye me-2"></i>भ्युअल
-            </a>
-        </div>
-    </div>
-</section>
-<?php endif; ?>
-
 <?php
 // Get gallery images grouped into photo cards (max 10 per card)
 $gallery_cards = getImagesByCards('gallery');
@@ -679,7 +490,8 @@ if (!empty($gallery_cards)):
             <?php echo getSectionShareButton('section-gallery', BASE_URL . '/gallery.php'); ?>
         </div>
 
-        <div class="photo-cards-grid">
+        <div class="gallery-scroll-outer" id="galleryScrollOuter">
+            <div class="gallery-scroll-track" id="galleryScrollTrack">
             <?php foreach ($gallery_cards as $ci => $card):
                 $preview      = $card[0];
                 $total        = count($card);
@@ -717,6 +529,7 @@ if (!empty($gallery_cards)):
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>
+            </div>
         </div>
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/gallery.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
@@ -1058,8 +871,258 @@ if (!empty($gallery_cards)):
         if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
     }, { passive: true });
 })();
+
+// Gallery auto-scroll carousel
+(function() {
+    var outer = document.getElementById('galleryScrollOuter');
+    var track = document.getElementById('galleryScrollTrack');
+    if (!outer || !track) return;
+
+    // Clone cards for seamless infinite loop; mark clones so we know which is which
+    var origCards = Array.from(track.children);
+    origCards.forEach(function(card) {
+        var clone = card.cloneNode(true);
+        clone.setAttribute('data-clone', 'true');
+        clone.setAttribute('aria-hidden', 'true');
+        clone.setAttribute('tabindex', '-1');
+        track.appendChild(clone);
+    });
+
+    var speed   = 0.6;   // pixels per animation frame
+    var offset  = 0;
+    var paused  = false;
+    var raf;
+
+    function getHalfWidth() {
+        // Width of the original set of cards (before cloning)
+        var gapStyle = getComputedStyle(track).gap || getComputedStyle(track).columnGap || '0px';
+        var totalGap = parseFloat(gapStyle) || 0;
+        var w = 0;
+        origCards.forEach(function(c) { w += c.offsetWidth + totalGap; });
+        return w;
+    }
+
+    function step() {
+        if (!paused) {
+            offset += speed;
+            var half = getHalfWidth();
+            if (half > 0 && offset >= half) {
+                offset -= half;
+            }
+            track.style.transform = 'translateX(-' + offset + 'px)';
+        }
+        raf = requestAnimationFrame(step);
+    }
+
+    outer.addEventListener('mouseenter', function() { paused = true; });
+    outer.addEventListener('mouseleave', function() { paused = false; });
+    outer.addEventListener('touchstart', function() { paused = true; }, { passive: true });
+    outer.addEventListener('touchend',   function() { paused = false; }, { passive: true });
+
+    // Forward clicks on cloned cards to the original card (which has the modal handler)
+    track.addEventListener('click', function(e) {
+        var card = e.target.closest('.photo-card[data-clone="true"]');
+        if (!card) return;
+        var idx = card.getAttribute('data-card-index');
+        var original = track.querySelector('.photo-card[data-card-index="' + idx + '"]:not([data-clone])');
+        if (original) original.click();
+    });
+
+    raf = requestAnimationFrame(step);
+})();
 </script>
 <?php endif; ?>
+
+
+<!-- Features Section -->
+<section class="features-section py-5" id="section-features">
+    <div class="container">
+        <div class="text-center mb-5 reveal section-heading-wrap">
+            <span class="section-eyebrow">Why Choose Us</span>
+            <h2 class="section-title">हामीलाई किन छान्ने?</h2>
+            <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">हाम्रो प्रिमियम सेवाले तपाईंको हरेक अनुष्ठानलाई अविस्मरणीय बनाउँछ।</p>
+            <?php echo getSectionShareButton('section-features', BASE_URL . '/about.php'); ?>
+        </div>
+        <div class="row g-4 reveal-stagger">
+            <div class="col-6 col-md-3">
+                <div class="pro-feature-card pfc-green">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <h5>Multiple Venues</h5>
+                    <p>Choose from our premium venues across the city for every occasion</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="pro-feature-card pfc-orange">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <h5>Delicious Menus</h5>
+                    <p>Wide variety of menu options to suit every taste and budget</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="pro-feature-card pfc-purple">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <h5>Transparent Pricing</h5>
+                    <p>No hidden charges — clear and upfront pricing for all services</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="pro-feature-card pfc-teal">
+                    <div class="pro-feature-icon">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <h5>24/7 Support</h5>
+                    <p>Our dedicated team is always here to help you at every step</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<?php
+// Get all active venues for carousel
+$venues = getAllActiveVenues();
+if (!empty($venues)):
+?>
+<!-- Venues Section -->
+<section class="venues-section py-5" id="section-venues">
+    <div class="container">
+        <div class="text-center mb-4 reveal section-heading-wrap">
+            <span class="section-eyebrow">Our Venues</span>
+            <h2 class="section-title">हाम्रा प्रिमियम स्थानहरू</h2>
+            <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
+            <?php echo getSectionShareButton('section-venues', BASE_URL . '/venues.php'); ?>
+        </div>
+
+        <!-- City filter bar — auto-updates from booking form selection -->
+        <div class="venues-filter-bar mb-4 d-flex flex-wrap justify-content-center gap-2" id="venueCityFilters">
+            <button type="button" class="btn btn-outline-success venue-city-btn active" data-city-id="">
+                <i class="fas fa-globe-asia me-1"></i> All Cities
+            </button>
+            <?php foreach ($cities as $city): ?>
+                <button type="button" class="btn btn-outline-success venue-city-btn"
+                        data-city-id="<?php echo (int)$city['id']; ?>">
+                    <i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($city['name'], ENT_QUOTES, 'UTF-8'); ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Venue slideshow — one row, scrolls horizontally when there are many venues -->
+        <div class="venues-slider-wrapper">
+            <button class="venues-slider-btn venues-slider-prev" id="venuesSliderPrev" aria-label="Previous venues" disabled>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="venues-slider-viewport" id="venuesSliderViewport">
+                <div class="venues-slider-track" id="venuesGrid">
+                    <?php foreach ($venues as $venue): 
+                        $images_to_display = [];
+                        if (!empty($venue['gallery_images']) && count($venue['gallery_images']) > 0) {
+                            $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
+                            foreach ($venue['gallery_images'] as $gallery_image) {
+                                $safe_url = $upload_url_base . rawurlencode($gallery_image['image_path']);
+                                $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
+                            }
+                        } elseif (!empty($venue['image'])) {
+                            $upload_url_base = rtrim(UPLOAD_URL, '/') . '/';
+                            $safe_url = $upload_url_base . rawurlencode($venue['image']);
+                            $images_to_display[] = htmlspecialchars($safe_url, ENT_QUOTES, 'UTF-8');
+                        } else {
+                            $images_to_display[] = htmlspecialchars(getPlaceholderImageUrl(), ENT_QUOTES, 'UTF-8');
+                        }
+                        $carousel_id = 'venueImageCarousel' . $venue['id'];
+                        $description = sanitize($venue['description']);
+                        $truncated_description = mb_strlen($description) > 100 ? mb_substr($description, 0, 100) . '...' : $description;
+                        // Build 360° panoramic URL if the venue has one
+                        $home_pano_url = '';
+                        if (!empty($venue['pano_image'])) {
+                            $home_pano_fn = basename($venue['pano_image']);
+                            if (preg_match(SAFE_FILENAME_PATTERN, $home_pano_fn) && file_exists(UPLOAD_PATH . $home_pano_fn)) {
+                                $home_pano_url = UPLOAD_URL . rawurlencode($home_pano_fn);
+                            }
+                        }
+                    ?>
+                        <div class="venue-slide">
+                            <div class="venue-card-home card h-100 shadow-sm">
+                                <?php if (count($images_to_display) > 1): ?>
+                                    <div id="<?php echo $carousel_id; ?>" class="carousel slide venue-image-carousel" data-bs-ride="carousel">
+                                        <div class="carousel-inner">
+                                            <?php foreach ($images_to_display as $img_index => $image_url): ?>
+                                                <div class="carousel-item <?php echo $img_index === 0 ? 'active' : ''; ?>">
+                                                    <div class="venue-image-home" style="background-image: url('<?php echo $image_url; ?>');"></div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Previous</span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#<?php echo $carousel_id; ?>" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Next</span>
+                                        </button>
+                                        <div class="carousel-indicators-counter">
+                                            <span class="badge bg-dark bg-opacity-75">
+                                                <i class="fas fa-images"></i> <?php echo count($images_to_display); ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="card-img-top venue-image-home" style="background-image: url('<?php echo $images_to_display[0]; ?>');"></div>
+                                <?php endif; ?>
+
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title"><?php echo sanitize($venue['name']); ?></h5>
+                                    <p class="card-text">
+                                        <i class="fas fa-map-marker-alt text-success"></i>
+                                        <?php echo sanitize($venue['city_name'] ?? $venue['location']); ?>
+                                    </p>
+                                    <p class="card-text text-muted flex-grow-1">
+                                        <?php echo $truncated_description; ?>
+                                    </p>
+                                    <?php if (!empty($home_pano_url)): ?>
+                                    <button type="button"
+                                            class="btn btn-outline-primary w-100 home-pano-btn mb-2"
+                                            data-pano-url="<?php echo htmlspecialchars($home_pano_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                            data-venue-name="<?php echo htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <i class="fas fa-street-view"></i> View 360°
+                                    </button>
+                                    <?php endif; ?>
+                                    <button type="button"
+                                            class="btn btn-success w-100 venue-book-btn mt-auto"
+                                            data-venue-id="<?php echo $venue['id']; ?>"
+                                            data-venue-name="<?php echo sanitize($venue['name']); ?>">
+                                        <i class="fas fa-calendar-check"></i> Book Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <button class="venues-slider-btn venues-slider-next" id="venuesSliderNext" aria-label="Next venues">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Empty state (hidden by default) -->
+        <div id="venuesEmptyState" class="text-center py-5 d-none">
+            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No venues found for the selected city.</p>
+        </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/venues.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>भ्युअल
+            </a>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 
 <?php
 // Get work photos organised by event category (folder-style gallery)
