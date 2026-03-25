@@ -566,29 +566,33 @@
         }
 
         panel.innerHTML = '';
-        if (hasAnyStructure) {
-            allPanels.forEach(function (p) { panel.appendChild(p); });
-            // Restore summaries and auto-collapse groups that are already full (e.g. from session)
-            checkedIds.forEach(function (menuId) {
-                if (menuStructures[menuId]) {
-                    updateAllGroupSummaries(menuId);
-                    autoCollapseFilledGroups(menuId);
-                }
-            });
-            if (panelContainer) panelContainer.style.display = '';
-            if (specialInstructions) specialInstructions.style.display = '';
-            // Hide non-selected menu cards so the user focuses on customizing the chosen menu
+        if (checkedIds.length > 0) {
+            // Always hide non-selected menu cards and search bar when a menu is selected
             allMenuCols.forEach(function (col) {
                 const cb = col.querySelector('.menu-checkbox');
                 col.style.display = (cb && cb.checked) ? '' : 'none';
             });
-            // Hide search bar – not useful when non-selected cards are hidden
             if (menuSearchWrapper) menuSearchWrapper.style.display = 'none';
             if (menuSearchNoResults) menuSearchNoResults.style.display = 'none';
+
+            if (hasAnyStructure) {
+                allPanels.forEach(function (p) { panel.appendChild(p); });
+                // Restore summaries and auto-collapse groups that are already full (e.g. from session)
+                checkedIds.forEach(function (menuId) {
+                    if (menuStructures[menuId]) {
+                        updateAllGroupSummaries(menuId);
+                        autoCollapseFilledGroups(menuId);
+                    }
+                });
+                if (panelContainer) panelContainer.style.display = '';
+            } else {
+                if (panelContainer) panelContainer.style.display = 'none';
+            }
+            if (specialInstructions) specialInstructions.style.display = '';
         } else {
+            // No menu selected: restore all menu cards and search bar
             if (panelContainer) panelContainer.style.display = 'none';
             if (specialInstructions) specialInstructions.style.display = 'none';
-            // Restore all menu cards and search bar
             allMenuCols.forEach(function (col) { col.style.display = ''; });
             if (menuSearchWrapper) menuSearchWrapper.style.display = '';
             if (menuSearchNoResults) menuSearchNoResults.style.display = 'none';

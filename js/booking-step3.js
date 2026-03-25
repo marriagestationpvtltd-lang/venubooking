@@ -87,11 +87,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Update menu card selection state
+// Update menu card selection state (single-selection: uncheck all others)
 function updateMenuSelection(checkbox) {
     const menuCard = checkbox.closest('.menu-card');
-    
+
     if (checkbox.checked) {
+        // Enforce single selection: uncheck every other menu checkbox
+        document.querySelectorAll('.menu-checkbox').forEach(function(cb) {
+            if (cb !== checkbox) {
+                cb.checked = false;
+                const otherCard = cb.closest('.menu-card');
+                if (otherCard) otherCard.classList.remove('selected');
+            }
+        });
         menuCard.classList.add('selected');
     } else {
         menuCard.classList.remove('selected');
