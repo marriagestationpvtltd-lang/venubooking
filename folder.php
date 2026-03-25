@@ -275,12 +275,28 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                     $content_length = $range_end - $range_start + 1;
 
                     // Only count a new download for the first (or only) request.
+                    // Wrapped in its own try-catch: a missing column (e.g. total_downloads
+                    // on installations upgraded before the column was added) or any other
+                    // DB error must never prevent the actual file from being served.
                     if (!$is_range_req || $range_start === 0) {
-                        $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
-                        $update_stmt->execute([$photo['id']]);
-                        // Increment folder total downloads
-                        $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + 1 WHERE id = ?")->execute([$folder['id']]);
+                        try {
+                            $update_stmt = $db->prepare("UPDATE shared_photos SET download_count = download_count + 1 WHERE id = ?");
+                            $update_stmt->execute([$photo['id']]);
+                        } catch (Throwable $e) {
+                            error_log('Download count update (photo) failed: ' . $e->getMessage());
+                        }
+                        try {
+                            // Increment folder total downloads
+                            $db->prepare("UPDATE shared_folders SET total_downloads = total_downloads + 1 WHERE id = ?")->execute([$folder['id']]);
+                        } catch (Throwable $e) {
+                            error_log('Download count update (folder total_downloads) failed: ' . $e->getMessage());
+                        }
                     }
+
+                    // Release the PHP session lock before the potentially long file
+                    // transfer so that other requests from the same user are not blocked
+                    // while the download is in progress.
+                    session_write_close();
 
                     // Send response headers
                     header('Content-Type: ' . $mime_type);

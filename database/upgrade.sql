@@ -1122,6 +1122,24 @@ BEGIN
         ALTER TABLE shared_folders ADD INDEX idx_transfer_source (transfer_source);
     END IF;
 
+    -- ---- shared_folders.total_downloads ---------------------------------
+    -- This column was present in the original CREATE TABLE but was never
+    -- added via ALTER TABLE, so older installations may be missing it.
+    -- Without it the folder.php download count update throws a PDOException,
+    -- which causes "Access Denied – Download failed" for every single-photo
+    -- download from a shared folder.
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'shared_folders'
+          AND column_name = 'total_downloads'
+    ) THEN
+        ALTER TABLE shared_folders
+            ADD COLUMN total_downloads INT DEFAULT 0
+            COMMENT 'Total download count across all photos'
+            AFTER max_downloads;
+    END IF;
+
     -- ---- vendor_types.status --------------------------------------------
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
