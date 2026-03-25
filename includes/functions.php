@@ -4643,7 +4643,28 @@ function buildVenueProviderWhatsAppUrl($booking) {
                     }
                 }
             }
+            // Show custom menu item selections for this menu
+            $menu_sel = $booking['menu_item_selections'][$menu['menu_id']] ?? null;
+            if (!empty($menu_sel)) {
+                $text .= "   📋 _Selected Items:_\n";
+                foreach ($menu_sel['sections'] as $sec_name => $groups) {
+                    $sec_esc = str_replace(['*', '_'], ['\*', '\_'], strip_tags($sec_name));
+                    $text .= "   _" . $sec_esc . "_\n";
+                    foreach ($groups as $grp_name => $items) {
+                        $grp_esc = str_replace(['*', '_'], ['\*', '\_'], strip_tags($grp_name));
+                        $item_names = [];
+                        foreach ($items as $item) {
+                            $item_names[] = str_replace(['*', '_'], ['\*', '\_'], strip_tags($item['item_name']));
+                        }
+                        $text .= "   • " . $grp_esc . ": " . implode(', ', $item_names) . "\n";
+                    }
+                }
+            }
         }
+    }
+
+    if (!empty($booking['menu_special_instructions'])) {
+        $text .= "\n📝 *Menu Instructions*\n" . strip_tags($booking['menu_special_instructions']) . "\n";
     }
 
     if (!empty($booking['special_requests'])) {

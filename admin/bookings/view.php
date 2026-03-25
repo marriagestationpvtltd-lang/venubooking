@@ -768,6 +768,20 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                                     ?>
                                     <br><span class="menu-items-print"><?php echo implode(' | ', $cat_parts); ?></span>
                                 <?php endif; ?>
+                                <?php
+                                $_print_sel = $booking['menu_item_selections'][$menu['menu_id']] ?? null;
+                                if (!empty($_print_sel)):
+                                    $_sel_parts = [];
+                                    foreach ($_print_sel['sections'] as $_sec => $_grps) {
+                                        foreach ($_grps as $_grp => $_its) {
+                                            $_inames = array_map(function($i){ return htmlspecialchars($i['item_name']); }, $_its);
+                                            $_sel_parts[] = '<strong>' . htmlspecialchars($_grp) . ':</strong> ' . implode(', ', $_inames);
+                                        }
+                                    }
+                                    if (!empty($_sel_parts)):
+                                ?>
+                                    <br><span class="menu-items-print"><em>Selected:</em> <?php echo implode(' | ', $_sel_parts); ?></span>
+                                <?php endif; endif; ?>
                             </td>
                             <td class="text-center"><?php echo $menu['number_of_guests']; ?></td>
                             <td class="text-right"><?php echo number_format($menu['price_per_person'], 2); ?></td>
@@ -1100,6 +1114,25 @@ if (!empty($booking['venue_address'])) {
 }
 if (!empty($booking['map_link'])) {
     $confirmation_text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
+}
+if (!empty($booking['menus'])) {
+    $confirmation_text .= "\n🍽️ *Menus:*\n";
+    foreach ($booking['menus'] as $_conf_menu) {
+        $confirmation_text .= "• " . strip_tags($_conf_menu['menu_name']) . "\n";
+        // Custom selections for this menu
+        $_conf_sel = $booking['menu_item_selections'][$_conf_menu['menu_id']] ?? null;
+        if (!empty($_conf_sel)) {
+            foreach ($_conf_sel['sections'] as $_csec => $_cgrps) {
+                foreach ($_cgrps as $_cgrp => $_cits) {
+                    $_cnames = array_map(function($i){ return strip_tags($i['item_name']); }, $_cits);
+                    $confirmation_text .= "   _" . strip_tags($_cgrp) . ":_ " . implode(', ', $_cnames) . "\n";
+                }
+            }
+        }
+    }
+}
+if (!empty($booking['menu_special_instructions'])) {
+    $confirmation_text .= "\n📝 *Menu Instructions:*\n" . strip_tags($booking['menu_special_instructions']) . "\n";
 }
 $confirmation_adv_info = getAdvanceDisplayInfo(
     floatval($booking['grand_total']),
