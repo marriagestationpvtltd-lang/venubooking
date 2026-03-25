@@ -233,6 +233,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'reports') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-chart-bar"></i> Reports
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/policy-pages/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'policy-pages') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-file-alt"></i> Policy Pages
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/settings/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'settings') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i> Settings
             </a>

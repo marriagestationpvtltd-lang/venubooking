@@ -5010,3 +5010,83 @@ function compressUploadedImage(string $image_path, int $max_size = 2048, int $qu
 
     return false;
 }
+
+// ============================================================================
+// Policy Pages
+// ============================================================================
+
+/**
+ * Return all policy pages, optionally filtered to active ones only.
+ *
+ * @param  bool  $active_only  When true (default) returns only active pages.
+ * @return array
+ */
+function getPolicyPages(bool $active_only = true): array
+{
+    try {
+        $db = getDB();
+        if ($active_only) {
+            $stmt = $db->prepare(
+                "SELECT id, title, slug, status, require_acceptance, sort_order
+                 FROM policy_pages WHERE status = 'active'
+                 ORDER BY sort_order ASC, id ASC"
+            );
+            $stmt->execute();
+        } else {
+            $stmt = $db->query(
+                'SELECT id, title, slug, status, require_acceptance, sort_order
+                 FROM policy_pages ORDER BY sort_order ASC, id ASC'
+            );
+        }
+        return $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('getPolicyPages error: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Return a single policy page by its URL slug (active pages only for public use).
+ *
+ * @param  string  $slug
+ * @param  bool    $active_only
+ * @return array|null
+ */
+function getPolicyPageBySlug(string $slug, bool $active_only = true): ?array
+{
+    try {
+        $db  = getDB();
+        $sql = 'SELECT * FROM policy_pages WHERE slug = ?'
+             . ($active_only ? " AND status = 'active'" : '');
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$slug]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    } catch (\Throwable $e) {
+        error_log('getPolicyPageBySlug error: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Return only the active policy pages that have require_acceptance = 1.
+ * Used on the booking confirmation step.
+ *
+ * @return array
+ */
+function getPolicyPagesRequiringAcceptance(): array
+{
+    try {
+        $db   = getDB();
+        $stmt = $db->query(
+            "SELECT id, title, slug
+             FROM policy_pages
+             WHERE status = 'active' AND require_acceptance = 1
+             ORDER BY sort_order ASC, id ASC"
+        );
+        return $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('getPolicyPagesRequiringAcceptance error: ' . $e->getMessage());
+        return [];
+    }
+}

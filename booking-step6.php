@@ -175,6 +175,14 @@ try {
 // Calculate advance payment
 $advance = calculateAdvancePayment($totals['grand_total']);
 
+// Load policy pages that require user acceptance before booking
+try {
+    $required_policies = getPolicyPagesRequiringAcceptance();
+} catch (\Throwable $e) {
+    error_log('Failed to load required policies: ' . $e->getMessage());
+    $required_policies = [];
+}
+
 // Handle form submission
 $error = $totals_error; // Propagate any totals calculation error into the main error display
 // Initialize form values
@@ -227,7 +235,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             $validation_errors[] = $emailValidation['error'];
         }
     }
-    
+
+    // Validate policy acceptance
+    $accepted_policy_ids = array_map('intval', $_POST['accepted_policies'] ?? []);
+    foreach ($required_policies as $rp) {
+        if (!in_array((int)$rp['id'], $accepted_policy_ids, true)) {
+            $validation_errors[] = 'You must accept the "' . $rp['title'] . '" to proceed.';
+        }
+    }
+
     // If there are validation errors, show them
     if (!empty($validation_errors)) {
         $error = implode(' ', $validation_errors);
@@ -638,7 +654,41 @@ require_once __DIR__ . '/includes/header.php';
                          even when the submit button is programmatically disabled on click -->
                     <input type="hidden" name="submit_booking" value="1">
 
-                    <!-- Step 4: Navigation Buttons (Initially Hidden) -->
+                    <?php if (!empty($required_policies)): ?>
+                    <!-- Policy Acceptance -->
+                    <div class="card mb-4" id="policy_acceptance_section" style="display: none;">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-file-contract me-2 text-success"></i>Accept Policies</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Please read and accept the following policies to complete your booking.</p>
+                            <?php foreach ($required_policies as $rp): ?>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input policy-checkbox" type="checkbox"
+                                       name="accepted_policies[]"
+                                       value="<?php echo (int)$rp['id']; ?>"
+                                       id="policy_<?php echo (int)$rp['id']; ?>"
+                                       <?php
+                                       // Re-check if previously submitted
+                                       $accepted_ids_display = array_map('intval', $_POST['accepted_policies'] ?? []);
+                                       echo in_array((int)$rp['id'], $accepted_ids_display, true) ? 'checked' : '';
+                                       ?>>
+                                <label class="form-check-label" for="policy_<?php echo (int)$rp['id']; ?>">
+                                    I have read and agree to the
+                                    <a href="<?php echo BASE_URL; ?>/policy.php?slug=<?php echo urlencode($rp['slug']); ?>"
+                                       target="_blank" class="text-success fw-semibold">
+                                        <?php echo htmlspecialchars($rp['title']); ?>
+                                        <i class="fas fa-external-link-alt ms-1 small"></i>
+                                    </a>
+                                    <span class="text-danger">*</span>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Navigation Buttons (Initially Hidden) -->
                     <div class="row" id="final_buttons_section" style="display: none;">
                         <div class="col-md-6">
                             <button type="button" class="btn btn-outline-secondary btn-lg w-100" id="back_to_payment_btn">
@@ -935,6 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const customerInfoSection = document.getElementById('customer_info_section');
     const billSummarySection = document.getElementById('bill_summary_section');
     const paymentOptionsSection = document.getElementById('payment_options_section');
+    const policyAcceptanceSection = document.getElementById('policy_acceptance_section');
     const finalButtonsSection = document.getElementById('final_buttons_section');
     const initialBackButton = document.getElementById('initial_back_button');
     
@@ -1018,10 +1069,13 @@ document.addEventListener('DOMContentLoaded', function() {
         customerInfoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     
-    // Step 2 -> Step 3: Show Payment Options
+    // Step 2 -> Step 3: Show Payment Options (and policy acceptance if present)
     continueToPaymentBtn.addEventListener('click', function() {
         billSummarySection.style.display = 'none';
         paymentOptionsSection.style.display = 'block';
+        if (policyAcceptanceSection) {
+            policyAcceptanceSection.style.display = 'block';
+        }
         finalButtonsSection.style.display = 'flex';
         
         paymentOptionsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1030,6 +1084,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Step 3 -> Step 2: Back to Bill Summary
     backToPaymentBtn.addEventListener('click', function() {
         paymentOptionsSection.style.display = 'none';
+        if (policyAcceptanceSection) {
+            policyAcceptanceSection.style.display = 'none';
+        }
         finalButtonsSection.style.display = 'none';
         billSummarySection.style.display = 'block';
         
@@ -1105,6 +1162,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form validation
     if (customerForm) {
         customerForm.addEventListener('submit', function(e) {
+            // Validate policy acceptance checkboxes
+            const policyCheckboxes = document.querySelectorAll('.policy-checkbox');
+            let allAccepted = true;
+            policyCheckboxes.forEach(function(cb) {
+                if (!cb.checked) {
+                    allAccepted = false;
+                    cb.classList.add('is-invalid');
+                } else {
+                    cb.classList.remove('is-invalid');
+                }
+            });
+            if (!allAccepted) {
+                e.preventDefault();
+                const firstUnchecked = document.querySelector('.policy-checkbox:not(:checked)');
+                if (firstUnchecked) {
+                    firstUnchecked.closest('.form-check').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+
             if (paymentWithRadio && paymentWithRadio.checked) {
                 const paymentMethodEl = document.getElementById('payment_method_id');
                 const transactionIdEl = document.getElementById('transaction_id');

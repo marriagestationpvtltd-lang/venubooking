@@ -94,6 +94,25 @@
                         <?php endif; ?>
                     </ul>
                 </div>
+                <?php
+                // Policy Pages footer section (only if there are active policy pages)
+                $footer_policies = getPolicyPages();
+                if (!empty($footer_policies)):
+                ?>
+                <div class="col-md-4 mb-3">
+                    <h5>Policies</h5>
+                    <ul class="list-unstyled">
+                        <?php foreach ($footer_policies as $fp): ?>
+                        <li>
+                            <a href="<?php echo BASE_URL; ?>/policy.php?slug=<?php echo urlencode($fp['slug']); ?>"
+                               class="text-white-50 text-decoration-none">
+                                <?php echo htmlspecialchars($fp['title']); ?>
+                            </a>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <?php endif; ?>
                 <div class="col-md-4 mb-3">
                     <h5>Contact</h5>
                     <?php 
