@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS menu_groups (
     menu_section_id INT NOT NULL,
     group_name VARCHAR(255) NOT NULL,
     choose_limit INT DEFAULT NULL COMMENT 'NULL = inherit from section, >0 = per-group limit',
+    extra_charge_per_item DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Charge per item selected beyond choose_limit (0 = no over-limit charge)',
     display_order INT NOT NULL DEFAULT 0,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

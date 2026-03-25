@@ -238,6 +238,7 @@
                     itemCard.dataset.groupLimit = group.choose_limit || '';
                     itemCard.dataset.sectionLimit = section.choose_limit || '';
                     itemCard.dataset.extraCharge = item.extra_charge || '0';
+                    itemCard.dataset.groupExtraChargePerItem = group.extra_charge_per_item || '0';
                     itemCard.dataset.itemName = item.item_name;
 
                     // Check indicator
@@ -298,7 +299,7 @@
                     itemCard.appendChild(hiddenCb);
 
                     itemCard.addEventListener('click', function () {
-                        toggleItem(this, menuId, group.id, section.id, group.choose_limit, section.choose_limit);
+                        toggleItem(this, menuId, group.id, section.id, group.choose_limit, section.choose_limit, group.extra_charge_per_item);
                     });
 
                     itemsGrid.appendChild(itemCard);
@@ -315,7 +316,7 @@
         return container;
     }
 
-    function toggleItem(card, menuId, groupId, sectionId, groupLimit, sectionLimit) {
+    function toggleItem(card, menuId, groupId, sectionId, groupLimit, sectionLimit, groupExtraChargePerItem) {
         const itemId = parseInt(card.dataset.itemId);
         const isSelected = card.classList.contains('cmp-item--selected');
 
@@ -341,9 +342,13 @@
             const isGroupOver = groupLimit && currentSelections[menuId][groupId].size >= parseInt(groupLimit);
             const isSectionOver = !isGroupOver && sectionLimit && sectionTotal >= parseInt(sectionLimit);
             if (isGroupOver || isSectionOver) {
-                const extraCharge = parseFloat(card.dataset.extraCharge || '0');
+                // Determine the over-limit charge: group-level extra_charge_per_item takes priority;
+                // fall back to the item's own extra_charge if no group-level charge is configured.
+                const itemExtraCharge = parseFloat(card.dataset.extraCharge || '0');
+                const perItemCharge = parseFloat(groupExtraChargePerItem || card.dataset.groupExtraChargePerItem || '0');
+                const overLimitCharge = perItemCharge > 0 ? perItemCharge : itemExtraCharge;
                 const itemName = card.dataset.itemName || 'this item';
-                showExtraChargeConfirmation(itemName, extraCharge, function () {
+                showExtraChargeConfirmation(itemName, overLimitCharge, itemExtraCharge, function () {
                     addItemOverLimit(card, menuId, groupId, itemId);
                 });
                 return;
@@ -432,7 +437,7 @@
         }, 3000);
     }
 
-    function showExtraChargeConfirmation(itemName, extraCharge, onConfirm) {
+    function showExtraChargeConfirmation(itemName, overLimitCharge, itemExtraCharge, onConfirm) {
         var modalEl = document.getElementById('menuExtraChargeConfirmModal');
         if (!modalEl) {
             modalEl = document.createElement('div');
@@ -462,8 +467,9 @@
         var msgEl = modalEl.querySelector('#menuExtraConfirmMsg');
         if (msgEl) {
             var escapedCurrency = escapeHtml(currencySymbol);
-            if (extraCharge > 0) {
-                msgEl.innerHTML = 'Adding <strong>' + escapeHtml(itemName) + '</strong> will cost you an extra <strong>' + escapedCurrency + Math.round(extraCharge) + '</strong>. Do you want to add it?';
+            var displayCharge = overLimitCharge > 0 ? overLimitCharge : 0;
+            if (displayCharge > 0) {
+                msgEl.innerHTML = 'Adding <strong>' + escapeHtml(itemName) + '</strong> is beyond the included selection. An extra charge of <strong>' + escapedCurrency + Math.round(displayCharge) + '</strong> per item applies. Do you want to add it?';
             } else {
                 msgEl.innerHTML = 'Adding <strong>' + escapeHtml(itemName) + '</strong> as an extra item (beyond your included selection). Do you want to add it?';
             }
@@ -486,8 +492,8 @@
         if (bsModal) {
             bsModal.show();
         } else if (typeof onConfirm === 'function' && window.confirm(
-            extraCharge > 0
-                ? 'Adding "' + itemName + '" will cost ' + currencySymbol + Math.round(extraCharge) + ' extra. Add it?'
+            overLimitCharge > 0
+                ? 'Adding "' + itemName + '" will cost ' + currencySymbol + Math.round(overLimitCharge) + ' extra per item. Add it?'
                 : 'Add "' + itemName + '" as an extra item?'
         )) {
             onConfirm();
@@ -657,13 +663,18 @@
                     section.groups.forEach(function (group) {
                         const sel = currentSelections[menuId][group.id];
                         if (!sel || sel.size === 0) return;
+                        const groupLimit = parseInt(group.choose_limit) || 0;
+                        const perItemCharge = parseFloat(group.extra_charge_per_item || 0);
                         const itemData = [];
                         group.items.forEach(function (item) {
                             if (sel.has(parseInt(item.id))) {
                                 const isOver = overLimitSelections[menuId] &&
                                     overLimitSelections[menuId][group.id] &&
                                     overLimitSelections[menuId][group.id].has(parseInt(item.id));
-                                const charge = parseFloat(item.extra_charge) || 0;
+                                // For over-limit items, show group's per-item charge (if set); else item's own charge
+                                const charge = isOver && perItemCharge > 0
+                                    ? perItemCharge
+                                    : (parseFloat(item.extra_charge) || 0);
                                 sectionExtra += charge;
                                 itemData.push({
                                     name: item.item_name,
@@ -914,6 +925,7 @@
     }
 
     // Compute the sum of extra_charge values for all currently selected menu items
+    // plus group-level over-limit charges (extra_charge_per_item × items beyond choose_limit),
     // and update the price total in the booking summary bar via calculateMenuTotal().
     function computeExtraChargesTotal() {
         let extra = 0;
@@ -926,12 +938,21 @@
                 section.groups.forEach(function (group) {
                     const sel = selections[group.id];
                     if (!sel || sel.size === 0) return;
+
+                    // Per-item extra charges (individual premium items)
                     group.items.forEach(function (item) {
                         const charge = parseFloat(item.extra_charge);
                         if (sel.has(parseInt(item.id)) && charge > 0) {
                             extra += charge;
                         }
                     });
+
+                    // Group-level over-limit charge
+                    const groupLimit = parseInt(group.choose_limit);
+                    const perItemCharge = parseFloat(group.extra_charge_per_item || 0);
+                    if (groupLimit > 0 && perItemCharge > 0 && sel.size > groupLimit) {
+                        extra += (sel.size - groupLimit) * perItemCharge;
+                    }
                 });
             });
         });
