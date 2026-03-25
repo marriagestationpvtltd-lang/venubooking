@@ -39,26 +39,26 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
     if (!empty($pageUrl)) {
         $viewPageLink = '
         <a class="share-opt share-view-page" href="' . $escapedUrl . '" role="menuitem">
-            <i class="fas fa-external-link-alt" aria-hidden="true"></i> छुट्टै पेजमा हेर्नुहोस्
+            <i class="fas fa-external-link-alt" aria-hidden="true"></i> Open Full Page
         </a>';
     }
     return '
 <div class="section-share-wrap" data-share-wrap="' . $escaped . '"' . (!empty($escapedUrl) ? ' data-page-url="' . $escapedUrl . '"' : '') . '>
     <button class="section-share-btn" type="button"
             data-section="' . $escaped . '"
-            title="सेयर गर्नुहोस्"
+            title="Share"
             aria-haspopup="true" aria-expanded="false">
         <i class="fas fa-share-alt" aria-hidden="true"></i>
     </button>
     <div class="section-share-dropdown" role="menu" aria-label="Share options">' . $viewPageLink . '
         <button class="share-opt share-copy" type="button" data-section="' . $escaped . '" role="menuitem">
-            <i class="fas fa-link" aria-hidden="true"></i> लिंक कपी गर्नुहोस्
+            <i class="fas fa-link" aria-hidden="true"></i> Copy Link
         </button>
         <a class="share-opt share-whatsapp" data-section="' . $escaped . '" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
-            <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp मा सेयर
+            <i class="fab fa-whatsapp" aria-hidden="true"></i> Share via WhatsApp
         </a>
         <a class="share-opt share-facebook" data-section="' . $escaped . '" href="#" role="menuitem" target="_blank" rel="noopener noreferrer">
-            <i class="fab fa-facebook-f" aria-hidden="true"></i> Facebook मा सेयर
+            <i class="fab fa-facebook-f" aria-hidden="true"></i> Share on Facebook
         </a>
     </div>
 </div>';
@@ -300,15 +300,15 @@ if (!empty($service_categories)) {
     <div class="container">
         <div class="text-center mb-4 reveal section-heading-wrap">
             <span class="section-eyebrow">Service Packages</span>
-            <h2 class="section-title">हाम्रा सेवा प्याकेजहरू</h2>
-            <p class="section-subtitle mt-2">तपाईंको अनुष्ठानको लागि उत्तम प्याकेज छान्नुहोस्</p>
+            <h2 class="section-title">Our Service Packages</h2>
+            <p class="section-subtitle mt-2">Find the perfect package for your celebration</p>
             <?php echo getSectionShareButton('section-packages', BASE_URL . '/packages.php'); ?>
         </div>
 
         <?php if (count($pkg_categories_present) > 1): ?>
         <!-- Package Category Filter Buttons -->
         <div class="service-category-filter-bar text-center mb-4" id="pkgFilterBar">
-            <button class="service-category-filter-btn active" data-filter="all">सबै</button>
+            <button class="service-category-filter-btn active" data-filter="all">All</button>
             <?php foreach ($pkg_categories_present as $pcat): ?>
                 <button class="service-category-filter-btn"
                         data-filter="<?php echo (int)$pcat['id']; ?>">
@@ -393,7 +393,7 @@ if (!empty($service_categories)) {
                                         <?php if ($remaining > 0): ?>
                                             <li class="feature-item feature-more-toggle collapsed" data-bs-toggle="collapse" data-bs-target="#<?php echo $feat_collapse_id; ?>" role="button" aria-expanded="false" aria-controls="<?php echo $feat_collapse_id; ?>">
                                                 <span class="feat-more-icon"><i class="fas fa-plus-circle"></i></span>
-                                                <span class="more-text">+<?php echo $remaining; ?> थप सुविधाहरू</span>
+                                                <span class="more-text">+<?php echo $remaining; ?> More Features</span>
                                             </li>
                                         <?php endif; ?>
                                     </ul>
@@ -458,7 +458,7 @@ if (!empty($service_categories)) {
         </div>
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/packages.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
-                <i class="fas fa-eye me-2"></i>भ्युअल
+                <i class="fas fa-eye me-2"></i>View All
             </a>
         </div>
     </div>
@@ -485,7 +485,7 @@ if (!empty($gallery_cards)):
     <div class="container">
         <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Our Gallery</span>
-            <h2 class="section-title">हाम्रा यादगार पलहरू</h2>
+            <h2 class="section-title">Cherished Memories</h2>
             <p class="text-muted mt-2">Moments we are proud to capture</p>
             <?php echo getSectionShareButton('section-gallery', BASE_URL . '/gallery.php'); ?>
         </div>
@@ -533,7 +533,7 @@ if (!empty($gallery_cards)):
         </div>
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/gallery.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
-                <i class="fas fa-eye me-2"></i>भ्युअल
+                <i class="fas fa-eye me-2"></i>View All
             </a>
         </div>
     </div>
@@ -939,8 +939,8 @@ if (!empty($gallery_cards)):
     <div class="container">
         <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Why Choose Us</span>
-            <h2 class="section-title">हामीलाई किन छान्ने?</h2>
-            <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">हाम्रो प्रिमियम सेवाले तपाईंको हरेक अनुष्ठानलाई अविस्मरणीय बनाउँछ।</p>
+            <h2 class="section-title">Why Choose Us?</h2>
+            <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">Our premium services make every celebration truly unforgettable.</p>
             <?php echo getSectionShareButton('section-features', BASE_URL . '/about.php'); ?>
         </div>
         <div class="row g-4 reveal-stagger">
@@ -994,7 +994,7 @@ if (!empty($venues)):
     <div class="container">
         <div class="text-center mb-4 reveal section-heading-wrap">
             <span class="section-eyebrow">Our Venues</span>
-            <h2 class="section-title">हाम्रा प्रिमियम स्थानहरू</h2>
+            <h2 class="section-title">Our Premium Venues</h2>
             <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
             <?php echo getSectionShareButton('section-venues', BASE_URL . '/venues.php'); ?>
         </div>
@@ -1116,7 +1116,7 @@ if (!empty($venues)):
         </div>
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/venues.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
-                <i class="fas fa-eye me-2"></i>भ्युअल
+                <i class="fas fa-eye me-2"></i>View All
             </a>
         </div>
     </div>
@@ -1149,7 +1149,7 @@ if (!empty($work_categories)):
     <div class="container">
         <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Portfolio</span>
-            <h2 class="section-title">हाम्रो काम</h2>
+            <h2 class="section-title">Our Portfolio</h2>
             <p class="text-muted mt-2">Browse our events by category</p>
             <?php echo getSectionShareButton('section-work', BASE_URL . '/portfolio.php'); ?>
         </div>
@@ -1205,7 +1205,7 @@ if (!empty($work_categories)):
         </div>
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/portfolio.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
-                <i class="fas fa-eye me-2"></i>भ्युअल
+                <i class="fas fa-eye me-2"></i>View All
             </a>
         </div>
     </div>
@@ -1758,7 +1758,7 @@ if (!empty($vendors)):
     <div class="container">
         <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Our Team</span>
-            <h2 class="section-title">हाम्रा विशेषज्ञहरू</h2>
+            <h2 class="section-title">Our Expert Team</h2>
             <p class="text-muted mt-2">Meet the professionals who make your event special</p>
             <?php echo getSectionShareButton('section-vendors', BASE_URL . '/vendors.php'); ?>
         </div>
@@ -1901,7 +1901,7 @@ if (!empty($vendors)):
         </div>
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/vendors.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
-                <i class="fas fa-eye me-2"></i>भ्युअल
+                <i class="fas fa-eye me-2"></i>View All
             </a>
         </div>
     </div>
@@ -1918,7 +1918,7 @@ if (!empty($testimonial_images)):
     <div class="container">
         <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Testimonials</span>
-            <h2 class="section-title">हाम्रा ग्राहकहरूका विचार</h2>
+            <h2 class="section-title">What Our Clients Say</h2>
             <p class="text-muted mt-2">Memories made, moments cherished</p>
             <?php echo getSectionShareButton('section-testimonials', BASE_URL . '/testimonials.php'); ?>
         </div>
@@ -1977,7 +1977,7 @@ if (!empty($testimonial_images)):
         </div>
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/testimonials.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
-                <i class="fas fa-eye me-2"></i>भ्युअल
+                <i class="fas fa-eye me-2"></i>View All
             </a>
         </div>
     </div>
@@ -2031,7 +2031,7 @@ if (!empty($about_images)):
             <div class="col-lg-7 reveal">
                 <div class="section-heading-wrap d-inline-block w-100">
                     <span class="section-eyebrow">About Us</span>
-                    <h2 class="section-title mb-3">हाम्रो बारेमा</h2>
+                    <h2 class="section-title mb-3">Our Story</h2>
                     <?php echo getSectionShareButton('section-about', BASE_URL . '/about.php'); ?>
                 </div>
                 <?php
