@@ -10,6 +10,8 @@
     const menuStructures = {};
     // currentSelections[menu_id][group_id] = Set of item_ids
     const currentSelections = {};
+    // overLimitSelections[menu_id][group_id] = Set of item_ids added beyond the group choose_limit
+    const overLimitSelections = {};
     // Currency symbol injected by PHP; fallback to 'Rs.' if not available
     const currencySymbol = (typeof CURRENCY !== 'undefined' ? CURRENCY : 'Rs.');
 
@@ -181,6 +183,8 @@
                     itemCard.dataset.itemId = item.id;
                     itemCard.dataset.groupLimit = group.choose_limit || '';
                     itemCard.dataset.sectionLimit = section.choose_limit || '';
+                    itemCard.dataset.extraCharge = item.extra_charge || '0';
+                    itemCard.dataset.itemName = item.item_name;
 
                     // Check indicator
                     const checkIcon = document.createElement('div');
@@ -264,12 +268,14 @@
         }
 
         if (!isSelected) {
-            if (groupLimit && currentSelections[menuId][groupId].size >= parseInt(groupLimit)) {
-                showLimitAlert('You can only choose up to ' + groupLimit + ' items from this group.');
-                return;
-            }
-            if (sectionLimit && sectionTotal >= parseInt(sectionLimit)) {
-                showLimitAlert('You can only choose up to ' + sectionLimit + ' items from this section.');
+            const isGroupOver = groupLimit && currentSelections[menuId][groupId].size >= parseInt(groupLimit);
+            const isSectionOver = !isGroupOver && sectionLimit && sectionTotal >= parseInt(sectionLimit);
+            if (isGroupOver || isSectionOver) {
+                const extraCharge = parseFloat(card.dataset.extraCharge || '0');
+                const itemName = card.dataset.itemName || 'this item';
+                showExtraChargeConfirmation(itemName, extraCharge, function () {
+                    addItemOverLimit(card, menuId, groupId, itemId);
+                });
                 return;
             }
             currentSelections[menuId][groupId].add(itemId);
@@ -279,6 +285,10 @@
         } else {
             currentSelections[menuId][groupId].delete(itemId);
             card.classList.remove('cmp-item--selected');
+            card.classList.remove('cmp-item--extra-included');
+            if (overLimitSelections[menuId] && overLimitSelections[menuId][groupId]) {
+                overLimitSelections[menuId][groupId].delete(itemId);
+            }
             const cb = card.querySelector('.menu-item-checkbox');
             if (cb) cb.checked = false;
         }
@@ -350,6 +360,86 @@
                 }, 300);
             }
         }, 3000);
+    }
+
+    function showExtraChargeConfirmation(itemName, extraCharge, onConfirm) {
+        var modalEl = document.getElementById('menuExtraChargeConfirmModal');
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.id = 'menuExtraChargeConfirmModal';
+            modalEl.className = 'modal fade';
+            modalEl.tabIndex = -1;
+            modalEl.setAttribute('aria-modal', 'true');
+            modalEl.setAttribute('role', 'dialog');
+            modalEl.innerHTML =
+                '<div class="modal-dialog modal-dialog-centered modal-sm">' +
+                '<div class="modal-content">' +
+                '<div class="modal-header py-2">' +
+                '<h6 class="modal-title"><i class="fas fa-plus-circle text-warning me-2"></i>Extra Item</h6>' +
+                '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                '</div>' +
+                '<div class="modal-body py-3">' +
+                '<p id="menuExtraConfirmMsg" class="mb-0 text-center"></p>' +
+                '</div>' +
+                '<div class="modal-footer py-2 justify-content-center gap-2">' +
+                '<button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>' +
+                '<button type="button" class="btn btn-sm btn-success" id="menuExtraConfirmOkBtn">Add Item</button>' +
+                '</div>' +
+                '</div></div>';
+            document.body.appendChild(modalEl);
+        }
+
+        var msgEl = modalEl.querySelector('#menuExtraConfirmMsg');
+        if (msgEl) {
+            var escapedCurrency = escapeHtml(currencySymbol);
+            if (extraCharge > 0) {
+                msgEl.innerHTML = 'Adding <strong>' + escapeHtml(itemName) + '</strong> will cost you an extra <strong>' + escapedCurrency + Math.round(extraCharge) + '</strong>. Do you want to add it?';
+            } else {
+                msgEl.innerHTML = 'Adding <strong>' + escapeHtml(itemName) + '</strong> as an extra item (beyond your included selection). Do you want to add it?';
+            }
+        }
+
+        var oldOkBtn = modalEl.querySelector('#menuExtraConfirmOkBtn');
+        if (oldOkBtn) {
+            var newOkBtn = oldOkBtn.cloneNode(true);
+            oldOkBtn.parentNode.replaceChild(newOkBtn, oldOkBtn);
+            newOkBtn.addEventListener('click', function () {
+                var bsModal = typeof bootstrap !== 'undefined' && bootstrap.Modal.getInstance(modalEl);
+                if (bsModal) bsModal.hide();
+                if (typeof onConfirm === 'function') onConfirm();
+            });
+        }
+
+        var bsModal = (typeof bootstrap !== 'undefined')
+            ? (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl))
+            : null;
+        if (bsModal) {
+            bsModal.show();
+        } else if (typeof onConfirm === 'function' && window.confirm(
+            extraCharge > 0
+                ? 'Adding "' + itemName + '" will cost ' + currencySymbol + Math.round(extraCharge) + ' extra. Add it?'
+                : 'Add "' + itemName + '" as an extra item?'
+        )) {
+            onConfirm();
+        }
+    }
+
+    function addItemOverLimit(card, menuId, groupId, itemId) {
+        currentSelections[menuId][groupId].add(itemId);
+        card.classList.add('cmp-item--selected');
+        card.classList.add('cmp-item--extra-included');
+        var cb = card.querySelector('.menu-item-checkbox');
+        if (cb) cb.checked = true;
+
+        if (!overLimitSelections[menuId]) overLimitSelections[menuId] = {};
+        if (!overLimitSelections[menuId][groupId]) overLimitSelections[menuId][groupId] = new Set();
+        overLimitSelections[menuId][groupId].add(itemId);
+
+        updateCounters(menuId);
+        serializeSelections();
+        updateGroupSummary(menuId, groupId);
+        updateSelectedSummary();
+        computeExtraChargesTotal();
     }
 
     function collapseGroup(groupEl) {
@@ -491,11 +581,20 @@
                     section.groups.forEach(function (group) {
                         const sel = currentSelections[menuId][group.id];
                         if (!sel || sel.size === 0) return;
-                        const itemNames = [];
+                        const itemData = [];
                         group.items.forEach(function (item) {
-                            if (sel.has(parseInt(item.id))) itemNames.push(item.item_name);
+                            if (sel.has(parseInt(item.id))) {
+                                const isOver = overLimitSelections[menuId] &&
+                                    overLimitSelections[menuId][group.id] &&
+                                    overLimitSelections[menuId][group.id].has(parseInt(item.id));
+                                itemData.push({
+                                    name: item.item_name,
+                                    extraCharge: parseFloat(item.extra_charge) || 0,
+                                    isOver: isOver
+                                });
+                            }
                         });
-                        if (itemNames.length === 0) return;
+                        if (itemData.length === 0) return;
                         hasAnySelection = true;
 
                         const line = document.createElement('div');
@@ -503,7 +602,7 @@
                         line.innerHTML =
                             '<span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-right:3px;">' +
                             escapeHtml(group.group_name) + ':</span>' +
-                            itemNames.map(function (n) { return compactChip(n); }).join(' ');
+                            itemData.map(function (d) { return compactChip(d.name, d.extraCharge, d.isOver); }).join(' ');
                         linesWrap.appendChild(line);
                     });
                 });
@@ -548,14 +647,24 @@
         body.appendChild(grid);
     }
 
-    function compactChip(name) {
+    function compactChip(name, extraCharge, isExtraIncluded) {
+        var bg = isExtraIncluded ? '#fff7ed' : '#dcfce7';
+        var border = isExtraIncluded ? '#fed7aa' : '#86efac';
+        var textColor = isExtraIncluded ? '#9a3412' : '#14532d';
+        var svgFill = isExtraIncluded ? '#ea580c' : '#15803d';
+        var chargeTag = (extraCharge > 0)
+            ? '<span style="font-size:0.63rem;font-weight:600;color:#b45309;margin-left:2px;">+' + escapeHtml(currencySymbol) + Math.round(extraCharge) + '</span>'
+            : '';
+        var extraTag = isExtraIncluded
+            ? '<span style="font-size:0.6rem;font-weight:700;color:#ea580c;background:#ffedd5;border-radius:3px;padding:0 3px;margin-left:2px;">Extra</span>'
+            : '';
         return '<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px;' +
-            'border-radius:20px;background:#dcfce7;border:1px solid #86efac;' +
-            'font-size:0.72rem;font-weight:500;color:#14532d;">' +
+            'border-radius:20px;background:' + bg + ';border:1px solid ' + border + ';' +
+            'font-size:0.72rem;font-weight:500;color:' + textColor + ';">' +
             '<svg style="width:8px;height:8px;flex-shrink:0;" viewBox="0 0 12 12" fill="none">' +
-            '<circle cx="6" cy="6" r="5.5" fill="#15803d"/>' +
+            '<circle cx="6" cy="6" r="5.5" fill="' + svgFill + '"/>' +
             '<path d="M3.5 6l2 2 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
-            '</svg>' + escapeHtml(name) + '</span>';
+            '</svg>' + escapeHtml(name) + chargeTag + extraTag + '</span>';
     }
 
     function autoCollapseFilledGroups(menuId) {

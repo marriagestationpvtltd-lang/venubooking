@@ -1258,13 +1258,8 @@ function validateMenuSelections($menu_id, array $selections) {
                 $count = count($chosen_ids);
                 $section_selected_count += $count;
 
-                // Validate per-group limit. This is checked independently per group;
-                // section-level limits are validated cumulatively further below using
-                // $section_selected_count which accumulates across all groups in the section.
-                if ($group_limit !== null && $count > $group_limit) {
-                    $errors[] = "Too many items selected from \"" . htmlspecialchars($group['group_name'], ENT_QUOTES, 'UTF-8') . "\": chose {$count}, limit is {$group_limit}.";
-                }
-
+                // Over-limit selections are now allowed (user confirms extra charge on the frontend).
+                // Only validate that each chosen item actually belongs to this group.
                 if (!empty($chosen_ids)) {
                     $placeholders = implode(',', array_fill(0, count($chosen_ids), '?'));
                     $params = array_merge([$gid], $chosen_ids);
@@ -1284,9 +1279,8 @@ function validateMenuSelections($menu_id, array $selections) {
                 }
             }
 
-            if ($section_limit !== null && $section_selected_count > $section_limit) {
-                $errors[] = "Too many items selected from \"" . htmlspecialchars($section['section_name'], ENT_QUOTES, 'UTF-8') . "\": chose {$section_selected_count}, limit is {$section_limit}.";
-            }
+            // Over-limit sections are allowed since the user confirmed extra charges on the frontend.
+            // No section-level limit error is generated.
         }
     } catch (\Throwable $e) {
         error_log("validateMenuSelections error: " . $e->getMessage());
