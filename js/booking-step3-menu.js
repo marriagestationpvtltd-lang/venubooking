@@ -393,6 +393,7 @@
             currentSelections[menuId][groupId].delete(itemId);
             card.classList.remove('cmp-item--selected');
             card.classList.remove('cmp-item--extra-included');
+            card.removeAttribute('data-extra-label');
             if (overLimitSelections[menuId] && overLimitSelections[menuId][groupId]) {
                 overLimitSelections[menuId][groupId].delete(itemId);
             }
@@ -529,6 +530,12 @@
         currentSelections[menuId][groupId].add(itemId);
         card.classList.add('cmp-item--selected');
         card.classList.add('cmp-item--extra-included');
+        var itemExtraCharge = parseFloat(card.dataset.extraCharge || '0');
+        var perItemCharge = parseFloat(card.dataset.groupExtraChargePerItem || '0');
+        var overLimitCharge = perItemCharge > 0 ? perItemCharge : itemExtraCharge;
+        card.dataset.extraLabel = overLimitCharge > 0
+            ? 'Extra +' + currencySymbol + Math.round(overLimitCharge)
+            : 'Extra';
         var cb = card.querySelector('.menu-item-checkbox');
         if (cb) cb.checked = true;
 
