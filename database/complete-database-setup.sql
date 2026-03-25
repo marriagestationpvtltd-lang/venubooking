@@ -175,6 +175,7 @@ CREATE TABLE IF NOT EXISTS menu_group_items (
     menu_group_id INT NOT NULL,
     item_name VARCHAR(255) NOT NULL,
     sub_category VARCHAR(255) DEFAULT NULL COMMENT 'Display-only label, e.g. Paneer Snacks',
+    photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional item photo displayed as circular icon in booking UI',
     extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '0 = included in base price',
     display_order INT NOT NULL DEFAULT 0,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -551,6 +552,28 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     INDEX idx_attempted_at (attempted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   COMMENT='Tracks login attempts for IP-based brute-force protection';
+-- ============================================================================
+-- TABLE: policy_pages (Terms, Privacy Policy, Refund Policy, etc.)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `policy_pages` (
+    `id`                 INT AUTO_INCREMENT PRIMARY KEY,
+    `title`              VARCHAR(255)                    NOT NULL,
+    `slug`               VARCHAR(255)                    NOT NULL,
+    `content`            LONGTEXT                        NOT NULL DEFAULT '',
+    `status`             ENUM('active','inactive')       NOT NULL DEFAULT 'active',
+    `require_acceptance` TINYINT(1)                      NOT NULL DEFAULT 0
+                         COMMENT 'When 1, users must accept this policy before completing a booking',
+    `sort_order`         INT                             NOT NULL DEFAULT 0,
+    `created_at`         TIMESTAMP                       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`         TIMESTAMP                       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_policy_slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `policy_pages` (`title`, `slug`, `content`, `status`, `require_acceptance`, `sort_order`) VALUES
+('Terms and Conditions', 'terms-and-conditions', '<h2>Terms and Conditions</h2>\n<p>Welcome to our venue booking platform. By accessing or using our services, you agree to be bound by these Terms and Conditions.</p>\n\n<h3>1. Booking and Confirmation</h3>\n<p>All bookings are subject to availability. A booking is confirmed once you receive written confirmation.</p>\n\n<h3>2. Payment</h3>\n<p>An advance payment is required to secure your booking.</p>\n\n<h3>3. Cancellation Policy</h3>\n<p>Cancellations must be made in writing. Cancellation charges may apply.</p>\n\n<h3>4. Governing Law</h3>\n<p>These Terms are governed by the laws of Nepal.</p>', 'active', 1, 10),
+('Privacy Policy', 'privacy-policy', '<h2>Privacy Policy</h2>\n<p>Your privacy is important to us. We collect your name, phone, email, and event details to process bookings and improve our services. We do not sell your information to third parties.</p>', 'active', 0, 20),
+('Refund Policy', 'refund-policy', '<h2>Refund Policy</h2>\n<ul>\n  <li><strong>More than 30 days before the event:</strong> Full refund less administrative fees.</li>\n  <li><strong>15–30 days before the event:</strong> 50% refund.</li>\n  <li><strong>Less than 15 days before the event:</strong> No refund.</li>\n</ul>\n<p>Refunds are processed within 7–14 business days.</p>', 'active', 1, 30);
+
 -- ============================================================================
 -- TABLE: gallery_card_groups (named groups for the gallery section)
 -- ============================================================================

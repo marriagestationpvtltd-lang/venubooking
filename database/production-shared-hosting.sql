@@ -208,6 +208,7 @@ CREATE TABLE IF NOT EXISTS menu_groups (
     group_name VARCHAR(255) NOT NULL,
     photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional thumbnail photo for the group',
     choose_limit INT DEFAULT NULL COMMENT 'NULL = inherit from section, >0 = per-group limit',
+    extra_charge_per_item DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Charge per item selected beyond choose_limit (0 = no over-limit charge)',
     display_order INT NOT NULL DEFAULT 0,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -224,6 +225,7 @@ CREATE TABLE IF NOT EXISTS menu_group_items (
     menu_group_id INT NOT NULL,
     item_name VARCHAR(255) NOT NULL,
     sub_category VARCHAR(255) DEFAULT NULL COMMENT 'Display-only label, e.g. Paneer Snacks',
+    photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional item photo displayed as circular icon in booking UI',
     extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '0 = included in base price',
     display_order INT NOT NULL DEFAULT 0,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -1696,6 +1698,7 @@ BEGIN
             group_name VARCHAR(255) NOT NULL,
             photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional thumbnail photo for the group',
             choose_limit INT DEFAULT NULL COMMENT 'NULL = inherit from section, >0 = per-group limit',
+            extra_charge_per_item DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Charge per item selected beyond choose_limit (0 = no over-limit charge)',
             display_order INT NOT NULL DEFAULT 0,
             status ENUM('active','inactive') NOT NULL DEFAULT 'active',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1719,6 +1722,20 @@ BEGIN
             AFTER group_name;
     END IF;
 
+    -- 3b. Add extra_charge_per_item to menu_groups if missing (for installs created
+    --     before add_extra_charge_per_item_to_menu_groups.sql was applied)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'menu_groups'
+          AND column_name = 'extra_charge_per_item'
+    ) THEN
+        ALTER TABLE menu_groups
+            ADD COLUMN extra_charge_per_item DECIMAL(10,2) NOT NULL DEFAULT 0.00
+                COMMENT 'Charge per item selected beyond choose_limit (0 = no over-limit charge)'
+            AFTER choose_limit;
+    END IF;
+
     -- 4. Create menu_group_items if missing
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.tables
@@ -1729,6 +1746,7 @@ BEGIN
             menu_group_id INT NOT NULL,
             item_name VARCHAR(255) NOT NULL,
             sub_category VARCHAR(255) DEFAULT NULL COMMENT 'Display-only label, e.g. Paneer Snacks',
+            photo VARCHAR(255) DEFAULT NULL COMMENT 'Optional item photo displayed as circular icon in booking UI',
             extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '0 = included in base price',
             display_order INT NOT NULL DEFAULT 0,
             status ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -1736,7 +1754,21 @@ BEGIN
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (menu_group_id) REFERENCES menu_groups(id) ON DELETE CASCADE,
             INDEX idx_menu_group_items_group_id (menu_group_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    END IF;
+
+    -- 4b. Add photo column to menu_group_items if missing (for installs created
+    --     before add_photo_to_menu_group_items.sql was applied)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'menu_group_items'
+          AND column_name = 'photo'
+    ) THEN
+        ALTER TABLE menu_group_items
+            ADD COLUMN photo VARCHAR(255) DEFAULT NULL
+                COMMENT 'Optional item photo displayed as circular icon in booking UI'
+            AFTER sub_category;
     END IF;
 
     -- 5. Create booking_menu_item_selections if missing
@@ -1793,3 +1825,72 @@ DELIMITER ;
 
 CALL upgrade_custom_menu_selection();
 DROP PROCEDURE IF EXISTS upgrade_custom_menu_selection;
+
+-- ============================================================================
+-- UPGRADE: Create policy_pages table and seed default policy content
+-- ============================================================================
+-- Adds the policy_pages table used by the Policy Pages system (Terms,
+-- Privacy Policy, Refund Policy, etc.) and the booking acceptance checkbox
+-- on the final booking step.
+-- Safe to run on existing installs (uses IF NOT EXISTS / INSERT IGNORE).
+
+DROP PROCEDURE IF EXISTS upgrade_policy_pages;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_policy_pages()
+BEGIN
+    -- 1. Create policy_pages table if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'policy_pages'
+    ) THEN
+        CREATE TABLE `policy_pages` (
+            `id`                 INT AUTO_INCREMENT PRIMARY KEY,
+            `title`              VARCHAR(255)                    NOT NULL,
+            `slug`               VARCHAR(255)                    NOT NULL,
+            `content`            LONGTEXT                        NOT NULL DEFAULT '',
+            `status`             ENUM('active','inactive')       NOT NULL DEFAULT 'active',
+            `require_acceptance` TINYINT(1)                      NOT NULL DEFAULT 0
+                                 COMMENT 'When 1, users must accept this policy before completing a booking',
+            `sort_order`         INT                             NOT NULL DEFAULT 0,
+            `created_at`         TIMESTAMP                       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at`         TIMESTAMP                       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY `uq_policy_slug` (`slug`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    END IF;
+
+    -- 2. Seed default Terms and Conditions (INSERT IGNORE skips if slug already exists)
+    INSERT IGNORE INTO `policy_pages` (`title`, `slug`, `content`, `status`, `require_acceptance`, `sort_order`) VALUES (
+        'Terms and Conditions',
+        'terms-and-conditions',
+        '<h2>Terms and Conditions</h2>\n<p>Welcome to our venue booking platform. By accessing or using our services, you agree to be bound by these Terms and Conditions. Please read them carefully before proceeding with a booking.</p>\n\n<h3>1. Acceptance of Terms</h3>\n<p>By making a booking, you confirm that you have read, understood, and agreed to these Terms and Conditions in their entirety.</p>\n\n<h3>2. Booking and Confirmation</h3>\n<p>All bookings are subject to availability. A booking is only confirmed once you receive a written confirmation from us.</p>\n\n<h3>3. Payment</h3>\n<p>An advance payment is required to secure your booking. The balance amount is due on or before the event date.</p>\n\n<h3>4. Cancellation Policy</h3>\n<p>Cancellations must be made in writing. Cancellation charges may apply depending on how far in advance the cancellation is made.</p>\n\n<h3>5. Governing Law</h3>\n<p>These Terms and Conditions are governed by the laws of Nepal.</p>',
+        'active',
+        1,
+        10
+    );
+
+    -- 3. Seed default Privacy Policy
+    INSERT IGNORE INTO `policy_pages` (`title`, `slug`, `content`, `status`, `require_acceptance`, `sort_order`) VALUES (
+        'Privacy Policy',
+        'privacy-policy',
+        '<h2>Privacy Policy</h2>\n<p>Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information when you use our venue booking services.</p>\n\n<h3>1. Information We Collect</h3>\n<p>We collect your name, phone number, email address, event details, and payment references.</p>\n\n<h3>2. How We Use Your Information</h3>\n<p>We use the information to process bookings, communicate about your event, and improve our services.</p>\n\n<h3>3. Information Sharing</h3>\n<p>We do not sell or transfer your personal information to third parties without your consent.</p>\n\n<h3>4. Data Security</h3>\n<p>We implement appropriate measures to protect your personal information.</p>',
+        'active',
+        0,
+        20
+    );
+
+    -- 4. Seed default Refund Policy
+    INSERT IGNORE INTO `policy_pages` (`title`, `slug`, `content`, `status`, `require_acceptance`, `sort_order`) VALUES (
+        'Refund Policy',
+        'refund-policy',
+        '<h2>Refund Policy</h2>\n<p>We understand that plans can change. Please review our refund policy carefully before making a booking.</p>\n\n<h3>1. Cancellation and Refund Schedule</h3>\n<ul>\n  <li><strong>More than 30 days before the event:</strong> Full refund less administrative fees.</li>\n  <li><strong>15–30 days before the event:</strong> 50% of the advance payment refunded.</li>\n  <li><strong>Less than 15 days before the event:</strong> No refund.</li>\n</ul>\n\n<h3>2. Refund Processing</h3>\n<p>Approved refunds are processed within 7–14 business days.</p>',
+        'active',
+        1,
+        30
+    );
+END$$
+DELIMITER ;
+
+CALL upgrade_policy_pages();
+DROP PROCEDURE IF EXISTS upgrade_policy_pages;

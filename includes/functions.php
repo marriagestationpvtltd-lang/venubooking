@@ -1589,7 +1589,7 @@ function getOrCreateCustomer($full_name, $phone, $email = '', $address = '', $ci
         // Create new customer
         $stmt = $db->prepare("INSERT INTO customers (full_name, phone, email, address, city) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$full_name, $phone, $email, $address, $city ?: null]);
-        return $db->lastInsertId();
+        return (int)$db->lastInsertId();
     }
 }
 
@@ -1705,7 +1705,7 @@ function createBooking($data) {
                 $data['menu_special_instructions'] ?? ''
             ]);
 
-            $booking_id = $db->lastInsertId();
+            $booking_id = (int)$db->lastInsertId();
 
             // Insert individual time slot records into the junction table.
             // selected_slots is an array of ['id', 'slot_name', 'start_time', 'end_time'];
@@ -3567,7 +3567,7 @@ function recordPayment($data) {
             $data['notes'] ?? null
         ]);
         
-        $payment_id = $db->lastInsertId();
+        $payment_id = (int)$db->lastInsertId();
         
         // Update booking status
         if (isset($data['update_booking_status']) && $data['update_booking_status']) {
@@ -3858,14 +3858,7 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([$booking_id, $service_ref_id, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity, $design_id > 0 ? $design_id : null]);
-        $service_id = $db->lastInsertId();
-        
-        // Recalculate booking totals
-        recalculateBookingTotals($booking_id);
-        
-        $db->commit();
-        return $service_id;
-    } catch (PDOException $e) {
+                $service_id = (int)$db->lastInsertId();
         $db->rollBack();
         $error_code = $e->getCode();
         $error_msg = $e->getMessage();
@@ -3940,7 +3933,7 @@ function addPackageToBooking($booking_id, $package_id, $quantity = 1) {
             ADMIN_SERVICE_TYPE,
             $quantity,
         ]);
-        $service_id = $db->lastInsertId();
+        $service_id = (int)$db->lastInsertId();
 
         recalculateBookingTotals($booking_id);
 
