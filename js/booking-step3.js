@@ -115,9 +115,24 @@ function calculateMenuTotal() {
         const pricePerPerson = parseFloat(checkbox.dataset.price);
         menuTotal += pricePerPerson * guestsCount;
     });
-    
+
+    // Include extra charges from custom menu item selections (e.g. premium items with extra_charge)
+    const extraCharges = (typeof window.menuExtraChargesTotal !== 'undefined') ? window.menuExtraChargesTotal : 0;
+
+    // Show/hide the extra charges line in the summary bar
+    const extraLine = document.getElementById('menuExtraLine');
+    const extraAmount = document.getElementById('menuExtraAmount');
+    if (extraLine && extraAmount) {
+        if (extraCharges > 0) {
+            extraLine.style.display = 'block';
+            extraAmount.textContent = formatCurrency(extraCharges);
+        } else {
+            extraLine.style.display = 'none';
+        }
+    }
+
     const rate = (typeof taxRate !== 'undefined') ? taxRate : 0; // taxRate is always PHP-injected; 0 is a safe fallback to avoid breaking the UI
-    const subtotal = hallPrice + menuTotal;
+    const subtotal = hallPrice + menuTotal + extraCharges;
     const total = subtotal * (1 + rate / 100);
     updateTotalCost(total);
 }

@@ -287,6 +287,7 @@
         serializeSelections();
         updateGroupSummary(menuId, groupId);
         updateSelectedSummary();
+        computeExtraChargesTotal();
 
         // Auto-collapse this group when its limit is reached, then expand the next one
         if (!isSelected && groupLimit &&
@@ -655,10 +656,39 @@
         updateAllCounters();
         serializeSelections();
         updateSelectedSummary();
+        computeExtraChargesTotal();
     }
 
     function updateAllCounters() {
         Object.keys(menuStructures).forEach(function (mid) { updateCounters(parseInt(mid)); });
+    }
+
+    // Compute the sum of extra_charge values for all currently selected menu items
+    // and update the price total in the booking summary bar via calculateMenuTotal().
+    function computeExtraChargesTotal() {
+        let extra = 0;
+        const checkedIds = getCheckedMenuIds();
+        checkedIds.forEach(function (menuId) {
+            const structure = menuStructures[menuId];
+            const selections = currentSelections[menuId];
+            if (!structure || !selections) return;
+            structure.sections.forEach(function (section) {
+                section.groups.forEach(function (group) {
+                    const sel = selections[group.id];
+                    if (!sel || sel.size === 0) return;
+                    group.items.forEach(function (item) {
+                        const charge = parseFloat(item.extra_charge);
+                        if (sel.has(parseInt(item.id)) && charge > 0) {
+                            extra += charge;
+                        }
+                    });
+                });
+            });
+        });
+        window.menuExtraChargesTotal = extra;
+        if (typeof calculateMenuTotal === 'function') {
+            calculateMenuTotal();
+        }
     }
 
     // Listen to menu checkbox changes

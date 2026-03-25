@@ -127,6 +127,7 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
             </div>
             <div class="col-md-4 col-12 text-md-end mt-2 mt-md-0">
                 <div class="small">Hall: <?php echo formatCurrency($hall_price); ?></div>
+                <div class="small" id="menuExtraLine" style="display:none;">Extras: <span id="menuExtraAmount"></span></div>
                 <strong>Total: <span id="totalCost"><?php echo formatCurrency($current_total); ?></span></strong>
             </div>
         </div>
