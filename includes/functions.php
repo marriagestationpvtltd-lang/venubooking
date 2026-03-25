@@ -1258,7 +1258,9 @@ function validateMenuSelections($menu_id, array $selections) {
                 $count = count($chosen_ids);
                 $section_selected_count += $count;
 
-                // Validate group-level limit independently
+                // Validate per-group limit. This is checked independently per group;
+                // section-level limits are validated cumulatively further below using
+                // $section_selected_count which accumulates across all groups in the section.
                 if ($group_limit !== null && $count > $group_limit) {
                     $errors[] = "Too many items selected from \"{$group['group_name']}\": chose {$count}, limit is {$group_limit}.";
                 }
