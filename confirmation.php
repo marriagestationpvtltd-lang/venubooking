@@ -61,6 +61,25 @@ if (!empty($whatsapp_admin_number)) {
         if ($wa_venue)      $wa_message .= "🏛️ Venue: "  . $wa_venue      . "\n";
         if ($wa_hall)       $wa_message .= "🚪 Hall: "   . $wa_hall       . "\n";
         if ($wa_guests > 0) $wa_message .= "👥 Guests: " . $wa_guests     . "\n";
+        if (!empty($booking['menus'])) {
+            $wa_message .= "\n🍽️ *Menus:*\n";
+            foreach ($booking['menus'] as $_wa_menu) {
+                $wa_message .= "• " . strip_tags($_wa_menu['menu_name']) . "\n";
+                // Custom selections for this menu
+                $_wa_sel = $booking['menu_item_selections'][$_wa_menu['menu_id']] ?? null;
+                if (!empty($_wa_sel)) {
+                    foreach ($_wa_sel['sections'] as $_wsec => $_wgrps) {
+                        foreach ($_wgrps as $_wgrp => $_wits) {
+                            $_wnames = array_map(function($i){ return strip_tags($i['item_name']); }, $_wits);
+                            $wa_message .= "   _" . strip_tags($_wgrp) . ":_ " . implode(', ', $_wnames) . "\n";
+                        }
+                    }
+                }
+            }
+        }
+        if (!empty($booking['menu_special_instructions'])) {
+            $wa_message .= "\n📝 *Menu Instructions:*\n" . strip_tags($booking['menu_special_instructions']) . "\n";
+        }
         $wa_message .= "\nPlease review and confirm this booking.";
         $whatsapp_url = 'https://wa.me/' . $wa_phone_clean . '?text=' . rawurlencode($wa_message);
     }
