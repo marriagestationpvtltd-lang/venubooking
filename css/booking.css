@@ -1012,7 +1012,7 @@ html {
 }
 
 .cmp-item--extra-included::after {
-    content: 'Extra';
+    content: attr(data-extra-label);
     position: absolute;
     top: 3px;
     right: 3px;
