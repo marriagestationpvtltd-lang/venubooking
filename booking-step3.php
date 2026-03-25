@@ -286,17 +286,29 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                 <!-- Hidden field storing the JSON of custom menu item selections -->
                 <input type="hidden" name="menu_selections_json" id="menuSelectionsJson" value="">
 
-                <!-- Selected Menus Summary (shown when any menus are selected) -->
+                <!-- Selected Menus Confirmation Summary (shown when any menus are selected) -->
                 <div id="selectedMenusSummary" class="mt-4" style="display:none;">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header border-0 bg-success text-white">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="fas fa-check-circle fs-5"></i>
-                                <div class="fw-bold">Selected Menus</div>
+                    <div class="card border-0" style="border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(21,128,61,0.13);">
+                        <div class="card-header border-0 py-3 px-4" style="background:linear-gradient(135deg,#15803d 0%,#166534 100%);">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:42px;height:42px;background:rgba(255,255,255,0.18);">
+                                    <i class="fas fa-clipboard-check text-white" style="font-size:1.1rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-white" style="font-size:1rem;">Your Menu Selection Summary</div>
+                                    <div class="text-white-50" style="font-size:0.78rem;">Review the items below before continuing</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-body p-3" id="selectedMenusSummaryBody">
+                        <div class="card-body px-4 py-3" id="selectedMenusSummaryBody">
                             <!-- Populated by JS -->
+                        </div>
+                        <div class="card-footer border-0 px-4 py-2" style="background:#f0fdf4;">
+                            <div class="d-flex align-items-center gap-2 text-success" style="font-size:0.82rem;">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Please verify that all selected items are correct before clicking <strong>Continue</strong>.</span>
+                            </div>
                         </div>
                     </div>
                 </div>
