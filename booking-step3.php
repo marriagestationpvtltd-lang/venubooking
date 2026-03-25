@@ -15,7 +15,7 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Save selected menu IDs
     $raw_menus = $_POST['menus'] ?? [];
-    $clean_menus = array_map('intval', array_filter($raw_menus, function($v) { return intval($v) > 0; }));
+    $clean_menus = array_values(array_filter(array_map('intval', $raw_menus), function($v) { return $v > 0; }));
     $_SESSION['selected_menus'] = $clean_menus;
 
     // Save custom menu item selections: [menu_id => [group_id => [item_id, ...]]]

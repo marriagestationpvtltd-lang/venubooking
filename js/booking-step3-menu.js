@@ -256,11 +256,26 @@
             alertDiv.style.cssText = 'top:80px;right:20px;z-index:9999;max-width:350px;';
             document.body.appendChild(alertDiv);
         }
-        alertDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + message +
-            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+        // Build alert content safely to avoid XSS
+        alertDiv.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-exclamation-triangle me-2';
+        const msgSpan = document.createElement('span');
+        msgSpan.textContent = message;
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('data-bs-dismiss', 'alert');
+        alertDiv.appendChild(icon);
+        alertDiv.appendChild(msgSpan);
+        alertDiv.appendChild(closeBtn);
         alertDiv.classList.add('show');
         setTimeout(() => {
-            if (alertDiv) alertDiv.classList.remove('show');
+            if (alertDiv) {
+                alertDiv.classList.remove('show');
+                // Remove from DOM after transition to avoid accumulation
+                setTimeout(() => { if (alertDiv && alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 300);
+            }
         }, 3000);
     }
 
