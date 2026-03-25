@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $section_id = intval($_POST['section_id'] ?? 0);
         if ($section_id > 0) {
             try {
-                $db->prepare("UPDATE menu_sections SET status='inactive' WHERE id=? AND menu_id=?")
+                $db->prepare("DELETE FROM menu_sections WHERE id=? AND menu_id=?")
                    ->execute([$section_id, $menu_id]);
                 $success = 'Section deleted.';
             } catch (\Throwable $e) {
