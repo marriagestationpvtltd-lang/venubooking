@@ -830,20 +830,23 @@ html {
     display: none;
 }
 
-.cmp-group-summary {
+.cmp-group-selected-preview {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.7rem;
+    color: #15803d;
+    font-weight: 500;
+    background: #dcfce7;
+    padding: 0.15rem 0.5rem;
+    border-radius: 99px;
+    margin: 0 0.4rem;
+}
+
+.cmp-group-selected-preview:empty {
     display: none;
-    font-size: 0.73rem;
-    color: #059669;
-    padding: 0 0 0.3rem 1.2rem;
-    line-height: 1.4;
-}
-
-.cmp-group--collapsed .cmp-group-summary {
-    display: block;
-}
-
-.cmp-group-summary:empty {
-    display: none !important;
 }
 
 .cmp-group-limit {
