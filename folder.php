@@ -3148,6 +3148,7 @@ if ($folder && !$error_message) {
                     }
                     var a = document.createElement('a');
                     a.href = zipUrl;
+                    a.download = 'photos.zip';
                     a.style.display = 'none';
                     document.body.appendChild(a);
                     a.click();
@@ -3165,9 +3166,10 @@ if ($folder && !$error_message) {
                 return false;
             }
 
-            // ── Multiple files, ZIP disabled: download files sequentially ───
-            // Uses sequential iframe/anchor downloads to the browser's default Downloads folder.
-            return bulkDownloadIndividual(files.map(function(f) { return f.url; }), null);
+            // ── Multiple files, ZIP disabled: fetch and save files sequentially ───
+            // Uses fetch() + Blob + anchor.download for real byte-level progress and
+            // reliable file saving on both desktop and mobile browsers.
+            return fetchDownloadFiles(files, null, null);
         }
 
         /**
