@@ -269,7 +269,7 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                 <input type="hidden" name="menu_selections_json" id="menuSelectionsJson" value="">
 
                 <!-- Special Instructions -->
-                <div class="mt-4" id="menuSpecialInstructions">
+                <div class="mt-4" id="menuSpecialInstructions" style="display:none;">
                     <div class="card border-0 bg-light">
                         <div class="card-body">
                             <h5 class="card-title"><i class="fas fa-comment-alt me-2 text-success"></i>Special Instructions</h5>
