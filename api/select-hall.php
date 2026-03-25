@@ -109,6 +109,10 @@ try {
         'capacity'   => (int)$hall['capacity'],
     ];
 
+    // Clear any previously selected menus and custom menu item selections so
+    // that no menu is pre-selected by default when the user reaches step 3.
+    unset($_SESSION['selected_menus'], $_SESSION['menu_selections'], $_SESSION['menu_special_instructions']);
+
     // Store time slot data in booking_data session
     if (!empty($slot_data_list)) {
         // Aggregate: earliest start → latest end (use min/max to handle any slot ordering)
