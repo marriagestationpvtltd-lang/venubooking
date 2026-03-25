@@ -13,6 +13,56 @@
     // overLimitSelections[menu_id][group_id] = Set of item_ids added beyond the group choose_limit
     const overLimitSelections = {};
     // Currency symbol injected by PHP; fallback to 'Rs.' if not available
+
+    // ── Shared photo hover popup ──────────────────────────────────────────────
+    let _photoPopup = null;
+    const POPUP_SIZE = 130;
+    const POPUP_VIEWPORT_PADDING = 8;
+
+    function getPhotoPopup() {
+        if (!_photoPopup) {
+            _photoPopup = document.createElement('div');
+            _photoPopup.id = 'cmp-photo-popup';
+            const img = document.createElement('img');
+            img.alt = '';
+            _photoPopup.appendChild(img);
+            document.body.appendChild(_photoPopup);
+        }
+        return _photoPopup;
+    }
+
+    function showPhotoPopup(triggerEl, imgSrc) {
+        const popup = getPhotoPopup();
+        popup.querySelector('img').src = imgSrc;
+        const rect = triggerEl.getBoundingClientRect();
+        let top = rect.top - POPUP_SIZE - 10;
+        let left = rect.left + rect.width / 2 - POPUP_SIZE / 2;
+        if (top < POPUP_VIEWPORT_PADDING) { top = rect.bottom + 10; }
+        if (left < POPUP_VIEWPORT_PADDING) { left = POPUP_VIEWPORT_PADDING; }
+        if (left + POPUP_SIZE > window.innerWidth - POPUP_VIEWPORT_PADDING) {
+            left = window.innerWidth - POPUP_SIZE - POPUP_VIEWPORT_PADDING;
+        }
+        popup.style.top = top + 'px';
+        popup.style.left = left + 'px';
+        popup.classList.add('cmp-photo-popup--visible');
+    }
+
+    function hidePhotoPopup() {
+        if (_photoPopup) {
+            _photoPopup.classList.remove('cmp-photo-popup--visible');
+        }
+    }
+
+    function attachPhotoHover(el, imgSrc, label) {
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('role', 'img');
+        el.setAttribute('aria-label', label || '');
+        el.addEventListener('mouseenter', function () { showPhotoPopup(el, imgSrc); });
+        el.addEventListener('mouseleave', hidePhotoPopup);
+        el.addEventListener('focus', function () { showPhotoPopup(el, imgSrc); });
+        el.addEventListener('blur', hidePhotoPopup);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     const currencySymbol = (typeof CURRENCY !== 'undefined' ? CURRENCY : 'Rs.');
 
     // Initialize from session data if available
@@ -136,9 +186,13 @@
                     const photoWrap = document.createElement('span');
                     photoWrap.className = 'cmp-group-photo';
                     const photoImg = document.createElement('img');
-                    photoImg.src = BASE_URL + '/uploads/' + encodeURIComponent(group.photo);
+                    const imgSrc = BASE_URL + '/uploads/' + encodeURIComponent(group.photo);
+                    photoImg.src = imgSrc;
                     photoImg.alt = escapeHtml(group.group_name);
                     photoWrap.appendChild(photoImg);
+                    // Stop click from toggling group collapse
+                    photoWrap.addEventListener('click', function (e) { e.stopPropagation(); });
+                    attachPhotoHover(photoWrap, imgSrc, group.group_name);
                     groupTitle.appendChild(photoWrap);
                 }
 
@@ -176,7 +230,7 @@
                     const isSelected = currentSelections[menuId][group.id].has(parseInt(item.id));
 
                     const itemCard = document.createElement('div');
-                    itemCard.className = 'cmp-item' + (isSelected ? ' cmp-item--selected' : '');
+                    itemCard.className = 'cmp-item' + (isSelected ? ' cmp-item--selected' : '') + (item.photo ? ' cmp-item--has-photo' : '');
                     itemCard.dataset.menuId = menuId;
                     itemCard.dataset.groupId = group.id;
                     itemCard.dataset.sectionId = section.id;
@@ -216,6 +270,22 @@
                     }
 
                     itemCard.appendChild(body);
+
+                    // Item photo circular icon with hover popup
+                    if (item.photo) {
+                        const itemPhotoWrap = document.createElement('span');
+                        itemPhotoWrap.className = 'cmp-item-photo';
+                        itemPhotoWrap.title = item.item_name;
+                        const itemPhotoImg = document.createElement('img');
+                        const itemImgSrc = BASE_URL + '/uploads/' + encodeURIComponent(item.photo);
+                        itemPhotoImg.src = itemImgSrc;
+                        itemPhotoImg.alt = escapeHtml(item.item_name);
+                        itemPhotoWrap.appendChild(itemPhotoImg);
+                        // Stop click from selecting/deselecting the item
+                        itemPhotoWrap.addEventListener('click', function (e) { e.stopPropagation(); });
+                        attachPhotoHover(itemPhotoWrap, itemImgSrc, item.item_name);
+                        itemCard.appendChild(itemPhotoWrap);
+                    }
 
                     // Hidden checkbox for form-based compatibility
                     const hiddenCb = document.createElement('input');

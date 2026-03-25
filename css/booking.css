@@ -897,28 +897,22 @@ html {
     border-radius: 50%;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
+    border: 2px solid #86efac;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cmp-group-photo:hover {
-    overflow: visible;
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
 }
 
 .cmp-group-photo img {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #86efac;
     display: block;
-    transition: transform 0.22s ease, box-shadow 0.22s ease;
-    transform-origin: center center;
-}
-
-.cmp-group-photo:hover img {
-    transform: scale(2.2);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-    z-index: 100;
-    position: relative;
 }
 
 .cmp-group-title .cmp-group-toggle {
@@ -1078,6 +1072,70 @@ html {
     padding: 0.06rem 0.3rem;
     border-radius: 3px;
     margin-top: 0.2rem;
+}
+
+/* ── Item photo circular icon (shown in top-right of item card) ── */
+.cmp-item--has-photo {
+    padding-right: 2.2rem;
+}
+
+.cmp-item-photo {
+    position: absolute;
+    top: 50%;
+    right: 5px;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    z-index: 2;
+    border: 2px solid #86efac;
+    flex-shrink: 0;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cmp-item-photo:hover {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.cmp-item-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+/* ── Shared photo hover popup ── */
+#cmp-photo-popup {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #86efac;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28), 0 0 0 6px rgba(134, 239, 172, 0.3);
+    background: #fff;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+    width: 130px;
+    height: 130px;
+}
+
+#cmp-photo-popup.cmp-photo-popup--visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+#cmp-photo-popup img {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
 }
 
 /* ── Selected Menus Summary card ── */
