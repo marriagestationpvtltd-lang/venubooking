@@ -329,6 +329,7 @@
 
         const checkedIds = getCheckedMenuIds();
         const panelContainer = document.getElementById('customMenuPanel');
+        const specialInstructions = document.getElementById('menuSpecialInstructions');
 
         panel.innerHTML = '<div class="cmp-loading"><i class="fas fa-spinner fa-spin me-2"></i>Loading menu options...</div>';
 
@@ -348,8 +349,10 @@
         if (hasAnyStructure) {
             allPanels.forEach(function (p) { panel.appendChild(p); });
             if (panelContainer) panelContainer.style.display = '';
+            if (specialInstructions) specialInstructions.style.display = '';
         } else {
             if (panelContainer) panelContainer.style.display = 'none';
+            if (specialInstructions) specialInstructions.style.display = 'none';
         }
 
         updateAllCounters();
