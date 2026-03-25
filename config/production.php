@@ -55,7 +55,14 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 set_exception_handler(function($exception) {
     // Log the exception
     error_log("Uncaught Exception: " . $exception->getMessage() . " in " . $exception->getFile() . " on line " . $exception->getLine());
-    
+
+    // If headers have already been sent (e.g. a binary file stream was already
+    // started), we cannot safely change the status code or output an HTML page —
+    // doing so would corrupt the already-started response.  Just stop here.
+    if (headers_sent()) {
+        exit;
+    }
+
     // Show user-friendly error page
     http_response_code(500);
     
