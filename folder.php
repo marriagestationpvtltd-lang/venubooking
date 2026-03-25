@@ -375,6 +375,12 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
 
 // Handle Download All as ZIP - Using streaming for instant downloads (like Google Drive)
 if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] === '1' && $folder['allow_zip_download']) {
+    // Outer try-catch covers the entire ZIP handler so that any unexpected
+    // exception (e.g. a PHP 8 TypeError from a missing column, a PDOException
+    // from the download-count update, or an I/O error reading the temp file)
+    // is caught here instead of reaching the global exception handler in
+    // production.php which would return an HTTP 500 response to the browser.
+    try {
     // Disable PHP execution time limit as early as possible so the file-validation
     // loop (which calls detectMimeType() for every photo) cannot timeout on large
     // folders before the ZIP creation even starts.  This is especially important on
@@ -526,6 +532,11 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                         } else {
                             $zip_size = filesize($temp_zip);
 
+                            // Release session lock before streaming so other
+                            // requests from the same user are not blocked during
+                            // the potentially long file transfer.
+                            session_write_close();
+
                             header('Content-Type: application/zip');
                             header('Content-Disposition: attachment; filename="' . $zip_filename . '"');
                             header('Content-Length: ' . $zip_size);
@@ -563,6 +574,10 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
 
                 try {
                     $zipStream = new ZipStream($zip_filename);
+                    // Release session lock before streaming starts so other
+                    // requests from the same user are not blocked during the
+                    // potentially long file transfer.
+                    session_write_close();
                     $zipStream->begin();
                     $zip_stream_started = true;
 
@@ -594,6 +609,17 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                 }
             }
         }
+    }
+    } catch (Throwable $e) {
+        // Outer catch: handles any exception not caught by the inner try blocks
+        // above (e.g. PHP 8 TypeErrors from missing DB columns, unexpected I/O
+        // errors during temp-file creation, or any other unforeseen runtime error).
+        error_log('ZIP download (outer) error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+        if (headers_sent()) {
+            // ZIP streaming already started – cannot safely output HTML.
+            exit;
+        }
+        $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
     }
 }
 
