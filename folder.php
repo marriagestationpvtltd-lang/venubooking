@@ -2615,7 +2615,7 @@ if ($folder && !$error_message) {
          * The browser's download manager handles the file transfer directly,
          * avoiding the slow fetch-to-memory approach.
          */
-        function startDownload(url, defaultName) {
+        async function startDownload(url, defaultName) {
             var overlay = document.getElementById('downloadProgressOverlay');
             var dlBar   = document.getElementById('dlBar');
             var dlPct   = document.getElementById('dlPercent');
@@ -2626,25 +2626,10 @@ if ($folder && !$error_message) {
             var dlSize  = document.getElementById('dlSizeInfo');
             var dlIcon  = document.getElementById('dlIcon');
 
-            // Show "Starting Download" notification with spinner
-            dlBar.style.width      = '100%';
-            dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
-            dlBar.style.backgroundSize = '';
-            dlBar.style.animation  = '';
-            dlPct.textContent      = '';
-            dlEta.textContent      = '';
-            dlSpd.textContent      = '';
-            dlTitle.textContent    = 'Starting Download...';
-            dlFile.textContent     = defaultName || '';
-            dlSize.textContent     = '';
-            dlIcon.className       = 'fas fa-spinner fa-spin';
-
-            overlay.classList.add('dl-active');
-
             // Helper: show success state and auto-hide overlay
-            function showSuccess() {
-                dlTitle.textContent = 'Download Started!';
-                dlSize.textContent  = 'Check your browser downloads';
+            function showSuccess(savedMsg) {
+                dlTitle.textContent = 'Download Complete!';
+                dlSize.textContent  = savedMsg || 'File saved successfully';
                 dlIcon.className    = 'fas fa-check-circle';
                 setTimeout(function() {
                     overlay.classList.remove('dl-active');
@@ -2663,9 +2648,63 @@ if ($folder && !$error_message) {
                 }, 3000);
             }
 
-            // Use hidden iframe for instant download (native browser download)
+            // Use File System Access API to prompt the user for a save location.
+            // showSaveFilePicker() must be called before any await so the browser
+            // still considers this call to be within the user-gesture activation window.
+            if (typeof window.showSaveFilePicker === 'function') {
+                var fileHandle = null;
+                try {
+                    fileHandle = await window.showSaveFilePicker({ suggestedName: defaultName || 'file.bin' });
+                } catch (e) {
+                    if (e.name === 'AbortError') { return false; } // user cancelled
+                    fileHandle = null; // API failed – fall through to iframe
+                }
+
+                if (fileHandle) {
+                    // Show "Downloading" state in overlay
+                    dlBar.style.width      = '100%';
+                    dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+                    dlBar.style.backgroundSize = '';
+                    dlBar.style.animation  = '';
+                    dlPct.textContent      = '';
+                    dlEta.textContent      = '';
+                    dlSpd.textContent      = '';
+                    dlTitle.textContent    = 'Downloading…';
+                    dlFile.textContent     = defaultName || '';
+                    dlSize.textContent     = '';
+                    dlIcon.className       = 'fas fa-spinner fa-spin';
+                    overlay.classList.add('dl-active');
+
+                    try {
+                        var response = await fetch(url);
+                        if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                        var writable = await fileHandle.createWritable();
+                        await response.body.pipeTo(writable);
+                        showSuccess('File saved successfully');
+                    } catch (err) {
+                        showError('Download failed – please try again');
+                        console.error('Download error:', err);
+                    }
+                    return false;
+                }
+            }
+
+            // Fallback: use hidden iframe for instant download (native browser download).
             // This triggers the browser's download manager immediately.
             // The iframe is intentionally reused across downloads for efficiency.
+            dlBar.style.width      = '100%';
+            dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+            dlBar.style.backgroundSize = '';
+            dlBar.style.animation  = '';
+            dlPct.textContent      = '';
+            dlEta.textContent      = '';
+            dlSpd.textContent      = '';
+            dlTitle.textContent    = 'Starting Download...';
+            dlFile.textContent     = defaultName || '';
+            dlSize.textContent     = '';
+            dlIcon.className       = 'fas fa-spinner fa-spin';
+            overlay.classList.add('dl-active');
+
             var iframe = document.getElementById('downloadFrame');
             if (!iframe) {
                 iframe = document.createElement('iframe');
@@ -2678,7 +2717,7 @@ if ($folder && !$error_message) {
             // Timeout fallback: if server responds with attachment header,
             // the iframe does NOT navigate so onload may not fire at all.
             // After 800 ms we assume the download started successfully.
-            var loadTimeout = setTimeout(showSuccess, 800);
+            var loadTimeout = setTimeout(function() { showSuccess('Check your browser downloads'); }, 800);
 
             // Attach event handlers BEFORE setting src to avoid race condition.
             iframe.onload = function() {
@@ -2698,7 +2737,7 @@ if ($folder && !$error_message) {
                 } catch (e) {
                     // Cross-origin access denied (shouldn't happen for same domain)
                 }
-                showSuccess();
+                showSuccess('Check your browser downloads');
             };
             iframe.onerror = function() {
                 clearTimeout(loadTimeout);
@@ -3023,10 +3062,10 @@ if ($folder && !$error_message) {
 
         /**
          * Core download-now handler. Accepts an array of {url, filename} objects.
-         * For multiple files: downloads as a single ZIP (no per-file save dialogs,
-         * photos preserved in their original uploaded format).
-         * For a single file: uses fetch() with progress tracking + Blob anchor-click.
-         * Falls back to iframe-based download on very old browsers without fetch.
+         * For multiple files: downloads as a single ZIP; uses showSaveFilePicker when
+         * available so the user is asked where to save the file.
+         * For a single file: delegates to startDownload() which also uses showSaveFilePicker.
+         * Falls back to anchor/iframe-based download when the API is unavailable.
          */
         async function downloadNow(files) {
             if (!files || files.length === 0) return false;
@@ -3034,10 +3073,8 @@ if ($folder && !$error_message) {
             var zipAllowed = <?php echo (($folder && !empty($folder['allow_zip_download'])) && empty($zip_error_message)) ? 'true' : 'false'; ?>;
 
             // ── Multiple files: use ZIP download ───────────────────────────────
-            // Downloading each file individually triggers a browser save dialog for
-            // every photo.  Bundling into a single ZIP means only one dialog (or
-            // none when the browser auto-saves to Downloads), and each photo is
-            // stored inside the ZIP in its original uploaded format.
+            // Bundling into a single ZIP means only one save dialog for all selected
+            // photos, and each photo is preserved in its original uploaded format.
             if (files.length > 1 && zipAllowed) {
                 var ids = [];
                 files.forEach(function(f) {
@@ -3049,7 +3086,6 @@ if ($folder && !$error_message) {
                     var zipUrl = '?token=' + encodeURIComponent(<?php echo json_encode($token, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)
                                + '&download_all=1&ids=' + ids.join(',');
 
-                    // Show a brief "Preparing…" state in the progress overlay
                     var overlay = document.getElementById('downloadProgressOverlay');
                     var dlBar   = document.getElementById('dlBar');
                     var dlPct   = document.getElementById('dlPercent');
@@ -3059,35 +3095,94 @@ if ($folder && !$error_message) {
                     var dlIcon  = document.getElementById('dlIcon');
                     var dlEta   = document.getElementById('dlEta');
                     var dlSpd   = document.getElementById('dlSpeed');
-                    if (overlay) {
-                        dlBar.style.width           = '100%';
-                        dlBar.style.background      = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
-                        dlBar.style.backgroundSize  = '200% 100%';
-                        dlBar.style.animation       = 'dlIndeterminate 1.5s linear infinite';
-                        dlPct.textContent      = '';
-                        dlTitle.textContent    = 'Preparing ZIP download…';
-                        dlFile.textContent     = ids.length + ' files';
-                        dlSize.textContent     = '';
-                        dlEta.textContent      = 'Please wait…';
-                        dlSpd.textContent      = '';
-                        dlIcon.className       = 'fas fa-spinner fa-spin';
-                        overlay.classList.add('dl-active');
-                        // Hide the overlay after 4 s.  The streaming ZIP starts sending bytes
-                        // immediately, so the browser's own download indicator takes over
-                        // within that window; keeping it longer would only confuse the user.
-                        setTimeout(function() { overlay.classList.remove('dl-active'); }, 4000);
+
+                    // Use File System Access API to ask the user where to save.
+                    // showSaveFilePicker() is called before any await so the browser
+                    // still treats it as being within the user-gesture window.
+                    if (typeof window.showSaveFilePicker === 'function') {
+                        var zipHandle = null;
+                        try {
+                            var suggestedZip = <?php echo json_encode(
+                                preg_replace('/[^a-zA-Z0-9_\-\s]/u', '_', $folder['folder_name'] ?? 'photos'),
+                                JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                            ); ?> + '.zip';
+                            zipHandle = await window.showSaveFilePicker({
+                                suggestedName: suggestedZip,
+                                types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }]
+                            });
+                        } catch (e) {
+                            if (e.name === 'AbortError') { return false; } // user cancelled
+                            zipHandle = null; // API failed – fall through to anchor fallback
+                        }
+
+                        if (zipHandle) {
+                            if (overlay) {
+                                dlBar.style.width          = '100%';
+                                dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
+                                dlBar.style.backgroundSize = '200% 100%';
+                                dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
+                                dlPct.textContent  = '';
+                                dlTitle.textContent = 'Downloading ZIP…';
+                                dlFile.textContent = ids.length + ' files';
+                                dlSize.textContent = '';
+                                dlEta.textContent  = 'Please wait…';
+                                dlSpd.textContent  = '';
+                                dlIcon.className   = 'fas fa-spinner fa-spin';
+                                overlay.classList.add('dl-active');
+                            }
+                            try {
+                                var zipResponse = await fetch(zipUrl);
+                                if (!zipResponse.ok) { throw new Error('HTTP ' + zipResponse.status); }
+                                var zipWritable = await zipHandle.createWritable();
+                                await zipResponse.body.pipeTo(zipWritable);
+                                if (overlay) {
+                                    dlBar.style.width      = '100%';
+                                    dlBar.style.animation  = '';
+                                    dlTitle.textContent    = 'Download Complete!';
+                                    dlFile.textContent     = suggestedZip;
+                                    dlSize.textContent     = 'File saved successfully';
+                                    dlEta.textContent      = '';
+                                    dlIcon.className       = 'fas fa-check-circle';
+                                    setTimeout(function() { overlay.classList.remove('dl-active'); }, 2000);
+                                }
+                            } catch (zipErr) {
+                                if (overlay) {
+                                    dlTitle.textContent    = 'Download Failed';
+                                    dlSize.textContent     = 'Please try again';
+                                    dlIcon.className       = 'fas fa-exclamation-circle';
+                                    dlBar.style.background = '#dc3545';
+                                    dlBar.style.animation  = '';
+                                    setTimeout(function() { overlay.classList.remove('dl-active'); }, 3000);
+                                }
+                                console.error('ZIP download error:', zipErr);
+                            }
+                            return false;
+                        }
                     }
 
-                    // Trigger the ZIP download without navigating away from the page.
+                    // Fallback: trigger the ZIP download via an anchor click.
                     // The server sends Content-Disposition:attachment so the browser saves
-                    // the file instead of navigating to the URL.
+                    // the file (to the default Downloads folder on most configurations).
+                    if (overlay) {
+                        dlBar.style.width          = '100%';
+                        dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
+                        dlBar.style.backgroundSize = '200% 100%';
+                        dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
+                        dlPct.textContent  = '';
+                        dlTitle.textContent = 'Preparing ZIP download…';
+                        dlFile.textContent = ids.length + ' files';
+                        dlSize.textContent = '';
+                        dlEta.textContent  = 'Please wait…';
+                        dlSpd.textContent  = '';
+                        dlIcon.className   = 'fas fa-spinner fa-spin';
+                        overlay.classList.add('dl-active');
+                        setTimeout(function() { overlay.classList.remove('dl-active'); }, 4000);
+                    }
                     var a = document.createElement('a');
                     a.href = zipUrl;
                     a.style.display = 'none';
                     document.body.appendChild(a);
                     a.click();
-                    // Remove the anchor after 1 s — long enough for the browser to
-                    // initiate the request but short enough not to pollute the DOM.
                     setTimeout(function() {
                         if (a.parentNode) { a.parentNode.removeChild(a); }
                     }, 1000);
@@ -3095,19 +3190,29 @@ if ($folder && !$error_message) {
                 }
             }
 
-            // ── Single file (or ZIP disabled): use native browser download ────
-            // For a single file use the iframe-based startDownload helper which
-            // hands the transfer off to the browser's own download manager without
-            // loading the file into JavaScript memory (important for large videos).
+            // ── Single file (or ZIP disabled): delegate to startDownload() ────
+            // startDownload() uses showSaveFilePicker when available, so the user
+            // will be asked where to save the file on supporting browsers.
             if (files.length === 1) {
                 startDownload(files[0].url, files[0].filename);
                 return false;
             }
 
-            // ── Multiple files, ZIP disabled: sequential iframe downloads ──────
-            // bulkDownloadIndividual with a null directoryHandle fires each URL
-            // through a hidden iframe (900 ms apart) so the browser's download
-            // manager handles each file natively.
+            // ── Multiple files, ZIP disabled: ask for a save folder ──────────
+            // showDirectoryPicker() lets the user choose a folder; the files are
+            // then written there one by one via bulkDownloadIndividual().
+            // Falls back to sequential iframe downloads when the API is unavailable.
+            if (typeof window.showDirectoryPicker === 'function') {
+                try {
+                    // 'readwrite' is required by the File System Access API spec
+                    // to be able to create and write files in the chosen directory.
+                    var dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    return bulkDownloadIndividual(files.map(function(f) { return f.url; }), dirHandle);
+                } catch (e) {
+                    if (e.name === 'AbortError') { return false; } // user cancelled
+                    // API failed – fall through to iframe fallback
+                }
+            }
             return bulkDownloadIndividual(files.map(function(f) { return f.url; }), null);
         }
 
