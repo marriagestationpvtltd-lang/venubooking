@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $group_id = intval($_POST['group_id'] ?? 0);
         if ($group_id > 0) {
             try {
-                $db->prepare("UPDATE menu_groups SET status='inactive' WHERE id=? AND menu_section_id=?")
+                $db->prepare("DELETE FROM menu_groups WHERE id=? AND menu_section_id=?")
                    ->execute([$group_id, $section_id]);
                 $success = 'Group deleted.';
             } catch (\Throwable $e) {
