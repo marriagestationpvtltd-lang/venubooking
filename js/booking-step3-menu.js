@@ -643,11 +643,17 @@
             const hasSections = structure && structure.sections && structure.sections.length > 0;
 
             if (hasSections && currentSelections[menuId]) {
-                // Custom-selection menu: compact rows per group
+                // Custom-selection menu: section-wise price breakdown
+                const pricePerPerson = cb ? parseFloat(cb.dataset.price || '0') : 0;
+                const guests = (typeof guestsCount !== 'undefined') ? parseInt(guestsCount) : 0;
                 let hasAnySelection = false;
-                const linesWrap = document.createElement('div');
+                let runningExtra = 0;
+                const sectionsWrap = document.createElement('div');
 
                 structure.sections.forEach(function (section) {
+                    let sectionExtra = 0;
+                    const sectionGroups = [];
+
                     section.groups.forEach(function (group) {
                         const sel = currentSelections[menuId][group.id];
                         if (!sel || sel.size === 0) return;
@@ -657,33 +663,98 @@
                                 const isOver = overLimitSelections[menuId] &&
                                     overLimitSelections[menuId][group.id] &&
                                     overLimitSelections[menuId][group.id].has(parseInt(item.id));
+                                const charge = parseFloat(item.extra_charge) || 0;
+                                sectionExtra += charge;
                                 itemData.push({
                                     name: item.item_name,
-                                    extraCharge: parseFloat(item.extra_charge) || 0,
+                                    extraCharge: charge,
                                     isOver: isOver
                                 });
                             }
                         });
-                        if (itemData.length === 0) return;
-                        hasAnySelection = true;
-
-                        const line = document.createElement('div');
-                        line.style.cssText = 'margin-bottom:4px;';
-                        line.innerHTML =
-                            '<span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-right:3px;">' +
-                            escapeHtml(group.group_name) + ':</span>' +
-                            itemData.map(function (d) { return compactChip(d.name, d.extraCharge, d.isOver); }).join(' ');
-                        linesWrap.appendChild(line);
+                        if (itemData.length > 0) {
+                            sectionGroups.push({ groupName: group.group_name, items: itemData });
+                        }
                     });
+
+                    if (sectionGroups.length === 0) return;
+                    hasAnySelection = true;
+                    runningExtra += sectionExtra;
+
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.style.cssText = 'margin-bottom:5px;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;';
+
+                    // Section header: name + section extra badge
+                    const sectionHead = document.createElement('div');
+                    sectionHead.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:#f1f5f9;padding:2px 7px;';
+                    const sectionTitle = document.createElement('span');
+                    sectionTitle.style.cssText = 'font-size:0.7rem;font-weight:700;color:#334155;';
+                    sectionTitle.textContent = section.section_name;
+                    sectionHead.appendChild(sectionTitle);
+                    if (sectionExtra > 0) {
+                        const secExtraBadge = document.createElement('span');
+                        secExtraBadge.style.cssText = 'font-size:0.63rem;font-weight:600;color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0 5px;';
+                        secExtraBadge.textContent = '+' + currencySymbol + Math.round(sectionExtra);
+                        sectionHead.appendChild(secExtraBadge);
+                    }
+                    sectionDiv.appendChild(sectionHead);
+
+                    // Groups & items
+                    const itemsDiv = document.createElement('div');
+                    itemsDiv.style.cssText = 'padding:3px 7px;';
+                    sectionGroups.forEach(function (grp) {
+                        const line = document.createElement('div');
+                        line.style.cssText = 'margin-bottom:2px;';
+                        line.innerHTML =
+                            '<span style="font-size:0.68rem;font-weight:600;color:#64748b;margin-right:3px;">' +
+                            escapeHtml(grp.groupName) + ':</span>' +
+                            grp.items.map(function (d) { return compactChip(d.name, d.extraCharge, d.isOver); }).join(' ');
+                        itemsDiv.appendChild(line);
+                    });
+                    sectionDiv.appendChild(itemsDiv);
+
+                    // Running cumulative extra total
+                    const cumDiv = document.createElement('div');
+                    cumDiv.style.cssText = 'display:flex;justify-content:space-between;padding:1px 7px 3px;border-top:1px dashed #e2e8f0;background:#fafafa;';
+                    const cumLabel = document.createElement('span');
+                    cumLabel.style.cssText = 'font-size:0.62rem;color:#94a3b8;';
+                    cumLabel.textContent = 'Cumulative extras:';
+                    cumDiv.appendChild(cumLabel);
+                    const cumVal = document.createElement('span');
+                    cumVal.style.cssText = 'font-size:0.65rem;font-weight:700;color:#92400e;';
+                    cumVal.textContent = currencySymbol + Math.round(runningExtra);
+                    cumDiv.appendChild(cumVal);
+                    sectionDiv.appendChild(cumDiv);
+
+                    sectionsWrap.appendChild(sectionDiv);
                 });
 
                 if (!hasAnySelection) {
-                    linesWrap.setAttribute('role', 'status');
-                    linesWrap.innerHTML =
+                    sectionsWrap.setAttribute('role', 'status');
+                    sectionsWrap.innerHTML =
                         '<span style="font-size:0.72rem;color:#d97706;">' +
                         '<i class="fas fa-exclamation-circle" aria-hidden="true"></i> No items selected yet</span>';
                 }
-                cell.appendChild(linesWrap);
+                cell.appendChild(sectionsWrap);
+
+                // Menu total summary row (base price × guests + extras)
+                if (hasAnySelection) {
+                    const totalRow = document.createElement('div');
+                    totalRow.style.cssText = 'margin-top:4px;display:flex;justify-content:space-between;align-items:center;padding:3px 7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;';
+                    const totalLabel = document.createElement('span');
+                    totalLabel.style.cssText = 'font-size:0.65rem;color:#166534;';
+                    if (guests > 0 && pricePerPerson > 0) {
+                        totalLabel.textContent = currencySymbol + Math.round(pricePerPerson) + '/pax \u00d7 ' + guests + (runningExtra > 0 ? ' + extras' : '');
+                    } else {
+                        totalLabel.textContent = 'Menu total:';
+                    }
+                    totalRow.appendChild(totalLabel);
+                    const totalVal = document.createElement('span');
+                    totalVal.style.cssText = 'font-size:0.7rem;font-weight:700;color:#166534;';
+                    totalVal.textContent = currencySymbol + Math.round(pricePerPerson * guests + runningExtra);
+                    totalRow.appendChild(totalVal);
+                    cell.appendChild(totalRow);
+                }
 
             } else if (menuItemsData.length > 0) {
                 // Simple menu: compact rows per category

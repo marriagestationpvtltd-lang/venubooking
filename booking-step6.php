@@ -484,6 +484,16 @@ require_once __DIR__ . '/includes/header.php';
                                             <td class="text-end"><strong><?php echo formatCurrency($totals['hall_price']); ?></strong></td>
                                         </tr>
                                         <?php if ($totals['menu_total'] > 0): ?>
+                                        <?php if (!empty($totals['menu_extra_total']) && $totals['menu_extra_total'] > 0): ?>
+                                        <tr>
+                                            <td><i class="fas fa-utensils text-success me-2"></i>Menu Base Cost:</td>
+                                            <td class="text-end"><strong><?php echo formatCurrency($totals['menu_total'] - $totals['menu_extra_total']); ?></strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-plus-circle text-warning me-2"></i>Menu Extra Items:</td>
+                                            <td class="text-end"><strong class="text-warning">+<?php echo formatCurrency($totals['menu_extra_total']); ?></strong></td>
+                                        </tr>
+                                        <?php endif; ?>
                                         <tr>
                                             <td><i class="fas fa-utensils text-success me-2"></i>Menu Cost:</td>
                                             <td class="text-end"><strong><?php echo formatCurrency($totals['menu_total']); ?></strong></td>
@@ -772,24 +782,60 @@ require_once __DIR__ . '/includes/header.php';
                                     <small class="text-success"><?php echo formatCurrency($menu['price_per_person']); ?>/pax</small>
                                     <?php if (!empty($menu['custom_structure']) && !empty($menu['custom_selections'])): ?>
                                         <div class="mt-1 ms-2">
-                                            <?php foreach ($menu['custom_structure'] as $section): ?>
-                                                <?php foreach ($section['groups'] as $group): ?>
-                                                    <?php
+                                            <?php
+                                            $menu_running_extra = 0;
+                                            foreach ($menu['custom_structure'] as $section):
+                                                // Pre-calculate section data
+                                                $section_rows = [];
+                                                $section_extra = 0;
+                                                foreach ($section['groups'] as $group):
                                                     $gid = intval($group['id']);
-                                                    $chosen = isset($menu['custom_selections'][$gid]) ? $menu['custom_selections'][$gid] : [];
-                                                    $chosen_ids = array_map('intval', $chosen);
-                                                    $selected_items = array_filter($group['items'], function($it) use ($chosen_ids) {
+                                                    $chosen_ids = array_map('intval', isset($menu['custom_selections'][$gid]) ? $menu['custom_selections'][$gid] : []);
+                                                    $sel_items = array_values(array_filter($group['items'], function($it) use ($chosen_ids) {
                                                         return in_array(intval($it['id']), $chosen_ids);
-                                                    });
-                                                    ?>
-                                                    <?php if (!empty($selected_items)): ?>
-                                                        <div class="small text-muted">
-                                                            <span class="fw-semibold text-success"><?php echo sanitize($group['group_name']); ?>:</span>
-                                                            <?php echo sanitize(implode(', ', array_column(array_values($selected_items), 'item_name'))); ?>
+                                                    }));
+                                                    if (empty($sel_items)) continue;
+                                                    $parts = [];
+                                                    foreach ($sel_items as $sit):
+                                                        $charge = floatval($sit['extra_charge']);
+                                                        $section_extra += $charge;
+                                                        $parts[] = htmlspecialchars($sit['item_name'], ENT_QUOTES, 'UTF-8')
+                                                            . ($charge > 0 ? ' <span class="text-warning fw-semibold">+' . htmlspecialchars(formatCurrency($charge), ENT_QUOTES, 'UTF-8') . '</span>' : '');
+                                                    endforeach;
+                                                    $section_rows[] = ['group_name' => $group['group_name'], 'items_html' => implode(', ', $parts)];
+                                                endforeach;
+                                                if (empty($section_rows)) continue;
+                                                $menu_running_extra += $section_extra;
+                                            ?>
+                                                <div class="border rounded mb-1 overflow-hidden">
+                                                    <div class="d-flex justify-content-between align-items-center px-2 py-1" style="background:#f1f5f9;">
+                                                        <span class="fw-semibold" style="font-size:0.72rem;color:#334155;"><?php echo htmlspecialchars($section['section_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                                        <?php if ($section_extra > 0): ?>
+                                                            <span class="badge bg-warning text-dark" style="font-size:0.62rem;">+<?php echo htmlspecialchars(formatCurrency($section_extra), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="px-2 py-1">
+                                                        <?php foreach ($section_rows as $row): ?>
+                                                            <div style="font-size:0.7rem;" class="text-muted">
+                                                                <span class="fw-semibold text-success"><?php echo htmlspecialchars($row['group_name'], ENT_QUOTES, 'UTF-8'); ?>:</span>
+                                                                <?php echo $row['items_html']; ?>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                    <?php if ($section_extra > 0): ?>
+                                                        <div class="d-flex justify-content-between px-2 py-1 border-top" style="background:#fafafa;font-size:0.65rem;">
+                                                            <span class="text-muted">Cumulative extras:</span>
+                                                            <span class="fw-bold text-warning"><?php echo htmlspecialchars(formatCurrency($menu_running_extra), ENT_QUOTES, 'UTF-8'); ?></span>
                                                         </div>
                                                     <?php endif; ?>
-                                                <?php endforeach; ?>
+                                                </div>
                                             <?php endforeach; ?>
+                                            <?php if ($menu_running_extra > 0): ?>
+                                                <div class="d-flex justify-content-between px-2 py-1 rounded" style="font-size:0.72rem;background:#f0fdf4;border:1px solid #bbf7d0;">
+                                                    <span class="fw-semibold text-success">Total extras:</span>
+                                                    <span class="fw-bold text-success">+<?php echo htmlspecialchars(formatCurrency($menu_running_extra), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -854,6 +900,16 @@ require_once __DIR__ . '/includes/header.php';
                             <strong class="text-success"><?php echo formatCurrency($totals['hall_price']); ?></strong>
                         </div>
                         <?php if ($totals['menu_total'] > 0): ?>
+                            <?php if (!empty($totals['menu_extra_total']) && $totals['menu_extra_total'] > 0): ?>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Menu Base Cost:</span>
+                                    <strong class="text-success"><?php echo formatCurrency($totals['menu_total'] - $totals['menu_extra_total']); ?></strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>Menu Extra Items:</span>
+                                    <strong class="text-warning">+<?php echo formatCurrency($totals['menu_extra_total']); ?></strong>
+                                </div>
+                            <?php endif; ?>
                             <div class="d-flex justify-content-between mb-1">
                                 <span>Menu Cost:</span>
                                 <strong class="text-success"><?php echo formatCurrency($totals['menu_total']); ?></strong>
@@ -940,10 +996,21 @@ require_once __DIR__ . '/includes/header.php';
                                     <strong><?php echo formatCurrency($totals['hall_price']); ?></strong>
                                 </div>
                                 <?php if ($totals['menu_total'] > 0): ?>
-                                    <div class="d-flex justify-content-between mb-1 small">
-                                        <span>Menu:</span>
-                                        <strong><?php echo formatCurrency($totals['menu_total']); ?></strong>
-                                    </div>
+                                    <?php if (!empty($totals['menu_extra_total']) && $totals['menu_extra_total'] > 0): ?>
+                                        <div class="d-flex justify-content-between mb-1 small">
+                                            <span>Menu (base):</span>
+                                            <strong><?php echo formatCurrency($totals['menu_total'] - $totals['menu_extra_total']); ?></strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1 small">
+                                            <span>Menu extras:</span>
+                                            <strong class="text-warning">+<?php echo formatCurrency($totals['menu_extra_total']); ?></strong>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="d-flex justify-content-between mb-1 small">
+                                            <span>Menu:</span>
+                                            <strong><?php echo formatCurrency($totals['menu_total']); ?></strong>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                                 <?php if ($totals['services_total'] > 0): ?>
                                     <div class="d-flex justify-content-between mb-1 small">
