@@ -274,14 +274,19 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
 
                 <!-- Custom Menu Selection Panel (shown when menu with sections is selected) -->
                 <div id="customMenuPanel" class="mt-4" style="display:none;">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header border-0" style="background:linear-gradient(135deg,#14532d 0%,#166534 100%);">
-                            <div class="d-flex align-items-center gap-2 text-white">
-                                <i class="fas fa-clipboard-list fs-5"></i>
-                                <div>
-                                    <div class="fw-bold">Customize Your Menu Selections</div>
-                                    <div class="opacity-75" style="font-size:0.8rem;">Tap any item to select or deselect it. Limits are shown per group/section.</div>
+                    <div class="card cmp-card">
+                        <div class="cmp-card-header">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="cmp-header-icon">
+                                    <i class="fas fa-utensils"></i>
                                 </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="cmp-header-title">Customize Your Menu Selections</div>
+                                    <div class="cmp-header-sub">Tap any item to select or deselect it &mdash; limits shown per group / section</div>
+                                </div>
+                                <span class="cmp-header-badge d-none d-sm-inline-flex">
+                                    <i class="fas fa-hand-pointer me-1"></i>Tap to Select
+                                </span>
                             </div>
                         </div>
                         <div class="card-body p-3" id="customMenuPanelBody">
@@ -295,12 +300,12 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
 
                 <!-- Selected Menus Confirmation Summary (shown when any menus are selected) -->
                 <div id="selectedMenusSummary" class="mt-3" style="display:none;">
-                    <div class="card border-0" style="border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(21,128,61,0.12);">
-                        <div class="card-header border-0 py-2 px-3" style="background:linear-gradient(135deg,#15803d 0%,#166534 100%);">
+                    <div class="card cmp-summary-card">
+                        <div class="cmp-summary-header py-2 px-3">
                             <div class="d-flex align-items-center gap-2">
-                                <i class="fas fa-clipboard-check text-white" style="font-size:0.9rem;"></i>
-                                <span class="fw-bold text-white" style="font-size:0.9rem;">Your Menu Selection Summary</span>
-                                <span class="text-white-50 ms-auto" style="font-size:0.75rem;">Review before continuing</span>
+                                <i class="fas fa-clipboard-check text-white"></i>
+                                <span class="cmp-summary-title">Your Menu Selection Summary</span>
+                                <span class="ms-auto badge bg-white text-success fw-semibold cmp-summary-review-badge">Review before continuing</span>
                             </div>
                         </div>
                         <div class="card-body px-3 py-2" id="selectedMenusSummaryBody">
@@ -311,10 +316,12 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
 
                 <!-- Special Instructions -->
                 <div class="mt-4" id="menuSpecialInstructions" style="display:none;">
-                    <div class="card border-0 bg-light">
+                    <div class="card cmp-instructions-card">
+                        <div class="cmp-instructions-header">
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-comment-alt me-2 text-success"></i>Special Instructions</h5>
+                        </div>
                         <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-comment-alt me-2 text-success"></i>Special Instructions</h5>
-                            <p class="text-muted small">Any special dietary requirements or menu customization notes?</p>
+                            <p class="text-muted small mb-3">Any special dietary requirements or menu customization notes?</p>
                             <textarea class="form-control" name="menu_special_instructions" id="menuSpecialInstructionsText" rows="3"
                                       placeholder="e.g. No garlic in soups, extra spicy starters, nut-free desserts..."><?php echo sanitize($_SESSION['menu_special_instructions'] ?? ''); ?></textarea>
                         </div>
