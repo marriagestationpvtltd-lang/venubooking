@@ -374,7 +374,13 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
 }
 
 // Handle Download All as ZIP - Using streaming for instant downloads (like Google Drive)
-if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] === '1' && $folder['allow_zip_download']) {
+// For selection-based downloads (specific photo IDs provided via &ids=), allow ZIP even
+// when the folder's allow_zip_download flag is disabled so that "Download Now" for
+// multiple selected photos always produces a single ZIP file (one save dialog, no blob
+// corruption).  Require at least one valid positive integer to be present in ids so
+// that an empty or malformed param does not inadvertently bypass the setting.
+$_has_selected_ids = !empty($_GET['ids']) && preg_match('/\d/', (string)$_GET['ids']);
+if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] === '1' && ($folder['allow_zip_download'] || $_has_selected_ids)) {
     // Outer try-catch covers the entire ZIP handler so that any unexpected
     // exception (e.g. a PHP 8 TypeError from a missing column, a PDOException
     // from the download-count update, or an I/O error reading the temp file)
@@ -3095,19 +3101,19 @@ if ($folder && !$error_message) {
 
         /**
          * Core download-now handler. Accepts an array of {url, filename} objects.
-         * For multiple files: downloads as a single ZIP via anchor click.
+         * For multiple files: always downloads as a single ZIP via anchor click so
+         * the user sees only one save dialog and each photo is in its original format.
          * For a single file: delegates to startDownload() which uses an iframe.
-         * When ZIP is disabled: downloads files sequentially via bulkDownloadIndividual().
          */
         async function downloadNow(files) {
             if (!files || files.length === 0) return false;
 
-            var zipAllowed = <?php echo (($folder && !empty($folder['allow_zip_download'])) && empty($zip_error_message)) ? 'true' : 'false'; ?>;
-
-            // ── Multiple files: use ZIP download ───────────────────────────────
+            // ── Multiple files: always use ZIP download ─────────────────────────
             // Bundling into a single ZIP means only one save dialog for all selected
             // photos, and each photo is preserved in its original uploaded format.
-            if (files.length > 1 && zipAllowed) {
+            // The server-side ZIP handler accepts the &ids= param for selection-based
+            // downloads regardless of the folder's allow_zip_download setting.
+            if (files.length > 1) {
                 var ids = [];
                 files.forEach(function(f) {
                     var m = f.url.match(/download_photo=(\d+)/);
@@ -3157,19 +3163,21 @@ if ($folder && !$error_message) {
                     }, 1000);
                     return false;
                 }
+
+                // Fallback: no photo IDs could be parsed — download individually via iframe.
+                // Each file uses the native browser download manager (no blob/fetch)
+                // so original file formats are always preserved without corruption.
+                var _fallbackUrls = files.map(function(f) { return f.url; });
+                // null = no FileSystem Access API directory handle; use iframe fallback.
+                return bulkDownloadIndividual(_fallbackUrls, null);
             }
 
-            // ── Single file (or ZIP disabled): delegate to startDownload() ────
+            // ── Single file: delegate to startDownload() ────────────────────────
             // startDownload() uses an iframe for native browser download.
             if (files.length === 1) {
                 startDownload(files[0].url, files[0].filename);
                 return false;
             }
-
-            // ── Multiple files, ZIP disabled: fetch and save files sequentially ───
-            // Uses fetch() + Blob + anchor.download for real byte-level progress and
-            // reliable file saving on both desktop and mobile browsers.
-            return fetchDownloadFiles(files, null, null);
         }
 
         /**
@@ -3221,6 +3229,15 @@ if ($folder && !$error_message) {
 
                     var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
                     var contentType   = (response.headers.get('Content-Type') || 'application/octet-stream').split(';')[0].trim();
+
+                    // Guard: if the server returned an HTML page (e.g. an error or session
+                    // expiry page) instead of the requested file, saving it as a .jpg/.png
+                    // would produce a corrupt file that cannot be opened.  Abort early and
+                    // report the error so the user can try again.
+                    if (contentType === 'text/html') {
+                        throw new Error('Server returned an error page instead of the file. Please refresh the page and try again.');
+                    }
+
                     // Resolve the save filename from the server's Content-Disposition
                     // header.  The server derives the extension from the actual file
                     // format (detectMimeType / finfo), which is authoritative — the
