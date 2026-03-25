@@ -137,7 +137,7 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
 <section class="py-5">
     <div class="container">
         <h2 class="mb-4">Select Your Menu</h2>
-        <p class="lead text-muted mb-4">Choose one or more menus for your event</p>
+        <p class="lead text-muted mb-4">Choose a menu for your event</p>
 
         <?php if (empty($menus)): ?>
             <div class="alert alert-info" role="alert">
