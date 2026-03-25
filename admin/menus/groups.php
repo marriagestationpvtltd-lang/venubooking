@@ -28,9 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add') {
-        $group_name    = trim($_POST['group_name'] ?? '');
-        $choose_limit  = ($_POST['choose_limit'] ?? '') !== '' ? intval($_POST['choose_limit']) : null;
-        $display_order = intval($_POST['display_order'] ?? 0);
+        $group_name              = trim($_POST['group_name'] ?? '');
+        $choose_limit            = ($_POST['choose_limit'] ?? '') !== '' ? intval($_POST['choose_limit']) : null;
+        $extra_charge_per_item   = floatval($_POST['extra_charge_per_item'] ?? 0);
+        $display_order           = intval($_POST['display_order'] ?? 0);
 
         if (empty($group_name)) {
             $error = 'Group name is required.';
@@ -46,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if (empty($error)) {
                 try {
-                    $db->prepare("INSERT INTO menu_groups (menu_section_id, group_name, photo, choose_limit, display_order) VALUES (?, ?, ?, ?, ?)")
-                       ->execute([$section_id, $group_name, $photo_filename, $choose_limit, $display_order]);
+                    $db->prepare("INSERT INTO menu_groups (menu_section_id, group_name, photo, choose_limit, extra_charge_per_item, display_order) VALUES (?, ?, ?, ?, ?, ?)")
+                       ->execute([$section_id, $group_name, $photo_filename, $choose_limit, $extra_charge_per_item, $display_order]);
                     $success = 'Group added successfully.';
                 } catch (\Throwable $e) {
                     error_log("Add group error: " . $e->getMessage());
@@ -57,11 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($action === 'edit') {
-        $group_id      = intval($_POST['group_id'] ?? 0);
-        $group_name    = trim($_POST['group_name'] ?? '');
-        $choose_limit  = ($_POST['choose_limit'] ?? '') !== '' ? intval($_POST['choose_limit']) : null;
-        $display_order = intval($_POST['display_order'] ?? 0);
-        $status        = in_array($_POST['status'] ?? '', ['active','inactive']) ? $_POST['status'] : 'active';
+        $group_id              = intval($_POST['group_id'] ?? 0);
+        $group_name            = trim($_POST['group_name'] ?? '');
+        $choose_limit          = ($_POST['choose_limit'] ?? '') !== '' ? intval($_POST['choose_limit']) : null;
+        $extra_charge_per_item = floatval($_POST['extra_charge_per_item'] ?? 0);
+        $display_order         = intval($_POST['display_order'] ?? 0);
+        $status                = in_array($_POST['status'] ?? '', ['active','inactive']) ? $_POST['status'] : 'active';
 
         if ($group_id <= 0 || empty($group_name)) {
             $error = 'Invalid data.';
@@ -87,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (empty($error)) {
                 try {
-                    $db->prepare("UPDATE menu_groups SET group_name=?, photo=?, choose_limit=?, display_order=?, status=? WHERE id=? AND menu_section_id=?")
-                       ->execute([$group_name, $new_photo, $choose_limit, $display_order, $status, $group_id, $section_id]);
+                    $db->prepare("UPDATE menu_groups SET group_name=?, photo=?, choose_limit=?, extra_charge_per_item=?, display_order=?, status=? WHERE id=? AND menu_section_id=?")
+                       ->execute([$group_name, $new_photo, $choose_limit, $extra_charge_per_item, $display_order, $status, $group_id, $section_id]);
                     // Delete old file only after successful update
                     if ($existing_photo && $existing_photo !== $new_photo) {
                         deleteUploadedFile($existing_photo);
@@ -151,17 +153,24 @@ $groups = $groups_stmt->fetchAll();
         <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="add">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Group Name <span class="text-danger">*</span></label>
                     <input type="text" name="group_name" class="form-control" placeholder="e.g. VEG STARTERS, NON-VEG STARTERS" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Photo <small class="text-muted">(optional, shown as icon)</small></label>
                     <input type="file" name="photo" class="form-control" accept="image/*">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Choose Limit <small class="text-muted">(blank = section limit)</small></label>
                     <input type="number" name="choose_limit" class="form-control" min="1" placeholder="e.g. 5">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Over-Limit Charge <small class="text-muted">(per extra item)</small></label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rs.</span>
+                        <input type="number" name="extra_charge_per_item" class="form-control" value="0" min="0" step="0.01" placeholder="0">
+                    </div>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Order</label>
@@ -190,6 +199,7 @@ $groups = $groups_stmt->fetchAll();
                         <th>Group Name</th>
                         <th>Photo</th>
                         <th>Choose Limit</th>
+                        <th>Over-Limit Charge</th>
                         <th>Status</th>
                         <th>Items</th>
                         <th>Actions</th>
@@ -214,6 +224,7 @@ $groups = $groups_stmt->fetchAll();
                             <?php endif; ?>
                         </td>
                         <td><?php echo $group['choose_limit'] !== null ? intval($group['choose_limit']) : '<em class="text-muted">Section-level</em>'; ?></td>
+                        <td><?php echo floatval($group['extra_charge_per_item'] ?? 0) > 0 ? '<span class="badge bg-warning text-dark">' . formatCurrency(floatval($group['extra_charge_per_item'])) . '/item</span>' : '<em class="text-muted">None</em>'; ?></td>
                         <td><span class="badge bg-<?php echo $group['status'] === 'active' ? 'success' : 'secondary'; ?>"><?php echo ucfirst(sanitize($group['status'])); ?></span></td>
                         <td><a href="group-items.php?group_id=<?php echo $group['id']; ?>&section_id=<?php echo $section_id; ?>&menu_id=<?php echo $menu_id; ?>" class="badge bg-primary text-decoration-none"><?php echo $item_count; ?> items</a></td>
                         <td>
@@ -263,6 +274,14 @@ $groups = $groups_stmt->fetchAll();
                                         <div class="mb-3">
                                             <label class="form-label">Choose Limit <small class="text-muted">(blank = use section limit)</small></label>
                                             <input type="number" name="choose_limit" class="form-control" min="1" value="<?php echo $group['choose_limit'] !== null ? intval($group['choose_limit']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Over-Limit Charge <small class="text-muted">(per extra item beyond Choose Limit)</small></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">Rs.</span>
+                                                <input type="number" name="extra_charge_per_item" class="form-control" min="0" step="0.01" value="<?php echo floatval($group['extra_charge_per_item'] ?? 0); ?>">
+                                            </div>
+                                            <div class="form-text">If a customer selects more than the Choose Limit, each extra item will cost this amount.</div>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Display Order</label>

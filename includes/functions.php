@@ -1253,12 +1253,13 @@ function validateMenuSelections($menu_id, array $selections) {
             foreach ($section['groups'] as $group) {
                 $gid = intval($group['id']);
                 $group_limit = isset($group['choose_limit']) ? intval($group['choose_limit']) : null;
+                $group_extra_charge_per_item = floatval($group['extra_charge_per_item'] ?? 0);
                 $chosen_ids = isset($selections[$gid]) ? array_map('intval', (array)$selections[$gid]) : [];
 
                 $count = count($chosen_ids);
                 $section_selected_count += $count;
 
-                // Over-limit selections are now allowed (user confirms extra charge on the frontend).
+                // Over-limit selections are allowed (user confirms extra charge on the frontend).
                 // Only validate that each chosen item actually belongs to this group.
                 if (!empty($chosen_ids)) {
                     $placeholders = implode(',', array_fill(0, count($chosen_ids), '?'));
@@ -1275,6 +1276,11 @@ function validateMenuSelections($menu_id, array $selections) {
                         } else {
                             $extra_total += floatval($valid_items[$iid]);
                         }
+                    }
+
+                    // Add group-level over-limit charge: (items beyond choose_limit) × extra_charge_per_item
+                    if ($group_limit !== null && $group_extra_charge_per_item > 0 && $count > $group_limit) {
+                        $extra_total += ($count - $group_limit) * $group_extra_charge_per_item;
                     }
                 }
             }
@@ -1301,13 +1307,15 @@ function validateMenuSelections($menu_id, array $selections) {
 function calculateMenuExtraCharges($menu_id, array $selections) {
     if (empty($selections)) return 0.0;
     $db = getDB();
+    $menu_id = intval($menu_id);
     $extra = 0.0;
     try {
         foreach ($selections as $group_id => $item_ids) {
+            $group_id = intval($group_id);
             $item_ids = array_map('intval', (array)$item_ids);
             if (empty($item_ids)) continue;
             $placeholders = implode(',', array_fill(0, count($item_ids), '?'));
-            $params = array_merge([intval($group_id)], $item_ids);
+            $params = array_merge([$group_id], $item_ids);
             $stmt = $db->prepare(
                 "SELECT SUM(extra_charge) as total FROM menu_group_items
                  WHERE menu_group_id = ? AND id IN ($placeholders) AND status = 'active'"
@@ -1315,6 +1323,19 @@ function calculateMenuExtraCharges($menu_id, array $selections) {
             $stmt->execute($params);
             $row = $stmt->fetch();
             $extra += floatval($row['total'] ?? 0);
+
+            // Add group-level over-limit charge
+            $grp_stmt = $db->prepare(
+                "SELECT choose_limit, extra_charge_per_item FROM menu_groups WHERE id = ?"
+            );
+            $grp_stmt->execute([$group_id]);
+            $grp = $grp_stmt->fetch();
+            if ($grp && $grp['choose_limit'] !== null && floatval($grp['extra_charge_per_item']) > 0) {
+                $over = count($item_ids) - intval($grp['choose_limit']);
+                if ($over > 0) {
+                    $extra += $over * floatval($grp['extra_charge_per_item']);
+                }
+            }
         }
     } catch (\Throwable $e) {
         error_log("calculateMenuExtraCharges error: " . $e->getMessage());
