@@ -316,6 +316,26 @@
         return container;
     }
 
+    // Adds an item within the group/section limit, updates all UI state.
+    function addItemNormally(card, menuId, groupId, itemId, groupLimit) {
+        currentSelections[menuId][groupId].add(itemId);
+        card.classList.add('cmp-item--selected');
+        var itemCheckbox = card.querySelector('.menu-item-checkbox');
+        if (itemCheckbox) itemCheckbox.checked = true;
+        updateCounters(menuId);
+        serializeSelections();
+        updateGroupSummary(menuId, groupId);
+        updateSelectedSummary();
+        computeExtraChargesTotal();
+        if (groupLimit && currentSelections[menuId][groupId].size >= parseInt(groupLimit)) {
+            var groupElement = findGroupEl(menuId, groupId);
+            if (groupElement && !groupElement.classList.contains('cmp-group--collapsed')) {
+                collapseGroup(groupElement);
+                expandNextGroup(groupElement);
+            }
+        }
+    }
+
     function toggleItem(card, menuId, groupId, sectionId, groupLimit, sectionLimit, groupExtraChargePerItem) {
         const itemId = parseInt(card.dataset.itemId);
         const isSelected = card.classList.contains('cmp-item--selected');
@@ -350,13 +370,19 @@
                 const itemName = card.dataset.itemName || 'this item';
                 showExtraChargeConfirmation(itemName, overLimitCharge, itemExtraCharge, function () {
                     addItemOverLimit(card, menuId, groupId, itemId);
-                });
+                }, true);
                 return;
             }
-            currentSelections[menuId][groupId].add(itemId);
-            card.classList.add('cmp-item--selected');
-            const cb = card.querySelector('.menu-item-checkbox');
-            if (cb) cb.checked = true;
+            // Within limit but item has its own extra charge → confirm before adding
+            const itemOwnCharge = parseFloat(card.dataset.extraCharge || '0');
+            if (itemOwnCharge > 0) {
+                const itemName = card.dataset.itemName || 'this item';
+                showExtraChargeConfirmation(itemName, itemOwnCharge, itemOwnCharge, function () {
+                    addItemNormally(card, menuId, groupId, itemId, groupLimit);
+                }, false);
+                return;
+            }
+            addItemNormally(card, menuId, groupId, itemId, groupLimit);
         } else {
             currentSelections[menuId][groupId].delete(itemId);
             card.classList.remove('cmp-item--selected');
@@ -366,22 +392,11 @@
             }
             const cb = card.querySelector('.menu-item-checkbox');
             if (cb) cb.checked = false;
-        }
-
-        updateCounters(menuId);
-        serializeSelections();
-        updateGroupSummary(menuId, groupId);
-        updateSelectedSummary();
-        computeExtraChargesTotal();
-
-        // Auto-collapse this group when its limit is reached, then expand the next one
-        if (!isSelected && groupLimit &&
-                currentSelections[menuId][groupId].size >= parseInt(groupLimit)) {
-            const groupEl = findGroupEl(menuId, groupId);
-            if (groupEl && !groupEl.classList.contains('cmp-group--collapsed')) {
-                collapseGroup(groupEl);
-                expandNextGroup(groupEl);
-            }
+            updateCounters(menuId);
+            serializeSelections();
+            updateGroupSummary(menuId, groupId);
+            updateSelectedSummary();
+            computeExtraChargesTotal();
         }
     }
 
@@ -437,7 +452,7 @@
         }, 3000);
     }
 
-    function showExtraChargeConfirmation(itemName, overLimitCharge, itemExtraCharge, onConfirm) {
+    function showExtraChargeConfirmation(itemName, overLimitCharge, itemExtraCharge, onConfirm, isOverLimit) {
         var modalEl = document.getElementById('menuExtraChargeConfirmModal');
         if (!modalEl) {
             modalEl = document.createElement('div');
@@ -468,7 +483,9 @@
         if (msgEl) {
             var escapedCurrency = escapeHtml(currencySymbol);
             var displayCharge = overLimitCharge > 0 ? overLimitCharge : 0;
-            if (displayCharge > 0) {
+            if (isOverLimit === false && displayCharge > 0) {
+                msgEl.innerHTML = '<strong>' + escapeHtml(itemName) + '</strong> has an extra charge of <strong>' + escapedCurrency + Math.round(displayCharge) + '</strong>. Do you want to add it?';
+            } else if (displayCharge > 0) {
                 msgEl.innerHTML = 'Adding <strong>' + escapeHtml(itemName) + '</strong> is beyond the included selection. An extra charge of <strong>' + escapedCurrency + Math.round(displayCharge) + '</strong> per item applies. Do you want to add it?';
             } else {
                 msgEl.innerHTML = 'Adding <strong>' + escapeHtml(itemName) + '</strong> as an extra item (beyond your included selection). Do you want to add it?';
@@ -492,9 +509,11 @@
         if (bsModal) {
             bsModal.show();
         } else if (typeof onConfirm === 'function' && window.confirm(
-            overLimitCharge > 0
-                ? 'Adding "' + itemName + '" will cost ' + currencySymbol + Math.round(overLimitCharge) + ' extra per item. Add it?'
-                : 'Add "' + itemName + '" as an extra item?'
+            isOverLimit === false && overLimitCharge > 0
+                ? '"' + itemName + '" has an extra charge of ' + currencySymbol + Math.round(overLimitCharge) + '. Add it?'
+                : overLimitCharge > 0
+                    ? 'Adding "' + itemName + '" will cost ' + currencySymbol + Math.round(overLimitCharge) + ' extra per item. Add it?'
+                    : 'Add "' + itemName + '" as an extra item?'
         )) {
             onConfirm();
         }
