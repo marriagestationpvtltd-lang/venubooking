@@ -282,7 +282,9 @@
     function serializeSelections() {
         const result = {};
         Object.entries(currentSelections).forEach(([mid, groups]) => {
-            const menuId = parseInt(mid);
+            const menuId = parseInt(mid, 10);
+            // Guard: skip non-numeric menu IDs to prevent CSS selector injection
+            if (isNaN(menuId) || menuId <= 0) return;
             // Only serialize for checked menus
             const checkbox = document.querySelector('.menu-checkbox[value="' + menuId + '"]');
             if (!checkbox || !checkbox.checked) return;

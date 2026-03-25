@@ -1262,7 +1262,7 @@ function validateMenuSelections($menu_id, array $selections) {
                 // section-level limits are validated cumulatively further below using
                 // $section_selected_count which accumulates across all groups in the section.
                 if ($group_limit !== null && $count > $group_limit) {
-                    $errors[] = "Too many items selected from \"{$group['group_name']}\": chose {$count}, limit is {$group_limit}.";
+                    $errors[] = "Too many items selected from \"" . htmlspecialchars($group['group_name'], ENT_QUOTES, 'UTF-8') . "\": chose {$count}, limit is {$group_limit}.";
                 }
 
                 if (!empty($chosen_ids)) {
@@ -1276,7 +1276,7 @@ function validateMenuSelections($menu_id, array $selections) {
                     $valid_items = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
                     foreach ($chosen_ids as $iid) {
                         if (!isset($valid_items[$iid])) {
-                            $errors[] = "Invalid item selected in group \"{$group['group_name']}\".";
+                            $errors[] = "Invalid item selected in group \"" . htmlspecialchars($group['group_name'], ENT_QUOTES, 'UTF-8') . "\".";
                         } else {
                             $extra_total += floatval($valid_items[$iid]);
                         }
@@ -1285,7 +1285,7 @@ function validateMenuSelections($menu_id, array $selections) {
             }
 
             if ($section_limit !== null && $section_selected_count > $section_limit) {
-                $errors[] = "Too many items selected from \"{$section['section_name']}\": chose {$section_selected_count}, limit is {$section_limit}.";
+                $errors[] = "Too many items selected from \"" . htmlspecialchars($section['section_name'], ENT_QUOTES, 'UTF-8') . "\": chose {$section_selected_count}, limit is {$section_limit}.";
             }
         }
     } catch (\Throwable $e) {
