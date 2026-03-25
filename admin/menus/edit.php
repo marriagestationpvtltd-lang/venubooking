@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="" enctype="multipart/form-data">
+                <form method="POST" action="" enctype="multipart/form-data" id="editMenuForm">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -167,23 +167,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </select>
                     </div>
 
-                    <div class="d-flex justify-content-between">
-                        <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this menu? This will also delete all menu items. This action cannot be undone.');">
-                            <input type="hidden" name="id" value="<?php echo $menu_id; ?>">
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-trash"></i> Delete Menu
-                            </button>
-                        </form>
-                        <div>
-                            <a href="index.php" class="btn btn-secondary me-2">
-                                <i class="fas fa-times"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save"></i> Update Menu
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="index.php" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Update Menu
+                        </button>
                     </div>
                 </form>
+
+                <div class="mt-3 pt-3 border-top">
+                    <form method="POST" action="delete.php" onsubmit="return confirm('Are you sure you want to delete this menu? This will also delete all menu items. This action cannot be undone.');">
+                        <input type="hidden" name="id" value="<?php echo $menu_id; ?>">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash"></i> Delete This Menu
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

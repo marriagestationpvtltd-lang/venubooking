@@ -282,12 +282,17 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
 
                 <!-- Custom Menu Selection Panel (shown when menu with sections is selected) -->
                 <div id="customMenuPanel" class="mt-4" style="display:none;">
-                    <div class="card">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Customize Your Menu Selections</h5>
-                            <small>Choose items from each group as specified</small>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header border-0" style="background:linear-gradient(135deg,#14532d 0%,#166534 100%);">
+                            <div class="d-flex align-items-center gap-2 text-white">
+                                <i class="fas fa-clipboard-list fs-5"></i>
+                                <div>
+                                    <div class="fw-bold">Customize Your Menu Selections</div>
+                                    <div class="opacity-75" style="font-size:0.8rem;">Tap any item to select or deselect it. Limits are shown per group/section.</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body" id="customMenuPanelBody">
+                        <div class="card-body p-3" id="customMenuPanelBody">
                             <!-- Populated by JS -->
                         </div>
                     </div>
@@ -341,6 +346,7 @@ const hallPrice = ' . $hall_price . ';
 const guestsCount = ' . $booking_data['guests'] . ';
 const taxRate = ' . $tax_rate . ';
 const BASE_URL = ' . json_encode(BASE_URL) . ';
+const CURRENCY = ' . json_encode(getSetting('currency', 'Rs.')) . ';
 const menuSelectionsSession = ' . json_encode($_SESSION['menu_selections'] ?? []) . ';
 const menuSpecialInstructionsSession = ' . json_encode($_SESSION['menu_special_instructions'] ?? '') . ';
 </script>
