@@ -2,8 +2,10 @@
 .env
 .env.production
 
-# Logs directory content (keep directory)
-logs/
+# Logs directory content (keep directory structure but ignore log files)
+logs/*
+!logs/.htaccess
+!logs/.gitkeep
 *.log
 error_log
 access_log

@@ -478,6 +478,23 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     INDEX idx_attempted_at (attempted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   COMMENT='Tracks login attempts for IP-based brute-force protection';
+-- ============================================================================
+-- TABLE: gallery_card_groups (named groups for the gallery section)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS gallery_card_groups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    created_by INT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_gcg_status (status),
+    INDEX idx_gcg_display_order (display_order),
+    CONSTRAINT fk_gcg_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS site_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
@@ -485,6 +502,7 @@ CREATE TABLE IF NOT EXISTS site_images (
     image_path VARCHAR(255) NOT NULL,
     section VARCHAR(100) NOT NULL,
     card_id INT NOT NULL DEFAULT 1 COMMENT 'Groups photos into cards of max 10 per section',
+    card_group_id INT NULL DEFAULT NULL COMMENT 'FK → gallery_card_groups.id; named group override',
     event_category VARCHAR(150) DEFAULT NULL COMMENT 'Event category folder for work_photos section (e.g. Wedding Photos)',
     display_order INT DEFAULT 0,
     status ENUM('active', 'inactive') DEFAULT 'active',
@@ -492,9 +510,11 @@ CREATE TABLE IF NOT EXISTS site_images (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_section (section),
     INDEX idx_card_id (card_id),
+    INDEX idx_card_group_id (card_group_id),
     INDEX idx_event_category (event_category),
     INDEX idx_status (status),
-    INDEX idx_display_order (display_order)
+    INDEX idx_display_order (display_order),
+    CONSTRAINT fk_site_images_card_group FOREIGN KEY (card_group_id) REFERENCES gallery_card_groups(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
