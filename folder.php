@@ -2666,48 +2666,7 @@ if ($folder && !$error_message) {
                 }, 3000);
             }
 
-            // Use File System Access API to prompt the user for a save location.
-            // showSaveFilePicker() must be called before any await so the browser
-            // still considers this call to be within the user-gesture activation window.
-            if (typeof window.showSaveFilePicker === 'function') {
-                var fileHandle = null;
-                try {
-                    fileHandle = await window.showSaveFilePicker({ suggestedName: defaultName || 'file.bin' });
-                } catch (e) {
-                    if (e.name === 'AbortError') { return false; } // user cancelled
-                    fileHandle = null; // API failed – fall through to iframe
-                }
-
-                if (fileHandle) {
-                    // Show "Downloading" state in overlay
-                    dlBar.style.width      = '100%';
-                    dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
-                    dlBar.style.backgroundSize = '';
-                    dlBar.style.animation  = '';
-                    dlPct.textContent      = '';
-                    dlEta.textContent      = '';
-                    dlSpd.textContent      = '';
-                    dlTitle.textContent    = 'Downloading…';
-                    dlFile.textContent     = defaultName || '';
-                    dlSize.textContent     = '';
-                    dlIcon.className       = 'fas fa-spinner fa-spin';
-                    overlay.classList.add('dl-active');
-
-                    try {
-                        var response = await fetch(url);
-                        if (!response.ok) { throw new Error('HTTP ' + response.status); }
-                        var writable = await fileHandle.createWritable();
-                        await response.body.pipeTo(writable);
-                        showSuccess('File saved successfully');
-                    } catch (err) {
-                        showError('Download failed – please try again');
-                        console.error('Download error:', err);
-                    }
-                    return false;
-                }
-            }
-
-            // Fallback: use hidden iframe for instant download (native browser download).
+            // Use hidden iframe for instant download (native browser download).
             // This triggers the browser's download manager immediately.
             // The iframe is intentionally reused across downloads for efficiency.
             dlBar.style.width      = '100%';
@@ -3136,10 +3095,9 @@ if ($folder && !$error_message) {
 
         /**
          * Core download-now handler. Accepts an array of {url, filename} objects.
-         * For multiple files: downloads as a single ZIP; uses showSaveFilePicker when
-         * available so the user is asked where to save the file.
-         * For a single file: delegates to startDownload() which also uses showSaveFilePicker.
-         * Falls back to anchor/iframe-based download when the API is unavailable.
+         * For multiple files: downloads as a single ZIP via anchor click.
+         * For a single file: delegates to startDownload() which uses an iframe.
+         * When ZIP is disabled: downloads files sequentially via bulkDownloadIndividual().
          */
         async function downloadNow(files) {
             if (!files || files.length === 0) return false;
@@ -3170,71 +3128,7 @@ if ($folder && !$error_message) {
                     var dlEta   = document.getElementById('dlEta');
                     var dlSpd   = document.getElementById('dlSpeed');
 
-                    // Use File System Access API to ask the user where to save.
-                    // showSaveFilePicker() is called before any await so the browser
-                    // still treats it as being within the user-gesture window.
-                    if (typeof window.showSaveFilePicker === 'function') {
-                        var zipHandle = null;
-                        try {
-                            var suggestedZip = <?php echo json_encode(
-                                preg_replace('/[^a-zA-Z0-9_\-\s]/u', '_', $folder['folder_name'] ?? 'photos'),
-                                JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
-                            ); ?> + '.zip';
-                            zipHandle = await window.showSaveFilePicker({
-                                suggestedName: suggestedZip,
-                                types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }]
-                            });
-                        } catch (e) {
-                            if (e.name === 'AbortError') { return false; } // user cancelled
-                            zipHandle = null; // API failed – fall through to anchor fallback
-                        }
-
-                        if (zipHandle) {
-                            if (overlay) {
-                                dlBar.style.width          = '100%';
-                                dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
-                                dlBar.style.backgroundSize = '200% 100%';
-                                dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
-                                dlPct.textContent  = '';
-                                dlTitle.textContent = 'Downloading ZIP…';
-                                dlFile.textContent = ids.length + ' files';
-                                dlSize.textContent = '';
-                                dlEta.textContent  = 'Please wait…';
-                                dlSpd.textContent  = '';
-                                dlIcon.className   = 'fas fa-spinner fa-spin';
-                                overlay.classList.add('dl-active');
-                            }
-                            try {
-                                var zipResponse = await fetch(zipUrl);
-                                if (!zipResponse.ok) { throw new Error('HTTP ' + zipResponse.status); }
-                                var zipWritable = await zipHandle.createWritable();
-                                await zipResponse.body.pipeTo(zipWritable);
-                                if (overlay) {
-                                    dlBar.style.width      = '100%';
-                                    dlBar.style.animation  = '';
-                                    dlTitle.textContent    = 'Download Complete!';
-                                    dlFile.textContent     = suggestedZip;
-                                    dlSize.textContent     = 'File saved successfully';
-                                    dlEta.textContent      = '';
-                                    dlIcon.className       = 'fas fa-check-circle';
-                                    setTimeout(function() { overlay.classList.remove('dl-active'); }, 2000);
-                                }
-                            } catch (zipErr) {
-                                if (overlay) {
-                                    dlTitle.textContent    = 'Download Failed';
-                                    dlSize.textContent     = 'Please try again';
-                                    dlIcon.className       = 'fas fa-exclamation-circle';
-                                    dlBar.style.background = '#dc3545';
-                                    dlBar.style.animation  = '';
-                                    setTimeout(function() { overlay.classList.remove('dl-active'); }, 3000);
-                                }
-                                console.error('ZIP download error:', zipErr);
-                            }
-                            return false;
-                        }
-                    }
-
-                    // Fallback: trigger the ZIP download via an anchor click.
+                    // Trigger the ZIP download via an anchor click.
                     // The server sends Content-Disposition:attachment so the browser saves
                     // the file (to the default Downloads folder on most configurations).
                     if (overlay) {
@@ -3265,28 +3159,14 @@ if ($folder && !$error_message) {
             }
 
             // ── Single file (or ZIP disabled): delegate to startDownload() ────
-            // startDownload() uses showSaveFilePicker when available, so the user
-            // will be asked where to save the file on supporting browsers.
+            // startDownload() uses an iframe for native browser download.
             if (files.length === 1) {
                 startDownload(files[0].url, files[0].filename);
                 return false;
             }
 
-            // ── Multiple files, ZIP disabled: ask for a save folder ──────────
-            // showDirectoryPicker() lets the user choose a folder; the files are
-            // then written there one by one via bulkDownloadIndividual().
-            // Falls back to sequential iframe downloads when the API is unavailable.
-            if (typeof window.showDirectoryPicker === 'function') {
-                try {
-                    // 'readwrite' is required by the File System Access API spec
-                    // to be able to create and write files in the chosen directory.
-                    var dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                    return bulkDownloadIndividual(files.map(function(f) { return f.url; }), dirHandle);
-                } catch (e) {
-                    if (e.name === 'AbortError') { return false; } // user cancelled
-                    // API failed – fall through to iframe fallback
-                }
-            }
+            // ── Multiple files, ZIP disabled: download files sequentially ───
+            // Uses sequential iframe/anchor downloads to the browser's default Downloads folder.
             return bulkDownloadIndividual(files.map(function(f) { return f.url; }), null);
         }
 
