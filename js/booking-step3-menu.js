@@ -211,9 +211,8 @@
                     const gCounter = document.createElement('span');
                     gCounter.id = 'grp-counter-' + menuId + '-' + group.id;
                     gCounter.textContent = currentSelections[menuId][group.id].size;
-                    gLim.appendChild(document.createTextNode('Max: '));
                     gLim.appendChild(gCounter);
-                    gLim.appendChild(document.createTextNode('/' + group.choose_limit));
+                    gLim.appendChild(document.createTextNode(' / ' + group.choose_limit + ' selected'));
                     groupHead.appendChild(gLim);
                 }
 
@@ -225,6 +224,13 @@
 
                 const itemsGrid = document.createElement('div');
                 itemsGrid.className = 'cmp-items-grid';
+
+                if (group.choose_limit) {
+                    const hintEl = document.createElement('div');
+                    hintEl.className = 'cmp-group-hint';
+                    hintEl.textContent = `You can select up to ${group.choose_limit} item${group.choose_limit != 1 ? 's' : ''} from this group.`;
+                    itemsGrid.appendChild(hintEl);
+                }
 
                 group.items.forEach(function (item) {
                     const isSelected = currentSelections[menuId][group.id].has(parseInt(item.id));
