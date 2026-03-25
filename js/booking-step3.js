@@ -30,6 +30,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Make entire menu card clickable (not just the checkbox)
+    document.querySelectorAll('.menu-card').forEach(function(card) {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', function(e) {
+            // Let checkbox, links, and buttons handle their own events
+            if (e.target.closest('a, button, .menu-checkbox')) {
+                return;
+            }
+            const checkbox = card.querySelector('.menu-checkbox');
+            if (checkbox) {
+                checkbox.click();
+            }
+        });
+    });
     
     // Initial calculation
     calculateMenuTotal();
