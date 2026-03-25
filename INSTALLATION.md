@@ -28,7 +28,7 @@ Follow this checklist to ensure proper installation of the Venue Booking System.
 **Option C – Development/Testing:**
 - [ ] Import `database/complete-database-setup.sql` — includes sample venues, halls, menus, bookings for testing
 
-> All scripts create all 34 required tables in a single import. Do **not** run individual migration files unless upgrading an existing database.
+> All scripts create all 35 required tables in a single import. Do **not** run individual migration files unless upgrading an existing database.
 
 ### 3. Configuration
 - [ ] Copy `.env.example` to `.env`

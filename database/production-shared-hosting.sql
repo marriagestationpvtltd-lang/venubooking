@@ -4,7 +4,7 @@
 -- 
 -- This is a CLEAN production database script with NO sample data.
 -- It includes:
---   1. All required tables with proper relationships (34 tables)
+--   1. All required tables with proper relationships (35 tables)
 --   2. Default admin user (username: admin, password: Admin@123)
 --   3. Essential system settings
 --   4. Placeholder payment methods (INACTIVE by default)
@@ -528,6 +528,23 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   COMMENT='Tracks login attempts for IP-based brute-force protection';
 
 -- ============================================================================
+-- TABLE: gallery_card_groups (named groups for the gallery section)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS gallery_card_groups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+    created_by INT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_gcg_status (status),
+    INDEX idx_gcg_display_order (display_order),
+    CONSTRAINT fk_gcg_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- TABLE: site_images (for dynamic image management)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS site_images (
@@ -537,6 +554,7 @@ CREATE TABLE IF NOT EXISTS site_images (
     image_path VARCHAR(255) NOT NULL,
     section VARCHAR(100) NOT NULL,
     card_id INT NOT NULL DEFAULT 1 COMMENT 'Groups photos into cards of max 10 per section',
+    card_group_id INT NULL DEFAULT NULL COMMENT 'FK → gallery_card_groups.id; named group override',
     event_category VARCHAR(150) DEFAULT NULL COMMENT 'Event category folder for work_photos section (e.g. Wedding Photos)',
     display_order INT DEFAULT 0,
     status ENUM('active', 'inactive') DEFAULT 'active',
@@ -544,9 +562,11 @@ CREATE TABLE IF NOT EXISTS site_images (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_section (section),
     INDEX idx_card_id (card_id),
+    INDEX idx_card_group_id (card_group_id),
     INDEX idx_event_category (event_category),
     INDEX idx_status (status),
-    INDEX idx_display_order (display_order)
+    INDEX idx_display_order (display_order),
+    CONSTRAINT fk_site_images_card_group FOREIGN KEY (card_group_id) REFERENCES gallery_card_groups(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
@@ -1492,3 +1512,69 @@ DELIMITER ;
 
 CALL upgrade_shared_folders_total_downloads();
 DROP PROCEDURE IF EXISTS upgrade_shared_folders_total_downloads;
+
+-- ============================================================================
+-- UPGRADE: Create gallery_card_groups table and add card_group_id to site_images
+-- ============================================================================
+-- Required by admin/gallery-cards/ and getImagesByCards() in functions.php.
+-- Safe to run on fresh installs (table already exists) and existing installs
+-- (idempotent: checks before altering).
+
+DROP PROCEDURE IF EXISTS upgrade_gallery_card_groups;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_gallery_card_groups()
+BEGIN
+    -- 1. Create gallery_card_groups table if it does not exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'gallery_card_groups'
+    ) THEN
+        CREATE TABLE gallery_card_groups (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT NULL,
+            display_order INT NOT NULL DEFAULT 0,
+            status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+            created_by INT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_gcg_status (status),
+            INDEX idx_gcg_display_order (display_order),
+            CONSTRAINT fk_gcg_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    END IF;
+
+    -- 2. Add card_group_id column to site_images if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'site_images'
+          AND column_name = 'card_group_id'
+    ) THEN
+        ALTER TABLE site_images
+            ADD COLUMN card_group_id INT NULL DEFAULT NULL
+                COMMENT 'FK → gallery_card_groups.id; named group override'
+            AFTER card_id,
+            ADD INDEX idx_card_group_id (card_group_id);
+    END IF;
+
+    -- 3. Add FK constraint if gallery_card_groups exists and constraint is missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'site_images'
+          AND CONSTRAINT_NAME = 'fk_site_images_card_group'
+    ) THEN
+        ALTER TABLE site_images
+            ADD CONSTRAINT fk_site_images_card_group
+                FOREIGN KEY (card_group_id)
+                REFERENCES gallery_card_groups(id)
+                ON DELETE SET NULL;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL upgrade_gallery_card_groups();
+DROP PROCEDURE IF EXISTS upgrade_gallery_card_groups;

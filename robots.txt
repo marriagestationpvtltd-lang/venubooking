@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Block access to sensitive directories
+Disallow: /admin/
+Disallow: /api/
+Disallow: /config/
+Disallow: /database/
+Disallow: /includes/
+Disallow: /logs/
+Disallow: /uploads/zip_cache/
+
+# Sitemap location — update with your actual domain before deploying
+# Sitemap: https://yourdomain.com/sitemap.xml

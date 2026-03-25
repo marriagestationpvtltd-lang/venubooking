@@ -1,0 +1,4 @@
+# Deny all access to the logs directory.
+# Log files may contain sensitive application data and must never be
+# served publicly.
+Require all denied
