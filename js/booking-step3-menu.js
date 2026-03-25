@@ -171,7 +171,7 @@
                 itemsGrid.className = 'cmp-items-grid';
 
                 group.items.forEach(function (item) {
-                    const isSelected = currentSelections[menuId][group.id].has(item.id);
+                    const isSelected = currentSelections[menuId][group.id].has(parseInt(item.id));
 
                     const itemCard = document.createElement('div');
                     itemCard.className = 'cmp-item' + (isSelected ? ' cmp-item--selected' : '');
@@ -411,7 +411,7 @@
             section.groups.forEach(function (g) {
                 if (parseInt(g.id) === parseInt(groupId)) {
                     g.items.forEach(function (item) {
-                        if (selections.has(item.id)) {
+                        if (selections.has(parseInt(item.id))) {
                             selectedNames.push(item.item_name);
                         }
                     });
@@ -491,7 +491,7 @@
                         if (sel && sel.size > 0) {
                             const itemNames = [];
                             group.items.forEach(function (item) {
-                                if (sel.has(item.id)) {
+                                if (sel.has(parseInt(item.id))) {
                                     itemNames.push(item.item_name);
                                 }
                             });
