@@ -205,6 +205,7 @@
                     const gCounter = document.createElement('span');
                     gCounter.id = 'grp-counter-' + menuId + '-' + group.id;
                     gCounter.textContent = currentSelections[menuId][group.id].size;
+                    gLim.appendChild(document.createTextNode('Select '));
                     gLim.appendChild(gCounter);
                     gLim.appendChild(document.createTextNode(' / ' + group.choose_limit));
                     groupTitle.appendChild(gLim);
