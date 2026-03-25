@@ -509,7 +509,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                 // ── ZipArchive path ──────────────────────────────────────────────
                 $temp_zip = @tempnam(sys_get_temp_dir(), 'vb_zip_');
                 if ($temp_zip === false) {
-                    $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
+                    $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
                 } else {
                     try {
                         $zip = new ZipArchive();
@@ -528,7 +528,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
 
                         if ($added_count === 0) {
                             @unlink($temp_zip);
-                            $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
+                            $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
                         } else {
                             $zip_size = filesize($temp_zip);
 
@@ -565,7 +565,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                         if (headers_sent()) {
                             exit;
                         }
-                        $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
+                        $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
                     }
                 }
             } else {
@@ -605,7 +605,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                     if ($zip_stream_started || headers_sent()) {
                         exit;
                     }
-                    $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
+                    $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
                 }
             }
         }
@@ -619,7 +619,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
             // ZIP streaming already started – cannot safely output HTML.
             exit;
         }
-        $zip_error_message = 'ZIP download failed. Please use the individual download option below.';
+        $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
     }
 }
 
@@ -1981,13 +1981,13 @@ if ($folder && !$error_message) {
                             <p class="text-muted mt-2 mb-0">
                                 <small><i class="fas fa-download"></i> Download all files at once</small>
                             </p>
-                            <!-- Select Photos toggle for deselecting individual photos -->
+                            <!-- Select Photos toggle -->
                             <button type="button" id="selectModeBtn"
-                                    class="btn btn-outline-primary mt-2 select-mode-btn active"
-                                    aria-label="Exit photo selection mode"
+                                    class="btn btn-outline-primary mt-2 select-mode-btn"
+                                    aria-label="Select photos to download"
                                     onclick="toggleSelectMode()">
-                                <i class="fas fa-times me-1"></i>
-                                Exit Selection Mode
+                                <i class="fas fa-check-square me-1"></i>
+                                Select Photos
                             </button>
                         <?php endif; ?>
                         
@@ -2692,7 +2692,7 @@ if ($folder && !$error_message) {
                     var iDoc = iWin ? (iframe.contentDocument || iWin.document) : null;
                     if (iDoc && iDoc.body && iDoc.body.innerHTML.trim() !== '') {
                         // Iframe navigated to an HTML error page
-                        showError('Server error – try individual download option below');
+                        showError('Download failed – please try again');
                         return;
                     }
                 } catch (e) {
@@ -3031,7 +3031,7 @@ if ($folder && !$error_message) {
         async function downloadNow(files) {
             if (!files || files.length === 0) return false;
 
-            var zipAllowed = <?php echo ($folder && !empty($folder['allow_zip_download'])) ? 'true' : 'false'; ?>;
+            var zipAllowed = <?php echo (($folder && !empty($folder['allow_zip_download'])) && empty($zip_error_message)) ? 'true' : 'false'; ?>;
 
             // ── Multiple files: use ZIP download ───────────────────────────────
             // Downloading each file individually triggers a browser save dialog for
