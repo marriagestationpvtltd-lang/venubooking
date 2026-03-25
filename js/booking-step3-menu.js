@@ -330,6 +330,9 @@
         const checkedIds = getCheckedMenuIds();
         const panelContainer = document.getElementById('customMenuPanel');
         const specialInstructions = document.getElementById('menuSpecialInstructions');
+        const menuSearchWrapper = document.getElementById('menuSearchWrapper');
+        const menuSearchNoResults = document.getElementById('menuSearchNoResults');
+        const allMenuCols = Array.from(document.querySelectorAll('#menusContainer > [data-menu-name]'));
 
         panel.innerHTML = '<div class="cmp-loading"><i class="fas fa-spinner fa-spin me-2"></i>Loading menu options...</div>';
 
@@ -350,9 +353,21 @@
             allPanels.forEach(function (p) { panel.appendChild(p); });
             if (panelContainer) panelContainer.style.display = '';
             if (specialInstructions) specialInstructions.style.display = '';
+            // Hide non-selected menu cards so the user focuses on customizing the chosen menu
+            allMenuCols.forEach(function (col) {
+                const cb = col.querySelector('.menu-checkbox');
+                col.style.display = (cb && cb.checked) ? '' : 'none';
+            });
+            // Hide search bar – not useful when non-selected cards are hidden
+            if (menuSearchWrapper) menuSearchWrapper.style.display = 'none';
+            if (menuSearchNoResults) menuSearchNoResults.style.display = 'none';
         } else {
             if (panelContainer) panelContainer.style.display = 'none';
             if (specialInstructions) specialInstructions.style.display = 'none';
+            // Restore all menu cards and search bar
+            allMenuCols.forEach(function (col) { col.style.display = ''; });
+            if (menuSearchWrapper) menuSearchWrapper.style.display = '';
+            if (menuSearchNoResults) menuSearchNoResults.style.display = 'none';
         }
 
         updateAllCounters();
