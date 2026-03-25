@@ -1901,6 +1901,60 @@ unset($_avail_svc);
                         </div>
                         <?php endif; ?>
 
+                        <?php if (!empty($booking['menu_item_selections'])): ?>
+                        <div class="mb-4">
+                            <div class="section-label-premium mb-2">
+                                <span class="section-dot bg-success"></span>
+                                <span class="fw-bold text-uppercase text-muted">Custom Menu Selections</span>
+                            </div>
+                            <?php foreach ($booking['menu_item_selections'] as $sel_menu): ?>
+                            <div class="card border mb-3">
+                                <div class="card-header bg-light py-2">
+                                    <strong><i class="fas fa-clipboard-list text-success me-1"></i> <?php echo htmlspecialchars($sel_menu['menu_name']); ?></strong>
+                                </div>
+                                <div class="card-body p-2">
+                                    <?php foreach ($sel_menu['sections'] as $sec_name => $groups): ?>
+                                    <div class="mb-3">
+                                        <div class="fw-semibold text-uppercase text-muted small border-bottom pb-1 mb-2"><?php echo htmlspecialchars($sec_name); ?></div>
+                                        <?php foreach ($groups as $grp_name => $items): ?>
+                                        <div class="mb-2 ms-2">
+                                            <span class="fw-semibold text-success small"><?php echo htmlspecialchars($grp_name); ?>:</span>
+                                            <div class="ms-3">
+                                                <?php foreach ($items as $item): ?>
+                                                <div class="small py-1 border-bottom border-light">
+                                                    <i class="fas fa-utensils text-muted me-1" style="font-size:0.75em;"></i>
+                                                    <?php echo htmlspecialchars($item['item_name']); ?>
+                                                    <?php if (!empty($item['sub_category'])): ?>
+                                                        <span class="text-muted ms-1">(<?php echo htmlspecialchars($item['sub_category']); ?>)</span>
+                                                    <?php endif; ?>
+                                                    <?php if ($item['extra_charge'] > 0): ?>
+                                                        <span class="badge bg-warning text-dark ms-1">+<?php echo formatCurrency($item['extra_charge']); ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($booking['menu_special_instructions'])): ?>
+                        <div class="mb-4">
+                            <div class="section-label-premium mb-2">
+                                <span class="section-dot bg-info"></span>
+                                <span class="fw-bold text-uppercase text-muted">Menu Special Instructions</span>
+                            </div>
+                            <div class="alert alert-info mb-0 py-2">
+                                <i class="fas fa-comment-alt me-2"></i><?php echo nl2br(htmlspecialchars($booking['menu_special_instructions'])); ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Unified Services Section (Customer + Admin) -->
                         <?php
                         $all_display_services = [];

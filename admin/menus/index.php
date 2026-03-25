@@ -55,6 +55,7 @@ unset($_SESSION['error_message']);
                                 <a href="view.php?id=<?php echo $menu['id']; ?>" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>
                                 <a href="edit.php?id=<?php echo $menu['id']; ?>" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
                                 <a href="items.php?id=<?php echo $menu['id']; ?>" class="btn btn-sm btn-primary" title="Menu Items"><i class="fas fa-list"></i></a>
+                                <a href="sections.php?menu_id=<?php echo $menu['id']; ?>" class="btn btn-sm btn-success" title="Custom Sections"><i class="fas fa-layer-group"></i></a>
                                 <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this menu? This will also delete all menu items. This action cannot be undone.');">
                                     <input type="hidden" name="id" value="<?php echo $menu['id']; ?>">
                                     <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i></button>

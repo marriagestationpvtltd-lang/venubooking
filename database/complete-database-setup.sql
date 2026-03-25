@@ -135,6 +135,76 @@ CREATE TABLE IF NOT EXISTS menu_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: menu_sections (custom menu structure: sections → groups → items)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS menu_sections (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    menu_id INT NOT NULL,
+    section_name VARCHAR(255) NOT NULL,
+    choose_limit INT DEFAULT NULL COMMENT 'NULL = no section-level limit, use group limits',
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
+    INDEX idx_menu_sections_menu_id (menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: menu_groups
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS menu_groups (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    menu_section_id INT NOT NULL,
+    group_name VARCHAR(255) NOT NULL,
+    choose_limit INT DEFAULT NULL COMMENT 'NULL = inherit from section, >0 = per-group limit',
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (menu_section_id) REFERENCES menu_sections(id) ON DELETE CASCADE,
+    INDEX idx_menu_groups_section_id (menu_section_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: menu_group_items
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS menu_group_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    menu_group_id INT NOT NULL,
+    item_name VARCHAR(255) NOT NULL,
+    sub_category VARCHAR(255) DEFAULT NULL COMMENT 'Display-only label, e.g. Paneer Snacks',
+    extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '0 = included in base price',
+    display_order INT NOT NULL DEFAULT 0,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (menu_group_id) REFERENCES menu_groups(id) ON DELETE CASCADE,
+    INDEX idx_menu_group_items_group_id (menu_group_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABLE: booking_menu_item_selections (snapshot at booking time)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS booking_menu_item_selections (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    menu_id INT NOT NULL,
+    menu_name VARCHAR(255) NOT NULL,
+    section_name VARCHAR(255) NOT NULL,
+    group_name VARCHAR(255) NOT NULL,
+    item_name VARCHAR(255) NOT NULL,
+    sub_category VARCHAR(255) DEFAULT NULL,
+    extra_charge DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    menu_section_id INT DEFAULT NULL,
+    menu_group_id INT DEFAULT NULL,
+    menu_item_id INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    INDEX idx_bmis_booking_id (booking_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- TABLE: hall_menus (many-to-many relationship)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS hall_menus (
@@ -319,6 +389,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     tax_amount DECIMAL(10, 2) DEFAULT 0,
     grand_total DECIMAL(10, 2) NOT NULL,
     special_requests TEXT,
+    menu_special_instructions TEXT DEFAULT NULL COMMENT 'Special instructions for the menu entered during booking',
     booking_status ENUM('pending', 'payment_submitted', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
     payment_status ENUM('pending', 'partial', 'paid', 'cancelled') DEFAULT 'pending',
     advance_payment_received TINYINT(1) DEFAULT 0 COMMENT 'Whether advance payment has been received (0=No, 1=Yes)',
@@ -343,6 +414,7 @@ CREATE TABLE IF NOT EXISTS booking_menus (
     price_per_person DECIMAL(10, 2) NOT NULL,
     number_of_guests INT NOT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
+    extra_total DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Sum of extra_charge values from custom item selections for this menu',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_id) REFERENCES menus(id)

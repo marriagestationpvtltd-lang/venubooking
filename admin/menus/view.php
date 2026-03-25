@@ -159,6 +159,85 @@ $linked_halls = $halls_stmt->fetchAll();
             </div>
         </div>
 
+        <!-- Custom Menu Structure -->
+        <div class="card mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-layer-group"></i> Custom Menu Structure</h5>
+                <a href="sections.php?menu_id=<?php echo $menu_id; ?>" class="btn btn-sm btn-success">
+                    <i class="fas fa-cog"></i> Manage Sections
+                </a>
+            </div>
+            <div class="card-body">
+                <?php
+                $structure = getMenuStructure($menu_id);
+                if (empty($structure)):
+                ?>
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> No custom menu structure defined.
+                        <a href="sections.php?menu_id=<?php echo $menu_id; ?>" class="alert-link">Add sections to enable custom item selection</a> during booking.
+                    </div>
+                <?php else: ?>
+                    <div class="accordion" id="menuStructureAccordion">
+                        <?php foreach ($structure as $si => $section): ?>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button <?php echo $si > 0 ? 'collapsed' : ''; ?>" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#section<?php echo $section['id']; ?>">
+                                    <span class="fw-bold"><?php echo sanitize($section['section_name']); ?></span>
+                                    <?php if ($section['choose_limit'] !== null): ?>
+                                        <span class="badge bg-info ms-2">Choose any: <?php echo intval($section['choose_limit']); ?></span>
+                                    <?php endif; ?>
+                                    <span class="badge bg-secondary ms-2"><?php echo count($section['groups']); ?> groups</span>
+                                </button>
+                            </h2>
+                            <div id="section<?php echo $section['id']; ?>" class="accordion-collapse collapse <?php echo $si === 0 ? 'show' : ''; ?>">
+                                <div class="accordion-body p-0">
+                                    <?php if (empty($section['groups'])): ?>
+                                        <div class="p-3 text-muted">No groups in this section.</div>
+                                    <?php else: ?>
+                                    <?php foreach ($section['groups'] as $group): ?>
+                                    <div class="border-bottom p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-object-group text-success me-1"></i>
+                                                <?php echo sanitize($group['group_name']); ?>
+                                                <?php if ($group['choose_limit'] !== null): ?>
+                                                    <span class="badge bg-warning text-dark ms-1">Choose any: <?php echo intval($group['choose_limit']); ?></span>
+                                                <?php endif; ?>
+                                            </h6>
+                                            <a href="group-items.php?group_id=<?php echo $group['id']; ?>&section_id=<?php echo $section['id']; ?>&menu_id=<?php echo $menu_id; ?>" class="btn btn-xs btn-outline-secondary btn-sm py-0">
+                                                <i class="fas fa-edit"></i> Edit Items
+                                            </a>
+                                        </div>
+                                        <?php if (!empty($group['items'])): ?>
+                                            <div class="row g-1">
+                                                <?php foreach ($group['items'] as $item): ?>
+                                                <div class="col-md-4 col-6">
+                                                    <small class="d-flex align-items-center gap-1">
+                                                        <i class="fas fa-utensils text-muted" style="font-size:0.7em;"></i>
+                                                        <?php echo sanitize($item['item_name']); ?>
+                                                        <?php if (floatval($item['extra_charge']) > 0): ?>
+                                                            <span class="badge bg-warning text-dark" style="font-size:0.7em;">+<?php echo formatCurrency($item['extra_charge']); ?></span>
+                                                        <?php endif; ?>
+                                                    </small>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <small class="text-muted">No items.</small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <!-- Linked Halls -->
         <div class="card">
             <div class="card-header bg-white">
@@ -230,6 +309,9 @@ $linked_halls = $halls_stmt->fetchAll();
                 <h5 class="mb-0"><i class="fas fa-clock"></i> Quick Actions</h5>
             </div>
             <div class="card-body">
+                <a href="sections.php?menu_id=<?php echo $menu_id; ?>" class="btn btn-success btn-block w-100 mb-2">
+                    <i class="fas fa-layer-group"></i> Manage Sections
+                </a>
                 <a href="edit.php?id=<?php echo $menu_id; ?>" class="btn btn-warning btn-block w-100 mb-2">
                     <i class="fas fa-edit"></i> Edit Menu
                 </a>

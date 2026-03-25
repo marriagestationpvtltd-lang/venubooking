@@ -767,7 +767,7 @@ function generateBookingNumber() {
  *                                          pass it here to replace the hall base price.
  * @return array
  */
-function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = [], $packages = [], $slot_price_override = null) {
+function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selected_designs = [], $packages = [], $slot_price_override = null, $menu_selections = []) {
     $db = getDB();
     
     // Get hall price (custom venues have id=0 and no price in DB)
@@ -791,7 +791,16 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
         $menu_price_per_person = $result['total'] ?? 0;
         $menu_total = $menu_price_per_person * $guests;
     }
-    
+
+    // Add extra charges from custom menu item selections
+    $menu_extra_total = 0.0;
+    if (!empty($menu_selections)) {
+        foreach ($menu_selections as $mid => $sel) {
+            $menu_extra_total += calculateMenuExtraCharges(intval($mid), (array)$sel);
+        }
+        $menu_total += $menu_extra_total;
+    }
+
     // Calculate services total (regular services without sub-service flows)
     $services_total = 0;
     if (!empty($services)) {
@@ -841,6 +850,7 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
     return [
         'hall_price' => $hall_price,
         'menu_total' => $menu_total,
+        'menu_extra_total' => $menu_extra_total,
         'services_total' => $services_total,
         'subtotal' => $subtotal,
         'tax_amount' => $tax_amount,
@@ -1189,6 +1199,178 @@ function getMenuItems($menu_id) {
 }
 
 /**
+ * Get full menu structure: sections → groups → items
+ * Returns only active records.
+ */
+function getMenuStructure($menu_id) {
+    $db = getDB();
+    $menu_id = intval($menu_id);
+    try {
+        $sections = $db->prepare(
+            "SELECT * FROM menu_sections WHERE menu_id = ? AND status = 'active' ORDER BY display_order, id"
+        );
+        $sections->execute([$menu_id]);
+        $result = $sections->fetchAll();
+        foreach ($result as &$section) {
+            $groups = $db->prepare(
+                "SELECT * FROM menu_groups WHERE menu_section_id = ? AND status = 'active' ORDER BY display_order, id"
+            );
+            $groups->execute([$section['id']]);
+            $section['groups'] = $groups->fetchAll();
+            foreach ($section['groups'] as &$group) {
+                $items = $db->prepare(
+                    "SELECT * FROM menu_group_items WHERE menu_group_id = ? AND status = 'active' ORDER BY display_order, id"
+                );
+                $items->execute([$group['id']]);
+                $group['items'] = $items->fetchAll();
+            }
+        }
+        return $result;
+    } catch (\Throwable $e) {
+        error_log("getMenuStructure error (menu_id=$menu_id): " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Validate menu item selections against choose limits.
+ * $selections is keyed by group_id, value is array of item_ids.
+ * Returns ['valid'=>bool, 'errors'=>[string], 'extra_total'=>float]
+ */
+function validateMenuSelections($menu_id, array $selections) {
+    $db = getDB();
+    $menu_id = intval($menu_id);
+    $errors = [];
+    $extra_total = 0.0;
+
+    try {
+        $structure = getMenuStructure($menu_id);
+
+        foreach ($structure as $section) {
+            $section_limit = isset($section['choose_limit']) ? intval($section['choose_limit']) : null;
+            $section_selected_count = 0;
+
+            foreach ($section['groups'] as $group) {
+                $gid = intval($group['id']);
+                $group_limit = isset($group['choose_limit']) ? intval($group['choose_limit']) : null;
+                $chosen_ids = isset($selections[$gid]) ? array_map('intval', (array)$selections[$gid]) : [];
+
+                $count = count($chosen_ids);
+                $section_selected_count += $count;
+
+                if ($group_limit !== null && $section_limit === null && $count > $group_limit) {
+                    $errors[] = "Too many items selected from \"{$group['group_name']}\": chose {$count}, limit is {$group_limit}.";
+                }
+
+                if (!empty($chosen_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($chosen_ids), '?'));
+                    $params = array_merge([$gid], $chosen_ids);
+                    $stmt = $db->prepare(
+                        "SELECT id, extra_charge FROM menu_group_items
+                         WHERE menu_group_id = ? AND id IN ($placeholders) AND status = 'active'"
+                    );
+                    $stmt->execute($params);
+                    $valid_items = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+                    foreach ($chosen_ids as $iid) {
+                        if (!isset($valid_items[$iid])) {
+                            $errors[] = "Invalid item selected in group \"{$group['group_name']}\".";
+                        } else {
+                            $extra_total += floatval($valid_items[$iid]);
+                        }
+                    }
+                }
+            }
+
+            if ($section_limit !== null && $section_selected_count > $section_limit) {
+                $errors[] = "Too many items selected from \"{$section['section_name']}\": chose {$section_selected_count}, limit is {$section_limit}.";
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log("validateMenuSelections error: " . $e->getMessage());
+        $errors[] = 'Could not validate menu selections. Please try again.';
+    }
+
+    return [
+        'valid'       => empty($errors),
+        'errors'      => $errors,
+        'extra_total' => $extra_total,
+    ];
+}
+
+/**
+ * Calculate extra charges from menu item selections without full validation.
+ * $selections: [group_id => [item_id, ...], ...]
+ */
+function calculateMenuExtraCharges($menu_id, array $selections) {
+    if (empty($selections)) return 0.0;
+    $db = getDB();
+    $extra = 0.0;
+    try {
+        foreach ($selections as $group_id => $item_ids) {
+            $item_ids = array_map('intval', (array)$item_ids);
+            if (empty($item_ids)) continue;
+            $placeholders = implode(',', array_fill(0, count($item_ids), '?'));
+            $params = array_merge([intval($group_id)], $item_ids);
+            $stmt = $db->prepare(
+                "SELECT SUM(extra_charge) as total FROM menu_group_items
+                 WHERE menu_group_id = ? AND id IN ($placeholders) AND status = 'active'"
+            );
+            $stmt->execute($params);
+            $row = $stmt->fetch();
+            $extra += floatval($row['total'] ?? 0);
+        }
+    } catch (\Throwable $e) {
+        error_log("calculateMenuExtraCharges error: " . $e->getMessage());
+    }
+    return $extra;
+}
+
+/**
+ * Get booking menu item selections (snapshot) for a booking.
+ * Returns grouped structure: [menu_id => ['menu_name'=>..., 'sections'=>[section_name=>[group_name=>[items]]]]]
+ */
+function getBookingMenuItemSelections($booking_id) {
+    $db = getDB();
+    $booking_id = intval($booking_id);
+    try {
+        $stmt = $db->prepare(
+            "SELECT * FROM booking_menu_item_selections WHERE booking_id = ? ORDER BY id"
+        );
+        $stmt->execute([$booking_id]);
+        $rows = $stmt->fetchAll();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $mid = intval($row['menu_id']);
+            if (!isset($grouped[$mid])) {
+                $grouped[$mid] = [
+                    'menu_id'   => $mid,
+                    'menu_name' => $row['menu_name'],
+                    'sections'  => [],
+                ];
+            }
+            $sname = $row['section_name'];
+            $gname = $row['group_name'];
+            if (!isset($grouped[$mid]['sections'][$sname])) {
+                $grouped[$mid]['sections'][$sname] = [];
+            }
+            if (!isset($grouped[$mid]['sections'][$sname][$gname])) {
+                $grouped[$mid]['sections'][$sname][$gname] = [];
+            }
+            $grouped[$mid]['sections'][$sname][$gname][] = [
+                'item_name'    => $row['item_name'],
+                'sub_category' => $row['sub_category'],
+                'extra_charge' => floatval($row['extra_charge']),
+            ];
+        }
+        return $grouped;
+    } catch (\Throwable $e) {
+        error_log("getBookingMenuItemSelections error: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * Get all active services, joined with vendor_types for proper categorisation.
  * Returns vendor_type_id and vendor_type_label from the vendor_types table when
  * available, falling back to the legacy free-text category field for older rows
@@ -1455,7 +1637,9 @@ function createBooking($data) {
                 $data['guests'],
                 $data['services'] ?? [],
                 $data['selected_designs'] ?? [],
-                $data['packages'] ?? []
+                $data['packages'] ?? [],
+                null,
+                $data['menu_selections'] ?? []
             );
 
             // Insert booking
@@ -1477,8 +1661,8 @@ function createBooking($data) {
                         event_date, start_time, end_time, shift,
                         event_type, number_of_guests, hall_price, menu_total, 
                         services_total, subtotal, tax_amount, grand_total, 
-                        special_requests, booking_status, payment_status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
+                        special_requests, menu_special_instructions, booking_status, payment_status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
 
             $stmt = $db->prepare($sql);
             $stmt->execute([
@@ -1499,7 +1683,8 @@ function createBooking($data) {
                 $totals['subtotal'],
                 $totals['tax_amount'],
                 $totals['grand_total'],
-                $data['special_requests'] ?? ''
+                $data['special_requests'] ?? '',
+                $data['menu_special_instructions'] ?? ''
             ]);
 
             $booking_id = $db->lastInsertId();
@@ -1545,6 +1730,64 @@ function createBooking($data) {
 
                         $stmt = $db->prepare("INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES (?, ?, ?, ?, ?)");
                         $stmt->execute([$booking_id, $menu_id, $menu_price, $data['guests'], $menu_total]);
+                    }
+                }
+            }
+
+            // Save custom menu item selections snapshot
+            if (!empty($data['menu_selections']) && is_array($data['menu_selections'])) {
+                foreach ($data['menus'] ?? [] as $menu_id_sel) {
+                    $menu_id_sel = intval($menu_id_sel);
+                    if (!isset($data['menu_selections'][$menu_id_sel])) continue;
+                    $selections = $data['menu_selections'][$menu_id_sel];
+
+                    // Get menu name for snapshot
+                    $mstmt = $db->prepare("SELECT name FROM menus WHERE id = ?");
+                    $mstmt->execute([$menu_id_sel]);
+                    $mrow = $mstmt->fetch();
+                    $snap_menu_name = $mrow ? $mrow['name'] : 'Menu';
+
+                    // Update extra_total in booking_menus
+                    $extra = calculateMenuExtraCharges($menu_id_sel, $selections);
+                    $db->prepare("UPDATE booking_menus SET extra_total = ? WHERE booking_id = ? AND menu_id = ?")
+                       ->execute([$extra, $booking_id, $menu_id_sel]);
+
+                    // Get structure for snapshot labels
+                    $structure = getMenuStructure($menu_id_sel);
+                    $ins = $db->prepare("INSERT INTO booking_menu_item_selections 
+                        (booking_id, menu_id, menu_name, section_name, group_name, item_name, sub_category, extra_charge, menu_section_id, menu_group_id, menu_item_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+                    foreach ($structure as $section) {
+                        foreach ($section['groups'] as $group) {
+                            $gid = intval($group['id']);
+                            $chosen_ids = isset($selections[$gid]) ? array_map('intval', (array)$selections[$gid]) : [];
+                            if (empty($chosen_ids)) continue;
+
+                            $placeholders = implode(',', array_fill(0, count($chosen_ids), '?'));
+                            $params = array_merge([$gid], $chosen_ids);
+                            $istmt = $db->prepare(
+                                "SELECT * FROM menu_group_items WHERE menu_group_id = ? AND id IN ($placeholders) AND status = 'active'"
+                            );
+                            $istmt->execute($params);
+                            $snap_items = $istmt->fetchAll();
+
+                            foreach ($snap_items as $snap_item) {
+                                $ins->execute([
+                                    $booking_id,
+                                    $menu_id_sel,
+                                    $snap_menu_name,
+                                    $section['section_name'],
+                                    $group['group_name'],
+                                    $snap_item['item_name'],
+                                    $snap_item['sub_category'],
+                                    floatval($snap_item['extra_charge']),
+                                    intval($section['id']),
+                                    intval($group['id']),
+                                    intval($snap_item['id']),
+                                ]);
+                            }
+                        }
                     }
                 }
             }
@@ -1781,6 +2024,9 @@ function getBookingDetails($booking_id) {
                     }
                 }
             }
+
+            // Get custom menu item selections snapshot
+            $booking['menu_item_selections'] = getBookingMenuItemSelections($booking_id);
             
             // Get services - using denormalized data from booking_services table
             // This ensures historical data is displayed even if services are deleted from master table
