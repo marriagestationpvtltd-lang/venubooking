@@ -79,7 +79,7 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // On form submission keep the user on the page so they see the error.
         $totals_error = 'We were unable to calculate your booking total. Please go back and try again, or contact support.';
-        $totals = ['hall_price' => 0, 'menu_total' => 0, 'services_total' => 0, 'subtotal' => 0, 'tax_amount' => 0, 'grand_total' => 0];
+        $totals = ['hall_price' => 0, 'menu_total' => 0, 'menu_extra_total' => 0, 'services_total' => 0, 'subtotal' => 0, 'tax_amount' => 0, 'grand_total' => 0];
     } else {
         header('Location: index.php');
         exit;
@@ -331,9 +331,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 'event_date'         => $booking_data['event_date'],
                 'start_time'         => $booking_data['start_time'] ?? '',
                 'end_time'           => $booking_data['end_time']   ?? '',
-                'shift'              => $booking_data['shift'],
-                'event_type'         => $booking_data['event_type'],
-                'guests'             => $booking_data['guests'],
+                'shift'              => $booking_data['shift']      ?? '',
+                'event_type'         => $booking_data['event_type']  ?? '',
+                'guests'             => $booking_data['guests']      ?? 0,
                 'menus'              => $selected_menus,
                 'services'           => $selected_services,
                 'selected_designs'   => $selected_designs,
