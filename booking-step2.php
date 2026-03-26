@@ -258,6 +258,11 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
     </div>
 </section>
 
+<!-- Photo Zoom Overlay (400×400 preview on hover) -->
+<div id="imgZoomOverlay" aria-hidden="true">
+    <img id="imgZoomPreview" src="" alt="">
+</div>
+
 <!-- Time Slot Selection Modal -->
 <div class="modal fade" id="timeSlotModal" tabindex="-1" aria-labelledby="timeSlotModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
