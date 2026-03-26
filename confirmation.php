@@ -819,18 +819,48 @@ require_once __DIR__ . '/includes/header.php';
 
                         <!-- ── Services ── -->
                         <?php
-                        $user_services = [];
-                        $admin_services = [];
+                        $user_services    = [];
+                        $admin_services   = [];
+                        $package_services = [];
                         if (!empty($booking['services']) && is_array($booking['services'])) {
                             foreach ($booking['services'] as $service) {
-                                if (isset($service['added_by']) && $service['added_by'] === 'admin') {
+                                $svc_cat = $service['category'] ?? '';
+                                if ($svc_cat === PACKAGE_SERVICE_CATEGORY || $svc_cat === PACKAGE_INCLUDED_CATEGORY) {
+                                    $package_services[] = $service;
+                                } elseif (isset($service['added_by']) && $service['added_by'] === 'admin') {
                                     $admin_services[] = $service;
                                 } else {
                                     $user_services[] = $service;
                                 }
                             }
                         }
-                        if (!empty($user_services)):
+                        if (!empty($package_services)):
+                        ?>
+                        <div class="ticket-divider"></div>
+                        <div class="conf-section-title"><i class="fas fa-box-open"></i> Service Packages</div>
+                        <?php foreach ($package_services as $service):
+                            $svc_is_incl = ($service['category'] ?? '') === PACKAGE_INCLUDED_CATEGORY;
+                            $s_price = floatval($service['price'] ?? 0);
+                            $s_qty   = intval($service['quantity'] ?? 1);
+                        ?>
+                            <div class="conf-item-row <?php echo $svc_is_incl ? 'ms-3' : ''; ?>">
+                                <div>
+                                    <?php if ($svc_is_incl): ?>
+                                        <div class="item-name text-muted" style="font-size:.9em;">
+                                            <i class="fas fa-check-circle text-success me-1" style="font-size:.8em;"></i><?php echo sanitize($service['service_name']); ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="item-name"><?php echo sanitize($service['service_name']); ?></div>
+                                        <?php if ($s_qty > 1): ?><div class="item-sub">Qty: <?php echo $s_qty; ?> × <?php echo formatCurrency($s_price); ?></div><?php endif; ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="item-price">
+                                    <?php echo $svc_is_incl ? '<span class="text-success small">Included</span>' : formatCurrency($s_price * $s_qty); ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                        <?php if (!empty($user_services)):
                         ?>
                         <div class="ticket-divider"></div>
                         <div class="conf-section-title"><i class="fas fa-star"></i> Additional Services</div>

@@ -508,6 +508,10 @@ if (!empty($booking['services']) && is_array($booking['services'])) {
         if (($service['category'] ?? '') === PACKAGE_SERVICE_CATEGORY) {
             // All package-category services (user- or admin-added) go to packages section
             $package_services[] = $service;
+        } elseif (($service['category'] ?? '') === PACKAGE_INCLUDED_CATEGORY) {
+            // Services auto-included from package features go to packages section
+            // so they are displayed alongside the package they belong to.
+            $package_services[] = $service;
         } elseif (isset($service['added_by']) && $service['added_by'] === 'admin') {
             $admin_services[] = $service;
         } else {
@@ -524,16 +528,22 @@ foreach ($package_services as $_pkg) {
     $package_services_total += floatval($_pkg['price'] ?? 0) * intval($_pkg['quantity'] ?? 1);
 }
 
-// Batch-fetch primary photo URLs for user services and admin services from additional_services.photo
+// Batch-fetch primary photo URLs for user services, admin services, and package-included services
+// from additional_services.photo
+$_pkg_included_services = array_filter($package_services, fn($s) => ($s['category'] ?? '') === PACKAGE_INCLUDED_CATEGORY);
 $_svc_ids_for_photos = array_filter(array_unique(array_merge(
     array_column($user_services, 'service_id'),
-    array_column($admin_services, 'service_id')
+    array_column($admin_services, 'service_id'),
+    array_column($_pkg_included_services, 'service_id')
 )), fn($id) => intval($id) > 0);
 $service_primary_photos = getServicePrimaryPhotoUrls(array_values($_svc_ids_for_photos));
-unset($_svc_ids_for_photos);
+unset($_svc_ids_for_photos, $_pkg_included_services);
 
-// Batch-fetch primary photo URLs for package services from service_package_photos
-$_pkg_ids_for_photos = array_filter(array_unique(array_column($package_services, 'service_id')), fn($id) => intval($id) > 0);
+// Batch-fetch primary photo URLs for (non-included) package services from service_package_photos
+$_pkg_ids_for_photos = array_filter(array_unique(array_map(
+    fn($s) => ($s['category'] ?? '') !== PACKAGE_INCLUDED_CATEGORY ? $s['service_id'] : 0,
+    $package_services
+)), fn($id) => intval($id) > 0);
 $package_primary_photos = getPackagePrimaryPhotoUrls(array_values($_pkg_ids_for_photos));
 unset($_pkg_ids_for_photos);
 
@@ -841,20 +851,27 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                     <?php if (!empty($package_services)): ?>
                         <?php foreach ($package_services as $service): ?>
                         <?php
-                            $service_price = floatval($service['price'] ?? 0);
-                            $service_qty   = intval($service['quantity'] ?? 1);
-                            $service_total = $service_price * $service_qty;
+                            $service_price      = floatval($service['price'] ?? 0);
+                            $service_qty        = intval($service['quantity'] ?? 1);
+                            $service_total      = $service_price * $service_qty;
+                            $svc_is_pkg_incl    = ($service['category'] ?? '') === PACKAGE_INCLUDED_CATEGORY;
                         ?>
                         <tr>
                             <td>
-                                <strong>Package</strong> - <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Package')); ?>
+                                <?php if ($svc_is_pkg_incl): ?>
+                                    <span style="color:#888;">&#8627;</span>
+                                    <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Service')); ?>
+                                    <span style="font-size:.85em;color:#888;">(Included in package)</span>
+                                <?php else: ?>
+                                    <strong>Package</strong> - <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Package')); ?>
+                                <?php endif; ?>
                                 <?php if (!empty($service['description'])): ?>
                                     <br><span class="service-description-print"><?php echo htmlspecialchars($service['description']); ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td class="text-center"><?php echo $service_qty; ?></td>
-                            <td class="text-right"><?php echo number_format($service_price, 2); ?></td>
-                            <td class="text-right"><?php echo number_format($service_total, 2); ?></td>
+                            <td class="text-center"><?php echo $svc_is_pkg_incl ? '—' : $service_qty; ?></td>
+                            <td class="text-right"><?php echo $svc_is_pkg_incl ? 'Incl.' : number_format($service_price, 2); ?></td>
+                            <td class="text-right"><?php echo $svc_is_pkg_incl ? '—' : number_format($service_total, 2); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -1600,9 +1617,15 @@ unset($_avail_svc);
                                     $pkg_qty   = intval($service['quantity'] ?? 1);
                                     $pkg_total = $pkg_price * $pkg_qty;
                                     $pkg_is_admin_added = isset($service['added_by']) && $service['added_by'] === 'admin';
-                                    $pkg_photo_url = ($service['service_id'] > 0) ? ($package_primary_photos[$service['service_id']] ?? '') : '';
+                                    $pkg_is_included    = ($service['category'] ?? '') === PACKAGE_INCLUDED_CATEGORY;
+                                    // Package rows use service_package_photos; included-service rows use additional_services photos
+                                    if ($pkg_is_included) {
+                                        $pkg_photo_url = ($service['service_id'] > 0) ? ($service_primary_photos[$service['service_id']] ?? '') : '';
+                                    } else {
+                                        $pkg_photo_url = ($service['service_id'] > 0) ? ($package_primary_photos[$service['service_id']] ?? '') : '';
+                                    }
                                 ?>
-                                <tr>
+                                <tr<?php echo $pkg_is_included ? ' class="table-success bg-opacity-10"' : ''; ?>>
                                     <td class="text-center align-middle">
                                         <?php if (!empty($pkg_photo_url)): ?>
                                         <div class="photo-zoom-wrap mx-auto" style="width:36px;height:36px;">
@@ -1615,6 +1638,11 @@ unset($_avail_svc);
                                                      alt="<?php echo htmlspecialchars($service['service_name']); ?>">
                                             </div>
                                         </div>
+                                        <?php elseif ($pkg_is_included): ?>
+                                        <span class="d-inline-flex align-items-center justify-content-center bg-success text-white rounded"
+                                              style="width:36px;height:36px;font-size:.85rem;">
+                                            <i class="fas fa-check"></i>
+                                        </span>
                                         <?php else: ?>
                                         <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded"
                                               style="width:36px;height:36px;font-size:.85rem;">
@@ -1623,19 +1651,39 @@ unset($_avail_svc);
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
-                                        <?php if (!$pkg_is_admin_added): ?>
-                                            <span class="badge bg-success ms-1" style="font-size:.65rem;" title="Selected by customer during booking">Customer</span>
+                                        <?php if ($pkg_is_included): ?>
+                                            <span class="text-muted ps-2">&#8627;</span>
+                                            <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
+                                            <span class="badge bg-success ms-1" style="font-size:.65rem;" title="Automatically included because it is part of a selected package"><i class="fas fa-box-open me-1"></i>Included</span>
+                                        <?php else: ?>
+                                            <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
+                                            <?php if (!$pkg_is_admin_added): ?>
+                                                <span class="badge bg-success ms-1" style="font-size:.65rem;" title="Selected by customer during booking">Customer</span>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                         <?php if (!empty($service['description'])): ?>
                                             <small class="d-block text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($service['description']); ?></small>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center"><span class="badge bg-info"><?php echo $pkg_qty; ?></span></td>
-                                    <td class="text-end fw-bold text-primary"><?php echo formatCurrency($pkg_price); ?></td>
-                                    <td class="text-end fw-bold text-success"><?php echo formatCurrency($pkg_total); ?></td>
+                                    <td class="text-end fw-bold text-primary">
+                                        <?php if ($pkg_is_included): ?>
+                                            <span class="text-success small">Included</span>
+                                        <?php else: ?>
+                                            <?php echo formatCurrency($pkg_price); ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end fw-bold text-success">
+                                        <?php if ($pkg_is_included): ?>
+                                            <span class="text-success small">—</span>
+                                        <?php else: ?>
+                                            <?php echo formatCurrency($pkg_total); ?>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-center">
-                                        <?php if ($pkg_is_admin_added): ?>
+                                        <?php if ($pkg_is_included): ?>
+                                        <span class="text-muted" title="Auto-included from package" style="font-size:.75rem;">—</span>
+                                        <?php elseif ($pkg_is_admin_added): ?>
                                         <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this package from the booking?');">
                                             <input type="hidden" name="action" value="delete_admin_service">
                                             <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
