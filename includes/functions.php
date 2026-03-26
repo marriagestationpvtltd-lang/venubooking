@@ -805,7 +805,7 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
         foreach ($menu_selections as $mid => $sel) {
             $menu_extra_total += calculateMenuExtraCharges(intval($mid), (array)$sel);
         }
-        $menu_total += $menu_extra_total;
+        $menu_total += $menu_extra_total * $guests;
     }
 
     // Calculate services total (regular services without sub-service flows)
