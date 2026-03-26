@@ -24,14 +24,9 @@ if (empty($token)) {
         $photo = $stmt->fetch();
         
         if (!$photo) {
-            $error_message = 'File not found. The link may be invalid or expired.';
-        } elseif ($photo['status'] === 'inactive' || $photo['status'] === 'expired') {
+            $error_message = 'File not found. The link may be invalid or inactive.';
+        } elseif ($photo['status'] === 'inactive') {
             $error_message = 'This download link is no longer active.';
-        } elseif ($photo['expires_at'] && strtotime($photo['expires_at']) < time()) {
-            $error_message = 'This download link has expired.';
-            // Update status to expired
-            $update_stmt = $db->prepare("UPDATE shared_photos SET status = 'expired' WHERE id = ?");
-            $update_stmt->execute([$photo['id']]);
         } elseif ($photo['max_downloads'] && $photo['download_count'] >= $photo['max_downloads']) {
             $error_message = 'Maximum download limit reached for this file.';
         } else {
@@ -633,13 +628,8 @@ $whatsapp_number = getSetting('whatsapp_number');
                             <?php endif; ?>
                         </div>
                         <div class="col-6 text-end">
-                            <?php if ($photo['expires_at']): ?>
-                                <i class="fas fa-clock"></i>
-                                Expires: <?php echo date('M d, Y', strtotime($photo['expires_at'])); ?> (<?php echo convertToNepaliDate($photo['expires_at']); ?>)
-                            <?php else: ?>
-                                <i class="fas fa-infinity"></i>
-                                No expiry
-                            <?php endif; ?>
+                            <i class="fas fa-infinity"></i>
+                            No expiry
                         </div>
                     </div>
                 </div>

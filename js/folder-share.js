@@ -124,14 +124,18 @@ async function startDownload(url, defaultName) {
     dlIcon.className       = 'fas fa-spinner fa-spin';
     overlay.classList.add('dl-active');
 
-    var iframe = document.getElementById('downloadFrame');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'downloadFrame';
-        iframe.name = 'downloadFrame';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
+    // Always create a fresh iframe to avoid stale-document false-positive errors.
+    // Reusing an iframe that previously loaded an HTML error page would cause the
+    // body-content check to fire even for a successful subsequent download.
+    var oldFrame = document.getElementById('downloadFrame');
+    if (oldFrame && oldFrame.parentNode) {
+        oldFrame.parentNode.removeChild(oldFrame);
     }
+    var iframe = document.createElement('iframe');
+    iframe.id = 'downloadFrame';
+    iframe.name = 'downloadFrame';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
 
     var loadTimeout = setTimeout(function() { showSuccess('Check your browser downloads'); }, 800);
 
