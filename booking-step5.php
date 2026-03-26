@@ -88,7 +88,7 @@ try {
 }
 
 // Calculate current totals including already-selected packages
-$totals        = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], [], [], $selected_packages);
+$totals        = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], [], [], $selected_packages, null, $_SESSION['menu_selections'] ?? []);
 $tax_rate      = floatval(getSetting('tax_rate', '13'));
 $current_total = $totals['grand_total'];
 ?>

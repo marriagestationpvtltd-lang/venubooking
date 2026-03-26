@@ -31,7 +31,7 @@ $packages_by_category = array_filter($packages_by_category, function ($cat) {
 });
 
 // Calculate current totals (no packages selected yet on initial load)
-$totals        = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests']);
+$totals        = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], [], [], [], null, $_SESSION['menu_selections'] ?? []);
 $tax_rate      = floatval(getSetting('tax_rate', '13'));
 $current_total = $totals['grand_total'];
 ?>
