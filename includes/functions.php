@@ -1864,7 +1864,8 @@ function createBooking($data) {
             // Insert user-selected service packages into booking_services.
             // Also collect service IDs that are included in packages so regular
             // service insertion can skip them and avoid double-counting.
-            $pkg_included_svc_ids = []; // service_ids already covered by a package
+            // Used as a set: keys are service_ids (int), values are always true.
+            $pkg_included_svc_ids = [];
 
             if (!empty($data['packages'])) {
                 foreach ($data['packages'] as $package_id) {
@@ -1922,8 +1923,8 @@ function createBooking($data) {
                                 }
                             } catch (\Throwable $featErr) {
                                 // Non-fatal: log and continue — the package row was already saved.
-                                // This catch handles older installs where service_id column may
-                                // not yet exist in service_package_features.
+                                // Booking is still created successfully; only the per-service breakdown is missing.
+                                // Run database/migrations/add_service_id_to_package_features.sql to enable full support.
                                 error_log("Package feature services skipped for booking {$booking_id}, package_id={$package_id}: " . $featErr->getMessage());
                             }
                         }

@@ -843,6 +843,11 @@ require_once __DIR__ . '/includes/header.php';
                             $s_price = floatval($service['price'] ?? 0);
                             $s_qty   = intval($service['quantity'] ?? 1);
                         ?>
+                            <?php
+                            // Package rows are shown at the normal indent level.
+                            // Services with category=package_included are indented (ms-3)
+                            // to visually appear as children of the package above them.
+                            ?>
                             <div class="conf-item-row <?php echo $svc_is_incl ? 'ms-3' : ''; ?>">
                                 <div>
                                     <?php if ($svc_is_incl): ?>

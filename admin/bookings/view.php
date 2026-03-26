@@ -859,7 +859,7 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                         <tr>
                             <td>
                                 <?php if ($svc_is_pkg_incl): ?>
-                                    <span style="color:#888;">&#8627;</span>
+                                    <i class="fas fa-long-arrow-alt-right" style="color:#888;font-size:.85em;" aria-hidden="true"></i>
                                     <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Service')); ?>
                                     <span style="font-size:.85em;color:#888;">(Included in package)</span>
                                 <?php else: ?>
@@ -1652,7 +1652,7 @@ unset($_avail_svc);
                                     </td>
                                     <td>
                                         <?php if ($pkg_is_included): ?>
-                                            <span class="text-muted ps-2">&#8627;</span>
+                                            <i class="fas fa-long-arrow-alt-right text-muted me-1" style="font-size:.8rem;" aria-hidden="true"></i>
                                             <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
                                             <span class="badge bg-success ms-1" style="font-size:.65rem;" title="Automatically included because it is part of a selected package"><i class="fas fa-box-open me-1"></i>Included</span>
                                         <?php else: ?>

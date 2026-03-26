@@ -53,8 +53,9 @@ if (!empty($selected_packages)) {
             $pkg_included_service_names[(int)$pf['service_id']] = $pf['package_name'];
         }
     } catch (\Throwable $e) {
-        // Non-fatal: if service_id column doesn't exist yet (migration not run)
-        // or any other DB issue, just show all services as normally selectable.
+        // Non-fatal: if service_id column doesn't exist (migration not yet run —
+        // see database/migrations/add_service_id_to_package_features.sql) or any
+        // other DB issue, fall back to showing all services as normally selectable.
         error_log('booking-step5: failed to load package-included services: ' . $e->getMessage());
         $pkg_included_service_names = [];
     }
