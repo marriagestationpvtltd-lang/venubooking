@@ -210,20 +210,29 @@ $current_total = $totals['grand_total'];
                                             <?php endif; ?>
 
                                             <?php if (!empty($pkg['features'])): ?>
-                                                <ul class="list-unstyled small mb-0 mt-auto">
+                                                <div class="pkg-feat-icons mt-auto mb-0">
                                                     <?php foreach (array_slice($pkg['features'], 0, 6) as $feat): ?>
-                                                        <li class="mb-1">
-                                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                                            <?php echo sanitize($feat); ?>
-                                                        </li>
+                                                    <div class="pkg-feat-icon-item" title="<?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <?php if (!empty($feat['service_photo'])): ?>
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($feat['service_photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                             class="pkg-feat-icon-img"
+                                                             loading="lazy"
+                                                             alt="<?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <?php else: ?>
+                                                        <div class="pkg-feat-icon-fallback">
+                                                            <i class="fas fa-check" aria-hidden="true"></i>
+                                                        </div>
+                                                        <?php endif; ?>
+                                                        <p class="pkg-feat-icon-label"><?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                                    </div>
                                                     <?php endforeach; ?>
                                                     <?php if (count($pkg['features']) > 6): ?>
-                                                        <li class="text-muted">
-                                                            <i class="fas fa-ellipsis-h me-1"></i>
-                                                            +<?php echo count($pkg['features']) - 6; ?> more features
-                                                        </li>
+                                                    <div class="pkg-feat-icon-item" title="+<?php echo count($pkg['features']) - 6; ?> more features">
+                                                        <div class="pkg-feat-more-chip">+<?php echo count($pkg['features']) - 6; ?></div>
+                                                        <p class="pkg-feat-icon-label">थप</p>
+                                                    </div>
                                                     <?php endif; ?>
-                                                </ul>
+                                                </div>
                                             <?php endif; ?>
                                         </div>
                                     </div>

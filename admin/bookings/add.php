@@ -505,7 +505,7 @@ require_once __DIR__ . '/../includes/header.php';
                                                         <?php if (!empty($pkg['features'])): ?>
                                                             <ul class="list-unstyled small mb-0">
                                                                 <?php foreach (array_slice($pkg['features'], 0, 4) as $feat): ?>
-                                                                    <li><i class="fas fa-check-circle text-success me-1"></i><?php echo htmlspecialchars($feat); ?></li>
+                                                                    <li><i class="fas fa-check-circle text-success me-1"></i><?php echo htmlspecialchars($feat['feature_text']); ?></li>
                                                                 <?php endforeach; ?>
                                                                 <?php if (count($pkg['features']) > 4): ?>
                                                                     <li class="text-muted"><i class="fas fa-ellipsis-h me-1"></i>+<?php echo count($pkg['features']) - 4; ?> more</li>
