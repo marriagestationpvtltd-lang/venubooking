@@ -10,7 +10,20 @@ if (!isset($_SESSION['booking_completed'])) {
 }
 
 $booking_info = $_SESSION['booking_completed'];
-$booking = getBookingDetails($booking_info['booking_id']);
+try {
+    $booking = getBookingDetails($booking_info['booking_id']);
+} catch (\Throwable $e) {
+    error_log("Confirmation page: getBookingDetails failed for booking ID {$booking_info['booking_id']}: " . $e->getMessage());
+    // Booking was saved but we can't load its details right now.
+    // Show a friendly flash message with the booking reference so the customer
+    // can follow up, then clear the session so the page doesn't loop.
+    $_SESSION['booking_error_flash'] = 'Your booking' .
+        (!empty($booking_info['booking_number']) ? ' (Ref: ' . htmlspecialchars($booking_info['booking_number'], ENT_QUOTES, 'UTF-8') . ')' : '') .
+        ' was received successfully, but we encountered an error loading the confirmation page. Please contact us or check your email for details.';
+    unset($_SESSION['booking_completed']);
+    header('Location: index.php');
+    exit;
+}
 $payment_submitted = $booking_info['payment_submitted'] ?? false;
 $vendors = getBookingVendorAssignments($booking_info['booking_id']);
 
