@@ -566,6 +566,15 @@
 
     function toggleGroupCollapse(groupEl) {
         if (groupEl.classList.contains('cmp-group--collapsed')) {
+            // Accordion: auto-collapse all sibling groups in the same section so
+            // only one group is open at a time. The header preview will show the
+            // selected items and extra amount for any collapsed group.
+            var groupsWrap = groupEl.closest('.cmp-groups');
+            if (groupsWrap) {
+                Array.from(groupsWrap.querySelectorAll('.cmp-group')).forEach(function (g) {
+                    if (g !== groupEl) collapseGroup(g);
+                });
+            }
             expandGroup(groupEl);
         } else {
             collapseGroup(groupEl);
@@ -663,9 +672,9 @@
         summaryDiv.style.display = '';
         body.innerHTML = '';
 
-        // Horizontal grid: menus side by side, auto-fill columns
+        // Responsive horizontal grid: menu cards placed side by side
         const grid = document.createElement('div');
-        grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;';
+        grid.className = 'cmp-summary-grid';
 
         checkedIds.forEach(function (menuId) {
             const cb = document.querySelector('.menu-checkbox[value="' + menuId + '"]');
@@ -673,7 +682,10 @@
             const menuNameEl = card ? card.querySelector('.card-title') : null;
             const menuName = menuNameEl ? menuNameEl.textContent.trim() : ('Menu #' + menuId);
 
-            // Get pre-defined items from data attribute
+            const pricePerPerson = cb ? parseFloat(cb.dataset.price || '0') : 0;
+            const guests = (typeof guestsCount !== 'undefined') ? parseInt(guestsCount) : 0;
+
+            // Pre-defined items for simple (non-sectioned) menus
             const menuCol = cb ? cb.closest('[data-menu-items]') : null;
             let menuItemsData = [];
             try {
@@ -681,142 +693,108 @@
                     ? JSON.parse(menuCol.dataset.menuItems) : [];
             } catch (e) { menuItemsData = []; }
 
-            // Menu cell
+            // ── Menu summary card ────────────────────────────────────────────
             const cell = document.createElement('div');
-            cell.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;min-width:0;';
+            cell.className = 'cmp-summary-menu-card';
 
-            // Compact menu title
-            cell.innerHTML =
-                '<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">' +
-                '<i class="fas fa-utensils" style="color:#15803d;font-size:0.7rem;flex-shrink:0;"></i>' +
-                '<span style="font-size:0.82rem;font-weight:600;color:#14532d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
-                escapeHtml(menuName) + '</span></div>';
+            // Card header: icon + menu name + price badge
+            const header = document.createElement('div');
+            header.className = 'cmp-summary-menu-header';
+            header.innerHTML =
+                '<i class="fas fa-utensils cmp-summary-menu-icon" aria-hidden="true"></i>' +
+                '<span class="cmp-summary-menu-name">' + escapeHtml(menuName) + '</span>';
+            if (pricePerPerson > 0) {
+                const priceBadge = document.createElement('span');
+                priceBadge.className = 'cmp-summary-price-badge';
+                priceBadge.textContent = currencySymbol + Math.round(pricePerPerson) + '/pax';
+                header.appendChild(priceBadge);
+            }
+            cell.appendChild(header);
 
-            // Determine structure
             const structure = menuStructures[menuId];
             const hasSections = structure && structure.sections && structure.sections.length > 0;
 
             if (hasSections && currentSelections[menuId]) {
-                // Custom-selection menu: section-wise price breakdown
-                const pricePerPerson = cb ? parseFloat(cb.dataset.price || '0') : 0;
-                const guests = (typeof guestsCount !== 'undefined') ? parseInt(guestsCount) : 0;
+                // ── Custom-selection menu: one row per group ─────────────────
                 let hasAnySelection = false;
-                let runningExtra = 0;
-                const sectionsWrap = document.createElement('div');
-                sectionsWrap.className = 'cmp-sections-grid';
-                structure.sections.forEach(function (section) {
-                    let sectionExtra = 0;
-                    const sectionGroups = [];
+                let totalExtra = 0;
 
+                const rowsDiv = document.createElement('div');
+                rowsDiv.className = 'cmp-summary-rows';
+
+                structure.sections.forEach(function (section) {
                     section.groups.forEach(function (group) {
                         const sel = currentSelections[menuId][group.id];
                         if (!sel || sel.size === 0) return;
-                        const groupLimit = parseInt(group.choose_limit) || 0;
+                        hasAnySelection = true;
+
+                        // Row: group name label | item chips
+                        const row = document.createElement('div');
+                        row.className = 'cmp-summary-row';
+
+                        const label = document.createElement('span');
+                        label.className = 'cmp-summary-row-label';
+                        label.textContent = group.group_name;
+                        row.appendChild(label);
+
+                        const chipsDiv = document.createElement('div');
+                        chipsDiv.className = 'cmp-summary-chips';
+
                         const perItemCharge = parseFloat(group.extra_charge_per_item || 0);
-                        const itemData = [];
                         group.items.forEach(function (item) {
                             if (sel.has(parseInt(item.id))) {
                                 const isOver = overLimitSelections[menuId] &&
                                     overLimitSelections[menuId][group.id] &&
                                     overLimitSelections[menuId][group.id].has(parseInt(item.id));
-                                // For over-limit items, show group's per-item charge (if set); else item's own charge
                                 const charge = isOver && perItemCharge > 0
                                     ? perItemCharge
                                     : (parseFloat(item.extra_charge) || 0);
-                                sectionExtra += charge;
-                                itemData.push({
-                                    name: item.item_name,
-                                    extraCharge: charge,
-                                    isOver: isOver
-                                });
+                                totalExtra += charge;
+                                chipsDiv.innerHTML += compactChip(item.item_name, charge, isOver);
                             }
                         });
-                        if (itemData.length > 0) {
-                            sectionGroups.push({ groupName: group.group_name, items: itemData });
-                        }
+
+                        row.appendChild(chipsDiv);
+                        rowsDiv.appendChild(row);
                     });
-
-                    if (sectionGroups.length === 0) return;
-                    hasAnySelection = true;
-                    runningExtra += sectionExtra;
-
-                    const sectionDiv = document.createElement('div');
-                    sectionDiv.style.cssText = 'margin-bottom:5px;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;';
-
-                    // Section header: name + section extra badge
-                    const sectionHead = document.createElement('div');
-                    sectionHead.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:#f1f5f9;padding:2px 7px;';
-                    const sectionTitle = document.createElement('span');
-                    sectionTitle.style.cssText = 'font-size:0.7rem;font-weight:700;color:#334155;';
-                    sectionTitle.textContent = section.section_name;
-                    sectionHead.appendChild(sectionTitle);
-                    if (sectionExtra > 0) {
-                        const secExtraBadge = document.createElement('span');
-                        secExtraBadge.style.cssText = 'font-size:0.63rem;font-weight:600;color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:0 5px;';
-                        secExtraBadge.textContent = '+' + currencySymbol + Math.round(sectionExtra);
-                        sectionHead.appendChild(secExtraBadge);
-                    }
-                    sectionDiv.appendChild(sectionHead);
-
-                    // Groups & items
-                    const itemsDiv = document.createElement('div');
-                    itemsDiv.style.cssText = 'padding:3px 7px;';
-                    sectionGroups.forEach(function (grp) {
-                        const line = document.createElement('div');
-                        line.style.cssText = 'margin-bottom:2px;';
-                        line.innerHTML =
-                            '<span style="font-size:0.68rem;font-weight:600;color:#64748b;margin-right:3px;">' +
-                            escapeHtml(grp.groupName) + ':</span>' +
-                            grp.items.map(function (d) { return compactChip(d.name, d.extraCharge, d.isOver); }).join(' ');
-                        itemsDiv.appendChild(line);
-                    });
-                    sectionDiv.appendChild(itemsDiv);
-
-                    // Running cumulative extra total
-                    const cumDiv = document.createElement('div');
-                    cumDiv.style.cssText = 'display:flex;justify-content:space-between;padding:1px 7px 3px;border-top:1px dashed #e2e8f0;background:#fafafa;';
-                    const cumLabel = document.createElement('span');
-                    cumLabel.style.cssText = 'font-size:0.62rem;color:#94a3b8;';
-                    cumLabel.textContent = 'Cumulative extras:';
-                    cumDiv.appendChild(cumLabel);
-                    const cumVal = document.createElement('span');
-                    cumVal.style.cssText = 'font-size:0.65rem;font-weight:700;color:#92400e;';
-                    cumVal.textContent = currencySymbol + Math.round(runningExtra);
-                    cumDiv.appendChild(cumVal);
-                    sectionDiv.appendChild(cumDiv);
-
-                    sectionsWrap.appendChild(sectionDiv);
                 });
 
                 if (!hasAnySelection) {
-                    sectionsWrap.setAttribute('role', 'status');
-                    sectionsWrap.innerHTML =
-                        '<span style="font-size:0.72rem;color:#d97706;">' +
-                        '<i class="fas fa-exclamation-circle" aria-hidden="true"></i> No items selected yet</span>';
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'cmp-summary-empty';
+                    emptyDiv.innerHTML = '<i class="fas fa-exclamation-circle" aria-hidden="true"></i> No items selected yet';
+                    rowsDiv.appendChild(emptyDiv);
                 }
-                cell.appendChild(sectionsWrap);
+                cell.appendChild(rowsDiv);
 
-                // Menu total summary row (base price × guests + extras)
+                // Total row: price formula + grand total
                 if (hasAnySelection) {
                     const totalRow = document.createElement('div');
-                    totalRow.style.cssText = 'margin-top:4px;display:flex;justify-content:space-between;align-items:center;padding:3px 7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;';
-                    const totalLabel = document.createElement('span');
-                    totalLabel.style.cssText = 'font-size:0.65rem;color:#166534;';
+                    totalRow.className = 'cmp-summary-total';
+
+                    const labelParts = [];
                     if (guests > 0 && pricePerPerson > 0) {
-                        totalLabel.textContent = currencySymbol + Math.round(pricePerPerson) + '/pax' + (runningExtra > 0 ? ' + extras' : '') + ' \u00d7 ' + guests;
-                    } else {
-                        totalLabel.textContent = 'Menu total:';
+                        labelParts.push(currencySymbol + Math.round(pricePerPerson) + ' \u00d7 ' + guests);
                     }
-                    totalRow.appendChild(totalLabel);
+                    if (totalExtra > 0) {
+                        labelParts.push('+' + currencySymbol + Math.round(totalExtra) + ' extra');
+                    }
+
+                    const totalLabel = document.createElement('span');
+                    totalLabel.className = 'cmp-summary-total-label';
+                    totalLabel.textContent = labelParts.join(' ');
+
                     const totalVal = document.createElement('span');
-                    totalVal.style.cssText = 'font-size:0.7rem;font-weight:700;color:#166534;';
-                    totalVal.textContent = currencySymbol + Math.round((pricePerPerson + runningExtra) * guests);
+                    totalVal.className = 'cmp-summary-total-val';
+                    totalVal.textContent = currencySymbol + Math.round(guests > 0 ? pricePerPerson * guests + totalExtra : 0);
+
+                    totalRow.appendChild(totalLabel);
                     totalRow.appendChild(totalVal);
                     cell.appendChild(totalRow);
                 }
 
             } else if (menuItemsData.length > 0) {
-                // Simple menu: compact rows per category
+                // ── Simple menu: one row per category ────────────────────────
                 const grouped = {};
                 const categoryOrder = [];
                 menuItemsData.forEach(function (item) {
@@ -828,19 +806,28 @@
                     grouped[cat].push(item.item_name);
                 });
 
-                const linesWrap = document.createElement('div');
-                linesWrap.className = 'cmp-sections-grid';
+                const rowsDiv = document.createElement('div');
+                rowsDiv.className = 'cmp-summary-rows';
 
                 categoryOrder.forEach(function (cat) {
-                    const line = document.createElement('div');
-                    line.style.cssText = 'margin-bottom:4px;';
-                    line.innerHTML =
-                        (cat ? '<span style="font-size:0.72rem;font-weight:600;color:#64748b;margin-right:3px;">' +
-                            escapeHtml(cat) + ':</span>' : '') +
-                        grouped[cat].map(function (n) { return compactChip(n); }).join(' ');
-                    linesWrap.appendChild(line);
+                    const row = document.createElement('div');
+                    row.className = 'cmp-summary-row';
+
+                    if (cat) {
+                        const label = document.createElement('span');
+                        label.className = 'cmp-summary-row-label';
+                        label.textContent = cat;
+                        row.appendChild(label);
+                    }
+
+                    const chipsDiv = document.createElement('div');
+                    chipsDiv.className = 'cmp-summary-chips';
+                    chipsDiv.innerHTML = grouped[cat].map(function (n) { return compactChip(n); }).join('');
+                    row.appendChild(chipsDiv);
+                    rowsDiv.appendChild(row);
                 });
-                cell.appendChild(linesWrap);
+
+                cell.appendChild(rowsDiv);
             }
 
             grid.appendChild(cell);
