@@ -13,6 +13,9 @@ $categories = $cat_stmt->fetchAll();
 // Pre-select category if passed in URL
 $preselect_cat = isset($_GET['category_id']) ? intval($_GET['category_id']) : 0;
 
+// Load all active services for the features checkboxes
+$all_services = getActiveServices();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name          = trim($_POST['name'] ?? '');
     $category_id   = intval($_POST['category_id'] ?? 0);
@@ -191,25 +194,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="mb-3">
                         <label class="form-label">Package Features (checkmark list)</label>
-                        <div id="featuresContainer">
-                            <?php
-                            $existing_features = $_POST['features'] ?? [''];
-                            foreach ($existing_features as $fi => $fval):
-                            ?>
-                            <div class="input-group mb-2 feature-row">
-                                <span class="input-group-text text-success"><i class="fas fa-check"></i></span>
-                                <input type="text" class="form-control" name="features[]"
-                                       value="<?php echo htmlspecialchars($fval); ?>"
-                                       placeholder="e.g., Free decoration">
-                                <button type="button" class="btn btn-outline-danger remove-feature">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                        <p class="text-muted small mb-2">Select services from the list below to include as features in this package.</p>
+                        <?php
+                        $selected_features = array_flip(array_map('trim', $_POST['features'] ?? []));
+                        if (!empty($all_services)):
+                            // Group services by category
+                            $services_by_cat = [];
+                            foreach ($all_services as $svc) {
+                                $cat_label = $svc['vendor_type_label'] ?: 'Other';
+                                $services_by_cat[$cat_label][] = $svc;
+                            }
+                        ?>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" id="featureSearch"
+                                   placeholder="Search services..." autocomplete="off">
+                        </div>
+                        <div id="featuresContainer" style="max-height:360px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                            <?php foreach ($services_by_cat as $cat_label => $svcs): ?>
+                            <div class="feature-category-group mb-2">
+                                <div class="fw-semibold text-secondary small text-uppercase px-1 mb-1"
+                                     style="letter-spacing:.04em;"><?php echo htmlspecialchars($cat_label); ?></div>
+                                <?php foreach ($svcs as $svc): ?>
+                                <div class="feature-item form-check ms-2">
+                                    <input class="form-check-input" type="checkbox" name="features[]"
+                                           id="feat_<?php echo (int)$svc['id']; ?>"
+                                           value="<?php echo htmlspecialchars($svc['name']); ?>"
+                                           <?php echo isset($selected_features[$svc['name']]) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="feat_<?php echo (int)$svc['id']; ?>">
+                                        <?php echo htmlspecialchars($svc['name']); ?>
+                                    </label>
+                                </div>
+                                <?php endforeach; ?>
                             </div>
                             <?php endforeach; ?>
                         </div>
-                        <button type="button" class="btn btn-outline-success btn-sm mt-1" id="addFeature">
-                            <i class="fas fa-plus"></i> Add Feature
-                        </button>
+                        <?php else: ?>
+                        <div class="alert alert-warning py-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No active services found. <a href="../services/index.php" class="alert-link">Add services first.</a>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="mb-3">
@@ -234,23 +258,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-document.getElementById('addFeature')?.addEventListener('click', function () {
-    const container = document.getElementById('featuresContainer');
-    const row = document.createElement('div');
-    row.className = 'input-group mb-2 feature-row';
-    row.innerHTML = `
-        <span class="input-group-text text-success"><i class="fas fa-check"></i></span>
-        <input type="text" class="form-control" name="features[]" placeholder="e.g., Free decoration">
-        <button type="button" class="btn btn-outline-danger remove-feature">
-            <i class="fas fa-times"></i>
-        </button>`;
-    container.appendChild(row);
-});
-
-document.addEventListener('click', function (e) {
-    if (e.target.closest('.remove-feature')) {
-        e.target.closest('.feature-row').remove();
-    }
+// Live search filter for services checkboxes
+document.getElementById('featureSearch')?.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('#featuresContainer .feature-category-group').forEach(function (group) {
+        let groupVisible = false;
+        group.querySelectorAll('.feature-item').forEach(function (item) {
+            const label = item.querySelector('label')?.textContent.toLowerCase() || '';
+            const show = !q || label.includes(q);
+            item.style.display = show ? '' : 'none';
+            if (show) groupVisible = true;
+        });
+        group.style.display = groupVisible ? '' : 'none';
+    });
 });
 </script>
 
