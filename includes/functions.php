@@ -4026,25 +4026,26 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([$booking_id, $service_ref_id, $service_name, $price, $description, ADMIN_SERVICE_DEFAULT_CATEGORY, ADMIN_SERVICE_TYPE, $quantity, $design_id > 0 ? $design_id : null]);
-                $service_id = (int)$db->lastInsertId();
-        $db->rollBack();
-        $error_code = $e->getCode();
+        $service_id = (int)$db->lastInsertId();
+
+        recalculateBookingTotals($booking_id);
+
+        $db->commit();
+        return $service_id;
+    } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
         $error_msg = $e->getMessage();
-        
+
         // Check for specific errors without exposing full message
-        if (strpos($error_msg, "Unknown column '" . BOOKING_SERVICE_ADDED_BY_COLUMN . "'") !== false || 
+        if (strpos($error_msg, "Unknown column '" . BOOKING_SERVICE_ADDED_BY_COLUMN . "'") !== false ||
             strpos($error_msg, "Unknown column '" . BOOKING_SERVICE_QUANTITY_COLUMN . "'") !== false) {
             error_log("ADMIN SERVICES ERROR: Database schema is missing required columns (" . BOOKING_SERVICE_ADDED_BY_COLUMN . ", " . BOOKING_SERVICE_QUANTITY_COLUMN . "). Please run fix_admin_services.php or apply database migration.");
         } else {
-            // Log generic database error without details
-            error_log("Admin service database error. Error code: " . $error_code);
+            error_log("Error adding admin service: " . $error_msg);
         }
-        
-        return false;
-    } catch (Exception $e) {
-        $db->rollBack();
-        // Log general error without sensitive details
-        error_log("Error adding admin service: " . $e->getMessage());
+
         return false;
     }
 }
