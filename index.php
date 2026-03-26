@@ -431,37 +431,55 @@ if (!empty($service_categories)) {
                                 <p class="text-muted small mb-2"><?php echo sanitize($pkg['description']); ?></p>
                                 <?php endif; ?>
                                 <?php if (!empty($pkg['features'])):
-                                    $max_visible = 3;
+                                    $max_visible = 4;
                                     $total_features = count($pkg['features']);
                                     $remaining = $total_features - $max_visible;
                                     $visible_features = array_slice($pkg['features'], 0, $max_visible);
                                     $hidden_features = array_slice($pkg['features'], $max_visible);
                                     $feat_collapse_id = 'pkgFeatures' . (int)$pkg['id'];
                                 ?>
-                                    <ul class="package-features list-unstyled mb-2">
+                                    <div class="pkg-feat-icons mb-2">
                                         <?php foreach ($visible_features as $feat): ?>
-                                            <li class="feature-item">
-                                                <span class="feat-check">&#10003;</span>
-                                                <?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>
-                                            </li>
+                                            <div class="pkg-feat-icon-item">
+                                                <?php if (!empty($feat['service_photo'])): ?>
+                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($feat['service_photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                     class="pkg-feat-icon-img"
+                                                     loading="lazy"
+                                                     alt="<?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                <?php else: ?>
+                                                <div class="pkg-feat-icon-fallback">
+                                                    <i class="fas fa-check" aria-hidden="true"></i>
+                                                </div>
+                                                <?php endif; ?>
+                                                <span class="pkg-feat-icon-label"><?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </div>
                                         <?php endforeach; ?>
                                         <?php if ($remaining > 0): ?>
-                                            <li class="feature-item feature-more-toggle collapsed" data-bs-toggle="collapse" data-bs-target="#<?php echo $feat_collapse_id; ?>" role="button" aria-expanded="false" aria-controls="<?php echo $feat_collapse_id; ?>">
-                                                <span class="feat-more-icon"><i class="fas fa-plus-circle"></i></span>
-                                                <span class="more-text">+<?php echo $remaining; ?> More Features</span>
-                                            </li>
+                                            <div class="pkg-feat-icon-item pkg-feat-more-item" data-bs-toggle="collapse" data-bs-target="#<?php echo $feat_collapse_id; ?>" role="button" aria-expanded="false" aria-controls="<?php echo $feat_collapse_id; ?>">
+                                                <div class="pkg-feat-more-chip">+<?php echo $remaining; ?></div>
+                                                <span class="pkg-feat-icon-label">More</span>
+                                            </div>
                                         <?php endif; ?>
-                                    </ul>
+                                    </div>
                                     <?php if ($remaining > 0): ?>
                                     <div class="collapse" id="<?php echo $feat_collapse_id; ?>">
-                                        <ul class="package-features package-features-hidden list-unstyled mb-2">
+                                        <div class="pkg-feat-icons mb-2">
                                             <?php foreach ($hidden_features as $feat): ?>
-                                                <li class="feature-item">
-                                                    <span class="feat-check">&#10003;</span>
-                                                    <?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>
-                                                </li>
+                                                <div class="pkg-feat-icon-item">
+                                                    <?php if (!empty($feat['service_photo'])): ?>
+                                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($feat['service_photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                         class="pkg-feat-icon-img"
+                                                         loading="lazy"
+                                                         alt="<?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <?php else: ?>
+                                                    <div class="pkg-feat-icon-fallback">
+                                                        <i class="fas fa-check" aria-hidden="true"></i>
+                                                    </div>
+                                                    <?php endif; ?>
+                                                    <span class="pkg-feat-icon-label"><?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                                </div>
                                             <?php endforeach; ?>
-                                        </ul>
+                                        </div>
                                     </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
