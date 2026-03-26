@@ -6,6 +6,10 @@
  *  2. Services with designs – photo-based design selection flow:
  *       Main services list → design photo grid → auto-back to services on selection
  *
+ * Also handles vendor selection:
+ *  When a service with a vendor_type_slug is checked a vendor selection modal
+ *  is shown so the user can optionally assign a specific vendor.
+ *
  * Navigation flow:
  *   View 1 (Services) → click service card
  *   View 2 (Design Selection) → tap a design photo → auto-back to View 1
@@ -23,6 +27,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // selectedDesigns: { service_id: { design_id, price, name, service_id } }
     const selectedDesigns = {};
     let currentServiceId    = null;   // service being navigated
+
+    // vendorForService: { service_id: vendor_id }  (0 = skipped, do not send)
+    const vendorForService = {};
+    // track which service the vendor modal is currently for
+    let vendorModalServiceId = null;
 
     // ── Build lookup maps from PHP-injected JSON ──────────────────────────────
     const servicesById = {};  // id → service object (with designs)
@@ -239,8 +248,27 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // ── Regular checkbox handler ──────────────────────────────────────────────
+    // When a service with a vendor_type_slug is checked, open the vendor selection
+    // modal so the user can optionally pick a specific vendor for that service.
     document.querySelectorAll('.service-checkbox').forEach(function (cb) {
-        cb.addEventListener('change', recalculateTotal);
+        cb.addEventListener('change', function () {
+            recalculateTotal();
+            if (!this.checked) {
+                // Service unchecked – clear any stored vendor selection
+                const sid = parseInt(this.value);
+                if (sid > 0) {
+                    delete vendorForService[sid];
+                    syncVendorInputs();
+                }
+                return;
+            }
+            const vendorTypeSlug = this.dataset.vendorTypeSlug || '';
+            const serviceName    = this.dataset.serviceName    || '';
+            const serviceId      = parseInt(this.value);
+            if (vendorTypeSlug && serviceId > 0) {
+                openVendorModal(serviceId, serviceName, vendorTypeSlug);
+            }
+        });
     });
 
     // ── Design radio handlers (inline checkbox mode) ──────────────────────────
@@ -306,6 +334,105 @@ document.addEventListener('DOMContentLoaded', function () {
             recalculateTotal();
         });
     });
+
+    // ── Vendor selection helpers ──────────────────────────────────────────────
+
+    // Update hidden inputs so the form includes selected vendor_for_service[id]
+    function syncVendorInputs() {
+        const container = document.getElementById('selected-vendors-inputs');
+        if (!container) return;
+        container.innerHTML = '';
+        Object.keys(vendorForService).forEach(function (sid) {
+            const vid = vendorForService[sid];
+            if (!vid) return; // skipped
+            const input = document.createElement('input');
+            input.type  = 'hidden';
+            input.name  = 'vendor_for_service[' + sid + ']';
+            input.value = vid;
+            container.appendChild(input);
+        });
+    }
+
+    // Open the vendor selection modal for the given service / type
+    function openVendorModal(serviceId, serviceName, vendorTypeSlug) {
+        vendorModalServiceId = serviceId;
+        const modalEl = document.getElementById('vendorSelectModal');
+        if (!modalEl) return; // modal HTML not present; skip silently
+
+        const nameEl = document.getElementById('vendorModalServiceName');
+        if (nameEl) nameEl.textContent = serviceName;
+
+        const listEl  = document.getElementById('vendorModalList');
+        const emptyEl = document.getElementById('vendorModalEmpty');
+
+        // Fetch vendors from PHP-injected JSON (vendorsByType)
+        const vendors = (typeof vendorsByType !== 'undefined' && vendorsByType[vendorTypeSlug]) || [];
+
+        if (listEl) listEl.innerHTML = '';
+        if (vendors.length === 0) {
+            if (emptyEl)  emptyEl.style.display  = 'block';
+            if (listEl)   listEl.style.display    = 'none';
+        } else {
+            if (emptyEl)  emptyEl.style.display  = 'none';
+            if (listEl)   listEl.style.display    = '';
+
+            const currentVendorId = vendorForService[serviceId] || 0;
+            vendors.forEach(function (v) {
+                const isSelected = (currentVendorId === v.id);
+                const photoHtml = v.photo
+                    ? '<img src="' + escapeHtml(uploadUrl + '/' + v.photo) + '" alt="' + escapeHtml(v.name) + '" class="rounded-circle me-2" style="width:40px;height:40px;object-fit:cover;">'
+                    : '<span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;font-size:1.1rem;"><i class="fas fa-user-tie"></i></span>';
+
+                const cityText = v.city_name ? '<small class="text-muted">' + escapeHtml(v.city_name) + '</small>' : '';
+                const phoneText = v.phone ? '<small class="text-muted"><i class="fas fa-phone me-1"></i>' + escapeHtml(v.phone) + '</small>' : '';
+                const infoLine = [cityText, phoneText].filter(Boolean).join(' &bull; ');
+
+                const card = document.createElement('div');
+                card.className = 'col-12 col-md-6';
+                card.innerHTML = '<div class="card vendor-select-card h-100 ' + (isSelected ? 'border-success selected-vendor' : '') + '" style="cursor:pointer;" data-vendor-id="' + v.id + '">'
+                    + '<div class="card-body d-flex align-items-center py-2 px-3">'
+                    + photoHtml
+                    + '<div class="flex-grow-1 min-w-0">'
+                    + '<div class="fw-semibold">' + escapeHtml(v.name) + (isSelected ? ' <i class="fas fa-check-circle text-success ms-1"></i>' : '') + '</div>'
+                    + (infoLine ? '<div>' + infoLine + '</div>' : '')
+                    + '</div>'
+                    + '</div></div>';
+
+                card.querySelector('.vendor-select-card').addEventListener('click', function () {
+                    selectVendorForService(serviceId, parseInt(this.dataset.vendorId));
+                });
+                listEl.appendChild(card);
+            });
+        }
+
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    // Record the chosen vendor for a service and close the modal
+    function selectVendorForService(serviceId, vendorId) {
+        vendorForService[serviceId] = vendorId;
+        syncVendorInputs();
+
+        // Close the modal
+        const modalEl = document.getElementById('vendorSelectModal');
+        if (modalEl) {
+            const instance = bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
+        }
+    }
+
+    // "Skip" button in vendor modal: clear vendor for this service
+    const vendorSkipBtn = document.getElementById('vendorSkipBtn');
+    if (vendorSkipBtn) {
+        vendorSkipBtn.addEventListener('click', function () {
+            if (vendorModalServiceId !== null) {
+                delete vendorForService[vendorModalServiceId];
+                syncVendorInputs();
+                vendorModalServiceId = null;
+            }
+        });
+    }
 
     // ── Service search filter ─────────────────────────────────────────────────
     const searchInput = document.getElementById('serviceSearchInput');

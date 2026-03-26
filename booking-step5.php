@@ -42,6 +42,22 @@ foreach ($services as &$svc) {
 }
 unset($svc);
 
+// Pre-load vendors grouped by vendor_type_slug so the vendor selection modal can
+// display the right vendors for each service without additional AJAX calls.
+$vendors_by_type = []; // slug → [vendor, ...]
+try {
+    $all_vendors = getVendors();
+    foreach ($all_vendors as $v) {
+        $slug = $v['type'] ?? '';
+        if ($slug !== '') {
+            $vendors_by_type[$slug][] = $v;
+        }
+    }
+} catch (\Throwable $e) {
+    error_log('booking-step5: failed to load vendors: ' . $e->getMessage());
+    $vendors_by_type = [];
+}
+
 // Calculate current totals including already-selected packages
 $totals        = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], [], [], $selected_packages);
 $tax_rate      = floatval(getSetting('tax_rate', '13'));
@@ -283,6 +299,9 @@ $current_total = $totals['grand_total'];
                 <!-- Hidden inputs for selected designs (populated by JS) -->
                 <div id="selected-designs-inputs"></div>
 
+                <!-- Hidden inputs for vendor selections per service (populated by JS) -->
+                <div id="selected-vendors-inputs"></div>
+
                 <div class="row mt-4">
                     <div class="col-md-6">
                         <a href="booking-step4.php" class="btn btn-outline-secondary btn-lg w-100">
@@ -377,6 +396,19 @@ $current_total = $totals['grand_total'];
 [aria-expanded="true"] .category-toggle-icon {
     transform: rotate(180deg);
 }
+.vendor-select-card {
+    transition: border-color .2s, box-shadow .2s;
+    border: 2px solid #dee2e6;
+}
+.vendor-select-card:hover {
+    border-color: #198754;
+    box-shadow: 0 0 0 3px rgba(25,135,84,.15);
+}
+.vendor-select-card.selected-vendor {
+    border-color: #198754 !important;
+    box-shadow: 0 0 0 3px rgba(25,135,84,.2);
+    background-color: rgba(25,135,84,.04);
+}
 </style>
 
 <!-- JSON data for JS -->
@@ -386,7 +418,40 @@ const taxRate            = <?php echo json_encode($tax_rate); ?>;
 const servicesData       = <?php echo json_encode(array_values($services_map)); ?>;
 const uploadUrl          = <?php echo json_encode(rtrim(UPLOAD_URL, '/')); ?>;
 const currency           = <?php echo json_encode(getSetting('currency', 'NPR')); ?>;
+const vendorsByType      = <?php echo json_encode($vendors_by_type); ?>;
 </script>
+
+<!-- Vendor Selection Modal -->
+<div class="modal fade" id="vendorSelectModal" tabindex="-1" aria-labelledby="vendorSelectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="vendorSelectModalLabel">
+                    <i class="fas fa-user-tie me-2"></i>Select Vendor for <span id="vendorModalServiceName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">
+                    <i class="fas fa-info-circle me-1 text-info"></i>
+                    Select a vendor for this service. You can also skip and let our team assign one for you.
+                </p>
+                <div id="vendorModalList" class="row g-3">
+                    <!-- Populated by JS -->
+                </div>
+                <div id="vendorModalEmpty" class="alert alert-info" style="display:none;">
+                    <i class="fas fa-info-circle me-1"></i>No vendors available for this service type. Our team will coordinate with you.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="vendorSkipBtn" data-bs-dismiss="modal">
+                    <i class="fas fa-forward me-1"></i>Skip – assign later
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 $extra_js = '<script src="' . BASE_URL . '/js/booking-step5.js"></script>';
 require_once __DIR__ . '/includes/footer.php';

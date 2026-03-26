@@ -1397,18 +1397,37 @@ function getBookingMenuItemSelections($booking_id) {
 function getActiveServices() {
     $db = getDB();
 
-    $sql = "SELECT s.*,
-                   COALESCE(vt.label, s.category) AS vendor_type_label,
-                   vt.slug                         AS vendor_type_slug,
-                   COALESCE(vt.display_order, 9999) AS vendor_type_order
-            FROM additional_services s
-            LEFT JOIN vendor_types vt ON vt.id = s.vendor_type_id
-            WHERE s.status = 'active'
-            ORDER BY vendor_type_order, vendor_type_label, s.name";
+    try {
+        $sql = "SELECT s.*,
+                       COALESCE(vt.label, s.category) AS vendor_type_label,
+                       vt.slug                         AS vendor_type_slug,
+                       COALESCE(vt.display_order, 9999) AS vendor_type_order
+                FROM additional_services s
+                LEFT JOIN vendor_types vt ON vt.id = s.vendor_type_id
+                WHERE s.status = 'active'
+                ORDER BY vendor_type_order, vendor_type_label, s.name";
 
-    $stmt = $db->prepare($sql);
-    $stmt->execute();
-    return $stmt->fetchAll();
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        // Fallback for older installations where vendor_types table may not yet exist.
+        // Run database/migrations/add_vendor_types_table.sql to enable full vendor-type support.
+        error_log('getActiveServices: vendor_types JOIN failed, falling back to simple query: ' . $e->getMessage());
+        try {
+            $stmt = $db->prepare(
+                "SELECT *, category AS vendor_type_label, NULL AS vendor_type_slug, 9999 AS vendor_type_order
+                 FROM additional_services
+                 WHERE status = 'active'
+                 ORDER BY category, name"
+            );
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (\Throwable $e2) {
+            error_log('getActiveServices fallback also failed: ' . $e2->getMessage());
+            return [];
+        }
+    }
 }
 
 /**

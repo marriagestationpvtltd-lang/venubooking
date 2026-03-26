@@ -30,6 +30,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
     } else {
         $_SESSION['selected_designs'] = [];
     }
+    // Save vendor selections for each service: service_id => vendor_id
+    if (!empty($_POST['vendor_for_service']) && is_array($_POST['vendor_for_service'])) {
+        $raw_vendors = $_POST['vendor_for_service'];
+        $clean_vendors = [];
+        foreach ($raw_vendors as $svc_id => $vendor_id) {
+            $svc_id_int    = intval($svc_id);
+            $vendor_id_int = intval($vendor_id);
+            if ($svc_id_int > 0 && $vendor_id_int > 0) {
+                $clean_vendors[$svc_id_int] = $vendor_id_int;
+            }
+        }
+        $_SESSION['vendor_for_service'] = $clean_vendors;
+    } else {
+        $_SESSION['vendor_for_service'] = [];
+    }
 }
 
 $booking_data = $_SESSION['booking_data'];
@@ -40,6 +55,7 @@ $selected_designs  = $_SESSION['selected_designs'] ?? [];
 $selected_packages = $_SESSION['selected_packages'] ?? [];
 $menu_selections         = $_SESSION['menu_selections'] ?? [];
 $menu_special_instructions = $_SESSION['menu_special_instructions'] ?? '';
+$vendor_for_service = $_SESSION['vendor_for_service'] ?? [];
 
 // Determine whether multiple slots were selected so we can show the
 // consolidated time range rather than a comma-separated list of slot labels.
@@ -334,7 +350,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 }
             }
 
-            
+            // Assign vendors selected by the user during the services step.
+            // vendor_for_service is { service_id => vendor_id } stored in session.
+            // Each assignment is non-fatal: a failure is logged but does not abort
+            // the booking confirmation redirect.
+            if (!empty($vendor_for_service)) {
+                // Build a quick lookup of booking_services rows for this booking so
+                // we can link each vendor assignment to the specific service row.
+                $booking_service_rows = [];
+                try {
+                    $db = getDB();
+                    $bs_stmt = $db->prepare(
+                        "SELECT id, service_id FROM booking_services WHERE booking_id = ?"
+                    );
+                    $bs_stmt->execute([$booking_id]);
+                    foreach ($bs_stmt->fetchAll() as $bsr) {
+                        // Map by service_id; keep the first row per service_id
+                        if (!isset($booking_service_rows[(int)$bsr['service_id']])) {
+                            $booking_service_rows[(int)$bsr['service_id']] = (int)$bsr['id'];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    error_log("Failed to load booking_services for vendor assignment (booking {$booking_id}): " . $e->getMessage());
+                }
+
+                foreach ($vendor_for_service as $svc_id => $vnd_id) {
+                    $svc_id = intval($svc_id);
+                    $vnd_id = intval($vnd_id);
+                    if ($svc_id <= 0 || $vnd_id <= 0) continue;
+
+                    // Get service name for the assignment task description
+                    $svc_name = "Service #{$svc_id}";
+                    try {
+                        $db_svc = getDB();
+                        $sn_stmt = $db_svc->prepare("SELECT name FROM additional_services WHERE id = ?");
+                        $sn_stmt->execute([$svc_id]);
+                        $sn_row = $sn_stmt->fetch();
+                        if ($sn_row) {
+                            $svc_name = $sn_row['name'];
+                        }
+                    } catch (\Throwable $e) {
+                        // Keep default service name; proceed
+                    }
+
+                    $bs_id = $booking_service_rows[$svc_id] ?? null;
+                    $va_result = addVendorAssignment($booking_id, $vnd_id, $svc_name, 0, 'Selected during booking', $bs_id);
+                    if (!$va_result) {
+                        error_log("Vendor assignment failed for booking {$booking_id}, service {$svc_id}, vendor {$vnd_id}");
+                    }
+                }
+            }
+
             // Clear booking session data and redirect to confirmation
             $_SESSION['booking_completed'] = [
                 'booking_id' => $booking_id,
@@ -347,6 +413,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             unset($_SESSION['selected_services']);
             unset($_SESSION['selected_designs']);
             unset($_SESSION['selected_packages']);
+            unset($_SESSION['menu_selections']);
+            unset($_SESSION['menu_special_instructions']);
+            unset($_SESSION['vendor_for_service']);
             
             header('Location: confirmation.php');
             exit;
