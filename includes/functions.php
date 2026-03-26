@@ -1715,7 +1715,8 @@ function createBooking($data) {
             // Resolve hall_id — NULL for custom venues
             $hall_id_value = $is_custom ? null : ($data['hall_id'] ?: null);
 
-            // Calculate totals
+            // Calculate totals — use the effective hall price passed from the booking
+            // form (which already incorporates any time-slot price override).
             $totals = calculateBookingTotal(
                 $hall_id_value,
                 $data['menus'] ?? [],
@@ -1723,7 +1724,7 @@ function createBooking($data) {
                 $data['services'] ?? [],
                 $data['selected_designs'] ?? [],
                 $data['packages'] ?? [],
-                null,
+                isset($data['hall_base_price']) ? (float)$data['hall_base_price'] : null,
                 $data['menu_selections'] ?? []
             );
 
@@ -4170,8 +4171,9 @@ function recalculateBookingTotals($booking_id) {
     $db = getDB();
     
     try {
-        // Get current booking data
-        $stmt = $db->prepare("SELECT hall_id FROM bookings WHERE id = ?");
+        // Get current booking data — reuse the stored hall_price to preserve any
+        // time-slot price override that was applied when the booking was created.
+        $stmt = $db->prepare("SELECT hall_id, hall_price FROM bookings WHERE id = ?");
         $stmt->execute([$booking_id]);
         $booking = $stmt->fetch();
         
@@ -4179,11 +4181,8 @@ function recalculateBookingTotals($booking_id) {
             throw new Exception("Booking not found");
         }
         
-        // Calculate hall price
-        $stmt = $db->prepare("SELECT base_price FROM halls WHERE id = ?");
-        $stmt->execute([$booking['hall_id']]);
-        $hall = $stmt->fetch();
-        $hall_price = floatval($hall['base_price'] ?? 0);
+        // Use the price stored at booking time so slot overrides are not lost.
+        $hall_price = floatval($booking['hall_price'] ?? 0);
         
         // Calculate menu total from booking_menus
         $stmt = $db->prepare("SELECT SUM(total_price) as total FROM booking_menus WHERE booking_id = ?");
