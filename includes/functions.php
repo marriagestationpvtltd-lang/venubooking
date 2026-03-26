@@ -4760,11 +4760,29 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking,
         $text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
     }
     if (!empty($design_info) && !empty($design_info['photo'])) {
+        $photo_url = $design_info['photo'];
+        // Ensure the photo URL is absolute so it is clickable in WhatsApp.
+        // Prefer the configured APP_URL (trusted), then BASE_URL if absolute,
+        // and only fall back to the request host as a last resort.
+        if (!preg_match('#^https?://#i', $photo_url)) {
+            if (!empty($_ENV['APP_URL'])) {
+                $base = rtrim($_ENV['APP_URL'], '/');
+            } elseif (defined('BASE_URL') && preg_match('#^https?://#i', BASE_URL)) {
+                $base = rtrim(BASE_URL, '/');
+            } else {
+                $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host   = rtrim($_SERVER['HTTP_HOST'] ?? '', '/');
+                $base   = !empty($host) ? $scheme . '://' . $host : '';
+            }
+            if (!empty($base)) {
+                $photo_url = $base . '/' . ltrim($photo_url, '/');
+            }
+        }
         $text .= "\n";
         if (!empty($design_info['name'])) {
             $text .= "🎨 Selected Design: *" . strip_tags($design_info['name']) . "*\n";
         }
-        $text .= "🖼️ Design Preview: " . $design_info['photo'] . "\n";
+        $text .= "🖼️ Design Preview: " . $photo_url . "\n";
     }
     $text .= "\nPlease confirm your availability by replying to this message.\n\n";
     $text .= "*" . strip_tags(getSetting('company_name', 'Booking Team')) . "*\n";
