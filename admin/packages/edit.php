@@ -52,11 +52,27 @@ if (!empty($all_services)) {
 }
 
 // Load existing features
-$feat_stmt = $db->prepare(
-    "SELECT id, feature_text, service_id FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
-);
-$feat_stmt->execute([$package_id]);
-$existing_features = $feat_stmt->fetchAll();
+// Guard against installations where service_id column hasn't been added yet
+// (add_service_id_to_package_features.sql migration not yet run).
+$existing_features = [];
+try {
+    $feat_stmt = $db->prepare(
+        "SELECT id, feature_text, service_id FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
+    );
+    $feat_stmt->execute([$package_id]);
+    $existing_features = $feat_stmt->fetchAll();
+} catch (Exception $e) {
+    // service_id column missing on this install; fall back to feature_text only
+    try {
+        $feat_stmt = $db->prepare(
+            "SELECT id, feature_text, NULL AS service_id FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
+        );
+        $feat_stmt->execute([$package_id]);
+        $existing_features = $feat_stmt->fetchAll();
+    } catch (Exception $e2) {
+        // ignore; $existing_features stays []
+    }
+}
 
 // Load existing photos
 $existing_photos = [];
@@ -167,10 +183,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Refresh data
                 $stmt->execute([$package_id]);
                 $package = $stmt->fetch();
-                $feat_stmt->execute([$package_id]);
-                $existing_features = $feat_stmt->fetchAll();
-                $photo_load_stmt->execute([$package_id]);
-                $existing_photos = $photo_load_stmt->fetchAll();
+                // Re-load features using the same resilient query used at page load
+                try {
+                    $feat_stmt_r = $db->prepare(
+                        "SELECT id, feature_text, service_id FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
+                    );
+                    $feat_stmt_r->execute([$package_id]);
+                    $existing_features = $feat_stmt_r->fetchAll();
+                } catch (Exception $eR) {
+                    try {
+                        $feat_stmt_r = $db->prepare(
+                            "SELECT id, feature_text, NULL AS service_id FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
+                        );
+                        $feat_stmt_r->execute([$package_id]);
+                        $existing_features = $feat_stmt_r->fetchAll();
+                    } catch (Exception $eR2) {
+                        $existing_features = [];
+                    }
+                }
+                if (isset($photo_load_stmt)) {
+                    try {
+                        $photo_load_stmt->execute([$package_id]);
+                        $existing_photos = $photo_load_stmt->fetchAll();
+                    } catch (Exception $ePh) { /* ignore */ }
+                }
             } catch (Exception $e) {
                 $db->rollBack();
                 foreach ($uploaded_photos as $f) { deleteUploadedFile($f); }

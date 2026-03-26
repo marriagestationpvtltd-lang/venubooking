@@ -145,15 +145,37 @@ if (!empty($selected_packages)) {
         $placeholders = implode(',', array_fill(0, count($selected_packages), '?'));
         $stmt = $db->prepare(
             "SELECT sp.id, sp.name, sp.price, sp.description,
-                    sc.name AS category_name,
-                    (SELECT image_path FROM service_package_photos
-                     WHERE package_id = sp.id ORDER BY display_order, id LIMIT 1) AS first_photo
+                    sc.name AS category_name
              FROM service_packages sp
              LEFT JOIN service_categories sc ON sc.id = sp.category_id
              WHERE sp.id IN ($placeholders) AND sp.status = 'active'"
         );
         $stmt->execute(array_map('intval', $selected_packages));
         $package_details = $stmt->fetchAll();
+        // Attach first photo separately so a missing service_package_photos
+        // table doesn't wipe out the entire package details display.
+        try {
+            $photo_stmt = $db->prepare(
+                "SELECT package_id, image_path FROM service_package_photos
+                 WHERE package_id IN ($placeholders)
+                 ORDER BY display_order, id"
+            );
+            $photo_stmt->execute(array_map('intval', $selected_packages));
+            $pkg_photos = [];
+            foreach ($photo_stmt->fetchAll() as $row) {
+                if (!isset($pkg_photos[$row['package_id']])) {
+                    $pkg_photos[$row['package_id']] = $row['image_path'];
+                }
+            }
+            foreach ($package_details as &$pkg) {
+                $pkg['first_photo'] = $pkg_photos[$pkg['id']] ?? null;
+            }
+            unset($pkg);
+        } catch (\Throwable $ePhoto) {
+            // service_package_photos table missing — photos simply won't show
+            foreach ($package_details as &$pkg) { $pkg['first_photo'] = null; }
+            unset($pkg);
+        }
     } catch (\Throwable $e) {
         error_log('Failed to load package details: ' . $e->getMessage());
         $package_details = [];
