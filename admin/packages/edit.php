@@ -30,7 +30,7 @@ $all_services = getActiveServices();
 
 // Load existing features
 $feat_stmt = $db->prepare(
-    "SELECT id, feature_text FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
+    "SELECT id, feature_text, service_id FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
 );
 $feat_stmt->execute([$package_id]);
 $existing_features = $feat_stmt->fetchAll();
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $display_order = intval($_POST['display_order'] ?? 0);
     $status        = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
     $features_raw  = $_POST['features'] ?? [];
-    $features      = array_values(array_filter(array_map('trim', $features_raw), 'strlen'));
+    $features      = array_values(array_filter(array_map('intval', $features_raw)));
     // Photos to delete
     $delete_photo_ids = array_map('intval', $_POST['delete_photos'] ?? []);
 
@@ -99,11 +99,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Replace features: delete old, insert new
                 $db->prepare("DELETE FROM service_package_features WHERE package_id = ?")->execute([$package_id]);
+                $svc_map = [];
+                foreach ($all_services as $svc) { $svc_map[(int)$svc['id']] = $svc['name']; }
                 $feat_ins = $db->prepare(
-                    "INSERT INTO service_package_features (package_id, feature_text, display_order) VALUES (?, ?, ?)"
+                    "INSERT INTO service_package_features (package_id, service_id, feature_text, display_order) VALUES (?, ?, ?, ?)"
                 );
-                foreach ($features as $i => $feat) {
-                    $feat_ins->execute([$package_id, $feat, $i + 1]);
+                foreach ($features as $i => $svc_id) {
+                    $feat_name = $svc_map[$svc_id] ?? '';
+                    if ($feat_name !== '') {
+                        $feat_ins->execute([$package_id, $svc_id, $feat_name, $i + 1]);
+                    } else {
+                        error_log("edit package: unknown service_id $svc_id submitted for package $package_id; skipping feature.");
+                    }
                 }
 
                 // Delete selected photos
@@ -152,9 +159,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Use POST values if a validation error occurred
 $form = $_SERVER['REQUEST_METHOD'] === 'POST' && $error_message ? $_POST : $package;
-$display_features = ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message)
-    ? array_filter(array_map('trim', $_POST['features'] ?? []), 'strlen')
-    : array_column($existing_features, 'feature_text');
+// Collect selected service IDs for pre-checking the checkboxes.
+// For legacy features stored without a service_id, try to match by name.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message) {
+    $display_feature_ids = array_values(array_filter(array_map('intval', $_POST['features'] ?? [])));
+} else {
+    $display_feature_ids = [];
+    $svc_name_to_id = [];
+    foreach ($all_services as $svc) { $svc_name_to_id[strtolower(trim($svc['name']))] = (int)$svc['id']; }
+    foreach ($existing_features as $feat) {
+        if (!empty($feat['service_id'])) {
+            $display_feature_ids[] = (int)$feat['service_id'];
+        } else {
+            // Backward compat: match by name for old text-only rows
+            $key = strtolower(trim($feat['feature_text']));
+            if (isset($svc_name_to_id[$key])) {
+                $display_feature_ids[] = $svc_name_to_id[$key];
+            }
+        }
+    }
+}
 ?>
 
 <div class="row">
@@ -247,7 +271,7 @@ $display_features = ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message)
                         <label class="form-label">Package Features (checkmark list)</label>
                         <p class="text-muted small mb-2">Select services from the list below to include as features in this package.</p>
                         <?php
-                        $selected_features = array_flip(array_map('trim', $display_features ?? []));
+                        $selected_features = array_flip($display_feature_ids);
                         if (!empty($all_services)):
                             $services_by_cat = [];
                             foreach ($all_services as $svc) {
@@ -268,8 +292,8 @@ $display_features = ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message)
                                 <div class="feature-item form-check ms-2">
                                     <input class="form-check-input" type="checkbox" name="features[]"
                                            id="feat_<?php echo (int)$svc['id']; ?>"
-                                           value="<?php echo htmlspecialchars($svc['name']); ?>"
-                                           <?php echo isset($selected_features[$svc['name']]) ? 'checked' : ''; ?>>
+                                           value="<?php echo (int)$svc['id']; ?>"
+                                           <?php echo isset($selected_features[(int)$svc['id']]) ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="feat_<?php echo (int)$svc['id']; ?>">
                                         <?php echo htmlspecialchars($svc['name']); ?>
                                     </label>

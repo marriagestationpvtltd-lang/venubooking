@@ -23,9 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price         = floatval($_POST['price'] ?? 0);
     $display_order = intval($_POST['display_order'] ?? 0);
     $status        = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
-    // Features: array of non-empty lines
-    $features_raw  = $_POST['features'] ?? [];
-    $features      = array_values(array_filter(array_map('trim', $features_raw), 'strlen'));
+    // Features: array of service IDs chosen from the checkbox list
+    $features_raw = $_POST['features'] ?? [];
+    $features     = array_values(array_filter(array_map('intval', $features_raw)));
 
     if (empty($name) || $category_id <= 0 || $price < 0) {
         $error_message = 'Please fill in all required fields correctly.';
@@ -68,12 +68,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$category_id, $name, $description, $price, $display_order, $status]);
                 $package_id = $db->lastInsertId();
 
-                // Insert features
+                // Insert features – store both service_id and feature_text (name)
+                $svc_map = [];
+                foreach ($all_services as $svc) { $svc_map[(int)$svc['id']] = $svc['name']; }
                 $feat_stmt = $db->prepare(
-                    "INSERT INTO service_package_features (package_id, feature_text, display_order) VALUES (?, ?, ?)"
+                    "INSERT INTO service_package_features (package_id, service_id, feature_text, display_order) VALUES (?, ?, ?, ?)"
                 );
-                foreach ($features as $i => $feat) {
-                    $feat_stmt->execute([$package_id, $feat, $i + 1]);
+                foreach ($features as $i => $svc_id) {
+                    $feat_name = $svc_map[$svc_id] ?? '';
+                    if ($feat_name !== '') {
+                        $feat_stmt->execute([$package_id, $svc_id, $feat_name, $i + 1]);
+                    } else {
+                        error_log("add package: unknown service_id $svc_id submitted for package $package_id; skipping feature.");
+                    }
                 }
 
                 // Insert photos
@@ -196,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="form-label">Package Features (checkmark list)</label>
                         <p class="text-muted small mb-2">Select services from the list below to include as features in this package.</p>
                         <?php
-                        $selected_features = array_flip(array_map('trim', $_POST['features'] ?? []));
+                        $selected_features = array_flip(array_map('intval', $_POST['features'] ?? []));
                         if (!empty($all_services)):
                             // Group services by category
                             $services_by_cat = [];
@@ -218,8 +225,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="feature-item form-check ms-2">
                                     <input class="form-check-input" type="checkbox" name="features[]"
                                            id="feat_<?php echo (int)$svc['id']; ?>"
-                                           value="<?php echo htmlspecialchars($svc['name']); ?>"
-                                           <?php echo isset($selected_features[$svc['name']]) ? 'checked' : ''; ?>>
+                                           value="<?php echo (int)$svc['id']; ?>"
+                                           <?php echo isset($selected_features[(int)$svc['id']]) ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="feat_<?php echo (int)$svc['id']; ?>">
                                         <?php echo htmlspecialchars($svc['name']); ?>
                                     </label>
