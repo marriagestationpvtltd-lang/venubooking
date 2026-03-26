@@ -414,6 +414,7 @@ $current_total = $totals['grand_total'];
     cursor: pointer;
     transition: border-color .2s, box-shadow .2s;
     border: 2px solid #dee2e6;
+    overflow: hidden;
 }
 .design-select-label:hover .design-checkbox-card,
 .design-checkbox-card:hover {
@@ -443,6 +444,10 @@ $current_total = $totals['grand_total'];
 .design-card-img {
     height: 120px;
     object-fit: cover;
+    transition: transform 0.35s ease;
+}
+.design-select-label:hover .design-card-img {
+    transform: scale(1.12);
 }
 .design-card-img-placeholder {
     height: 120px;
@@ -463,6 +468,15 @@ $current_total = $totals['grand_total'];
 .vendor-select-card {
     transition: border-color .2s, box-shadow .2s;
     border: 2px solid #dee2e6;
+}
+.design-card {
+    overflow: hidden;
+}
+.design-card .card-img-top {
+    transition: transform 0.35s ease;
+}
+.design-card:hover .card-img-top {
+    transform: scale(1.12);
 }
 .vendor-select-card:hover {
     border-color: #198754;
