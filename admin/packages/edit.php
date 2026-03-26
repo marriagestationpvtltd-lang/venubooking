@@ -28,6 +28,29 @@ $categories = $cat_stmt->fetchAll();
 // Load all active services for the features checkboxes
 $all_services = getActiveServices();
 
+// Batch-load all active designs for those services (keyed by service_id)
+$designs_by_service = [];
+if (!empty($all_services)) {
+    $svc_ids = array_column($all_services, 'id');
+    if (!empty($svc_ids)) {
+        try {
+            $placeholders = implode(',', array_fill(0, count($svc_ids), '?'));
+            $des_stmt = $db->prepare(
+                "SELECT id, service_id, name, price, photo
+                   FROM service_designs
+                  WHERE service_id IN ($placeholders) AND status = 'active'
+                  ORDER BY service_id, display_order, name"
+            );
+            $des_stmt->execute($svc_ids);
+            foreach ($des_stmt->fetchAll() as $d) {
+                $designs_by_service[(int)$d['service_id']][] = $d;
+            }
+        } catch (\Throwable $e) {
+            error_log('packages/edit.php: failed to load service designs — ' . $e->getMessage());
+        }
+    }
+}
+
 // Load existing features
 $feat_stmt = $db->prepare(
     "SELECT id, feature_text, service_id FROM service_package_features WHERE package_id = ? ORDER BY display_order, id"
@@ -283,20 +306,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message) {
                             <input type="text" class="form-control form-control-sm" id="featureSearch"
                                    placeholder="Search services..." autocomplete="off">
                         </div>
-                        <div id="featuresContainer" style="max-height:360px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                        <div id="featuresContainer" style="max-height:400px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
                             <?php foreach ($services_by_cat as $cat_label => $svcs): ?>
                             <div class="feature-category-group mb-2">
                                 <div class="fw-semibold text-secondary small text-uppercase px-1 mb-1"
                                      style="letter-spacing:.04em;"><?php echo htmlspecialchars($cat_label); ?></div>
                                 <?php foreach ($svcs as $svc): ?>
-                                <div class="feature-item form-check ms-2">
-                                    <input class="form-check-input" type="checkbox" name="features[]"
-                                           id="feat_<?php echo (int)$svc['id']; ?>"
-                                           value="<?php echo (int)$svc['id']; ?>"
-                                           <?php echo isset($selected_features[(int)$svc['id']]) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="feat_<?php echo (int)$svc['id']; ?>">
-                                        <?php echo htmlspecialchars($svc['name']); ?>
-                                    </label>
+                                <?php $svc_designs = $designs_by_service[(int)$svc['id']] ?? []; ?>
+                                <div class="feature-item ms-2 mb-2">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="features[]"
+                                               id="feat_<?php echo (int)$svc['id']; ?>"
+                                               value="<?php echo (int)$svc['id']; ?>"
+                                               <?php echo isset($selected_features[(int)$svc['id']]) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label w-100" for="feat_<?php echo (int)$svc['id']; ?>" style="cursor:pointer;">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <?php if (!empty($svc['photo'])): ?>
+                                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($svc['photo']); ?>"
+                                                         alt="<?php echo htmlspecialchars($svc['name']); ?>"
+                                                         style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0;">
+                                                <?php else: ?>
+                                                    <div class="d-flex align-items-center justify-content-center bg-light flex-shrink-0"
+                                                         style="width:40px;height:40px;border-radius:4px;border:1px solid #dee2e6;">
+                                                        <i class="fas fa-concierge-bell text-muted" style="font-size:0.85rem;"></i>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div>
+                                                    <div class="fw-medium" style="font-size:0.875rem;"><?php echo htmlspecialchars($svc['name']); ?></div>
+                                                    <div class="text-success" style="font-size:0.8rem;"><?php echo formatCurrency($svc['price']); ?></div>
+                                                </div>
+                                            </div>
+                                            <?php if (!empty($svc_designs)): ?>
+                                            <div class="d-flex flex-wrap gap-2 mt-1 ms-1">
+                                                <?php foreach ($svc_designs as $design): ?>
+                                                <div class="d-flex align-items-center gap-1 text-muted"
+                                                     style="font-size:0.75rem;background:#f8f9fa;border-radius:4px;padding:2px 5px;">
+                                                    <?php if (!empty($design['photo'])): ?>
+                                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($design['photo']); ?>"
+                                                             alt="<?php echo htmlspecialchars($design['name']); ?>"
+                                                             style="width:22px;height:22px;object-fit:cover;border-radius:3px;flex-shrink:0;">
+                                                    <?php else: ?>
+                                                        <i class="fas fa-image" style="font-size:0.7rem;"></i>
+                                                    <?php endif; ?>
+                                                    <span><?php echo htmlspecialchars($design['name']); ?></span>
+                                                    <span class="text-success fw-medium"><?php echo formatCurrency($design['price']); ?></span>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <?php endif; ?>
+                                        </label>
+                                    </div>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
@@ -364,14 +423,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message) {
 </div>
 
 <script>
-// Live search filter for services checkboxes
+// Live search filter for services checkboxes (matches on service name only)
 document.getElementById('featureSearch')?.addEventListener('input', function () {
     const q = this.value.trim().toLowerCase();
     document.querySelectorAll('#featuresContainer .feature-category-group').forEach(function (group) {
         let groupVisible = false;
         group.querySelectorAll('.feature-item').forEach(function (item) {
-            const label = item.querySelector('label')?.textContent.toLowerCase() || '';
-            const show = !q || label.includes(q);
+            const nameEl = item.querySelector('.fw-medium');
+            const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+            const show = !q || name.includes(q);
             item.style.display = show ? '' : 'none';
             if (show) groupVisible = true;
         });
