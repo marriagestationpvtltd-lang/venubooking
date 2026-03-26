@@ -148,7 +148,12 @@ $current_total = $totals['grand_total'];
 
             <form id="servicesForm" method="POST" action="booking-step6.php">
 
-                <?php if (empty($services)): ?>
+                <?php if (!empty($selected_packages)): ?>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-box-open me-2"></i>
+                        <strong>Package selected.</strong> Additional services cannot be added when a package is selected.
+                    </div>
+                <?php elseif (empty($services)): ?>
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> No additional services available at this time.
                     </div>
