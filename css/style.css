@@ -388,6 +388,7 @@ label, .form-label {
     border: none;
     border-radius: var(--radius-md);
     overflow: hidden;
+    cursor: pointer;
 }
 
 .venue-card:hover {
@@ -401,6 +402,7 @@ label, .form-label {
     background-position: center;
     background-color: var(--bg-light);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
+    cursor: zoom-in;
 }
 
 /* Hall Cards */
@@ -408,6 +410,7 @@ label, .form-label {
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     border: 1.5px solid #e2e8f0;
     border-radius: var(--radius-md);
+    cursor: pointer;
 }
 
 .hall-card:hover {
@@ -424,6 +427,29 @@ label, .form-label {
 .hall-image {
     height: 250px;
     object-fit: cover;
+    cursor: zoom-in;
+}
+
+/* Photo zoom overlay (400×400 preview on hover) */
+#imgZoomOverlay {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    width: 400px;
+    height: 400px;
+    border: 3px solid var(--primary-green);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    background: #000;
+}
+
+#imgZoomPreview {
+    width: 400px;
+    height: 400px;
+    object-fit: cover;
+    display: block;
 }
 
 /* Menu Cards */

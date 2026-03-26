@@ -243,6 +243,17 @@ function displayHalls(halls, venueName) {
         });
     });
 
+    // Make entire hall card clickable (delegates to the select button if present)
+    hallsContainer.querySelectorAll('.hall-card').forEach(card => {
+        const selectBtn = card.querySelector('.select-hall-btn');
+        if (!selectBtn) return; // No time slots — card stays non-interactive
+        card.addEventListener('click', function(e) {
+            // Ignore clicks on interactive children (buttons, links)
+            if (e.target.closest('button, a')) return;
+            selectBtn.click();
+        });
+    });
+
     // Add event listeners to 360° panorama view buttons
     hallsContainer.querySelectorAll('.view-pano-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -782,3 +793,76 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+
+// ── Venue card: make entire card clickable ───────────────────────────────────
+
+function initVenueCardClick() {
+    document.querySelectorAll('.venue-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Let button/link clicks pass through normally
+            if (e.target.closest('button, a')) return;
+            const btn = this.querySelector('button[onclick*="showHalls"]');
+            if (btn) btn.click();
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initVenueCardClick);
+
+// ── Photo zoom: 400×400 preview overlay on hover ─────────────────────────────
+
+function initPhotoZoom() {
+    const overlay = document.getElementById('imgZoomOverlay');
+    const preview = document.getElementById('imgZoomPreview');
+    if (!overlay || !preview) return;
+
+    let zoomActive = false;
+
+    function positionOverlay(e) {
+        let x = e.clientX + 16;
+        let y = e.clientY - 208; // centre vertically near cursor
+        if (x + 406 > window.innerWidth)  x = e.clientX - 416;
+        if (y < 4) y = 4;
+        if (y + 406 > window.innerHeight) y = window.innerHeight - 406;
+        overlay.style.left = x + 'px';
+        overlay.style.top  = y + 'px';
+    }
+
+    // Use event delegation so dynamically-added hall images are covered
+    document.addEventListener('mouseover', function(e) {
+        const el = e.target.closest('.venue-image, .hall-image');
+        if (!el) return;
+
+        let imgUrl = '';
+        if (el.tagName === 'IMG') {
+            imgUrl = el.src;
+        } else {
+            // background-image div
+            const bg = el.style.backgroundImage || getComputedStyle(el).backgroundImage;
+            const m  = bg.match(/url\(["']?([^"')]+)["']?\)/);
+            if (m) imgUrl = m[1];
+        }
+
+        if (imgUrl) {
+            preview.src = imgUrl;
+            overlay.style.display = 'block';
+            zoomActive = true;
+            positionOverlay(e);
+        }
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (zoomActive) positionOverlay(e);
+    });
+
+    document.addEventListener('mouseout', function(e) {
+        const el = e.target.closest('.venue-image, .hall-image');
+        if (el && !el.contains(e.relatedTarget)) {
+            zoomActive = false;
+            overlay.style.display = 'none';
+            preview.src = '';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initPhotoZoom);
