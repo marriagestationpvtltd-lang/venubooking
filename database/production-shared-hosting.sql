@@ -1897,3 +1897,70 @@ DELIMITER ;
 
 CALL upgrade_policy_pages();
 DROP PROCEDURE IF EXISTS upgrade_policy_pages;
+
+-- ---- service_package_features: add service_id column (package-to-service linking) ----
+
+DROP PROCEDURE IF EXISTS upgrade_service_package_features;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_service_package_features()
+BEGIN
+    -- Add service_id column if missing (added when package-feature-to-service linking was introduced)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'service_package_features'
+          AND column_name = 'service_id'
+    ) THEN
+        ALTER TABLE service_package_features
+            ADD COLUMN service_id INT DEFAULT NULL
+                COMMENT 'FK → additional_services.id; NULL for legacy free-text features'
+            AFTER feature_text;
+    END IF;
+
+    -- Add FK if the column was just created and FK doesn't exist yet
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.key_column_usage
+        WHERE table_schema = DATABASE()
+          AND table_name = 'service_package_features'
+          AND column_name = 'service_id'
+          AND referenced_table_name = 'additional_services'
+    ) THEN
+        -- Only add FK if additional_services table exists
+        IF EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+              AND table_name = 'additional_services'
+        ) THEN
+            ALTER TABLE service_package_features
+                ADD CONSTRAINT fk_spf_service_id
+                FOREIGN KEY (service_id) REFERENCES additional_services(id) ON DELETE SET NULL;
+        END IF;
+    END IF;
+
+    -- Add index on service_id if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = 'service_package_features'
+          AND index_name = 'idx_spf_service_id'
+    ) THEN
+        CREATE INDEX idx_spf_service_id ON service_package_features(service_id);
+    END IF;
+
+    -- Ensure service_package_photos table exists (created alongside service_id support)
+    CREATE TABLE IF NOT EXISTS service_package_photos (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        package_id INT NOT NULL,
+        image_path VARCHAR(255) NOT NULL,
+        display_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (package_id) REFERENCES service_packages(id) ON DELETE CASCADE,
+        INDEX idx_package_id (package_id),
+        INDEX idx_display_order (display_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+END$$
+DELIMITER ;
+
+CALL upgrade_service_package_features();
+DROP PROCEDURE IF EXISTS upgrade_service_package_features;
