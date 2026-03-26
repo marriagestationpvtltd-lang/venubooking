@@ -126,6 +126,47 @@ BEGIN
         ALTER TABLE bookings ADD INDEX idx_advance_payment_received (advance_payment_received);
     END IF;
 
+    -- menu_special_instructions: stored for ALL bookings; missing this column
+    -- causes the booking INSERT to fail even when no menus are selected.
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'menu_special_instructions'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN menu_special_instructions TEXT DEFAULT NULL
+                COMMENT 'Special instructions for the menu entered during booking'
+            AFTER special_requests;
+    END IF;
+
+    -- ----------------------------------------------------------------
+    -- customers table
+    -- getOrCreateCustomer() may reference city; missing column causes
+    -- the booking INSERT into customers to fail and roll back the booking.
+    -- ----------------------------------------------------------------
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'customers'
+          AND column_name = 'city'
+    ) THEN
+        ALTER TABLE customers ADD COLUMN city VARCHAR(100) NULL AFTER address;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'customers'
+          AND column_name = 'loyalty_points'
+    ) THEN
+        ALTER TABLE customers
+            ADD COLUMN loyalty_points INT NOT NULL DEFAULT 0
+                COMMENT 'Accumulated loyalty points'
+            AFTER city;
+    END IF;
+
     -- ----------------------------------------------------------------
     -- booking_services table
     -- All columns below are inserted by createBooking().  If any are

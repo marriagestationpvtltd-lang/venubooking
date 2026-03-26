@@ -1132,6 +1132,43 @@ DROP PROCEDURE IF EXISTS add_pano_image_columns;
 -- these columns; if any are missing the entire booking is rolled back.
 -- ============================================================================
 
+-- ---- customers table --------------------------------------------------------
+-- getOrCreateCustomer() references city and loyalty_points.  These may be
+-- absent on databases created from older schema versions.
+
+DROP PROCEDURE IF EXISTS upgrade_customers_columns;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_customers_columns()
+BEGIN
+    -- Add city column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'customers'
+          AND column_name = 'city'
+    ) THEN
+        ALTER TABLE customers ADD COLUMN city VARCHAR(100) NULL AFTER address;
+    END IF;
+
+    -- Add loyalty_points column if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'customers'
+          AND column_name = 'loyalty_points'
+    ) THEN
+        ALTER TABLE customers
+            ADD COLUMN loyalty_points INT NOT NULL DEFAULT 0
+                COMMENT 'Accumulated loyalty points'
+            AFTER city;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL upgrade_customers_columns();
+DROP PROCEDURE IF EXISTS upgrade_customers_columns;
+
 -- ---- bookings table ---------------------------------------------------------
 
 DROP PROCEDURE IF EXISTS upgrade_bookings_columns;
@@ -1864,12 +1901,14 @@ BEGIN
     END IF;
 
     -- 2. Seed default Terms and Conditions (INSERT IGNORE skips if slug already exists)
+    -- require_acceptance defaults to 0 so existing bookings are not blocked;
+    -- site admins can enable it from Admin → Policy Pages when ready.
     INSERT IGNORE INTO `policy_pages` (`title`, `slug`, `content`, `status`, `require_acceptance`, `sort_order`) VALUES (
         'Terms and Conditions',
         'terms-and-conditions',
         '<h2>Terms and Conditions</h2>\n<p>Welcome to our venue booking platform. By accessing or using our services, you agree to be bound by these Terms and Conditions. Please read them carefully before proceeding with a booking.</p>\n\n<h3>1. Acceptance of Terms</h3>\n<p>By making a booking, you confirm that you have read, understood, and agreed to these Terms and Conditions in their entirety.</p>\n\n<h3>2. Booking and Confirmation</h3>\n<p>All bookings are subject to availability. A booking is only confirmed once you receive a written confirmation from us.</p>\n\n<h3>3. Payment</h3>\n<p>An advance payment is required to secure your booking. The balance amount is due on or before the event date.</p>\n\n<h3>4. Cancellation Policy</h3>\n<p>Cancellations must be made in writing. Cancellation charges may apply depending on how far in advance the cancellation is made.</p>\n\n<h3>5. Governing Law</h3>\n<p>These Terms and Conditions are governed by the laws of Nepal.</p>',
         'active',
-        1,
+        0,
         10
     );
 
@@ -1889,9 +1928,20 @@ BEGIN
         'refund-policy',
         '<h2>Refund Policy</h2>\n<p>We understand that plans can change. Please review our refund policy carefully before making a booking.</p>\n\n<h3>1. Cancellation and Refund Schedule</h3>\n<ul>\n  <li><strong>More than 30 days before the event:</strong> Full refund less administrative fees.</li>\n  <li><strong>15–30 days before the event:</strong> 50% of the advance payment refunded.</li>\n  <li><strong>Less than 15 days before the event:</strong> No refund.</li>\n</ul>\n\n<h3>2. Refund Processing</h3>\n<p>Approved refunds are processed within 7–14 business days.</p>',
         'active',
-        1,
+        0,
         30
     );
+
+    -- 5. Reset require_acceptance for any seeded policy pages that were previously
+    --    inserted with require_acceptance=1 by an earlier version of this script.
+    --    NOTE: This only affects the three auto-seeded slugs; any other policy
+    --    pages (including those slugs if an admin changed them intentionally via
+    --    this same script) are left untouched.  Admins can re-enable acceptance
+    --    requirements from Admin → Policy Pages whenever they are ready.
+    UPDATE `policy_pages`
+       SET `require_acceptance` = 0
+     WHERE `slug` IN ('terms-and-conditions', 'privacy-policy', 'refund-policy')
+       AND `require_acceptance` = 1;
 END$$
 DELIMITER ;
 

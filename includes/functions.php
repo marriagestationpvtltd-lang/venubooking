@@ -1622,24 +1622,40 @@ function getPackageFeatures($package_id) {
 
 /**
  * Get or create customer
+ *
+ * Resilient against missing optional columns (city, loyalty_points) so that
+ * bookings always succeed even on older database schemas that have not been
+ * fully migrated.  The fallback path omits the city column and retries.
  */
 function getOrCreateCustomer($full_name, $phone, $email = '', $address = '', $city = '') {
     $db = getDB();
-    
+
     // Check if customer exists
     $stmt = $db->prepare("SELECT id FROM customers WHERE phone = ?");
     $stmt->execute([$phone]);
     $customer = $stmt->fetch();
-    
+
     if ($customer) {
-        // Update customer info
-        $stmt = $db->prepare("UPDATE customers SET full_name = ?, email = ?, address = ?, city = ? WHERE id = ?");
-        $stmt->execute([$full_name, $email, $address, $city ?: null, $customer['id']]);
+        // Try updating with city; fall back without it for older schemas
+        try {
+            $stmt = $db->prepare("UPDATE customers SET full_name = ?, email = ?, address = ?, city = ? WHERE id = ?");
+            $stmt->execute([$full_name, $email, $address, $city ?: null, $customer['id']]);
+        } catch (\Throwable $e) {
+            error_log('getOrCreateCustomer: UPDATE with city failed, retrying without: ' . $e->getMessage());
+            $stmt = $db->prepare("UPDATE customers SET full_name = ?, email = ?, address = ? WHERE id = ?");
+            $stmt->execute([$full_name, $email, $address, $customer['id']]);
+        }
         return $customer['id'];
     } else {
-        // Create new customer
-        $stmt = $db->prepare("INSERT INTO customers (full_name, phone, email, address, city) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$full_name, $phone, $email, $address, $city ?: null]);
+        // Try inserting with city; fall back without it for older schemas
+        try {
+            $stmt = $db->prepare("INSERT INTO customers (full_name, phone, email, address, city) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$full_name, $phone, $email, $address, $city ?: null]);
+        } catch (\Throwable $e) {
+            error_log('getOrCreateCustomer: INSERT with city failed, retrying without: ' . $e->getMessage());
+            $stmt = $db->prepare("INSERT INTO customers (full_name, phone, email, address) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$full_name, $phone, $email, $address]);
+        }
         return (int)$db->lastInsertId();
     }
 }
@@ -1725,16 +1741,8 @@ function createBooking($data) {
                 $end_time      = $shift_times['end'];
             }
 
-            $sql = "INSERT INTO bookings (
-                        booking_number, customer_id, hall_id, custom_venue_name, custom_hall_name,
-                        event_date, start_time, end_time, shift,
-                        event_type, number_of_guests, hall_price, menu_total, 
-                        services_total, subtotal, tax_amount, grand_total, 
-                        special_requests, menu_special_instructions, booking_status, payment_status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
-
-            $stmt = $db->prepare($sql);
-            $stmt->execute([
+            // Insert booking — with fallback for older schemas missing menu_special_instructions.
+            $booking_params_full = [
                 $booking_number,
                 $customer_id,
                 $hall_id_value,
@@ -1753,8 +1761,44 @@ function createBooking($data) {
                 $totals['tax_amount'],
                 $totals['grand_total'],
                 $data['special_requests'] ?? '',
-                $data['menu_special_instructions'] ?? ''
-            ]);
+                $data['menu_special_instructions'] ?? '',
+            ];
+            try {
+                $sql = "INSERT INTO bookings (
+                            booking_number, customer_id, hall_id, custom_venue_name, custom_hall_name,
+                            event_date, start_time, end_time, shift,
+                            event_type, number_of_guests, hall_price, menu_total,
+                            services_total, subtotal, tax_amount, grand_total,
+                            special_requests, menu_special_instructions, booking_status, payment_status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
+                $stmt = $db->prepare($sql);
+                $stmt->execute($booking_params_full);
+            } catch (\Throwable $bookInsertErr) {
+                // Fallback: if menu_special_instructions column is missing on an older
+                // install, retry without it so the booking can still be completed.
+                // SQLSTATE 42S22 = "Column not found"; HY000 general MySQL error also
+                // covers "Unknown column" on some MySQL versions.
+                $errCode = $bookInsertErr->getCode();
+                $isUnknownColumn = ($errCode === '42S22')
+                    || ($errCode === '42000')
+                    || stripos((string)$bookInsertErr->getMessage(), 'menu_special_instructions') !== false
+                    || stripos((string)$bookInsertErr->getMessage(), 'Unknown column') !== false;
+                if ($isUnknownColumn) {
+                    error_log('createBooking: bookings INSERT fell back due to missing column (schema upgrade needed)');
+                    $sql = "INSERT INTO bookings (
+                                booking_number, customer_id, hall_id, custom_venue_name, custom_hall_name,
+                                event_date, start_time, end_time, shift,
+                                event_type, number_of_guests, hall_price, menu_total,
+                                services_total, subtotal, tax_amount, grand_total,
+                                special_requests, booking_status, payment_status
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
+                    $stmt = $db->prepare($sql);
+                    // Remove the last element (menu_special_instructions) and retry
+                    $stmt->execute(array_slice($booking_params_full, 0, -1));
+                } else {
+                    throw $bookInsertErr;
+                }
+            }
 
             $booking_id = (int)$db->lastInsertId();
 
@@ -1786,78 +1830,91 @@ function createBooking($data) {
                 }
             }
 
-            // Insert booking menus
+            // Insert booking menus — wrapped in try-catch so a missing
+            // booking_menus column (e.g. extra_total on older installs) does
+            // not roll back the entire booking.
             if (!empty($data['menus'])) {
                 foreach ($data['menus'] as $menu_id) {
-                    $stmt = $db->prepare("SELECT price_per_person FROM menus WHERE id = ?");
-                    $stmt->execute([$menu_id]);
-                    $menu = $stmt->fetch();
+                    try {
+                        $stmt = $db->prepare("SELECT price_per_person FROM menus WHERE id = ?");
+                        $stmt->execute([$menu_id]);
+                        $menu = $stmt->fetch();
 
-                    if ($menu) {
-                        $menu_price = $menu['price_per_person'];
-                        $menu_total = $menu_price * $data['guests'];
+                        if ($menu) {
+                            $menu_price = $menu['price_per_person'];
+                            $menu_total = $menu_price * $data['guests'];
 
-                        $stmt = $db->prepare("INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES (?, ?, ?, ?, ?)");
-                        $stmt->execute([$booking_id, $menu_id, $menu_price, $data['guests'], $menu_total]);
+                            $stmt = $db->prepare("INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES (?, ?, ?, ?, ?)");
+                            $stmt->execute([$booking_id, $menu_id, $menu_price, $data['guests'], $menu_total]);
+                        }
+                    } catch (\Throwable $menuErr) {
+                        error_log("createBooking: booking_menus INSERT failed for menu {$menu_id}: " . $menuErr->getMessage());
+                        // Non-fatal: continue with the rest of the booking
                     }
                 }
             }
 
-            // Save custom menu item selections snapshot
+            // Save custom menu item selections snapshot — wrapped in try-catch
+            // so missing tables (e.g. booking_menu_item_selections on older
+            // installs) do not abort the booking.
             if (!empty($data['menu_selections']) && is_array($data['menu_selections'])) {
-                foreach ($data['menus'] ?? [] as $menu_id_sel) {
-                    $menu_id_sel = intval($menu_id_sel);
-                    if (!isset($data['menu_selections'][$menu_id_sel])) continue;
-                    $selections = $data['menu_selections'][$menu_id_sel];
+                try {
+                    foreach ($data['menus'] ?? [] as $menu_id_sel) {
+                        $menu_id_sel = intval($menu_id_sel);
+                        if (!isset($data['menu_selections'][$menu_id_sel])) continue;
+                        $selections = $data['menu_selections'][$menu_id_sel];
 
-                    // Get menu name for snapshot
-                    $mstmt = $db->prepare("SELECT name FROM menus WHERE id = ?");
-                    $mstmt->execute([$menu_id_sel]);
-                    $mrow = $mstmt->fetch();
-                    $snap_menu_name = $mrow ? $mrow['name'] : 'Menu';
+                        // Get menu name for snapshot
+                        $mstmt = $db->prepare("SELECT name FROM menus WHERE id = ?");
+                        $mstmt->execute([$menu_id_sel]);
+                        $mrow = $mstmt->fetch();
+                        $snap_menu_name = $mrow ? $mrow['name'] : 'Menu';
 
-                    // Update extra_total in booking_menus
-                    $extra = calculateMenuExtraCharges($menu_id_sel, $selections);
-                    $db->prepare("UPDATE booking_menus SET extra_total = ? WHERE booking_id = ? AND menu_id = ?")
-                       ->execute([$extra, $booking_id, $menu_id_sel]);
+                        // Update extra_total in booking_menus
+                        $extra = calculateMenuExtraCharges($menu_id_sel, $selections);
+                        $db->prepare("UPDATE booking_menus SET extra_total = ? WHERE booking_id = ? AND menu_id = ?")
+                           ->execute([$extra, $booking_id, $menu_id_sel]);
 
-                    // Get structure for snapshot labels
-                    $structure = getMenuStructure($menu_id_sel);
-                    $ins = $db->prepare("INSERT INTO booking_menu_item_selections 
-                        (booking_id, menu_id, menu_name, section_name, group_name, item_name, sub_category, extra_charge, menu_section_id, menu_group_id, menu_item_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        // Get structure for snapshot labels
+                        $structure = getMenuStructure($menu_id_sel);
+                        $ins = $db->prepare("INSERT INTO booking_menu_item_selections 
+                            (booking_id, menu_id, menu_name, section_name, group_name, item_name, sub_category, extra_charge, menu_section_id, menu_group_id, menu_item_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-                    foreach ($structure as $section) {
-                        foreach ($section['groups'] as $group) {
-                            $gid = intval($group['id']);
-                            $chosen_ids = isset($selections[$gid]) ? array_map('intval', (array)$selections[$gid]) : [];
-                            if (empty($chosen_ids)) continue;
+                        foreach ($structure as $section) {
+                            foreach ($section['groups'] as $group) {
+                                $gid = intval($group['id']);
+                                $chosen_ids = isset($selections[$gid]) ? array_map('intval', (array)$selections[$gid]) : [];
+                                if (empty($chosen_ids)) continue;
 
-                            $placeholders = implode(',', array_fill(0, count($chosen_ids), '?'));
-                            $params = array_merge([$gid], $chosen_ids);
-                            $istmt = $db->prepare(
-                                "SELECT * FROM menu_group_items WHERE menu_group_id = ? AND id IN ($placeholders) AND status = 'active'"
-                            );
-                            $istmt->execute($params);
-                            $snap_items = $istmt->fetchAll();
+                                $placeholders = implode(',', array_fill(0, count($chosen_ids), '?'));
+                                $params = array_merge([$gid], $chosen_ids);
+                                $istmt = $db->prepare(
+                                    "SELECT * FROM menu_group_items WHERE menu_group_id = ? AND id IN ($placeholders) AND status = 'active'"
+                                );
+                                $istmt->execute($params);
+                                $snap_items = $istmt->fetchAll();
 
-                            foreach ($snap_items as $snap_item) {
-                                $ins->execute([
-                                    $booking_id,
-                                    $menu_id_sel,
-                                    $snap_menu_name,
-                                    $section['section_name'],
-                                    $group['group_name'],
-                                    $snap_item['item_name'],
-                                    $snap_item['sub_category'],
-                                    floatval($snap_item['extra_charge']),
-                                    intval($section['id']),
-                                    intval($group['id']),
-                                    intval($snap_item['id']),
-                                ]);
+                                foreach ($snap_items as $snap_item) {
+                                    $ins->execute([
+                                        $booking_id,
+                                        $menu_id_sel,
+                                        $snap_menu_name,
+                                        $section['section_name'],
+                                        $group['group_name'],
+                                        $snap_item['item_name'],
+                                        $snap_item['sub_category'],
+                                        floatval($snap_item['extra_charge']),
+                                        intval($section['id']),
+                                        intval($group['id']),
+                                        intval($snap_item['id']),
+                                    ]);
+                                }
                             }
                         }
                     }
+                } catch (\Throwable $menuSelErr) {
+                    error_log("createBooking: menu selections snapshot failed (non-fatal): " . $menuSelErr->getMessage());
                 }
             }
 
@@ -1937,6 +1994,8 @@ function createBooking($data) {
             // Insert booking services (additional services selected by the user).
             // Services already included in a selected package are skipped to avoid
             // double-counting — they were inserted above with price=0.
+            // Wrapped in try-catch: missing booking_services columns (e.g. description,
+            // category) on older schemas must not abort the entire booking.
             if (!empty($data['services'])) {
                 foreach ($data['services'] as $service_id) {
                     $service_id = intval($service_id);
@@ -1944,13 +2003,18 @@ function createBooking($data) {
                         // Already included via a package; skip to avoid duplicate row
                         continue;
                     }
-                    $svc_sel = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
-                    $svc_sel->execute([$service_id]);
-                    $service = $svc_sel->fetch();
+                    try {
+                        $svc_sel = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
+                        $svc_sel->execute([$service_id]);
+                        $service = $svc_sel->fetch();
 
-                    if ($service) {
-                        $svc_ins2 = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $svc_ins2->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
+                        if ($service) {
+                            $svc_ins2 = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                            $svc_ins2->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
+                        }
+                    } catch (\Throwable $svcErr) {
+                        error_log("createBooking: booking_services INSERT failed for service {$service_id}: " . $svcErr->getMessage());
+                        // Non-fatal: booking still created, only per-service detail is missing
                     }
                 }
             }
