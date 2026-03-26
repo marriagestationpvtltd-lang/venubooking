@@ -1423,6 +1423,9 @@ document.addEventListener('DOMContentLoaded', function() {
     customerInfoSection.style.display = 'block';
     billSummarySection.style.display = 'block';
     paymentOptionsSection.style.display = 'block';
+    if (policyAcceptanceSection) {
+        policyAcceptanceSection.style.display = 'block';
+    }
     finalButtonsSection.style.display = 'flex';
     initialBackButton.style.display = 'none';
     // Scroll to the top of the booking section so the error alert is visible
