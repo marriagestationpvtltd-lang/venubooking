@@ -783,14 +783,14 @@
                     const totalLabel = document.createElement('span');
                     totalLabel.style.cssText = 'font-size:0.65rem;color:#166534;';
                     if (guests > 0 && pricePerPerson > 0) {
-                        totalLabel.textContent = currencySymbol + Math.round(pricePerPerson) + '/pax \u00d7 ' + guests + (runningExtra > 0 ? ' + extras' : '');
+                        totalLabel.textContent = currencySymbol + Math.round(pricePerPerson) + '/pax' + (runningExtra > 0 ? ' + extras' : '') + ' \u00d7 ' + guests;
                     } else {
                         totalLabel.textContent = 'Menu total:';
                     }
                     totalRow.appendChild(totalLabel);
                     const totalVal = document.createElement('span');
                     totalVal.style.cssText = 'font-size:0.7rem;font-weight:700;color:#166534;';
-                    totalVal.textContent = currencySymbol + Math.round(pricePerPerson * guests + runningExtra);
+                    totalVal.textContent = currencySymbol + Math.round((pricePerPerson + runningExtra) * guests);
                     totalRow.appendChild(totalVal);
                     cell.appendChild(totalRow);
                 }

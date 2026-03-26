@@ -125,14 +125,14 @@ function calculateMenuTotal() {
     if (extraLine && extraAmount) {
         if (extraCharges > 0) {
             extraLine.style.display = 'block';
-            extraAmount.textContent = formatCurrency(extraCharges);
+            extraAmount.textContent = formatCurrency(extraCharges * guestsCount);
         } else {
             extraLine.style.display = 'none';
         }
     }
 
     const rate = (typeof taxRate !== 'undefined') ? taxRate : 0; // taxRate is always PHP-injected; 0 is a safe fallback to avoid breaking the UI
-    const subtotal = hallPrice + menuTotal + extraCharges;
+    const subtotal = hallPrice + menuTotal + extraCharges * guestsCount;
     const total = subtotal * (1 + rate / 100);
     updateTotalCost(total);
 }
