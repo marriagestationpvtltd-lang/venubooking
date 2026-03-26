@@ -467,24 +467,87 @@ async function downloadNow(files) {
                 dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
                 dlBar.style.backgroundSize = '200% 100%';
                 dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
-                dlPct.textContent  = '';
+                dlPct.textContent   = '';
                 dlTitle.textContent = 'Preparing ZIP download\u2026';
-                dlFile.textContent = ids.length + ' files';
-                dlSize.textContent = '';
-                dlEta.textContent  = 'Please wait\u2026';
-                dlSpd.textContent  = '';
-                dlIcon.className   = 'fas fa-spinner fa-spin';
+                dlFile.textContent  = ids.length + ' files';
+                dlSize.textContent  = '';
+                dlEta.textContent   = 'Please wait\u2026';
+                dlSpd.textContent   = '';
+                dlIcon.className    = 'fas fa-spinner fa-spin';
                 overlay.classList.add('dl-active');
-                setTimeout(function() { overlay.classList.remove('dl-active'); }, 4000);
             }
-            var a = document.createElement('a');
-            a.href = zipUrl;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(function() {
-                if (a.parentNode) { a.parentNode.removeChild(a); }
-            }, 1000);
+
+            try {
+                var response = await fetch(zipUrl);
+                var contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+
+                // If the server returned HTML instead of a ZIP the generation failed.
+                // Automatically fall back to downloading files individually.
+                // Accept any ZIP-related MIME type (application/zip, application/x-zip-compressed, etc.)
+                var isZip = contentType.indexOf('zip') !== -1 || contentType === 'application/octet-stream';
+                if (!response.ok || !isZip) {
+                    if (overlay) { overlay.classList.remove('dl-active'); }
+                    var _fbUrls = files.map(function(f) { return f.url; });
+                    return bulkDownloadIndividual(_fbUrls, null);
+                }
+
+                // ZIP succeeded – stream body into a Blob then trigger browser download.
+                var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
+                var reader = response.body.getReader();
+                var chunks = [];
+                var received = 0;
+
+                while (true) {
+                    var chunk = await reader.read();
+                    if (chunk.done) break;
+                    chunks.push(chunk.value);
+                    received += chunk.value.length;
+                    if (contentLength > 0 && overlay) {
+                        var pct = Math.min(Math.round((received / contentLength) * 100), 99);
+                        dlBar.style.width          = pct + '%';
+                        dlPct.textContent          = pct + '%';
+                        dlBar.style.background     = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+                        dlBar.style.backgroundSize = '';
+                        dlBar.style.animation      = '';
+                    }
+                }
+
+                var cd = response.headers.get('Content-Disposition') || '';
+                var zipFilename = 'photos.zip';
+                var cdMatch = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+                if (cdMatch && cdMatch[1]) {
+                    var _fn = cdMatch[1].replace(/['"]/g, '').trim();
+                    if (_fn) { zipFilename = _fn; }
+                }
+
+                var blob      = new Blob(chunks, { type: 'application/zip' });
+                var objectUrl = URL.createObjectURL(blob);
+                var a         = document.createElement('a');
+                a.href        = objectUrl;
+                a.download    = zipFilename;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function(u) { URL.revokeObjectURL(u); }, BLOB_REVOKE_DELAY, objectUrl);
+
+                if (overlay) {
+                    dlBar.style.width   = '100%';
+                    dlPct.textContent   = '100%';
+                    dlTitle.textContent = 'Download Complete!';
+                    dlFile.textContent  = '';
+                    dlSize.textContent  = 'ZIP file saved successfully';
+                    dlIcon.className    = 'fas fa-check-circle';
+                    dlEta.textContent   = '';
+                    dlSpd.textContent   = '';
+                    setTimeout(function() { overlay.classList.remove('dl-active'); }, 1500);
+                }
+            } catch (e) {
+                // Network / fetch error – fall back to individual file downloads.
+                if (overlay) { overlay.classList.remove('dl-active'); }
+                var _fbUrls2 = files.map(function(f) { return f.url; });
+                return bulkDownloadIndividual(_fbUrls2, null);
+            }
             return false;
         }
 
