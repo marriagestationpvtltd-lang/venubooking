@@ -73,7 +73,7 @@ $multi_slot = count($booking_data['selected_slots'] ?? []) > 1;
 // confirmation) we keep the user on the page and surface the error so they can retry.
 $totals_error = '';
 try {
-    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs, $selected_packages, null, $menu_selections);
+    $totals = calculateBookingTotal($selected_hall['id'], $selected_menus, $booking_data['guests'], $selected_services, $selected_designs, $selected_packages, $selected_hall['base_price'], $menu_selections);
 } catch (\Throwable $e) {
     error_log('Failed to calculate booking totals: ' . $e->getMessage());
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -340,6 +340,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
                 'packages'           => $selected_packages,
                 'selected_slots'     => $booking_data['selected_slots'] ?? [],
                 'slot_id'            => $booking_data['slot_id'] ?? null,
+                'hall_base_price'    => $selected_hall['base_price'],
                 'full_name'          => $full_name,
                 'phone'              => $phone,
                 'email'              => $email,
