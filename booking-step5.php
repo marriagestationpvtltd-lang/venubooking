@@ -32,6 +32,35 @@ $selected_hall     = $_SESSION['selected_hall'];
 $selected_menus    = $_SESSION['selected_menus'] ?? [];
 $selected_packages = $_SESSION['selected_packages'] ?? [];
 
+// Build a map of service IDs that are already included in the selected packages.
+// These services will be shown as "Included in package" and their checkboxes
+// disabled so the user cannot double-select (and double-pay) them.
+// Keys are service_id (int), values are the package name string.
+$pkg_included_service_names = []; // service_id → package_name
+if (!empty($selected_packages)) {
+    try {
+        $db_pkg = getDB();
+        $pkg_placeholders = implode(',', array_fill(0, count($selected_packages), '?'));
+        $pkg_feat_stmt = $db_pkg->prepare(
+            "SELECT spf.service_id, sp.name AS package_name
+               FROM service_package_features spf
+               JOIN service_packages sp ON sp.id = spf.package_id
+              WHERE spf.package_id IN ($pkg_placeholders)
+                AND spf.service_id IS NOT NULL"
+        );
+        $pkg_feat_stmt->execute(array_values(array_map('intval', $selected_packages)));
+        foreach ($pkg_feat_stmt->fetchAll() as $pf) {
+            $pkg_included_service_names[(int)$pf['service_id']] = $pf['package_name'];
+        }
+    } catch (\Throwable $e) {
+        // Non-fatal: if service_id column doesn't exist (migration not yet run —
+        // see database/migrations/add_service_id_to_package_features.sql) or any
+        // other DB issue, fall back to showing all services as normally selectable.
+        error_log('booking-step5: failed to load package-included services: ' . $e->getMessage());
+        $pkg_included_service_names = [];
+    }
+}
+
 // Get all active services, enriched with direct designs
 $services = getActiveServices();
 $services_map = []; // keyed by service id
@@ -207,9 +236,39 @@ $current_total = $totals['grand_total'];
                                 <div id="<?php echo $category_id; ?>" class="collapse <?php echo $is_first ? 'show' : ''; ?>">
                                     <div class="card-body">
                                         <div class="row g-3">
-                                            <?php foreach ($category_services as $service): ?>
-                                                <div class="<?php echo $service['has_designs'] ? 'col-12' : 'col-md-6'; ?>" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <?php if ($service['has_designs']): ?>
+                                            <?php foreach ($category_services as $service):
+                                                $is_pkg_included  = isset($pkg_included_service_names[$service['id']]);
+                                                $pkg_name_for_svc = $is_pkg_included ? $pkg_included_service_names[$service['id']] : '';
+                                            ?>
+                                                <div class="<?php echo ($service['has_designs'] && !$is_pkg_included) ? 'col-12' : 'col-md-6'; ?>" data-service-name="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <?php if ($is_pkg_included): ?>
+                                                        <!-- Service already included in a selected package: show as disabled -->
+                                                        <div class="service-card card border-success opacity-75">
+                                                            <?php if (!empty($service['photo'])): ?>
+                                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
+                                                                     alt="<?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                                     class="card-img-top" style="height:140px;object-fit:cover;">
+                                                            <?php endif; ?>
+                                                            <div class="card-body">
+                                                                <div class="d-flex justify-content-between align-items-start">
+                                                                    <div class="flex-grow-1">
+                                                                        <h5 class="card-title">
+                                                                            <?php echo sanitize($service['name']); ?>
+                                                                            <span class="badge bg-success ms-1" style="font-size:0.7rem;">
+                                                                                <i class="fas fa-box-open me-1"></i><?php echo sanitize($pkg_name_for_svc); ?>
+                                                                            </span>
+                                                                        </h5>
+                                                                        <p class="card-text text-muted"><?php echo sanitize($service['description']); ?></p>
+                                                                    </div>
+                                                                    <div class="ms-3">
+                                                                        <span class="badge bg-success rounded-pill px-3 py-2">
+                                                                            <i class="fas fa-check me-1"></i>Included
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    <?php elseif ($service['has_designs']): ?>
                                                         <!-- Service with designs: inline checkbox design grid -->
                                                         <div class="card service-designs-inline-card p-3">
                                                             <h5 class="mb-1"><?php echo sanitize($service['name']); ?></h5>

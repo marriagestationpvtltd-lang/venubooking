@@ -36,6 +36,13 @@ define('ADMIN_SERVICE_DEFAULT_CATEGORY', '');
 define('PACKAGE_SERVICE_CATEGORY', 'package');
 
 /**
+ * Category value used when an individual service is auto-included because it
+ * is part of a user-selected service package (price stored as 0 since the
+ * package price already covers it).
+ */
+define('PACKAGE_INCLUDED_CATEGORY', 'package_included');
+
+/**
  * Database column names for admin services feature
  * These constants ensure consistency across the codebase
  */
@@ -1854,30 +1861,22 @@ function createBooking($data) {
                 }
             }
 
-            // Insert booking services
-            if (!empty($data['services'])) {
-                foreach ($data['services'] as $service_id) {
-                    $stmt = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
-                    $stmt->execute([$service_id]);
-                    $service = $stmt->fetch();
+            // Insert user-selected service packages into booking_services.
+            // Also collect service IDs that are included in packages so regular
+            // service insertion can skip them and avoid double-counting.
+            // Used as a set: keys are service_ids (int), values are always true.
+            $pkg_included_svc_ids = [];
 
-                    if ($service) {
-                        $stmt = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
-                    }
-                }
-            }
-
-            // Insert user-selected service packages into booking_services
             if (!empty($data['packages'])) {
                 foreach ($data['packages'] as $package_id) {
                     $package_id = intval($package_id);
                     if ($package_id <= 0) continue;
                     try {
-                        $stmt = $db->prepare("SELECT name, price, description FROM service_packages WHERE id = ? AND status = 'active'");
-                        $stmt->execute([$package_id]);
-                        $package = $stmt->fetch();
+                        $pkg_stmt = $db->prepare("SELECT name, price, description FROM service_packages WHERE id = ? AND status = 'active'");
+                        $pkg_stmt->execute([$package_id]);
+                        $package = $pkg_stmt->fetch();
                         if ($package) {
+                            // Insert the package itself as a booking_service row
                             $insert = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                             $insert->execute([
                                 $booking_id,
@@ -1889,9 +1888,69 @@ function createBooking($data) {
                                 USER_SERVICE_TYPE,
                                 DEFAULT_SERVICE_QUANTITY,
                             ]);
+
+                            // Insert each service linked to this package's features
+                            // with price=0 (covered by the package price) so the
+                            // individual services are tracked in booking_services.
+                            try {
+                                $feat_stmt = $db->prepare(
+                                    "SELECT spf.service_id, s.name, s.description, s.category
+                                     FROM service_package_features spf
+                                     JOIN additional_services s ON s.id = spf.service_id
+                                     WHERE spf.package_id = ? AND spf.service_id IS NOT NULL
+                                     ORDER BY spf.display_order, spf.id"
+                                );
+                                $feat_stmt->execute([$package_id]);
+                                $feat_rows = $feat_stmt->fetchAll();
+                                foreach ($feat_rows as $feat) {
+                                    $feat_svc_id = intval($feat['service_id']);
+                                    if ($feat_svc_id <= 0) continue;
+                                    $pkg_included_svc_ids[$feat_svc_id] = true;
+                                    $svc_ins = $db->prepare(
+                                        "INSERT INTO booking_services
+                                             (booking_id, service_id, service_name, price, description, category, added_by, quantity)
+                                         VALUES (?, ?, ?, 0, ?, ?, ?, ?)"
+                                    );
+                                    $svc_ins->execute([
+                                        $booking_id,
+                                        $feat_svc_id,
+                                        $feat['name'],
+                                        $feat['description'] ?? '',
+                                        PACKAGE_INCLUDED_CATEGORY,
+                                        USER_SERVICE_TYPE,
+                                        DEFAULT_SERVICE_QUANTITY,
+                                    ]);
+                                }
+                            } catch (\Throwable $featErr) {
+                                // Non-fatal: log and continue — the package row was already saved.
+                                // Booking is still created successfully; only the per-service breakdown is missing.
+                                // Run database/migrations/add_service_id_to_package_features.sql to enable full support.
+                                error_log("Package feature services skipped for booking {$booking_id}, package_id={$package_id}: " . $featErr->getMessage());
+                            }
                         }
                     } catch (\Throwable $pkgErr) {
                         error_log("Package insertion skipped for booking {$booking_id}, package_id={$package_id}: " . $pkgErr->getMessage());
+                    }
+                }
+            }
+
+            // Insert booking services (additional services selected by the user).
+            // Services already included in a selected package are skipped to avoid
+            // double-counting — they were inserted above with price=0.
+            if (!empty($data['services'])) {
+                foreach ($data['services'] as $service_id) {
+                    $service_id = intval($service_id);
+                    if (isset($pkg_included_svc_ids[$service_id])) {
+                        // Already included via a package; skip to avoid duplicate row
+                        continue;
+                    }
+                    $svc_sel = $db->prepare("SELECT name, price, description, category FROM additional_services WHERE id = ?");
+                    $svc_sel->execute([$service_id]);
+                    $service = $svc_sel->fetch();
+
+                    if ($service) {
+                        $svc_ins2 = $db->prepare("INSERT INTO booking_services (booking_id, service_id, service_name, price, description, category, added_by, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $svc_ins2->execute([$booking_id, $service_id, $service['name'], $service['price'], $service['description'], $service['category'], USER_SERVICE_TYPE, DEFAULT_SERVICE_QUANTITY]);
                     }
                 }
             }
