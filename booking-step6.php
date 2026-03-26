@@ -535,7 +535,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <input type="tel" class="form-control" id="phone" name="phone" 
                                        value="<?php echo sanitize($phone); ?>" 
                                        placeholder="Enter your phone number" 
-                                       pattern="[+]?[\d\s\(\).-]{7,}"
+                                       pattern="[+]?[0-9 ()\.\-]{7,}"
                                        required>
                                 <div class="invalid-feedback">Please enter a valid phone number (at least 7 digits).</div>
                             </div>
