@@ -70,10 +70,10 @@ unset($_SESSION['error_message']);
                                 <?php if (!empty($service['photo'])): ?>
                                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($service['photo']); ?>"
                                          alt="<?php echo htmlspecialchars($service['name']); ?>"
-                                         style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                         class="svc-icon-thumb">
                                 <?php else: ?>
-                                    <div style="width:50px;height:50px;background:#f0f0f0;border-radius:4px;display:flex;align-items:center;justify-content:center;">
-                                        <i class="fas fa-concierge-bell text-muted"></i>
+                                    <div class="svc-icon-thumb svc-icon-thumb--fallback">
+                                        <i class="fas fa-concierge-bell"></i>
                                     </div>
                                 <?php endif; ?>
                             </td>
@@ -108,5 +108,28 @@ unset($_SESSION['error_message']);
         </div>
     </div>
 </div>
+
+<style>
+.svc-icon-thumb {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #4caf50;
+    display: block;
+    transition: transform 0.2s ease;
+}
+.svc-icon-thumb--fallback {
+    background: #e8f5e9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2e7d32;
+    font-size: 1.1rem;
+}
+.svc-icon-thumb:hover {
+    transform: scale(1.25);
+}
+</style>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

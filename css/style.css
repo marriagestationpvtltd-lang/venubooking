@@ -1473,6 +1473,10 @@ footer a:hover {
     border: 2px solid #4caf50;
     display: block;
     flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.pkg-feat-icon-item:hover .pkg-feat-icon-img {
+    transform: scale(1.25);
 }
 .pkg-feat-icon-fallback {
     width: 40px;
@@ -1486,6 +1490,10 @@ footer a:hover {
     color: #2e7d32;
     font-size: 1rem;
     flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.pkg-feat-icon-item:hover .pkg-feat-icon-fallback {
+    transform: scale(1.25);
 }
 .pkg-feat-icon-label {
     font-size: 0.75rem;
