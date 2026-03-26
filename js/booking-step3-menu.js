@@ -683,7 +683,7 @@
                 let hasAnySelection = false;
                 let runningExtra = 0;
                 const sectionsWrap = document.createElement('div');
-
+                sectionsWrap.className = 'cmp-sections-grid';
                 structure.sections.forEach(function (section) {
                     let sectionExtra = 0;
                     const sectionGroups = [];
@@ -809,6 +809,8 @@
                 });
 
                 const linesWrap = document.createElement('div');
+                linesWrap.className = 'cmp-sections-grid';
+
                 categoryOrder.forEach(function (cat) {
                     const line = document.createElement('div');
                     line.style.cssText = 'margin-bottom:4px;';

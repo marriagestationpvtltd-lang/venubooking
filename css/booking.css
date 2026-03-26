@@ -1161,6 +1161,19 @@ html {
     font-size: 0.72rem;
 }
 
+/* Sections within a menu summary cell — horizontal grid on desktop, single column on mobile */
+.cmp-sections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+@media (max-width: 575.98px) {
+    .cmp-sections-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ── Special Instructions card ── */
 .cmp-instructions-card {
     border: 2px solid #bbf7d0;
