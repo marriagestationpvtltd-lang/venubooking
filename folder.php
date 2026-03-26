@@ -513,7 +513,28 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
             // streamer when the zip extension is not available.
             if (class_exists('ZipArchive')) {
                 // ── ZipArchive path ──────────────────────────────────────────────
-                $temp_zip = @tempnam(sys_get_temp_dir(), 'vb_zip_');
+                // Prefer uploads/zip_cache/ as the temp directory because it is
+                // guaranteed to be writable (photos are already uploaded there) and
+                // avoids open_basedir restrictions that often block sys_get_temp_dir()
+                // on shared-hosting servers.
+                $_zip_cache_dir = rtrim(UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . 'zip_cache';
+                if (!is_dir($_zip_cache_dir)) {
+                    @mkdir($_zip_cache_dir, 0755, true);
+                    // Protect generated ZIPs from direct HTTP access on Apache servers
+                    $_htaccess_path = $_zip_cache_dir . DIRECTORY_SEPARATOR . '.htaccess';
+                    if (!file_exists($_htaccess_path)) {
+                        @file_put_contents($_htaccess_path, "Deny from all\nOptions -Indexes\n");
+                    }
+                    // Universal guard for nginx and other servers: serve a 403 for any request
+                    $_guard_path = $_zip_cache_dir . DIRECTORY_SEPARATOR . 'index.php';
+                    if (!file_exists($_guard_path)) {
+                        @file_put_contents($_guard_path, "<?php http_response_code(403); exit;\n");
+                    }
+                }
+                $_zip_tmp_dir = (is_dir($_zip_cache_dir) && is_writable($_zip_cache_dir))
+                    ? $_zip_cache_dir
+                    : sys_get_temp_dir();
+                $temp_zip = @tempnam($_zip_tmp_dir, 'vb_zip_');
                 if ($temp_zip === false) {
                     $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
                 } else {
@@ -1013,13 +1034,13 @@ if (!$show_preview):
             <i class="fas fa-list"></i>
         </button>
         <?php if ($folder['allow_zip_download'] && !empty($visible_photos)): ?>
-        <a href="?token=<?= urlencode($token) ?>&download_all=1<?= $has_subfolders && $current_album !== null ? '&album='.urlencode($current_album) : '' ?>" class="btn btn-outline-success btn-sm">
+        <button type="button" class="btn btn-outline-success btn-sm" onclick="return downloadNow(_dlFiles)">
             <i class="fas fa-file-archive me-1"></i> Download ZIP
-        </a>
+        </button>
         <?php elseif ($folder['allow_zip_download'] && !$has_subfolders && !empty($photos)): ?>
-        <a href="?token=<?= urlencode($token) ?>&download_all=1" class="btn btn-outline-success btn-sm">
+        <button type="button" class="btn btn-outline-success btn-sm" onclick="return downloadNow(_dlFiles)">
             <i class="fas fa-file-archive me-1"></i> Download ZIP
-        </a>
+        </button>
         <?php endif; ?>
     </div>
 </div>
