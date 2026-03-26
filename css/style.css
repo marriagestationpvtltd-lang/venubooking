@@ -1719,6 +1719,198 @@ footer a:hover {
     line-height: 1.5;
 }
 
+/* ===== Booking Step 4 – Group Accordion ===== */
+
+.pkg-groups-accordion {
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.pkg-group-item {
+    border-bottom: 1px solid #e9ecef;
+    background: #fff;
+    transition: background 0.15s;
+}
+
+.pkg-group-item:last-child {
+    border-bottom: none;
+}
+
+/* ── Group header row ── */
+.pkg-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.1rem;
+    cursor: pointer;
+    user-select: none;
+    gap: 0.75rem;
+    transition: background 0.15s;
+    min-height: 58px;
+}
+
+.pkg-group-header:hover {
+    background: #f4fbf4;
+}
+
+.pkg-group-item.pkg-group-active .pkg-group-header {
+    background: #f0fdf4;
+    border-bottom: 1px solid #c8e6c9;
+}
+
+/* Left: icon + name + inline summary */
+.pkg-group-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.pkg-group-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2E7D32;
+    font-size: 0.78rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.pkg-group-item.pkg-group-active .pkg-group-icon {
+    background: #2E7D32;
+    border-color: #2E7D32;
+    color: #fff;
+}
+
+.pkg-group-name-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    color: #212529;
+    flex-shrink: 0;
+}
+
+/* Divider pipe between name and summary */
+.pkg-group-divider {
+    color: #ced4da;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* Inline summary (shown when group is collapsed and has a selection) */
+.pkg-group-summary-inline {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.pkg-group-summary-inline.visible {
+    display: flex;
+}
+
+.pkg-group-summary-check {
+    color: #198754;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.pkg-group-summary-text {
+    font-size: 0.83rem;
+    color: #495057;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 260px;
+}
+
+.pkg-group-summary-cost {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    background: #198754;
+    border-radius: 20px;
+    padding: 1px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Right: chevron */
+.pkg-group-chevron {
+    flex-shrink: 0;
+    color: #6c757d;
+    font-size: 0.82rem;
+    transition: transform 0.25s ease, color 0.15s;
+}
+
+.pkg-group-item.pkg-group-active .pkg-group-chevron {
+    transform: rotate(180deg);
+    color: #2E7D32;
+}
+
+/* ── Group body (package grid) ── */
+.pkg-group-body {
+    padding: 1.1rem 1.1rem 1.25rem;
+    background: #fafafa;
+    border-top: 1px solid #e9ecef;
+    display: none;
+    animation: pkgBodySlideDown 0.22s ease;
+}
+
+.pkg-group-item.pkg-group-active .pkg-group-body {
+    display: block;
+}
+
+@keyframes pkgBodySlideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Ensure package cards look great inside the body */
+.pkg-group-body .package-select-card {
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.pkg-group-body .package-select-card:hover {
+    border-color: #a5d6a7;
+    box-shadow: 0 4px 18px rgba(46, 125, 50, 0.12);
+    transform: translateY(-2px);
+}
+
+.pkg-group-body .package-select-card.pkg-card-selected {
+    border-color: #2E7D32;
+    box-shadow: 0 4px 18px rgba(46, 125, 50, 0.18);
+}
+
+/* ── Responsive tweaks ── */
+@media (max-width: 575.98px) {
+    .pkg-group-header {
+        padding: 0.75rem 0.85rem;
+        min-height: 52px;
+    }
+
+    .pkg-group-summary-text {
+        max-width: 120px;
+    }
+
+    .pkg-group-body {
+        padding: 0.85rem 0.75rem 1rem;
+    }
+}
+
 /* ===== Our Work – Folder Gallery + Slideshow Modal ===== */
 .work-photos-section {
     background-color: var(--bg-section-alt);

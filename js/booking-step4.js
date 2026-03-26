@@ -1,7 +1,7 @@
 /**
  * Booking Step 4 – Service Packages Selection
  *
- * Handles package checkbox selection, category filter tabs,
+ * Handles package checkbox selection, group accordion behaviour,
  * and running-total recalculation.
  */
 
@@ -33,32 +33,100 @@ document.addEventListener('DOMContentLoaded', function () {
         if (totalCostEl) totalCostEl.textContent = formatCurrency(total);
     }
 
-    // ── Package checkbox handler ──────────────────────────────────────────────
-    document.querySelectorAll('.package-checkbox').forEach(function (cb) {
-        cb.addEventListener('change', recalculateTotal);
+    // ── Update the collapsed summary for a group item ─────────────────────────
+    function updateGroupSummary(groupItem) {
+        const checked = groupItem.querySelectorAll('.package-checkbox:checked');
+        const summaryInline = groupItem.querySelector('.pkg-group-summary-inline');
+        const summaryText   = groupItem.querySelector('.pkg-group-summary-text');
+        const summaryCost   = groupItem.querySelector('.pkg-group-summary-cost');
+        const divider       = groupItem.querySelector('.pkg-group-divider');
+
+        if (!summaryInline || !summaryText) return;
+
+        if (checked.length === 0) {
+            summaryInline.classList.remove('visible');
+            if (divider) divider.classList.add('d-none');
+        } else {
+            // Build label: one item → item name; multiple → "N selected"
+            if (checked.length === 1) {
+                summaryText.textContent = checked[0].dataset.pkgName || '';
+            } else {
+                summaryText.textContent = checked.length + ' selected';
+            }
+
+            // Extra cost badge
+            let extraCost = 0;
+            checked.forEach(function (cb) {
+                extraCost += parseFloat(cb.dataset.price) || 0;
+            });
+
+            if (extraCost > 0) {
+                summaryCost.textContent = '+' + formatCurrency(extraCost);
+                summaryCost.classList.remove('d-none');
+            } else {
+                summaryCost.classList.add('d-none');
+            }
+
+            summaryInline.classList.add('visible');
+            if (divider) divider.classList.remove('d-none');
+        }
+    }
+
+    // ── Toggle a group open; collapse all others ──────────────────────────────
+    function openGroup(targetItem) {
+        document.querySelectorAll('.pkg-group-item').forEach(function (item) {
+            if (item === targetItem) return;
+
+            if (item.classList.contains('pkg-group-active')) {
+                item.classList.remove('pkg-group-active');
+                const hdr = item.querySelector('.pkg-group-header');
+                if (hdr) hdr.setAttribute('aria-expanded', 'false');
+                updateGroupSummary(item);
+            }
+        });
+
+        const isActive = targetItem.classList.contains('pkg-group-active');
+
+        if (isActive) {
+            // Click on already-open group → collapse it
+            targetItem.classList.remove('pkg-group-active');
+            const hdr = targetItem.querySelector('.pkg-group-header');
+            if (hdr) hdr.setAttribute('aria-expanded', 'false');
+            updateGroupSummary(targetItem);
+        } else {
+            targetItem.classList.add('pkg-group-active');
+            const hdr = targetItem.querySelector('.pkg-group-header');
+            if (hdr) hdr.setAttribute('aria-expanded', 'true');
+            // Hide summary while expanded (full list is visible)
+            const summaryInline = targetItem.querySelector('.pkg-group-summary-inline');
+            const divider       = targetItem.querySelector('.pkg-group-divider');
+            if (summaryInline) summaryInline.classList.remove('visible');
+            if (divider) divider.classList.add('d-none');
+        }
+    }
+
+    // ── Group header click handler ────────────────────────────────────────────
+    document.querySelectorAll('.pkg-group-header').forEach(function (header) {
+        header.addEventListener('click', function () {
+            const groupItem = header.closest('.pkg-group-item');
+            if (groupItem) openGroup(groupItem);
+        });
     });
 
-    // ── Package category filter buttons ──────────────────────────────────────
-    document.querySelectorAll('.pkg-category-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            const targetId = btn.dataset.pkgCat;
+    // ── Package checkbox handler ──────────────────────────────────────────────
+    document.querySelectorAll('.package-checkbox').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            recalculateTotal();
 
-            // Update button active styles
-            document.querySelectorAll('.pkg-category-btn').forEach(function (b) {
-                b.classList.remove('btn-success');
-                b.classList.add('btn-outline-secondary');
-            });
-            btn.classList.remove('btn-outline-secondary');
-            btn.classList.add('btn-success');
-
-            // Show the selected panel, hide others
-            document.querySelectorAll('.pkg-category-panel').forEach(function (panel) {
-                if (panel.id === targetId) {
-                    panel.classList.remove('d-none');
+            // Highlight card based on checked state
+            const card = cb.closest('.package-select-card');
+            if (card) {
+                if (cb.checked) {
+                    card.classList.add('pkg-card-selected');
                 } else {
-                    panel.classList.add('d-none');
+                    card.classList.remove('pkg-card-selected');
                 }
-            });
+            }
         });
     });
 
