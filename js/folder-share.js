@@ -95,6 +95,8 @@ async function startDownload(url, defaultName) {
         dlTitle.textContent = 'Download Complete!';
         dlSize.textContent  = savedMsg || 'File saved successfully';
         dlIcon.className    = 'fas fa-check-circle';
+        dlBar.style.width   = '100%';
+        dlPct.textContent   = '100%';
         setTimeout(function() {
             overlay.classList.remove('dl-active');
         }, 1500);
@@ -111,11 +113,11 @@ async function startDownload(url, defaultName) {
         }, 3000);
     }
 
-    dlBar.style.width      = '100%';
+    dlBar.style.width      = '0%';
     dlBar.style.background = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
     dlBar.style.backgroundSize = '';
     dlBar.style.animation  = '';
-    dlPct.textContent      = '';
+    dlPct.textContent      = '0%';
     dlEta.textContent      = '';
     dlSpd.textContent      = '';
     dlTitle.textContent    = 'Starting Download...';
@@ -124,39 +126,106 @@ async function startDownload(url, defaultName) {
     dlIcon.className       = 'fas fa-spinner fa-spin';
     overlay.classList.add('dl-active');
 
-    // Always create a fresh iframe to avoid stale-document false-positive errors.
-    // Reusing an iframe that previously loaded an HTML error page would cause the
-    // body-content check to fire even for a successful subsequent download.
-    var oldFrame = document.getElementById('downloadFrame');
-    if (oldFrame && oldFrame.parentNode) {
-        oldFrame.parentNode.removeChild(oldFrame);
-    }
-    var iframe = document.createElement('iframe');
-    iframe.id = 'downloadFrame';
-    iframe.name = 'downloadFrame';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+    try {
+        var response = await fetch(url);
+        if (!response.ok) {
+            showError('Download failed – please try again');
+            return false;
+        }
 
-    var loadTimeout = setTimeout(function() { showSuccess('Check your browser downloads'); }, 800);
+        var contentType = (response.headers.get('Content-Type') || 'application/octet-stream').split(';')[0].trim();
+        if (contentType === 'text/html') {
+            showError('Download failed – please try again');
+            return false;
+        }
 
-    iframe.onload = function() {
-        clearTimeout(loadTimeout);
-        try {
-            var iWin = iframe.contentWindow;
-            var iDoc = iWin ? (iframe.contentDocument || iWin.document) : null;
-            if (iDoc && iDoc.body && iDoc.body.innerHTML.trim() !== '') {
-                showError('Download failed – please try again');
-                return;
+        var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
+
+        var resolvedFilename = defaultName || 'photo';
+        var cd = response.headers.get('Content-Disposition');
+        if (cd) {
+            var m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+            if (m && m[1]) {
+                var fn = m[1].replace(/['"]/g, '').trim();
+                if (fn) { resolvedFilename = fn; }
             }
-        } catch (e) {}
-        showSuccess('Check your browser downloads');
-    };
-    iframe.onerror = function() {
-        clearTimeout(loadTimeout);
-        showError('Connection error – please try again');
-    };
+        }
 
-    iframe.src = url;
+        dlTitle.textContent = 'Downloading...';
+
+        if (contentLength === 0) {
+            dlBar.style.width          = '100%';
+            dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
+            dlBar.style.backgroundSize = '200% 100%';
+            dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
+            dlPct.textContent          = '';
+        }
+
+        var reader = response.body.getReader();
+        var chunks = [];
+        var received = 0;
+
+        while (true) {
+            var result = await reader.read();
+            if (result.done) break;
+            chunks.push(result.value);
+            received += result.value.length;
+            if (contentLength > 0) {
+                var pct = Math.min(Math.round((received / contentLength) * 100), 99);
+                dlBar.style.width = pct + '%';
+                dlPct.textContent = pct + '%';
+            }
+        }
+
+        dlBar.style.backgroundSize = '';
+        dlBar.style.animation      = '';
+
+        var blob = new Blob(chunks, { type: contentType });
+
+        // Try File System Access API – shows native "Save As" dialog in supported browsers.
+        if ('showSaveFilePicker' in window) {
+            try {
+                var extParts = resolvedFilename.split('.');
+                var ext = extParts.length > 1 ? '.' + extParts.pop().toLowerCase() : '';
+                var pickerOpts = { suggestedName: resolvedFilename };
+                if (ext) {
+                    var mimeAccept = {};
+                    mimeAccept[contentType] = [ext];
+                    pickerOpts.types = [{ description: 'File', accept: mimeAccept }];
+                }
+                var fileHandle = await window.showSaveFilePicker(pickerOpts);
+                var writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                showSuccess('File saved successfully');
+                return false;
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    // User cancelled the Save As dialog – close the overlay quietly.
+                    overlay.classList.remove('dl-active');
+                    return false;
+                }
+                // Other error (e.g. permission denied) – fall through to anchor fallback.
+            }
+        }
+
+        // Fallback: create a temporary <a download> link and click it.
+        // The browser saves to the default Downloads folder.
+        var objectUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = resolvedFilename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(u) { URL.revokeObjectURL(u); }, BLOB_REVOKE_DELAY, objectUrl);
+
+        showSuccess('Check your browser downloads');
+    } catch (e) {
+        showError('Connection error – please try again');
+    }
+
     return false;
 }
 
