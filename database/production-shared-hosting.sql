@@ -357,11 +357,14 @@ CREATE TABLE IF NOT EXISTS service_package_features (
     id INT PRIMARY KEY AUTO_INCREMENT,
     package_id INT NOT NULL,
     feature_text VARCHAR(500) NOT NULL,
+    service_id INT DEFAULT NULL COMMENT 'FK → additional_services.id; NULL for legacy free-text features',
     display_order INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (package_id) REFERENCES service_packages(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES additional_services(id) ON DELETE SET NULL,
     INDEX idx_package_id (package_id),
-    INDEX idx_display_order (display_order)
+    INDEX idx_display_order (display_order),
+    INDEX idx_spf_service_id (service_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================

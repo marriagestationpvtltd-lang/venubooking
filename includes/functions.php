@@ -1537,13 +1537,38 @@ function getServicePackagesByCategory() {
             $packages = $pkg_stmt->fetchAll();
 
             foreach ($packages as $pi => $package) {
-                $feat_stmt = $db->prepare(
-                    "SELECT feature_text FROM service_package_features
-                     WHERE package_id = ?
-                     ORDER BY display_order, id"
-                );
-                $feat_stmt->execute([$package['id']]);
-                $packages[$pi]['features'] = $feat_stmt->fetchAll(PDO::FETCH_COLUMN);
+                // Fetch features with service photos (LEFT JOIN additional_services)
+                // service_id column may not exist on older installs → fallback
+                try {
+                    $feat_stmt = $db->prepare(
+                        "SELECT spf.feature_text, s.photo AS service_photo
+                         FROM service_package_features spf
+                         LEFT JOIN additional_services s ON s.id = spf.service_id
+                         WHERE spf.package_id = ?
+                         ORDER BY spf.display_order, spf.id"
+                    );
+                    $feat_stmt->execute([$package['id']]);
+                    $rows = $feat_stmt->fetchAll(PDO::FETCH_ASSOC);
+                    // Validate photo filenames to prevent directory traversal
+                    foreach ($rows as &$row) {
+                        $safe = !empty($row['service_photo']) ? basename($row['service_photo']) : '';
+                        $row['service_photo'] = (!empty($safe) && preg_match(SAFE_FILENAME_PATTERN, $safe))
+                            ? $safe : null;
+                    }
+                    unset($row);
+                    $packages[$pi]['features'] = $rows;
+                } catch (\PDOException $e) {
+                    $feat_stmt2 = $db->prepare(
+                        "SELECT feature_text FROM service_package_features
+                         WHERE package_id = ?
+                         ORDER BY display_order, id"
+                    );
+                    $feat_stmt2->execute([$package['id']]);
+                    $packages[$pi]['features'] = array_map(
+                        fn($t) => ['feature_text' => $t, 'service_photo' => null],
+                        $feat_stmt2->fetchAll(PDO::FETCH_COLUMN)
+                    );
+                }
 
                 // Load photos if the table exists
                 try {
