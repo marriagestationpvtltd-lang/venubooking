@@ -442,7 +442,7 @@ if (!empty($service_categories)) {
                                         <?php foreach ($visible_features as $feat): ?>
                                             <li class="feature-item">
                                                 <span class="feat-check">&#10003;</span>
-                                                <?php echo htmlspecialchars($feat); ?>
+                                                <?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>
                                             </li>
                                         <?php endforeach; ?>
                                         <?php if ($remaining > 0): ?>
@@ -458,7 +458,7 @@ if (!empty($service_categories)) {
                                             <?php foreach ($hidden_features as $feat): ?>
                                                 <li class="feature-item">
                                                     <span class="feat-check">&#10003;</span>
-                                                    <?php echo htmlspecialchars($feat); ?>
+                                                    <?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>
@@ -473,7 +473,7 @@ if (!empty($service_categories)) {
                                 if (!empty($pkg['features'])) {
                                     $wa_pkg_msg .= "\n\nFeatures:";
                                     foreach ($pkg['features'] as $feat) {
-                                        $wa_pkg_msg .= "\n- " . strip_tags($feat);
+                                        $wa_pkg_msg .= "\n- " . strip_tags($feat['feature_text']);
                                     }
                                 }
                                 if (!empty($pkg['description'])) {
