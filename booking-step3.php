@@ -188,6 +188,7 @@ $current_total = ($hall_price + $menu_total) * (1 + $tax_rate / 100);
                         ?>
                         <div class="col-md-6 col-lg-4" data-menu-name="<?php echo htmlspecialchars($menu['name'], ENT_QUOTES, 'UTF-8'); ?>" data-menu-items="<?php echo htmlspecialchars(json_encode($menu_items_for_js), ENT_QUOTES, 'UTF-8'); ?>">
                             <div class="menu-card card h-100 <?php echo $is_selected ? 'selected' : ''; ?>">
+                                <div class="menu-card-check"><i class="fas fa-check"></i></div>
                                 <?php if ($menu['image']): ?>
                                     <img src="<?php echo UPLOAD_URL . htmlspecialchars($menu['image'], ENT_QUOTES, 'UTF-8'); ?>" 
                                          class="card-img-top" loading="lazy" alt="<?php echo sanitize($menu['name']); ?>">

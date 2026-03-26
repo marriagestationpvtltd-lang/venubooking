@@ -219,6 +219,12 @@
                 previewEl.id = 'grp-preview-' + menuId + '-' + group.id;
                 groupHead.appendChild(previewEl);
 
+                // Selected count + extra price badge — shown only when group is collapsed
+                const totalEl = document.createElement('span');
+                totalEl.className = 'cmp-group-selected-total';
+                totalEl.id = 'grp-total-' + menuId + '-' + group.id;
+                groupHead.appendChild(totalEl);
+
                 groupHead.addEventListener('click', function () {
                     toggleGroupCollapse(groupDiv);
                 });
@@ -322,6 +328,8 @@
     function addItemNormally(card, menuId, groupId, itemId, groupLimit) {
         currentSelections[menuId][groupId].add(itemId);
         card.classList.add('cmp-item--selected');
+        card.classList.add('cmp-item--selecting');
+        setTimeout(function () { card.classList.remove('cmp-item--selecting'); }, 250);
         var itemCheckbox = card.querySelector('.menu-item-checkbox');
         if (itemCheckbox) itemCheckbox.checked = true;
         updateCounters(menuId);
@@ -526,6 +534,8 @@
         currentSelections[menuId][groupId].add(itemId);
         card.classList.add('cmp-item--selected');
         card.classList.add('cmp-item--extra-included');
+        card.classList.add('cmp-item--selecting');
+        setTimeout(function () { card.classList.remove('cmp-item--selecting'); }, 250);
         var itemExtraCharge = parseFloat(card.dataset.extraCharge || '0');
         var perItemCharge = parseFloat(card.dataset.groupExtraChargePerItem || '0');
         var overLimitCharge = perItemCharge > 0 ? perItemCharge : itemExtraCharge;
@@ -588,13 +598,15 @@
 
     function updateGroupSummary(menuId, groupId) {
         const previewEl = document.getElementById('grp-preview-' + menuId + '-' + groupId);
-        if (!previewEl) return;
+        const totalEl = document.getElementById('grp-total-' + menuId + '-' + groupId);
+        if (!previewEl || !totalEl) return;
 
         const selections = currentSelections[menuId] && currentSelections[menuId][groupId]
             ? currentSelections[menuId][groupId] : new Set();
 
         if (selections.size === 0) {
             previewEl.textContent = '';
+            totalEl.textContent = '';
             return;
         }
 
@@ -602,12 +614,14 @@
         if (!structure) return;
 
         const selectedNames = [];
+        let extraTotal = 0;
         structure.sections.forEach(function (section) {
             section.groups.forEach(function (g) {
                 if (parseInt(g.id) === parseInt(groupId)) {
                     g.items.forEach(function (item) {
                         if (selections.has(parseInt(item.id))) {
                             selectedNames.push(item.item_name);
+                            extraTotal += parseFloat(item.extra_charge || 0);
                         }
                     });
                 }
@@ -615,6 +629,12 @@
         });
 
         previewEl.textContent = '\u2713 ' + selectedNames.join(', ');
+
+        let totalText = selectedNames.length + (selectedNames.length === 1 ? ' item' : ' items');
+        if (extraTotal > 0) {
+            totalText += ' \u00b7 +' + currencySymbol + Math.round(extraTotal);
+        }
+        totalEl.textContent = totalText;
     }
 
     function updateAllGroupSummaries(menuId) {
