@@ -26,11 +26,13 @@ if ($package_id > 0) {
             $page_title = htmlspecialchars($package['name']) . ' - Package Details';
 
             $feat_stmt = $db->prepare(
-                "SELECT feature_text FROM service_package_features
-                 WHERE package_id = ? ORDER BY display_order, id"
+                "SELECT spf.feature_text, spf.service_id, s.photo AS service_photo
+                 FROM service_package_features spf
+                 LEFT JOIN additional_services s ON s.id = spf.service_id
+                 WHERE spf.package_id = ? ORDER BY spf.display_order, spf.id"
             );
             $feat_stmt->execute([$package_id]);
-            $features = $feat_stmt->fetchAll(PDO::FETCH_COLUMN);
+            $features = $feat_stmt->fetchAll(PDO::FETCH_ASSOC);
 
             try {
                 $photo_stmt = $db->prepare(
@@ -153,14 +155,23 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 
                     <?php if (!empty($features)): ?>
                     <h5 class="fw-semibold mb-3"><i class="fas fa-list-check me-2 text-success"></i>Package Features</h5>
-                    <ul class="pkg-detail-features list-unstyled mb-4">
+                    <div class="pkg-service-icons d-flex flex-wrap gap-3 mb-4">
                         <?php foreach ($features as $feat): ?>
-                        <li class="d-flex align-items-start gap-2 mb-2">
-                            <span class="text-success mt-1"><i class="fas fa-check-circle"></i></span>
-                            <span><?php echo htmlspecialchars($feat, ENT_QUOTES, 'UTF-8'); ?></span>
-                        </li>
+                        <div class="pkg-service-icon-item text-center">
+                            <?php if (!empty($feat['service_photo'])): ?>
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($feat['service_photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                 class="pkg-service-icon-img"
+                                 loading="lazy"
+                                 alt="<?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <?php else: ?>
+                            <div class="pkg-service-icon-fallback">
+                                <i class="fas fa-check" aria-hidden="true"></i>
+                            </div>
+                            <?php endif; ?>
+                            <p class="pkg-service-icon-label"><?php echo htmlspecialchars($feat['feature_text'], ENT_QUOTES, 'UTF-8'); ?></p>
+                        </div>
                         <?php endforeach; ?>
-                    </ul>
+                    </div>
                     <?php endif; ?>
 
                     <div class="d-flex flex-column flex-sm-row gap-2 mt-auto">
@@ -168,7 +179,7 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                         $wa_msg = "Hello, I would like to book this package:\n\nPackage: " . strip_tags($package['name']) . "\nPrice: " . strip_tags(formatCurrency($package['price']));
                         if (!empty($features)) {
                             $wa_msg .= "\n\nFeatures:";
-                            foreach ($features as $feat) { $wa_msg .= "\n- " . strip_tags($feat); }
+                            foreach ($features as $feat) { $wa_msg .= "\n- " . strip_tags($feat['feature_text']); }
                         }
                         if (!empty($package['description'])) {
                             $wa_msg .= "\n\nDescription:\n" . strip_tags($package['description']);
@@ -305,6 +316,41 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 }
 .pkg-detail-features li {
     font-size: .95rem;
+}
+/* Included-service rounded icons */
+.pkg-service-icons {
+    flex-wrap: wrap;
+}
+.pkg-service-icon-item {
+    width: 80px;
+}
+.pkg-service-icon-img {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #198754;
+    display: block;
+    margin: 0 auto;
+}
+.pkg-service-icon-fallback {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #d1e7dd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: #198754;
+    font-size: 1.5rem;
+}
+.pkg-service-icon-label {
+    font-size: 0.72rem;
+    margin-top: 0.35rem;
+    line-height: 1.25;
+    color: #333;
+    word-break: break-word;
 }
 /* Share dropdown icon sizing */
 .pkg-share-toggle .fa-share-alt { font-size: .9em; }
