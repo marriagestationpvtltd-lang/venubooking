@@ -285,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <?php
-$extra_js = '<script src="' . BASE_URL . '/js/booking-step4.js"></script>';
+$extra_js = '<script src="' . BASE_URL . '/js/booking-step4.js"></script>'
+          . '<script src="' . BASE_URL . '/js/design-zoom.js"></script>';
 require_once __DIR__ . '/includes/footer.php';
 ?>

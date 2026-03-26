@@ -531,6 +531,7 @@ const vendorsByType      = <?php echo json_encode($vendors_by_type); ?>;
 </div>
 
 <?php
-$extra_js = '<script src="' . BASE_URL . '/js/booking-step5.js"></script>';
+$extra_js = '<script src="' . BASE_URL . '/js/booking-step5.js"></script>'
+          . '<script src="' . BASE_URL . '/js/design-zoom.js"></script>';
 require_once __DIR__ . '/includes/footer.php';
 ?>
