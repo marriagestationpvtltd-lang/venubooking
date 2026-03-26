@@ -13,37 +13,44 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
 
 // Save selected services (only when coming from the services step, not the final booking form)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
-    $_SESSION['selected_services'] = $_POST['services'] ?? [];
-    // packages are already saved in session from step 5 (booking-step5.php)
-    // Save selected designs: service_id => design_id (or sub_service_id => design_id for legacy data)
-    if (!empty($_POST['selected_designs']) && is_array($_POST['selected_designs'])) {
-        $raw_designs = $_POST['selected_designs'];
-        $clean_designs = [];
-        foreach ($raw_designs as $key_id => $d_id) {
-            $key_id_int = intval($key_id);
-            $d_id_int   = intval($d_id);
-            if ($key_id_int > 0 && $d_id_int > 0) {
-                $clean_designs[$key_id_int] = $d_id_int;
-            }
-        }
-        $_SESSION['selected_designs'] = $clean_designs;
-    } else {
-        $_SESSION['selected_designs'] = [];
-    }
-    // Save vendor selections for each service: service_id => vendor_id
-    if (!empty($_POST['vendor_for_service']) && is_array($_POST['vendor_for_service'])) {
-        $raw_vendors = $_POST['vendor_for_service'];
-        $clean_vendors = [];
-        foreach ($raw_vendors as $svc_id => $vendor_id) {
-            $svc_id_int    = intval($svc_id);
-            $vendor_id_int = intval($vendor_id);
-            if ($svc_id_int > 0 && $vendor_id_int > 0) {
-                $clean_vendors[$svc_id_int] = $vendor_id_int;
-            }
-        }
-        $_SESSION['vendor_for_service'] = $clean_vendors;
-    } else {
+    // If a package is selected, additional services must be ignored
+    if (!empty($_SESSION['selected_packages'])) {
+        $_SESSION['selected_services']  = [];
+        $_SESSION['selected_designs']   = [];
         $_SESSION['vendor_for_service'] = [];
+    } else {
+        $_SESSION['selected_services'] = $_POST['services'] ?? [];
+        // packages are already saved in session from step 5 (booking-step5.php)
+        // Save selected designs: service_id => design_id (or sub_service_id => design_id for legacy data)
+        if (!empty($_POST['selected_designs']) && is_array($_POST['selected_designs'])) {
+            $raw_designs = $_POST['selected_designs'];
+            $clean_designs = [];
+            foreach ($raw_designs as $key_id => $d_id) {
+                $key_id_int = intval($key_id);
+                $d_id_int   = intval($d_id);
+                if ($key_id_int > 0 && $d_id_int > 0) {
+                    $clean_designs[$key_id_int] = $d_id_int;
+                }
+            }
+            $_SESSION['selected_designs'] = $clean_designs;
+        } else {
+            $_SESSION['selected_designs'] = [];
+        }
+        // Save vendor selections for each service: service_id => vendor_id
+        if (!empty($_POST['vendor_for_service']) && is_array($_POST['vendor_for_service'])) {
+            $raw_vendors = $_POST['vendor_for_service'];
+            $clean_vendors = [];
+            foreach ($raw_vendors as $svc_id => $vendor_id) {
+                $svc_id_int    = intval($svc_id);
+                $vendor_id_int = intval($vendor_id);
+                if ($svc_id_int > 0 && $vendor_id_int > 0) {
+                    $clean_vendors[$svc_id_int] = $vendor_id_int;
+                }
+            }
+            $_SESSION['vendor_for_service'] = $clean_vendors;
+        } else {
+            $_SESSION['vendor_for_service'] = [];
+        }
     }
 }
 
