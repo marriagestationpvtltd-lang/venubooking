@@ -326,7 +326,20 @@ if (isset($_POST['action'])) {
                     $_SESSION['flash_success'] = 'Vendor assigned successfully!';
                     $new_vendor = getVendor($vendor_id_input);
                     if ($new_vendor && !empty($new_vendor['phone'])) {
-                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking, $new_vendor['type'] ?? '');
+                        $_flash_design_info = null;
+                        if ($booking_service_id > 0) {
+                            try {
+                                $_fds = getDB()->prepare("SELECT sd.name, sd.photo FROM booking_services bs JOIN service_designs sd ON bs.design_id = sd.id WHERE bs.id = ? AND bs.design_id > 0");
+                                $_fds->execute([$booking_service_id]);
+                                $_fdr = $_fds->fetch();
+                                if ($_fdr && !empty($_fdr['photo'])) {
+                                    $_flash_design_info = ['name' => $_fdr['name'] ?? '', 'photo' => rtrim(UPLOAD_URL, '/') . '/' . $_fdr['photo']];
+                                }
+                                unset($_fds, $_fdr);
+                            } catch (Exception $e) { /* non-fatal */ }
+                        }
+                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($new_vendor['name'], $new_vendor['phone'], $booking, $new_vendor['type'] ?? '', $_flash_design_info);
+                        unset($_flash_design_info);
                     }
                     if ($new_vendor && !empty($new_vendor['email'])) {
                         $_SESSION['flash_vendor_email_sent'] = sendVendorAssignmentEmail($new_vendor['name'], $new_vendor['email'], $booking);
@@ -569,6 +582,17 @@ if (!empty($_design_ids)) {
 }
 unset($_all_services_for_design, $_design_ids, $_db_conn, $_ph_d, $_design_stmt, $_design_row);
 
+// Build map: booking_service_id → design_info (for passing to vendor WhatsApp messages)
+$booking_svc_design_map = [];
+foreach (array_merge($user_services, $admin_services, $package_services) as $_svc) {
+    $_bsvc_id = (int)($_svc['id'] ?? 0);
+    $_dsvc_id = (int)($_svc['design_id'] ?? 0);
+    if ($_bsvc_id > 0 && $_dsvc_id > 0 && isset($service_design_info[$_dsvc_id])) {
+        $booking_svc_design_map[$_bsvc_id] = $service_design_info[$_dsvc_id];
+    }
+}
+unset($_svc, $_bsvc_id, $_dsvc_id);
+
 // Batch-fetch vendor_type_slug for user services (join additional_services → vendor_types at once)
 $service_vendor_type_slugs = []; // keyed by booking_services.id → vendor_type_slug
 if (!empty($user_services) || !empty($admin_services)) {
@@ -621,7 +645,9 @@ $combo_wa_urls    = [];
 $combo_email_list = [];
 foreach ($vendor_assignments as $_va) {
     if (!empty($_va['vendor_phone'])) {
-        $_wa = buildVendorAssignmentWhatsAppUrl($_va['vendor_name'], $_va['vendor_phone'], $booking, $_va['vendor_type'] ?? '');
+        $_va_bsid   = (int)($_va['booking_service_id'] ?? 0);
+        $_va_design = $booking_svc_design_map[$_va_bsid] ?? null;
+        $_wa = buildVendorAssignmentWhatsAppUrl($_va['vendor_name'], $_va['vendor_phone'], $booking, $_va['vendor_type'] ?? '', $_va_design);
         if (!empty($_wa)) {
             $combo_wa_urls[] = $_wa;
         }
@@ -630,7 +656,7 @@ foreach ($vendor_assignments as $_va) {
         $combo_email_list[] = ['name' => $_va['vendor_name'], 'email' => $_va['vendor_email']];
     }
 }
-unset($_combo_svc_ids_needing_vendor, $_svc, $_sid, $_va, $_wa);
+unset($_combo_svc_ids_needing_vendor, $_svc, $_sid, $_va, $_wa, $_va_bsid, $_va_design);
 
 // Resolve display time – prefer saved start/end times; fall back to shift defaults so that
 // the booking time is always visible in both the screen view and the print invoice.
@@ -1372,7 +1398,9 @@ unset($_avail_svc);
                             }
                             foreach ($vendor_assignments as $_vwa_va) {
                                 if (!empty($_vwa_va['vendor_phone'])) {
-                                    $_vwa_url = buildVendorAssignmentWhatsAppUrl($_vwa_va['vendor_name'], $_vwa_va['vendor_phone'], $booking, $_vwa_va['vendor_type'] ?? '');
+                                    $_vwa_bsid   = (int)($_vwa_va['booking_service_id'] ?? 0);
+                                    $_vwa_design = $booking_svc_design_map[$_vwa_bsid] ?? null;
+                                    $_vwa_url = buildVendorAssignmentWhatsAppUrl($_vwa_va['vendor_name'], $_vwa_va['vendor_phone'], $booking, $_vwa_va['vendor_type'] ?? '', $_vwa_design);
                                     if (!empty($_vwa_url)) {
                                         $all_combo_wa_urls[] = $_vwa_url;
                                         $_vwa_type_label = getVendorTypeLabel($_vwa_va['vendor_type'] ?? '');
@@ -1386,7 +1414,7 @@ unset($_avail_svc);
                                     }
                                 }
                             }
-                            unset($_cust_wa_url_all, $_vwa_va, $_vwa_url, $_vwa_type_label);
+                            unset($_cust_wa_url_all, $_vwa_va, $_vwa_url, $_vwa_type_label, $_vwa_bsid, $_vwa_design);
                             // "Send to All" button enabled only when booking is confirmed (advance payment received)
                             $send_all_whatsapp_enabled = ($booking['advance_payment_received'] === 1);
                             ?>
@@ -2267,7 +2295,7 @@ unset($_avail_svc);
                                                 </select>
                                             </form>
                                             <?php if (!empty($va['vendor_phone'])): ?>
-                                                <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($va['vendor_name'], $va['vendor_phone'], $booking); ?>
+                                                <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($va['vendor_name'], $va['vendor_phone'], $booking, $va['vendor_type'] ?? '', $svc_design); ?>
                                                 <?php if (!empty($va_wa_url)): ?>
                                                 <a href="<?php echo htmlspecialchars($va_wa_url); ?>" target="_blank" rel="noopener noreferrer"
                                                    class="btn btn-sm btn-outline-success py-0 px-1" title="Notify via WhatsApp" style="font-size:.7rem;">
