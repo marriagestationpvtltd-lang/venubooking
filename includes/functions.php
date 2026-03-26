@@ -4734,7 +4734,7 @@ function getVendorAssignmentStatusColor($status) {
  * @param array  $booking  Booking row from getBookingDetails()
  * @return string WhatsApp URL, or empty string if no phone available
  */
-function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking, $vendor_type = '') {
+function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking, $vendor_type = '', $design_info = null) {
     $clean_phone = preg_replace('/[^0-9]/', '', $vendor_phone);
     if (empty($clean_phone)) {
         return '';
@@ -4758,6 +4758,13 @@ function buildVendorAssignmentWhatsAppUrl($vendor_name, $vendor_phone, $booking,
     }
     if (!empty($booking['map_link'])) {
         $text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
+    }
+    if (!empty($design_info) && !empty($design_info['photo'])) {
+        $text .= "\n";
+        if (!empty($design_info['name'])) {
+            $text .= "🎨 Selected Design: *" . strip_tags($design_info['name']) . "*\n";
+        }
+        $text .= "🖼️ Design Preview: " . $design_info['photo'] . "\n";
     }
     $text .= "\nPlease confirm your availability by replying to this message.\n\n";
     $text .= "*" . strip_tags(getSetting('company_name', 'Booking Team')) . "*\n";
