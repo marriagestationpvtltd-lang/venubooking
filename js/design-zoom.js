@@ -3,7 +3,7 @@
  * Hover zoom preview for design/service photos in the booking flow.
  *
  * When the user hovers over a design image (additional services design grid
- * or service-package feature icons) a 220 px circular preview of the
+ * or service-package feature icons) a 400×400 px preview of the
  * full-resolution image appears next to the cursor so the design can be
  * clearly evaluated before confirming a booking.
  *
@@ -20,7 +20,7 @@
     var css = [
         '#design-zoom-preview{',
         '  position:fixed;z-index:99999;pointer-events:none;',
-        '  width:220px;height:220px;border-radius:50%;overflow:hidden;',
+        '  width:400px;height:400px;border-radius:8px;overflow:hidden;',
         '  border:3px solid #198754;',
         '  box-shadow:0 6px 28px rgba(0,0,0,.38),0 0 0 5px rgba(25,135,84,.18);',
         '  background:#f8f9fa;display:none;opacity:0;',
@@ -49,7 +49,7 @@
 
     /* ── position helper ────────────────────────────────────────────────────── */
     function positionPreview(clientX, clientY) {
-        var size   = 220;
+        var size   = 400;
         var offset = 18;
         var vpW    = window.innerWidth;
         var vpH    = window.innerHeight;
