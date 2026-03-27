@@ -1664,6 +1664,58 @@ function getServicePackagesByCategory() {
 }
 
 /**
+ * Get halls (with venue info) linked to a service package via package_venues.
+ * Returns an empty array on older installs where the table does not yet exist.
+ *
+ * Each row contains: hall_id, hall_name, hall_base_price, hall_capacity,
+ *                    venue_id, venue_name
+ */
+function getPackageHalls($package_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare(
+            "SELECT h.id AS hall_id, h.name AS hall_name,
+                    h.base_price AS hall_base_price, h.capacity AS hall_capacity,
+                    v.id AS venue_id, v.name AS venue_name
+             FROM package_venues pv
+             INNER JOIN halls  h ON h.id  = pv.hall_id
+             INNER JOIN venues v ON v.id  = h.venue_id
+             WHERE pv.package_id = ?
+               AND h.status = 'active'
+             ORDER BY v.name, h.name"
+        );
+        $stmt->execute([intval($package_id)]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Throwable $e) {
+        error_log('getPackageHalls() failed: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get menu IDs linked to a service package via package_menus.
+ * Returns an empty array on older installs where the table does not yet exist.
+ */
+function getPackageMenuIds($package_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare(
+            "SELECT pm.menu_id
+             FROM package_menus pm
+             INNER JOIN menus m ON m.id = pm.menu_id
+             WHERE pm.package_id = ?
+               AND m.status = 'active'
+             ORDER BY m.name"
+        );
+        $stmt->execute([intval($package_id)]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (\Throwable $e) {
+        error_log('getPackageMenuIds() failed: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * Get features for a specific package
  */
 function getPackageFeatures($package_id) {
