@@ -200,6 +200,27 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                                 <div class="invalid-feedback">Please enter number of guests (minimum 10).</div>
                             </div>
 
+                            <div class="mb-2">
+                                <label for="event_type" class="form-label">
+                                    <i class="fas fa-star"></i> Event Type <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control form-control-sm" id="event_type" name="event_type"
+                                       list="eventTypeSuggestions"
+                                       placeholder="e.g., Wedding, Birthday, Corporate" required>
+                                <datalist id="eventTypeSuggestions">
+                                    <option value="Wedding">
+                                    <option value="Birthday">
+                                    <option value="Anniversary">
+                                    <option value="Corporate Event">
+                                    <option value="Engagement">
+                                    <option value="Reception">
+                                    <option value="Conference">
+                                    <option value="Cultural Program">
+                                    <option value="Other">
+                                </datalist>
+                                <div class="invalid-feedback">Please enter the event type.</div>
+                            </div>
+
                             <button type="submit" class="btn btn-success w-100 py-3" style="font-size:1rem;letter-spacing:0.05em;">
                                 <i class="fas fa-calendar-check me-2"></i> ONLINE BOOKING
                             </button>
