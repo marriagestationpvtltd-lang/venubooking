@@ -349,6 +349,50 @@ if (!empty($service_categories)) {
         }
     }
 }
+// Load linked menu data for each package (used in the "View" detail modal)
+try {
+    $db_pkg_menus = getDB();
+    // Collect all menu IDs per package and batch-fetch menu names in one query
+    $pkg_menu_map = [];
+    $all_view_menu_ids = [];
+    foreach ($all_service_packages as $pkg_ref) {
+        $pid = (int)$pkg_ref['id'];
+        $pkg_menu_map[$pid] = getPackageMenuIds($pid);
+        foreach ($pkg_menu_map[$pid] as $mid) {
+            $all_view_menu_ids[] = (int)$mid;
+        }
+    }
+    $view_menu_names = [];
+    $unique_view_ids = array_unique($all_view_menu_ids);
+    if (!empty($unique_view_ids)) {
+        $placeholders = implode(',', array_fill(0, count($unique_view_ids), '?'));
+        $ms = $db_pkg_menus->prepare(
+            "SELECT id, name FROM menus WHERE id IN ($placeholders) AND status = 'active'"
+        );
+        $ms->execute(array_values($unique_view_ids));
+        foreach ($ms->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $view_menu_names[(int)$row['id']] = $row['name'];
+        }
+    }
+    // Assign structured menu data to each package
+    foreach ($all_service_packages as &$pkg_ref) {
+        $pkg_ref['view_menus'] = [];
+        $pid = (int)$pkg_ref['id'];
+        foreach ($pkg_menu_map[$pid] ?? [] as $pmid) {
+            $pmid = (int)$pmid;
+            if (isset($view_menu_names[$pmid])) {
+                $pkg_ref['view_menus'][] = [
+                    'id'        => $pmid,
+                    'name'      => $view_menu_names[$pmid],
+                    'structure' => getMenuStructure($pmid),
+                ];
+            }
+        }
+    }
+    unset($pkg_ref);
+} catch (\Throwable $e) {
+    error_log('pkg view menus load failed: ' . $e->getMessage());
+}
 ?>
 <?php if (!empty($all_service_packages)): ?>
 <!-- Service Packages Section -->
@@ -503,8 +547,24 @@ if (!empty($service_categories)) {
                                 if (!empty($clean_office_whatsapp)) {
                                     $pkg_wa_url = 'https://wa.me/' . $clean_office_whatsapp . '?text=' . rawurlencode($wa_pkg_msg);
                                 }
+                                $view_pkg_data = json_encode([
+                                    'id'          => (int)$pkg['id'],
+                                    'name'        => $pkg['name'],
+                                    'price'       => formatCurrency($pkg['price']),
+                                    'category'    => $pkg['category_name'] ?? '',
+                                    'description' => $pkg['description'] ?? '',
+                                    'photos'      => array_map(fn($p) => UPLOAD_URL . $p, $pkg['photos'] ?? []),
+                                    'features'    => array_column($pkg['features'] ?? [], 'feature_text'),
+                                    'menus'       => $pkg['view_menus'] ?? [],
+                                    'book_url'    => BASE_URL . '/package-booking.php?id=' . (int)$pkg['id'],
+                                    'wa_url'      => $pkg_wa_url,
+                                ], JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_TAG);
                                 ?>
                                 <div class="mt-auto pt-2">
+                                    <button type="button" class="btn btn-outline-primary w-100 mb-2 pkg-view-btn"
+                                            data-pkg="<?php echo htmlspecialchars($view_pkg_data, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <i class="fas fa-eye me-1"></i> View
+                                    </button>
                                     <a href="<?php echo BASE_URL; ?>/package-booking.php?id=<?php echo (int)$pkg['id']; ?>"
                                        class="btn btn-success w-100 mb-2">
                                         <i class="fas fa-calendar-check me-1"></i> Book Now
@@ -661,6 +721,32 @@ if (!empty($gallery_cards)):
 
         <!-- Thumbnail strip -->
         <div class="photo-card-modal-thumbs" id="photoCardModalThumbs"></div>
+    </div>
+</div>
+
+<!-- Package View Modal -->
+<div class="modal fade" id="pkgViewModal" tabindex="-1" aria-labelledby="pkgViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="pkgViewModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="pkgViewModalBody">
+                <!-- Populated dynamically by JS -->
+            </div>
+            <div class="modal-footer flex-wrap gap-2 justify-content-start">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-arrow-left me-1"></i> Back
+                </button>
+                <a href="#" class="btn btn-success" id="pkgViewBookBtn">
+                    <i class="fas fa-calendar-check me-1"></i> Book Now
+                </a>
+                <a href="#" class="btn pkg-wa-btn" id="pkgViewContactBtn" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-whatsapp me-1"></i> Contact Us
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -3054,6 +3140,117 @@ document.addEventListener("DOMContentLoaded", function() {
     } else {
         window.addEventListener(\'load\', scrollToHashSection);
     }
+}());
+</script>
+<script>
+// ── Package "View" detail modal ──
+(function() {
+    function escHtml(str) {
+        if (str == null) return \'\';
+        var d = document.createElement(\'div\');
+        d.textContent = String(str);
+        return d.innerHTML;
+    }
+    document.addEventListener(\'click\', function(e) {
+        var btn = e.target.closest(\'.pkg-view-btn\');
+        if (!btn) return;
+        var pkg;
+        try {
+            pkg = JSON.parse(btn.getAttribute(\'data-pkg\'));
+        } catch (err) {
+            console.error(\'pkg-view-btn: failed to parse package data\', err);
+            return;
+        }
+
+        // Set modal title
+        document.getElementById(\'pkgViewModalLabel\').textContent = pkg.name || \'\';
+
+        // Build modal body
+        var body = \'\';
+
+        // Price & category
+        body += \'<div class="mb-3">\';
+        if (pkg.category) {
+            body += \'<span class="badge bg-secondary me-2">\' + escHtml(pkg.category) + \'</span>\';
+        }
+        body += \'<span class="fw-bold text-success fs-5">\' + escHtml(pkg.price) + \'</span>\';
+        body += \'</div>\';
+
+        // Description
+        if (pkg.description) {
+            body += \'<p class="text-muted mb-3">\' + escHtml(pkg.description) + \'</p>\';
+        }
+
+        // Gallery photos
+        if (pkg.photos && pkg.photos.length > 0) {
+            body += \'<h6 class="fw-bold mb-2"><i class="fas fa-images me-1 text-primary"></i>Gallery</h6>\';
+            body += \'<div class="row g-2 mb-3">\';
+            pkg.photos.forEach(function(photo) {
+                body += \'<div class="col-6 col-md-4">\';
+                body += \'<img src="\' + escHtml(photo) + \'" class="img-fluid rounded" loading="lazy" alt="\' + escHtml(pkg.name) + \'">\';
+                body += \'</div>\';
+            });
+            body += \'</div>\';
+        }
+
+        // Features
+        if (pkg.features && pkg.features.length > 0) {
+            body += \'<h6 class="fw-bold mb-2"><i class="fas fa-check-circle me-1 text-success"></i>Features</h6>\';
+            body += \'<ul class="list-unstyled mb-3">\';
+            pkg.features.forEach(function(feat) {
+                body += \'<li class="mb-1"><i class="fas fa-check text-success me-2"></i>\' + escHtml(feat) + \'</li>\';
+            });
+            body += \'</ul>\';
+        }
+
+        // Menus
+        if (pkg.menus && pkg.menus.length > 0) {
+            body += \'<h6 class="fw-bold mb-2"><i class="fas fa-utensils me-1 text-warning"></i>Menu Items</h6>\';
+            pkg.menus.forEach(function(menu) {
+                body += \'<div class="card mb-2"><div class="card-body py-2 px-3">\';
+                body += \'<div class="fw-semibold mb-1">\' + escHtml(menu.name) + \'</div>\';
+                if (menu.structure && menu.structure.length > 0) {
+                    menu.structure.forEach(function(section) {
+                        body += \'<div class="ms-2 mb-1">\';
+                        body += \'<span class="text-muted small fw-semibold">\' + escHtml(section.section_name) + \'</span>\';
+                        if (section.groups) {
+                            section.groups.forEach(function(group) {
+                                body += \'<div class="ms-3">\';
+                                body += \'<span class="small fw-semibold">\' + escHtml(group.group_name) + \':</span> \';
+                                if (group.items && group.items.length > 0) {
+                                    var itemNames = group.items.map(function(item) { return escHtml(item.item_name); });
+                                    body += \'<span class="small text-secondary">\' + itemNames.join(\', \') + \'</span>\';
+                                }
+                                body += \'</div>\';
+                            });
+                        }
+                        body += \'</div>\';
+                    });
+                }
+                body += \'</div></div>\';
+            });
+        }
+
+        document.getElementById(\'pkgViewModalBody\').innerHTML = body;
+
+        // Update footer buttons
+        var bookBtn = document.getElementById(\'pkgViewBookBtn\');
+        if (bookBtn) bookBtn.href = pkg.book_url || \'#\';
+
+        var contactBtn = document.getElementById(\'pkgViewContactBtn\');
+        if (contactBtn) {
+            if (pkg.wa_url) {
+                contactBtn.href = pkg.wa_url;
+                contactBtn.style.display = \'\';
+            } else {
+                contactBtn.style.display = \'none\';
+            }
+        }
+
+        // Show modal
+        var modal = new bootstrap.Modal(document.getElementById(\'pkgViewModal\'));
+        modal.show();
+    });
 }());
 </script>
 
