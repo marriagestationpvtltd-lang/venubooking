@@ -115,19 +115,17 @@ if (!empty($service_categories)) {
                                 <?php endif; ?>
                             <?php endif; ?>
                             <div class="card-body d-flex flex-column p-3">
-                                <?php if (!empty($pkg['category_name'])): ?>
-                                <div class="text-center mb-1">
-                                    <span class="pkg-category-badge"><?php echo htmlspecialchars($pkg['category_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                </div>
-                                <?php endif; ?>
-                                <h5 class="package-name text-center mb-2">
-                                    <?php echo htmlspecialchars($pkg['name']); ?>
-                                </h5>
-                                <div class="text-center mb-2">
-                                    <div class="package-price d-inline-block">
+                                <div class="pkg-card-meta-row mb-1">
+                                    <?php if (!empty($pkg['category_name'])): ?>
+                                        <span class="pkg-category-badge"><?php echo htmlspecialchars($pkg['category_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php endif; ?>
+                                    <div class="package-price">
                                         <span class="price-label"><?php echo formatCurrency($pkg['price']); ?></span>
                                     </div>
                                 </div>
+                                <h5 class="package-name mb-2">
+                                    <?php echo htmlspecialchars($pkg['name']); ?>
+                                </h5>
                                 <?php if (!empty($pkg['description'])): ?>
                                 <p class="text-muted small mb-2"><?php echo sanitize($pkg['description']); ?></p>
                                 <?php endif; ?>
