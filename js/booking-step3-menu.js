@@ -372,26 +372,20 @@
             const isGroupOver = groupLimit && currentSelections[menuId][groupId].size >= parseInt(groupLimit);
             const isSectionOver = !isGroupOver && sectionLimit && sectionTotal >= parseInt(sectionLimit);
             if (isGroupOver || isSectionOver) {
-                // Determine the over-limit charge: group-level extra_charge_per_item takes priority;
-                // fall back to the item's own extra_charge if no group-level charge is configured.
-                const itemExtraCharge = parseFloat(card.dataset.extraCharge || '0');
                 const perItemCharge = parseFloat(groupExtraChargePerItem || card.dataset.groupExtraChargePerItem || '0');
-                const overLimitCharge = perItemCharge > 0 ? perItemCharge : itemExtraCharge;
-                const itemName = card.dataset.itemName || 'this item';
-                showExtraChargeConfirmation(itemName, overLimitCharge, itemExtraCharge, function () {
-                    addItemOverLimit(card, menuId, groupId, itemId);
-                }, true);
+                if (perItemCharge > 0) {
+                    // Over-limit charge is configured → show popup warning about extra charge
+                    const itemName = card.dataset.itemName || 'this item';
+                    showExtraChargeConfirmation(itemName, perItemCharge, perItemCharge, function () {
+                        addItemOverLimit(card, menuId, groupId, itemId);
+                    }, true);
+                    return;
+                }
+                // No over-limit charge configured → add item freely without popup
+                addItemOverLimit(card, menuId, groupId, itemId);
                 return;
             }
-            // Within limit but item has its own extra charge → confirm before adding
-            const itemOwnCharge = parseFloat(card.dataset.extraCharge || '0');
-            if (itemOwnCharge > 0) {
-                const itemName = card.dataset.itemName || 'this item';
-                showExtraChargeConfirmation(itemName, itemOwnCharge, itemOwnCharge, function () {
-                    addItemNormally(card, menuId, groupId, itemId, groupLimit);
-                }, false);
-                return;
-            }
+            // Within limit: add item directly (item's own extra_charge is shown on the card)
             addItemNormally(card, menuId, groupId, itemId, groupLimit);
         } else {
             currentSelections[menuId][groupId].delete(itemId);
@@ -772,12 +766,20 @@
                     const totalRow = document.createElement('div');
                     totalRow.className = 'cmp-summary-total';
 
+                    // Check per-item pricing mode: don't show base price × guests formula
+                    const isPerItemMenu = checkIsPerItemMenu(menuId);
+
                     const labelParts = [];
-                    if (guests > 0 && pricePerPerson > 0) {
+                    if (!isPerItemMenu && guests > 0 && pricePerPerson > 0) {
                         labelParts.push(currencySymbol + Math.round(pricePerPerson) + ' \u00d7 ' + guests);
                     }
                     if (totalExtra > 0) {
-                        labelParts.push('+' + currencySymbol + Math.round(totalExtra) + ' extra');
+                        if (isPerItemMenu) {
+                            // totalExtra = sum of selected items' prices per person
+                            labelParts.push(currencySymbol + Math.round(totalExtra) + ' items \u00d7 ' + guests);
+                        } else {
+                            labelParts.push('+' + currencySymbol + Math.round(totalExtra) + ' extra');
+                        }
                     }
 
                     const totalLabel = document.createElement('span');
@@ -786,7 +788,11 @@
 
                     const totalVal = document.createElement('span');
                     totalVal.className = 'cmp-summary-total-val';
-                    totalVal.textContent = currencySymbol + Math.round(guests > 0 ? pricePerPerson * guests + totalExtra : 0);
+                    if (isPerItemMenu) {
+                        totalVal.textContent = currencySymbol + Math.round(guests > 0 ? totalExtra * guests : 0);
+                    } else {
+                        totalVal.textContent = currencySymbol + Math.round(guests > 0 ? pricePerPerson * guests + totalExtra : 0);
+                    }
 
                     totalRow.appendChild(totalLabel);
                     totalRow.appendChild(totalVal);
@@ -961,11 +967,38 @@
         Object.keys(menuStructures).forEach(function (mid) { updateCounters(parseInt(mid)); });
     }
 
+    // Returns true if the given menu uses per-item pricing:
+    // at least one selected item has extra_charge > 0 AND no group has extra_charge_per_item > 0.
+    // In this mode the base menu price_per_person is not charged; items have their own prices.
+    function checkIsPerItemMenu(menuId) {
+        var structure = menuStructures[menuId];
+        var selections = currentSelections[menuId];
+        if (!structure || !selections) return false;
+        var hasOverLimitCharge = false;
+        var hasPerItemPrice = false;
+        structure.sections.forEach(function (section) {
+            section.groups.forEach(function (group) {
+                var sel = selections[group.id];
+                if (!sel || sel.size === 0) return;
+                if (parseFloat(group.extra_charge_per_item || 0) > 0) {
+                    hasOverLimitCharge = true;
+                }
+                group.items.forEach(function (item) {
+                    if (sel.has(parseInt(item.id)) && parseFloat(item.extra_charge) > 0) {
+                        hasPerItemPrice = true;
+                    }
+                });
+            });
+        });
+        return hasPerItemPrice && !hasOverLimitCharge;
+    }
+
     // Compute the sum of extra_charge values for all currently selected menu items
     // plus group-level over-limit charges (extra_charge_per_item × items beyond choose_limit),
     // and update the price total in the booking summary bar via calculateMenuTotal().
     function computeExtraChargesTotal() {
         let extra = 0;
+        const perItemMenuIds = new Set();
         const checkedIds = getCheckedMenuIds();
         checkedIds.forEach(function (menuId) {
             const structure = menuStructures[menuId];
@@ -992,8 +1025,12 @@
                     }
                 });
             });
+            if (checkIsPerItemMenu(menuId)) {
+                perItemMenuIds.add(menuId);
+            }
         });
         window.menuExtraChargesTotal = extra;
+        window.menuPerItemPricingIds = perItemMenuIds;
         if (typeof calculateMenuTotal === 'function') {
             calculateMenuTotal();
         }

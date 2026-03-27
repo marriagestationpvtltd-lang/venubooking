@@ -788,24 +788,34 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
         $hall_price = $hall ? $hall['base_price'] : 0;
     }
     
-    // Calculate menu total
+    // Calculate menu total, handling per-item pricing menus separately.
+    // Per-item menus: items have their own prices (extra_charge); base price_per_person is NOT added.
+    // Base-price menus: price_per_person × guests is the base; over-limit/item surcharges are extra.
+    // $menu_extra_total: sum of per-person extra charges for base-price menus only (not per-item menus).
+    //   It is used by booking-step6 to split the display into "base" and "extra" line items.
     $menu_total = 0;
-    if (!empty($menus)) {
-        $placeholders = str_repeat('?,', count($menus) - 1) . '?';
-        $stmt = $db->prepare("SELECT SUM(price_per_person) as total FROM menus WHERE id IN ($placeholders)");
-        $stmt->execute($menus);
-        $result = $stmt->fetch();
-        $menu_price_per_person = $result['total'] ?? 0;
-        $menu_total = $menu_price_per_person * $guests;
-    }
-
-    // Add extra charges from custom menu item selections
     $menu_extra_total = 0.0;
-    if (!empty($menu_selections)) {
-        foreach ($menu_selections as $mid => $sel) {
-            $menu_extra_total += calculateMenuExtraCharges(intval($mid), (array)$sel);
+    if (!empty($menus)) {
+        foreach ($menus as $menu_id) {
+            $menu_id = intval($menu_id);
+            $mstmt = $db->prepare("SELECT price_per_person FROM menus WHERE id = ?");
+            $mstmt->execute([$menu_id]);
+            $menu_row = $mstmt->fetch();
+            $price_pp = $menu_row ? floatval($menu_row['price_per_person']) : 0;
+
+            $sel = !empty($menu_selections[$menu_id]) ? (array)$menu_selections[$menu_id] : [];
+            $extra = !empty($sel) ? calculateMenuExtraCharges($menu_id, $sel) : 0.0;
+
+            if (!empty($sel) && menuUsesPerItemPricing($menu_id, $sel)) {
+                // Per-item pricing: charge item prices only, base price_per_person is not used
+                $menu_total += $extra * $guests;
+                // $menu_extra_total intentionally not updated: items ARE the price, not "extra"
+            } else {
+                // Base-price mode: price_per_person × guests + item surcharges/over-limit × guests
+                $menu_total += ($price_pp + $extra) * $guests;
+                $menu_extra_total += $extra;
+            }
         }
-        $menu_total += $menu_extra_total * $guests;
     }
 
     // Calculate services total (regular services without sub-service flows)
@@ -1351,6 +1361,58 @@ function calculateMenuExtraCharges($menu_id, array $selections) {
 }
 
 /**
+ * Determine whether a menu uses per-item pricing.
+ * A menu is per-item pricing when: at least one selected item has extra_charge > 0
+ * AND no group has extra_charge_per_item > 0 (no over-limit charge configured).
+ * In per-item mode the menu's base price_per_person is NOT added to the total;
+ * the items' own extra_charge values are the prices.
+ *
+ * @param int   $menu_id    Menu ID
+ * @param array $selections [group_id => [item_id, ...]]
+ * @return bool
+ */
+function menuUsesPerItemPricing($menu_id, array $selections) {
+    if (empty($selections)) return false;
+    $db = getDB();
+    $menu_id = intval($menu_id);
+    $has_per_item_price = false;
+    $has_over_limit_charge = false;
+    try {
+        foreach ($selections as $group_id => $item_ids) {
+            $group_id = intval($group_id);
+            $item_ids = array_map('intval', (array)$item_ids);
+            if (empty($item_ids)) continue;
+
+            // Check if group has extra_charge_per_item configured
+            $grp_stmt = $db->prepare("SELECT extra_charge_per_item FROM menu_groups WHERE id = ?");
+            $grp_stmt->execute([$group_id]);
+            $grp = $grp_stmt->fetch();
+            if ($grp && floatval($grp['extra_charge_per_item']) > 0) {
+                $has_over_limit_charge = true;
+            }
+
+            // Check if any selected items have extra_charge > 0
+            $placeholders = implode(',', array_fill(0, count($item_ids), '?'));
+            $params = array_merge([$group_id], $item_ids);
+            $istmt = $db->prepare(
+                "SELECT SUM(extra_charge) as total FROM menu_group_items
+                 WHERE menu_group_id = ? AND id IN ($placeholders) AND status = 'active'"
+            );
+            $istmt->execute($params);
+            $row = $istmt->fetch();
+            if ($row && floatval($row['total']) > 0) {
+                $has_per_item_price = true;
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log("menuUsesPerItemPricing error (menu_id=$menu_id): " . $e->getMessage());
+        return false;
+    }
+    // Per-item pricing: has individual item prices AND no over-limit charge on any group
+    return $has_per_item_price && !$has_over_limit_charge;
+}
+
+/**
  * Get booking menu item selections (snapshot) for a booking.
  * Returns grouped structure: [menu_id => ['menu_name'=>..., 'sections'=>[section_name=>[group_name=>[items]]]]]
  */
@@ -1875,6 +1937,14 @@ function createBooking($data) {
                         $extra = calculateMenuExtraCharges($menu_id_sel, $selections);
                         $db->prepare("UPDATE booking_menus SET extra_total = ? WHERE booking_id = ? AND menu_id = ?")
                            ->execute([$extra, $booking_id, $menu_id_sel]);
+
+                        // For per-item pricing menus: update total_price to reflect the actual
+                        // item-based cost so recalculateBookingTotals() uses the correct amount.
+                        // price_per_person is kept as the original base price for reference.
+                        if (menuUsesPerItemPricing($menu_id_sel, $selections)) {
+                            $db->prepare("UPDATE booking_menus SET total_price = ? WHERE booking_id = ? AND menu_id = ?")
+                               ->execute([$extra * intval($data['guests']), $booking_id, $menu_id_sel]);
+                        }
 
                         // Get structure for snapshot labels
                         $structure = getMenuStructure($menu_id_sel);
