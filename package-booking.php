@@ -79,6 +79,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_bookin
     // Basic validation
     if (empty($event_date)) {
         $error = 'Please select an event date.';
+    } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $event_date) || !checkdate(
+        (int)substr($event_date, 5, 2),
+        (int)substr($event_date, 8, 2),
+        (int)substr($event_date, 0, 4)
+    )) {
+        $error = 'Please select a valid event date.';
     } elseif ($guests < 1) {
         $error = 'Please enter the number of guests (at least 1).';
     } elseif (empty($event_type)) {
@@ -110,20 +116,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_bookin
 
     if (empty($error)) {
         // ------------------------------------------------------------------
+        // Process time slot selection (if hall has configured time slots)
+        // ------------------------------------------------------------------
+        $selected_slot_ids_json = trim($_POST['selected_slot_ids'] ?? '');
+        $session_slots   = [];
+        $slot_start_time = '';
+        $slot_end_time   = '';
+        $selected_shift  = '';
+
+        if ($chosen_hall && (int)$chosen_hall['hall_id'] > 0) {
+            $hall_configured_slots = getHallTimeSlots((int)$chosen_hall['hall_id']);
+
+            if (!empty($hall_configured_slots)) {
+                // Hall has configured time slots → require the user to select one
+                if (empty($selected_slot_ids_json)) {
+                    $error = 'Please select a time slot for this hall.';
+                } else {
+                    $slot_ids = json_decode($selected_slot_ids_json, true);
+                    if (!is_array($slot_ids) || empty($slot_ids)) {
+                        $error = 'Please select a valid time slot.';
+                    } else {
+                        // Build a lookup map from hall slot id → slot row
+                        $hall_slot_map = [];
+                        foreach ($hall_configured_slots as $hs) {
+                            $hall_slot_map[(int)$hs['id']] = $hs;
+                        }
+
+                        // Validate each submitted slot ID
+                        foreach ($slot_ids as $sid) {
+                            $sid = intval($sid);
+                            if (!isset($hall_slot_map[$sid])) {
+                                $error = 'Invalid time slot selected. Please try again.';
+                                break;
+                            }
+                            if (!checkIndividualSlotAvailability($sid, (int)$chosen_hall['hall_id'], $event_date)) {
+                                $error = 'One or more selected time slots are no longer available. Please select different slots.';
+                                break;
+                            }
+                        }
+
+                        if (empty($error)) {
+                            foreach ($slot_ids as $sid) {
+                                $sid = intval($sid);
+                                $hs  = $hall_slot_map[$sid];
+                                $session_slots[] = [
+                                    'id'             => $sid,
+                                    'slot_name'      => $hs['slot_name'],
+                                    'start_time'     => substr($hs['start_time'], 0, 5),
+                                    'end_time'       => substr($hs['end_time'], 0, 5),
+                                    'price_override' => $hs['price_override'] !== null
+                                                            ? (float)$hs['price_override'] : null,
+                                ];
+                            }
+                            usort($session_slots, function ($a, $b) {
+                                return strcmp($a['start_time'], $b['start_time']);
+                            });
+                            $starts          = array_column($session_slots, 'start_time');
+                            $ends            = array_column($session_slots, 'end_time');
+                            $slot_start_time = min($starts);
+                            $slot_end_time   = max($ends);
+                            $selected_shift  = deriveShiftFromTimes($slot_start_time, $slot_end_time);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($error)) {
+        // ------------------------------------------------------------------
         // Populate session data — mirrors what the normal multi-step flow does
         // ------------------------------------------------------------------
         $_SESSION['booking_data'] = [
             'event_date'      => $event_date,
             'guests'          => $guests,
             'event_type'      => $event_type,
-            'shift'           => '',
-            'start_time'      => '',
-            'end_time'        => '',
+            'shift'           => $selected_shift,
+            'start_time'      => $slot_start_time,
+            'end_time'        => $slot_end_time,
             'city_id'         => 0,
             'is_package_booking' => true,
-            'selected_slots'  => [],
-            'slot_id'         => null,
-            'slot_name'       => null,
+            'selected_slots'  => $session_slots,
+            'slot_id'         => !empty($session_slots) ? $session_slots[0]['id'] : null,
+            'slot_name'       => !empty($session_slots) ? implode(', ', array_column($session_slots, 'slot_name')) : null,
         ];
 
         if ($chosen_hall) {
@@ -161,8 +235,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_bookin
 
         header('Location: booking-step6.php');
         exit;
-    }
-}
+        } // end if (empty($error)) - session population
+    } // end if (empty($error)) - slot processing
+} // end POST handler
 
 // ------------------------------------------------------------------
 // Page output
@@ -296,9 +371,17 @@ require_once __DIR__ . '/includes/header.php';
 
                             <div class="mb-3">
                                 <label for="event_date" class="form-label">Event Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="event_date" name="event_date"
-                                       value="<?php echo htmlspecialchars($_POST['event_date'] ?? ''); ?>"
-                                       min="<?php echo date('Y-m-d'); ?>" required>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="event_date" name="event_date"
+                                           value="<?php echo htmlspecialchars($_POST['event_date'] ?? ''); ?>"
+                                           readonly placeholder="Select event date (Click to open calendar)" required>
+                                    <button class="btn btn-outline-success" type="button" id="toggleCalendar" title="Toggle between BS/AD calendar">
+                                        <i class="fas fa-exchange-alt"></i> <span id="calendarType">BS</span>
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted">
+                                    <span id="nepaliDateDisplay"></span>
+                                </small>
                                 <div class="invalid-feedback">Please select an event date.</div>
                             </div>
 
@@ -362,6 +445,33 @@ require_once __DIR__ . '/includes/header.php';
                             <input type="hidden" name="hall_id" value="0">
                             <?php endif; ?>
 
+                            <?php if (!empty($package_halls)): ?>
+                            <!-- Time Slot Selection (shown when a hall and date are both selected) -->
+                            <div id="pkgTimeSlotSection" class="mb-3" style="display:none;">
+                                <label class="form-label">Time Slot <span class="text-danger">*</span></label>
+                                <div id="pkgSlotNotSelected">
+                                    <button type="button" class="btn btn-outline-success" id="pkgOpenSlotsBtn">
+                                        <i class="fas fa-clock me-1"></i>Select Time Slot
+                                    </button>
+                                    <div class="form-text text-muted mt-1">Please select a time slot for your event.</div>
+                                </div>
+                                <div id="pkgSlotSelected" style="display:none;">
+                                    <div class="alert alert-success d-flex justify-content-between align-items-center py-2 mb-0">
+                                        <span><i class="fas fa-clock me-1"></i> <span id="pkgSlotSummary"></span></span>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="pkgChangeSlotBtn">
+                                            <i class="fas fa-edit me-1"></i>Change
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="pkg_selected_slot_ids" name="selected_slot_ids"
+                                       value="<?php echo htmlspecialchars($_POST['selected_slot_ids'] ?? ''); ?>">
+                                <input type="hidden" id="pkg_slot_start_time" name="slot_start_time"
+                                       value="<?php echo htmlspecialchars($_POST['slot_start_time'] ?? ''); ?>">
+                                <input type="hidden" id="pkg_slot_end_time" name="slot_end_time"
+                                       value="<?php echo htmlspecialchars($_POST['slot_end_time'] ?? ''); ?>">
+                            </div>
+                            <?php endif; ?>
+
                         </div>
                     </div>
 
@@ -380,6 +490,43 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </section>
 
+<!-- Time Slot Selection Modal -->
+<div class="modal fade" id="pkgTimeSlotModal" tabindex="-1" aria-labelledby="pkgTimeSlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="pkgTimeSlotModalLabel">
+                    <i class="fas fa-clock me-2"></i>Select Time Slots — <span id="pkgTsModalHallName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Select one or more available time slots for your event on <strong id="pkgTsModalDate"></strong>.
+                    You can pick multiple consecutive slots — the booking will span from the earliest start to the latest end time.
+                    Slots already booked are shown as unavailable.
+                </p>
+                <div id="pkgTimeSlotsContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading available time slots…</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="pkgSlotSelectionPreview" class="me-auto text-success fw-semibold small" style="display:none;"></div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="pkgConfirmSlotBtn" disabled>
+                    <i class="fas fa-check me-1"></i>Confirm Time Slot
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function () {
     'use strict';
@@ -395,5 +542,378 @@ require_once __DIR__ . '/includes/header.php';
     }
 })();
 </script>
+
+<?php
+// -------------------------------------------------------------------------
+// Pass hall data to JS so the time-slot section knows about configured halls
+// -------------------------------------------------------------------------
+$pkg_halls_js = [];
+foreach ($package_halls as $ph) {
+    $pkg_halls_js[] = [
+        'hallId'   => (int)$ph['hall_id'],
+        'hallName' => $ph['venue_name'] . ' — ' . $ph['hall_name'],
+    ];
+}
+
+$extra_js = '<script src="' . BASE_URL . '/js/booking-flow.js"></script>
+<script>
+(function () {
+    \'use strict\';
+
+    // ── State ─────────────────────────────────────────────────────────────
+    var _pkgSlots         = [];   // slot objects currently selected in the modal
+    var _pkgHallId        = 0;
+    var _pkgCurrentDate   = \'\';
+    var _pkgHasSlotsConf  = false; // true once slots are loaded and there is ≥1 slot
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return \'\';
+        return String(text)
+            .replace(/&/g, \'&amp;\')
+            .replace(/</g, \'&lt;\')
+            .replace(/>/g, \'&gt;\')
+            .replace(/"/g, \'&quot;\')
+            .replace(/\'/g, \'&#039;\');
+    }
+
+    function getSelectedHallId() {
+        var sel = document.getElementById(\'hall_id\');
+        if (sel) return parseInt(sel.value, 10) || 0;
+        var hidden = document.querySelector(\'input[type="hidden"][name="hall_id"]\');
+        return hidden ? parseInt(hidden.value, 10) || 0 : 0;
+    }
+
+    function getSelectedHallName() {
+        var sel = document.getElementById(\'hall_id\');
+        if (sel && sel.options && sel.selectedIndex >= 0 && sel.value) {
+            return sel.options[sel.selectedIndex].text;
+        }
+        // Single hall display text
+        var disp = document.querySelector(\'.alert.alert-light.border strong\');
+        if (disp) {
+            var sibling = disp.nextSibling;
+            return disp.textContent + (sibling ? sibling.textContent : \'\');
+        }
+        return \'Hall\';
+    }
+
+    function getPkgAggregatedTimes(slots) {
+        if (!slots || slots.length === 0) {
+            return { aggStart: \'00:00\', aggEnd: \'00:00\' };
+        }
+        var starts = slots.map(function(s) { return s.start.substring(0, 5); });
+        var ends   = slots.map(function(s) { return s.end.substring(0, 5); });
+        return {
+            aggStart: starts.reduce(function(a, b) { return a < b ? a : b; }),
+            aggEnd:   ends.reduce(function(a, b) { return a > b ? a : b; })
+        };
+    }
+
+    function fmtTime(t) {
+        var parts = t.split(\':\').map(Number);
+        var h = parts[0], m = parts[1];
+        var ampm = h >= 12 ? \'PM\' : \'AM\';
+        var h12  = h % 12 || 12;
+        return h12 + \':\' + String(m).padStart(2, \'0\') + \' \' + ampm;
+    }
+
+    // ── Slot section visibility ────────────────────────────────────────────
+    function updateTimeSlotSectionVisibility() {
+        var section = document.getElementById(\'pkgTimeSlotSection\');
+        if (!section) return;
+
+        var hallId = getSelectedHallId();
+        var dateEl = document.getElementById(\'event_date\');
+        var date   = dateEl ? dateEl.value : \'\';
+
+        if (hallId > 0 && date) {
+            section.style.display = \'\';
+            // Clear slot selection when hall or date changes
+            if (hallId !== _pkgHallId || date !== _pkgCurrentDate) {
+                clearPkgSlotSelection();
+                _pkgHallId      = hallId;
+                _pkgCurrentDate = date;
+            }
+        } else {
+            section.style.display = \'none\';
+            clearPkgSlotSelection();
+        }
+    }
+
+    function clearPkgSlotSelection() {
+        _pkgSlots        = [];
+        _pkgHasSlotsConf = false;
+        var ids = document.getElementById(\'pkg_selected_slot_ids\');
+        if (ids) ids.value = \'\';
+        var st = document.getElementById(\'pkg_slot_start_time\');
+        if (st) st.value = \'\';
+        var et = document.getElementById(\'pkg_slot_end_time\');
+        if (et) et.value = \'\';
+        var notSel = document.getElementById(\'pkgSlotNotSelected\');
+        if (notSel) {
+            notSel.style.display = \'\';
+            notSel.innerHTML = \'<button type="button" class="btn btn-outline-success" id="pkgOpenSlotsBtn"><i class="fas fa-clock me-1"></i>Select Time Slot</button>\' +
+                \'<div class="form-text text-muted mt-1">Please select a time slot for your event.</div>\';
+            var btn = document.getElementById(\'pkgOpenSlotsBtn\');
+            if (btn) btn.addEventListener(\'click\', openPkgTimeSlotsModal);
+        }
+        var selEl = document.getElementById(\'pkgSlotSelected\');
+        if (selEl) selEl.style.display = \'none\';
+    }
+
+    // ── Open modal ────────────────────────────────────────────────────────
+    function openPkgTimeSlotsModal() {
+        var hallId = getSelectedHallId();
+        var dateEl = document.getElementById(\'event_date\');
+        var date   = dateEl ? dateEl.value : \'\';
+        if (!hallId || !date) return;
+
+        _pkgSlots = [];
+
+        var hallNameEl = document.getElementById(\'pkgTsModalHallName\');
+        if (hallNameEl) hallNameEl.textContent = getSelectedHallName();
+        var dateDispEl = document.getElementById(\'pkgTsModalDate\');
+        if (dateDispEl) dateDispEl.textContent = date;
+
+        var confirmBtn = document.getElementById(\'pkgConfirmSlotBtn\');
+        if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.innerHTML = \'<i class="fas fa-check me-1"></i>Confirm Time Slot\'; }
+        var preview = document.getElementById(\'pkgSlotSelectionPreview\');
+        if (preview) { preview.style.display = \'none\'; preview.textContent = \'\'; }
+
+        var container = document.getElementById(\'pkgTimeSlotsContainer\');
+        if (container) {
+            container.innerHTML = \'<div class="text-center py-4"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading…</span></div><p class="mt-2 text-muted">Loading available time slots…</p></div>\';
+        }
+
+        var modalEl = document.getElementById(\'pkgTimeSlotModal\');
+        if (!modalEl) return;
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        var params = new URLSearchParams({ hall_id: hallId, date: date });
+        fetch(baseUrl + \'/api/get-time-slots.php?\' + params)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success) {
+                    container.innerHTML = \'<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-1"></i>\' + escapeHtml(data.message || \'Failed to load time slots.\') + \'</div>\';
+                    return;
+                }
+                renderPkgTimeSlots(data.slots, container);
+            })
+            .catch(function() {
+                container.innerHTML = \'<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-1"></i>An error occurred while loading time slots.</div>\';
+            });
+    }
+
+    // ── Render slot cards ─────────────────────────────────────────────────
+    function renderPkgTimeSlots(slots, container) {
+        if (!slots || slots.length === 0) {
+            _pkgHasSlotsConf = false;
+            container.innerHTML = \'<div class="alert alert-warning"><i class="fas fa-clock me-1"></i>No time slots have been configured for this hall. You can proceed without selecting a time slot.</div>\';
+            var confirmBtn = document.getElementById(\'pkgConfirmSlotBtn\');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = \'<i class="fas fa-check me-1"></i>Continue Without Time Slot\';
+            }
+            return;
+        }
+
+        _pkgHasSlotsConf = true;
+        var html = \'<div class="row g-3">\';
+        slots.forEach(function(slot) {
+            var available  = slot.available;
+            // formatCurrency is provided globally by main.js (loaded via footer.php)
+            var priceLabel = slot.price_override !== null
+                ? formatCurrency(slot.price_override)
+                : formatCurrency(0);
+
+            html += \'<div class="col-12 col-md-6">\' +
+                \'<div class="card h-100 time-slot-card \' + (available ? \'border-success\' : \'border-secondary opacity-50\') + \'"\' +
+                \' data-slot-id="\' + parseInt(slot.id, 10) + \'"\' +
+                \' data-slot-name="\' + escapeHtml(slot.slot_name) + \'"\' +
+                \' data-start="\' + escapeHtml(slot.start_time) + \'"\' +
+                \' data-end="\' + escapeHtml(slot.end_time) + \'"\' +
+                \' data-price="\' + (slot.price_override !== null ? parseFloat(slot.price_override) : \'\') + \'"\' +
+                \' data-available="\' + (available ? \'1\' : \'0\') + \'"\' +
+                \' style="\' + (available ? \'cursor:pointer;\' : \'cursor:not-allowed;\') + \'">\' +
+                \'<div class="card-body d-flex flex-column justify-content-between">\' +
+                \'<div>\' +
+                \'<h6 class="card-title mb-1 \' + (available ? \'text-success\' : \'text-muted\') + \'">\' +
+                \'<i class="fas fa-clock me-1"></i>\' + escapeHtml(slot.slot_name) + \'</h6>\' +
+                \'<p class="text-muted mb-2 small">\' + escapeHtml(slot.start_time_display) + \' – \' + escapeHtml(slot.end_time_display) + \'</p>\' +
+                \'<p class="mb-0 fw-semibold small">\' + priceLabel + \'</p>\' +
+                \'</div><div class="mt-2">\' +
+                (available
+                    ? \'<span class="badge bg-success slot-status-badge"><i class="fas fa-check-circle me-1"></i>Available</span>\'
+                    : \'<span class="badge bg-secondary slot-status-badge"><i class="fas fa-ban me-1"></i>Already Booked</span>\') +
+                \'</div></div></div></div>\';
+        });
+        html += \'</div>\';
+        container.innerHTML = html;
+
+        container.querySelectorAll(\'.time-slot-card\').forEach(function(card) {
+            var slotId = parseInt(card.getAttribute(\'data-slot-id\'), 10);
+            if (card.getAttribute(\'data-available\') !== \'1\') return;
+
+            card.addEventListener(\'click\', function() {
+                var existingIdx = _pkgSlots.findIndex(function(s) { return s.id === slotId; });
+                var badge = this.querySelector(\'.slot-status-badge\');
+
+                if (existingIdx >= 0) {
+                    _pkgSlots.splice(existingIdx, 1);
+                    this.classList.remove(\'selected-slot\', \'border-warning\', \'shadow\');
+                    this.classList.add(\'border-success\');
+                    if (badge) {
+                        badge.className = \'badge bg-success slot-status-badge\';
+                        badge.innerHTML = \'<i class="fas fa-check-circle me-1"></i>Available\';
+                    }
+                } else {
+                    _pkgSlots.push({
+                        id:    slotId,
+                        name:  this.getAttribute(\'data-slot-name\'),
+                        start: this.getAttribute(\'data-start\'),
+                        end:   this.getAttribute(\'data-end\'),
+                    });
+                    this.classList.add(\'selected-slot\', \'border-warning\', \'shadow\');
+                    this.classList.remove(\'border-success\');
+                    if (badge) {
+                        badge.className = \'badge bg-primary slot-status-badge\';
+                        badge.innerHTML = \'<i class="fas fa-check me-1"></i>Selected\';
+                    }
+                }
+
+                var confirmBtn = document.getElementById(\'pkgConfirmSlotBtn\');
+                if (confirmBtn) confirmBtn.disabled = _pkgSlots.length === 0;
+                updatePkgSlotPreview();
+            }.bind(card));
+        });
+    }
+
+    function updatePkgSlotPreview() {
+        var preview = document.getElementById(\'pkgSlotSelectionPreview\');
+        if (!preview) return;
+        if (_pkgSlots.length === 0) { preview.style.display = \'none\'; preview.textContent = \'\'; return; }
+        var times = getPkgAggregatedTimes(_pkgSlots);
+        var count = _pkgSlots.length;
+        var label = count === 1 ? \'1 slot selected\' : count + \' slots selected\';
+        preview.textContent = \'⏰ \' + label + \': \' + fmtTime(times.aggStart) + \' – \' + fmtTime(times.aggEnd);
+        preview.style.display = \'\';
+    }
+
+    // ── DOMContentLoaded ──────────────────────────────────────────────────
+    document.addEventListener(\'DOMContentLoaded\', function() {
+
+        // Restore pre-filled slot selection (after a POST error re-render)
+        (function restoreSlotSelection() {
+            var idsInput = document.getElementById(\'pkg_selected_slot_ids\');
+            var stInput  = document.getElementById(\'pkg_slot_start_time\');
+            var etInput  = document.getElementById(\'pkg_slot_end_time\');
+            if (!idsInput || !idsInput.value) return;
+            try {
+                var ids = JSON.parse(idsInput.value);
+                if (!Array.isArray(ids) || ids.length === 0) return;
+                var st = stInput ? stInput.value : \'\';
+                var et = etInput ? etInput.value : \'\';
+                if (st && et) {
+                    var summaryEl = document.getElementById(\'pkgSlotSummary\');
+                    if (summaryEl) summaryEl.textContent = st + \' – \' + et;
+                    var notSel = document.getElementById(\'pkgSlotNotSelected\');
+                    var selEl  = document.getElementById(\'pkgSlotSelected\');
+                    if (notSel) notSel.style.display = \'none\';
+                    if (selEl)  selEl.style.display  = \'\';
+                }
+            } catch (e) { /* ignore */ }
+        }());
+
+        // Watch date changes to toggle slot section visibility
+        var eventDateEl = document.getElementById(\'event_date\');
+        if (eventDateEl) {
+            eventDateEl.addEventListener(\'change\', updateTimeSlotSectionVisibility);
+        }
+
+        // Watch hall dropdown changes
+        var hallSel = document.getElementById(\'hall_id\');
+        if (hallSel) {
+            hallSel.addEventListener(\'change\', updateTimeSlotSectionVisibility);
+        }
+
+        // Initial visibility (single-hall case: hall_id already set)
+        updateTimeSlotSectionVisibility();
+
+        // Open modal button (initial render; also re-wired after clearPkgSlotSelection)
+        var openBtn = document.getElementById(\'pkgOpenSlotsBtn\');
+        if (openBtn) openBtn.addEventListener(\'click\', openPkgTimeSlotsModal);
+
+        // Change slot button
+        var changeBtn = document.getElementById(\'pkgChangeSlotBtn\');
+        if (changeBtn) {
+            changeBtn.addEventListener(\'click\', function() {
+                clearPkgSlotSelection();
+                openPkgTimeSlotsModal();
+            });
+        }
+
+        // Confirm slot selection
+        var confirmBtn = document.getElementById(\'pkgConfirmSlotBtn\');
+        if (confirmBtn) {
+            confirmBtn.addEventListener(\'click\', function() {
+                var modal = bootstrap.Modal.getInstance(document.getElementById(\'pkgTimeSlotModal\'));
+                if (modal) modal.hide();
+
+                if (!_pkgHasSlotsConf) {
+                    // No slots configured – allow submission without slot data
+                    clearPkgSlotSelection();
+                    return;
+                }
+
+                if (_pkgSlots.length === 0) return;
+
+                var sorted   = _pkgSlots.slice().sort(function(a, b) { return a.start.localeCompare(b.start); });
+                var slotIds  = sorted.map(function(s) { return s.id; });
+                var slotNames = sorted.map(function(s) { return s.name; }).join(\', \');
+                var times    = getPkgAggregatedTimes(sorted);
+
+                document.getElementById(\'pkg_selected_slot_ids\').value = JSON.stringify(slotIds);
+                document.getElementById(\'pkg_slot_start_time\').value   = times.aggStart;
+                document.getElementById(\'pkg_slot_end_time\').value     = times.aggEnd;
+
+                var summaryEl = document.getElementById(\'pkgSlotSummary\');
+                if (summaryEl) summaryEl.textContent = slotNames + \'  \' + fmtTime(times.aggStart) + \' – \' + fmtTime(times.aggEnd);
+
+                var notSel = document.getElementById(\'pkgSlotNotSelected\');
+                var selEl  = document.getElementById(\'pkgSlotSelected\');
+                if (notSel) notSel.style.display = \'none\';
+                if (selEl)  selEl.style.display  = \'\';
+            });
+        }
+
+        // Extra form-submit guard: prevent submission if slot section is visible
+        // and no slot has been selected (and the hall has configured slots)
+        var form = document.querySelector(\'form[method="POST"]\');
+        if (form) {
+            form.addEventListener(\'submit\', function(e) {
+                var section = document.getElementById(\'pkgTimeSlotSection\');
+                if (!section || section.style.display === \'none\') return; // not visible → skip check
+                var idsVal = document.getElementById(\'pkg_selected_slot_ids\').value;
+                if (_pkgHasSlotsConf && !idsVal) {
+                    // We know slots are configured but none selected → block
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    var notSel = document.getElementById(\'pkgSlotNotSelected\');
+                    if (notSel) {
+                        notSel.innerHTML = \'<span class="text-danger small"><i class="fas fa-exclamation-circle me-1"></i>Please select a time slot before proceeding.</span>\' +
+                            \'<br><button type="button" class="btn btn-outline-success mt-2" id="pkgOpenSlotsBtn"><i class="fas fa-clock me-1"></i>Select Time Slot</button>\';
+                        var btn = document.getElementById(\'pkgOpenSlotsBtn\');
+                        if (btn) btn.addEventListener(\'click\', openPkgTimeSlotsModal);
+                    }
+                    section.scrollIntoView({ behavior: \'smooth\' });
+                }
+            });
+        }
+    });
+}());
+</script>';
+?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
