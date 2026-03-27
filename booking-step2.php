@@ -96,11 +96,13 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                 <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
                     <i class="fas fa-users"></i> <?php echo $booking_data['guests']; ?> Guests
-                    <span class="mx-2 d-none d-md-inline">|</span>
                 </span>
+                <?php if (!empty($booking_data['event_type'])): ?>
+                <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
                     <i class="fas fa-tag"></i> <?php echo $booking_data['event_type']; ?>
                 </span>
+                <?php endif; ?>
                 <span id="selectedSlotDisplay" class="d-block d-md-inline ms-md-2" style="display:none!important;"></span>
             </div>
             <div class="col-md-4 col-12 text-md-end mt-2 mt-md-0">
