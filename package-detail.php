@@ -280,16 +280,34 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
     </div><!-- /.row -->
 
     <?php
-    // Extract YouTube video ID from various URL formats
+    // Extract YouTube video ID from an embed code (<iframe>) or a plain URL.
+    // The admin now pastes the full embed code; plain URLs are still supported
+    // for backward compatibility with existing entries.
     $youtube_embed_url = '';
     if (!empty($package['youtube_url'])) {
-        $yt_url = trim($package['youtube_url']);
-        $yt_id  = '';
-        if (preg_match('/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_\-]{11})/', $yt_url, $m)) {
+        $raw = trim($package['youtube_url']);
+        $yt_id = '';
+        $src_to_parse = $raw;
+        // If the value looks like an iframe embed code, use DOMDocument to
+        // safely extract the src attribute regardless of quote style.
+        if (stripos($raw, '<iframe') !== false) {
+            $dom = new DOMDocument();
+            @$dom->loadHTML($raw, LIBXML_NOERROR | LIBXML_NOWARNING);
+            $iframes = $dom->getElementsByTagName('iframe');
+            if ($iframes->length > 0) {
+                $iframe_src = $iframes->item(0)->getAttribute('src');
+                if ($iframe_src !== '') {
+                    $src_to_parse = html_entity_decode($iframe_src, ENT_QUOTES, 'UTF-8');
+                }
+            }
+        }
+        // Extract the 11-character video ID from any recognised YouTube URL format.
+        if (preg_match('/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_\-]{11})/', $src_to_parse, $m)) {
             $yt_id = $m[1];
         }
         if ($yt_id !== '' && preg_match('/^[A-Za-z0-9_\-]{11}$/', $yt_id)) {
-            $youtube_embed_url = 'https://www.youtube.com/embed/' . htmlspecialchars($yt_id, ENT_QUOTES, 'UTF-8') . '?rel=0&modestbranding=1';
+            // autoplay=1&mute=1: mute is required for autoplay in modern browsers.
+            $youtube_embed_url = 'https://www.youtube.com/embed/' . htmlspecialchars($yt_id, ENT_QUOTES, 'UTF-8') . '?autoplay=1&mute=1&rel=0&modestbranding=1';
         }
     }
     ?>
@@ -301,11 +319,12 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                 <div class="card-body p-3 p-md-4">
                     <h5 class="fw-semibold mb-3"><i class="fab fa-youtube text-danger me-2"></i>Package Video</h5>
                     <div class="pkg-yt-wrap ratio ratio-16x9">
+                        <!-- loading="lazy" intentionally omitted: the iframe must load immediately
+                             so that the autoplay=1 parameter can trigger on page open. -->
                         <iframe src="<?php echo $youtube_embed_url; ?>"
                                 title="<?php echo htmlspecialchars($package['name'], ENT_QUOTES, 'UTF-8'); ?> video"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowfullscreen
-                                loading="lazy"
                                 class="rounded"></iframe>
                     </div>
                 </div>

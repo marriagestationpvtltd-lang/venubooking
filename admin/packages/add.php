@@ -334,11 +334,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="mb-3">
-                        <label for="youtube_url" class="form-label"><i class="fab fa-youtube text-danger me-1"></i> YouTube Video URL <span class="text-muted fw-normal small">(optional)</span></label>
-                        <input type="url" class="form-control" id="youtube_url" name="youtube_url"
-                               value="<?php echo htmlspecialchars($_POST['youtube_url'] ?? ''); ?>"
-                               placeholder="https://www.youtube.com/watch?v=...">
-                        <div class="form-text">Paste a YouTube video link to embed a video on the package detail page.</div>
+                        <label for="youtube_url" class="form-label"><i class="fab fa-youtube text-danger me-1"></i> YouTube Embed Code <span class="text-muted fw-normal small">(optional)</span></label>
+                        <textarea class="form-control" id="youtube_url" name="youtube_url" rows="3"
+                                  placeholder="&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/...&quot; ...&gt;&lt;/iframe&gt;"><?php echo htmlspecialchars($_POST['youtube_url'] ?? ''); ?></textarea>
+                        <div class="form-text">Paste the YouTube embed code (YouTube → Share → Embed) to show a video on the package detail page. The video will autoplay when the page opens.</div>
                     </div>
 
                     <div class="mb-3">
