@@ -542,6 +542,7 @@ try {
                                     'features'    => array_column($pkg['features'] ?? [], 'feature_text'),
                                     'menus'       => $pkg['view_menus'] ?? [],
                                     'book_url'    => BASE_URL . '/package-booking.php?id=' . (int)$pkg['id'],
+                                    'detail_url'  => BASE_URL . '/package-detail.php?id=' . (int)$pkg['id'],
                                     'wa_url'      => $pkg_wa_url,
                                 ], JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_TAG);
                                 ?>
@@ -726,6 +727,9 @@ if (!empty($gallery_cards)):
                 </button>
                 <a href="#" class="btn btn-success" id="pkgViewBookBtn">
                     <i class="fas fa-calendar-check me-1"></i> Book Now
+                </a>
+                <a href="#" class="btn btn-outline-primary" id="pkgViewDetailBtn">
+                    <i class="fas fa-info-circle me-1"></i> More Details About This Package
                 </a>
                 <a href="#" class="btn pkg-wa-btn" id="pkgViewContactBtn" target="_blank" rel="noopener noreferrer">
                     <i class="fab fa-whatsapp me-1"></i> Contact Us
@@ -3221,6 +3225,9 @@ document.addEventListener("DOMContentLoaded", function() {
         // Update footer buttons
         var bookBtn = document.getElementById(\'pkgViewBookBtn\');
         if (bookBtn) bookBtn.href = pkg.book_url || \'#\';
+
+        var detailBtn = document.getElementById(\'pkgViewDetailBtn\');
+        if (detailBtn) detailBtn.href = pkg.detail_url || \'#\';
 
         var contactBtn = document.getElementById(\'pkgViewContactBtn\');
         if (contactBtn) {
