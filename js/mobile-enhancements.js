@@ -98,6 +98,7 @@
             mobileNav = document.createElement('div');
             mobileNav.className = 'mobile-bottom-nav';
             document.body.appendChild(mobileNav);
+            document.body.classList.add('has-mobile-bottom-nav');
         }
 
         // Clear existing content
@@ -185,6 +186,7 @@
         if (mobileNav) {
             mobileNav.remove();
         }
+        document.body.classList.remove('has-mobile-bottom-nav');
 
         const desktopNavButtons = document.querySelector('.desktop-nav-buttons');
         if (desktopNavButtons) {

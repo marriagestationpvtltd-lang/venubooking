@@ -85,11 +85,18 @@
         font-size: clamp(1.75rem, 6vw, 2.25rem);
         margin-bottom: 1rem !important;
         line-height: 1.15;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     }
     
     .hero-section .lead {
         font-size: clamp(0.95rem, 2.8vw, 1.1rem);
         margin-bottom: 1.5rem !important;
+    }
+
+    /* Hero trust badges — compact on mobile */
+    .hero-trust-badge {
+        font-size: 0.78rem;
+        gap: 0.35rem;
     }
 
     /* Section titles */
@@ -311,6 +318,17 @@
         padding: 0.5rem 0.75rem;
     }
     
+    /* Input groups: make all parts touch-friendly (e.g. date picker row in booking card) */
+    .input-group > .form-control,
+    .input-group > .form-select,
+    /* Override Bootstrap's small-input-group sizing when inside the booking card */
+    .booking-card .input-group-sm > .form-control,
+    .booking-card .input-group-sm > .form-select,
+    .booking-card .input-group-sm > .btn {
+        min-height: 44px;
+        font-size: 16px;
+    }
+    
     textarea.form-control {
         min-height: 80px;
     }
@@ -323,9 +341,27 @@
         margin-right: 0.5rem;
     }
     
-    /* Add padding to main content to prevent overlap with fixed bottom nav */
-    section.py-5 {
+    /* Add padding to main content to prevent overlap with fixed bottom nav
+       Only applies when the mobile bottom nav is actually present (set by mobile-enhancements.js) */
+    body.has-mobile-bottom-nav section.py-5 {
         padding-bottom: 6rem !important;
+    }
+    
+    /* Venue city filter and service category filter buttons — touch-friendly */
+    .venues-filter-bar .venue-city-btn,
+    .service-category-filter-btn {
+        min-height: 44px;
+        padding: 0.5rem 1.1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Package card meta row: allow badge + price to wrap on narrow screens */
+    .pkg-card-meta-row {
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+    .pkg-card-meta-row .package-price {
+        margin-left: 0;
     }
     
     /* Hide desktop navigation buttons on mobile */
@@ -465,6 +501,7 @@
     .hero-section .display-4 {
         font-size: clamp(1.5rem, 7vw, 1.9rem);
         line-height: 1.15;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.22);
     }
 
     .hero-section .lead {
@@ -589,6 +626,27 @@
     footer .col-md-4 {
         margin-bottom: 1.5rem;
         text-align: center;
+    }
+
+    /* Footer links and text: improve readability on small screens */
+    footer p,
+    footer li,
+    footer a {
+        font-size: 0.9rem;
+    }
+
+    /* Venues slider: reduce side padding on very small screens */
+    .venues-slider-wrapper {
+        padding: 0 38px;
+    }
+    .venues-slider-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    /* Stat numbers: don't let them clip on very small screens */
+    .stat-number {
+        font-size: clamp(1.5rem, 8vw, 2rem);
     }
     
     /* Hide some elements on very small screens */

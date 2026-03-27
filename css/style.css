@@ -4413,3 +4413,77 @@ html {
     border-color: var(--brand);
     color: #fff;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE-FRIENDLINESS FIXES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Photo zoom overlay: disable on touch/pointer-coarse devices where hover
+   doesn't apply (prevents accidental 400px overlay on small screens) */
+@media (hover: none), (pointer: coarse) {
+    #imgZoomOverlay {
+        display: none !important;
+    }
+}
+
+/* Venue city filter bar: scrollable horizontal strip on small screens */
+@media (max-width: 575px) {
+    .venues-filter-bar {
+        gap: 0.4rem;
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .venues-filter-bar::-webkit-scrollbar {
+        display: none;
+    }
+    .venues-filter-bar .venue-city-btn {
+        flex-shrink: 0;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        white-space: nowrap;
+    }
+}
+
+/* Pro feature cards: reduce padding on mobile for better card density */
+@media (max-width: 575px) {
+    .pro-feature-card {
+        padding: 1.5rem 1.25rem 1.25rem;
+    }
+    .pro-feature-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+}
+
+/* Stats section: tighter layout on very small phones */
+@media (max-width: 400px) {
+    .stat-icon-wrap {
+        width: 44px;
+        height: 44px;
+        font-size: 1.1rem;
+    }
+}
+
+/* Testimonial card image: shorter on small screens */
+@media (max-width: 575px) {
+    .testimonial-img-wrap {
+        height: 180px;
+    }
+}
+
+/* Page hero bar: tighter padding on mobile */
+@media (max-width: 575px) {
+    .page-hero-bar {
+        padding: 0.875rem 0;
+    }
+    .page-hero-bar h1,
+    .page-hero-bar .h1 {
+        font-size: clamp(1.3rem, 6vw, 1.75rem);
+    }
+}
