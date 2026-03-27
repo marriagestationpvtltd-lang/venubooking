@@ -23,6 +23,27 @@ if (!empty($meta_title)) {
 if (!empty($page_title)) {
     $full_title = $page_title . ' - ' . $site_name;
 }
+
+// ── SEO helpers ───────────────────────────────────────────────────────
+// Canonical URL: prefer $page_canonical (set before include), else auto-detect
+if (empty($page_canonical)) {
+    $req_path = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
+    $page_canonical = rtrim(BASE_URL, '/') . $req_path;
+}
+
+// Open Graph image: prefer $page_og_image, then site logo, then empty
+$og_image = '';
+if (!empty($page_og_image)) {
+    $og_image = $page_og_image;
+} elseif (!empty($site_logo)) {
+    $og_image = rtrim(UPLOAD_URL, '/') . '/' . ltrim($site_logo, '/');
+}
+
+// Effective description for OG (fallback to a site-level default)
+$og_description = !empty($meta_description) ? $meta_description : $site_name;
+
+// Robots meta: allow per-page override via $page_robots
+$robots_meta = !empty($page_robots) ? $page_robots : 'index, follow';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,19 +53,45 @@ if (!empty($page_title)) {
     <meta name="theme-color" content="#4CAF50">
     <link rel="manifest" href="<?php echo BASE_URL; ?>/manifest.php">
     <title><?php echo htmlspecialchars($full_title); ?></title>
-    
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<?php echo htmlspecialchars($page_canonical, ENT_QUOTES, 'UTF-8'); ?>">
+
+    <!-- Robots -->
+    <meta name="robots" content="<?php echo htmlspecialchars($robots_meta, ENT_QUOTES, 'UTF-8'); ?>">
+
     <?php if (!empty($meta_description)): ?>
     <meta name="description" content="<?php echo htmlspecialchars($meta_description); ?>">
     <?php endif; ?>
-    
+
     <?php if (!empty($meta_keywords)): ?>
     <meta name="keywords" content="<?php echo htmlspecialchars($meta_keywords); ?>">
     <?php endif; ?>
-    
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="<?php echo !empty($page_og_type) ? htmlspecialchars($page_og_type, ENT_QUOTES, 'UTF-8') : 'website'; ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars($page_canonical, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:title" content="<?php echo htmlspecialchars($full_title); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($og_description); ?>">
+    <meta property="og:site_name" content="<?php echo htmlspecialchars($site_name); ?>">
+    <?php if (!empty($og_image)): ?>
+    <meta property="og:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <?php endif; ?>
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($full_title); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($og_description); ?>">
+    <?php if (!empty($og_image)): ?>
+    <meta name="twitter:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>">
+    <?php endif; ?>
+
     <?php if (!empty($site_favicon)): ?>
     <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars(UPLOAD_URL . $site_favicon); ?>">
     <?php endif; ?>
-    
+
     <!-- Resource hints for faster CDN loading -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -71,7 +118,45 @@ if (!empty($page_title)) {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/responsive.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/nepali-date-picker.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/share.css">
-    
+
+    <!-- JSON-LD Structured Data (WebSite + Organization) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "<?php echo rtrim(BASE_URL, '/'); ?>/#website",
+          "url": "<?php echo rtrim(BASE_URL, '/'); ?>/",
+          "name": <?php echo json_encode($site_name, JSON_UNESCAPED_UNICODE); ?>,
+          "description": <?php echo json_encode($og_description, JSON_UNESCAPED_UNICODE); ?>,
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "<?php echo rtrim(BASE_URL, '/'); ?>/venues.php?search={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "<?php echo rtrim(BASE_URL, '/'); ?>/#organization",
+          "name": <?php echo json_encode($site_name, JSON_UNESCAPED_UNICODE); ?>,
+          "url": "<?php echo rtrim(BASE_URL, '/'); ?>/",
+          "logo": <?php echo json_encode(!empty($og_image) ? $og_image : rtrim(BASE_URL, '/') . '/', JSON_UNESCAPED_UNICODE); ?>,
+          "sameAs": []
+        }
+      ]
+    }
+    </script>
+    <?php if (!empty($page_schema)): ?>
+    <!-- Per-page structured data -->
+    <script type="application/ld+json">
+    <?php echo $page_schema; ?>
+    </script>
+    <?php endif; ?>
+
     <?php if (isset($extra_css)) echo $extra_css; ?>
 
     <?php if (isset($extra_head)) echo $extra_head; ?>

@@ -247,6 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_bookin
 // Page output
 // ------------------------------------------------------------------
 $page_title = 'Book Package: ' . htmlspecialchars($package['name']);
+$page_robots = 'noindex, nofollow';
 require_once __DIR__ . '/includes/header.php';
 ?>
 

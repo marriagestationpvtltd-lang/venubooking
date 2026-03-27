@@ -3,7 +3,6 @@ $page_title       = 'Service Packages';
 $page_description = 'Browse our premium service packages for weddings, birthdays, corporate events and more. Transparent pricing, wide variety of options.';
 $page_keywords    = 'service packages, venue packages, wedding packages, event packages, Nepal';
 require_once __DIR__ . '/includes/header.php';
-$page_canonical   = BASE_URL . '/packages.php';
 
 // Data
 $service_categories  = getServicePackagesByCategory();

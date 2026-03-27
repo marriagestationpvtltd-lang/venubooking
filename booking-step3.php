@@ -1,5 +1,6 @@
 <?php
 $page_title = 'Select Menu';
+$page_robots = 'noindex, nofollow';
 // Require PHP utilities before any HTML output so session-guard redirects work correctly
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';

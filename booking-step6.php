@@ -457,6 +457,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
 }
 
 $page_title = 'Complete Your Booking';
+$page_robots = 'noindex, nofollow';
 require_once __DIR__ . '/includes/header.php';
 $is_package_booking = !empty($booking_data['is_package_booking']);
 ?>
