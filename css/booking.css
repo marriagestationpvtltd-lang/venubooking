@@ -1406,3 +1406,93 @@ html {
         padding: 0.65rem 0.75rem;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOKING FLOW — MOBILE-FRIENDLINESS IMPROVEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Hall detail section: better badge sizes and spacing on mobile ── */
+@media (max-width: 767px) {
+    .hall-feature {
+        font-size: 0.875rem;
+        padding: 0.35rem 0.85rem;
+        margin: 0.2rem;
+    }
+    .capacity-badge {
+        font-size: 0.9rem;
+        padding: 0.45rem 1rem;
+    }
+    .hall-details {
+        padding: 0.875rem;
+    }
+    /* Action buttons layout: stack vertically on mobile */
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .action-buttons .btn {
+        width: 100%;
+        margin-bottom: 0;
+    }
+    /* Service search bar: full-width on mobile */
+    #serviceSearchWrapper .input-group {
+        flex-wrap: nowrap;
+    }
+    /* Time-slot cards: compact on mobile */
+    .time-slot-card .card-body {
+        padding: 0.875rem 1rem;
+    }
+    .time-slot-card .card-title {
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+    /* Service card: tighter padding */
+    .service-card .card-body {
+        padding: 1.1rem;
+    }
+    .service-card .form-check-label {
+        font-size: 1rem;
+    }
+    /* Price breakdown: compact on mobile */
+    .price-breakdown {
+        padding: 1rem;
+    }
+    .price-line {
+        font-size: 0.9rem;
+        padding: 0.4rem 0;
+    }
+    /* Booking step section heading */
+    section.py-5 .container h2.mb-4 {
+        font-size: clamp(1.4rem, 5vw, 1.75rem);
+    }
+}
+
+@media (max-width: 575px) {
+    /* Gallery thumbnails: tighter on very small screens */
+    .hall-gallery img {
+        height: 80px;
+        width: 110px;
+    }
+    /* Modal footer: stack buttons on tiny phones */
+    .modal-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .modal-footer .btn {
+        width: 100%;
+    }
+    /* Venue image in booking step */
+    .venue-image {
+        height: 140px;
+    }
+    /* Price tag in booking summary */
+    .price-tag {
+        font-size: 1.2rem;
+    }
+    /* Summary table font */
+    #bill_summary_section .table td,
+    #bill_summary_section .table th {
+        font-size: 0.875rem;
+        padding: 0.4rem 0.35rem;
+    }
+}
