@@ -181,6 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name          = trim($_POST['name'] ?? '');
     $category_id   = intval($_POST['category_id'] ?? 0);
     $description   = trim($_POST['description'] ?? '');
+    $youtube_url   = trim($_POST['youtube_url'] ?? '');
     $price         = floatval($_POST['price'] ?? 0);
     $display_order = intval($_POST['display_order'] ?? 0);
     $status        = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
@@ -228,9 +229,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->beginTransaction();
 
                 $upd = $db->prepare(
-                    "UPDATE service_packages SET category_id=?, name=?, description=?, price=?, display_order=?, status=? WHERE id=?"
+                    "UPDATE service_packages SET category_id=?, name=?, description=?, price=?, display_order=?, status=?, youtube_url=? WHERE id=?"
                 );
-                $upd->execute([$category_id, $name, $description, $price, $display_order, $status, $package_id]);
+                $upd->execute([$category_id, $name, $description, $price, $display_order, $status, $youtube_url ?: null, $package_id]);
 
                 // Replace features: delete old, insert new
                 $db->prepare("DELETE FROM service_package_features WHERE package_id = ?")->execute([$package_id]);
@@ -481,6 +482,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message) {
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description" rows="3"><?php echo htmlspecialchars($form['description'] ?? ''); ?></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="youtube_url" class="form-label"><i class="fab fa-youtube text-danger me-1"></i> YouTube Video URL <span class="text-muted fw-normal small">(optional)</span></label>
+                        <input type="url" class="form-control" id="youtube_url" name="youtube_url"
+                               value="<?php echo htmlspecialchars($form['youtube_url'] ?? ''); ?>"
+                               placeholder="https://www.youtube.com/watch?v=...">
+                        <div class="form-text">Paste a YouTube video link to embed a video on the package detail page.</div>
                     </div>
 
                     <div class="mb-3">
