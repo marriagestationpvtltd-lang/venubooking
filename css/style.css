@@ -11,6 +11,13 @@
     --text-dark: #1a1a2e;
     --text-muted: #64748b;
     --navbar-height: 72px;
+
+    /* ── Brand color aliases (maps to the default green palette) ── */
+    --brand:        #4CAF50;
+    --brand-dark:   #2E7D32;
+    --brand-light:  #81C784;
+    --brand-xlight: #e8f5e9;
+    --brand-border: rgba(76,175,80,0.2);
     
     /* Enhanced shadows for professional depth */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -27,6 +34,7 @@
     /* Font families */
     --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
     --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-modern:  'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
     /* Fluid type scale (min → max across 375px–1200px viewport) */
     --text-xs:   clamp(0.75rem,  1.8vw, 0.875rem);
@@ -3843,3 +3851,549 @@ html {
 .booking-terms-scroll::-webkit-scrollbar { width: 4px; }
 .booking-terms-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
 .booking-terms-scroll::-webkit-scrollbar-thumb { background: #4CAF50; border-radius: 2px; }
+
+/* ════════════════════════════════════════════════════════════════
+   LANDING PAGE REDESIGN — Modern, Clean, Premium SaaS UI
+   Scoped to .page-landing body class set in index.php
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Landing page body & base ── */
+.page-landing {
+    background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
+    min-height: 100vh;
+    font-family: var(--font-modern);
+}
+
+/* ── Navbar: brand green on landing page ── */
+.page-landing #mainNavbar {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%) !important;
+    box-shadow: 0 2px 16px rgba(76, 175, 80, 0.2);
+}
+
+.page-landing #mainNavbar .navbar-brand,
+.page-landing #mainNavbar .nav-link {
+    font-family: var(--font-modern);
+}
+
+/* ── Hero section: soft light gradient when no banner ── */
+.page-landing .hero-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
+}
+
+/* When banner image is present keep the image overlay dark enough */
+.page-landing .hero-section.with-banner-image {
+    background: none;
+}
+
+/* No-banner overlay: transparent so light gradient shows through */
+.page-landing .hero-section:not(.with-banner-image) .hero-overlay {
+    background: transparent;
+    padding-top: clamp(2.5rem, 5vw, 4rem);
+    padding-bottom: clamp(2.5rem, 5vw, 4rem);
+}
+
+/* Banner-image overlay: keep legible dark gradient */
+.page-landing .hero-section.with-banner-image .hero-overlay {
+    background: linear-gradient(
+        135deg,
+        rgba(15, 15, 40, 0.60) 0%,
+        rgba(15, 15, 40, 0.50) 50%,
+        rgba(15, 15, 40, 0.60) 100%
+    );
+}
+
+/* ── Hero heading: dark on light background ── */
+.hero-heading-dark {
+    color: var(--text-dark) !important;
+    text-shadow: none !important;
+    font-family: var(--font-modern) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--text-dark) 0%, var(--brand-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ── Hero lead text: soft gray on light background ── */
+.hero-lead-dark {
+    color: #4b5563 !important;
+    text-shadow: none !important;
+    font-family: var(--font-modern) !important;
+    font-weight: 400;
+    opacity: 1 !important;
+}
+
+/* ── Hero eyebrow badge: green on light background ── */
+.page-landing .hero-section:not(.with-banner-image) .hero-eyebrow {
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    color: var(--brand);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.page-landing .hero-section:not(.with-banner-image) .hero-eyebrow .eyebrow-dot {
+    background: var(--brand);
+    animation: pulseDotBrand 2.2s ease-in-out infinite;
+}
+
+@keyframes pulseDotBrand {
+    0%, 100% { opacity: 1;   transform: scale(1);   }
+    50%       { opacity: 0.4; transform: scale(1.6); }
+}
+
+/* ── Hero trust badges: green-tinted on light background ── */
+.page-landing .hero-section:not(.with-banner-image) .hero-trust-badge {
+    color: #374151;
+    background: rgba(76, 175, 80, 0.08);
+    border: 1px solid rgba(76, 175, 80, 0.18);
+    border-radius: 50px;
+    padding: 0.35rem 0.85rem;
+}
+
+.page-landing .hero-section:not(.with-banner-image) .hero-trust-badge i {
+    color: var(--brand);
+}
+
+/* ── Hero decorative blobs: green-tinted ── */
+.page-landing .hero-section:not(.with-banner-image) .hero-deco-1 {
+    background: rgba(76, 175, 80, 0.06);
+}
+.page-landing .hero-section:not(.with-banner-image) .hero-deco-2 {
+    background: rgba(76, 175, 80, 0.04);
+}
+.page-landing .hero-section:not(.with-banner-image) .hero-deco-3 {
+    background: rgba(76, 175, 80, 0.07);
+}
+
+/* ── Hero scroll-down: green on light background ── */
+.page-landing .hero-section:not(.with-banner-image) .hero-scroll-down {
+    color: rgba(76, 175, 80, 0.6);
+}
+.page-landing .hero-section:not(.with-banner-image) .hero-scroll-down:hover {
+    color: var(--brand);
+}
+.page-landing .hero-section:not(.with-banner-image) .hero-scroll-down .scroll-arrow-ring {
+    border-color: rgba(76, 175, 80, 0.35);
+}
+
+/* ── Booking card: clean white glass card ── */
+.page-landing .booking-card {
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 32px rgba(76, 175, 80, 0.12), 0 1px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.page-landing .booking-card-title {
+    font-family: var(--font-modern);
+    font-weight: 700;
+    font-size: var(--text-lg);
+    color: var(--brand);
+}
+
+.page-landing .booking-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    box-shadow: 0 4px 14px rgba(76, 175, 80, 0.35);
+}
+
+.page-landing .booking-card-icon i {
+    color: #fff;
+}
+
+.page-landing .booking-card .form-control,
+.page-landing .booking-card .form-select {
+    border: 1.5px solid #e5e7eb;
+    border-radius: var(--radius-sm);
+    background-color: #f9fafb;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.page-landing .booking-card .form-control:focus,
+.page-landing .booking-card .form-select:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+    background-color: #fff;
+    outline: none;
+}
+
+/* Calendar toggle button: green outline */
+.page-landing .booking-card #toggleCalendar,
+.page-landing .booking-card .btn-outline-success {
+    color: var(--brand);
+    border-color: var(--brand);
+    background: transparent;
+}
+.page-landing .booking-card #toggleCalendar:hover,
+.page-landing .booking-card .btn-outline-success:hover {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+
+/* Primary CTA button in booking form */
+.page-landing .booking-card .btn-success {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    border: none;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 14px rgba(76, 175, 80, 0.35);
+    font-family: var(--font-modern);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.page-landing .booking-card .btn-success:hover {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, #2E7D32 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.45);
+}
+.page-landing .booking-card .btn-success:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+}
+
+/* Terms preview in booking card */
+.page-landing .booking-terms-preview {
+    border-top-color: rgba(76, 175, 80, 0.15);
+}
+.page-landing .booking-terms-header:hover .booking-terms-chevron {
+    color: var(--brand) !important;
+}
+.page-landing .booking-terms-scroll::-webkit-scrollbar-thumb {
+    background: var(--brand);
+}
+.page-landing a.text-success {
+    color: var(--brand) !important;
+}
+
+/* ── Stats section: green gradient ── */
+.page-landing .stats-section {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 60%, var(--brand-light) 100%);
+    box-shadow: 0 4px 24px rgba(76, 175, 80, 0.25);
+}
+
+.page-landing .stat-icon-wrap {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Section eyebrow badges: green ── */
+.page-landing .section-eyebrow {
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--brand);
+    border-color: rgba(76, 175, 80, 0.25);
+    font-family: var(--font-modern);
+    font-weight: 700;
+}
+
+/* ── Section titles: Poppins on landing page ── */
+.page-landing .section-title {
+    font-family: var(--font-modern);
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.page-landing .section-subtitle {
+    font-family: var(--font-modern);
+    color: var(--text-muted);
+}
+
+/* ── Section "View All" buttons: green outline ── */
+.page-landing .section-view-btn,
+.page-landing .btn-outline-success {
+    color: var(--brand);
+    border-color: var(--brand);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-modern);
+    font-weight: 600;
+    border-width: 1.5px;
+}
+.page-landing .section-view-btn:hover,
+.page-landing .btn-outline-success:hover {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(76, 175, 80, 0.3);
+}
+
+/* ── Feature cards: green accent ── */
+.page-landing .feature-card::before {
+    background: linear-gradient(90deg, var(--brand), var(--brand-light));
+}
+
+.page-landing .feature-card .feature-icon {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(129, 199, 132, 0.15) 100%);
+}
+
+.page-landing .feature-card:hover .feature-icon {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2) 0%, rgba(129, 199, 132, 0.25) 100%);
+}
+
+.page-landing .feature-card .feature-icon i {
+    color: var(--brand);
+}
+
+/* ── Service package section: white cards with soft shadow ── */
+.page-landing .service-packages-section {
+    background: #f9fafb;
+}
+
+.page-landing .service-packages-section .card {
+    border: 1px solid #e5e7eb;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.page-landing .service-packages-section .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 32px rgba(76, 175, 80, 0.12);
+    border-color: var(--brand-border);
+}
+
+/* ── Venues section: very light background ── */
+.page-landing .venues-section {
+    background: #ffffff;
+}
+
+.page-landing .venue-card {
+    border: 1px solid #e5e7eb !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.page-landing .venue-card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 32px rgba(76, 175, 80, 0.12) !important;
+    border-color: rgba(76, 175, 80, 0.3) !important;
+}
+
+/* ── Gallery section: alternate light ── */
+.page-landing .gallery-section {
+    background: #f9fafb !important;
+}
+
+/* ── Testimonials section: consistent light ── */
+.page-landing .testimonials-section {
+    background: #f9fafb !important;
+}
+
+/* ── About section: clean white ── */
+.page-landing .about-section {
+    background: #ffffff;
+}
+
+/* ── Pro-feature cards: green accent for pfc-green variant ── */
+.page-landing .pro-feature-card.pfc-green {
+    --pfcard-accent: linear-gradient(90deg, var(--brand), var(--brand-light));
+}
+.page-landing .pro-feature-card.pfc-green .pro-feature-icon {
+    background: linear-gradient(135deg, var(--brand), var(--brand-light));
+    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.35);
+}
+
+/* ── Page hero bar for sub-pages on landing: green ── */
+.page-landing .page-hero-bar {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+}
+
+/* ── Scroll-to-top button: green ── */
+.page-landing .scroll-top-fab {
+    background: var(--brand);
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+}
+.page-landing .scroll-top-fab:hover {
+    background: var(--brand-dark);
+}
+
+/* ── Progress steps connector track: green ── */
+.page-landing .progress-steps::before {
+    background: rgba(76, 175, 80, 0.12);
+}
+
+.page-landing .step.completed:not(:last-child)::after,
+.page-landing .step.active:not(:last-child)::after {
+    background: linear-gradient(90deg, var(--brand), var(--brand-dark));
+}
+
+.page-landing .step.active .step-number {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.20), 0 4px 16px rgba(46, 125, 50, 0.35);
+}
+
+.page-landing .step.completed .step-number {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    border-color: var(--brand);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.30);
+}
+
+.page-landing .step.completed .step-label {
+    color: var(--brand-dark);
+}
+
+.page-landing .step.active .step-label {
+    color: var(--brand);
+}
+
+/* ── Booking summary bar: green ── */
+.page-landing .booking-summary-bar {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 50%, var(--brand-light) 100%);
+    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.35);
+}
+
+/* ── Form validation states: green ── */
+.page-landing .was-validated .form-control:valid,
+.page-landing .form-control.is-valid {
+    border-color: var(--brand);
+}
+
+/* ── Section card containers: light with soft border ── */
+.page-landing .features-section,
+.page-landing .work-photos-section,
+.page-landing .vendors-section {
+    background: #ffffff;
+}
+
+/* ── Headings: Poppins on landing ── */
+.page-landing h1,
+.page-landing h2,
+.page-landing h3,
+.page-landing h4,
+.page-landing h5,
+.page-landing h6 {
+    font-family: var(--font-modern);
+}
+
+/* ── Max-width container: 1200px (already handled by Bootstrap .container) ── */
+.page-landing .container {
+    max-width: 1200px;
+}
+
+/* ── Scrollbar: green on landing ── */
+.page-landing ::-webkit-scrollbar-thumb {
+    background: var(--brand);
+}
+.page-landing ::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-dark);
+}
+
+/* ── Share buttons: green on landing page ── */
+.page-landing .section-share-btn {
+    color: var(--brand);
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+/* ── Gallery privacy modal: green accents ── */
+.page-landing .gallery-privacy-header {
+    border-bottom-color: rgba(76, 175, 80, 0.15);
+}
+.page-landing .gallery-privacy-link {
+    color: var(--brand);
+}
+.page-landing .gallery-privacy-btn-accept {
+    background: var(--brand);
+}
+.page-landing .gallery-privacy-btn-accept:not(:disabled):hover {
+    background: var(--brand-dark);
+}
+
+/* ── Card image tops on landing: consistent radius ── */
+.page-landing .card-img-top {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+/* ── Mobile-first responsive tweaks ── */
+@media (max-width: 767px) {
+    .page-landing .hero-section:not(.with-banner-image) .hero-overlay {
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+    }
+
+    .page-landing .booking-card {
+        padding: 1.25rem;
+        border-radius: var(--radius-md);
+    }
+
+    .page-landing .booking-card .btn-success {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.95rem;
+    }
+
+    .page-landing .hero-trust-badge {
+        font-size: 0.77rem;
+    }
+}
+
+@media (max-width: 575px) {
+    .page-landing .section-title {
+        font-size: clamp(1.5rem, 5vw, 2rem);
+    }
+
+    .page-landing .booking-card {
+        padding: 1rem;
+    }
+}
+
+/* ── Override text-success → brand green on landing page ── */
+.page-landing .text-success {
+    color: var(--brand) !important;
+}
+
+.page-landing .border-success {
+    border-color: var(--brand) !important;
+}
+
+/* ── Gallery photo card hover border: green ── */
+.page-landing .photo-card:hover,
+.page-landing .gallery-item:hover {
+    border-color: rgba(76, 175, 80, 0.4) !important;
+}
+
+/* ── Venue image home placeholder: light ── */
+.page-landing .venue-image-home {
+    background-color: var(--brand-xlight);
+}
+
+/* ── Hall card selected: green ── */
+.page-landing .hall-card.selected {
+    border-color: var(--brand);
+    background-color: rgba(76, 175, 80, 0.03);
+}
+
+.page-landing .hall-card:hover {
+    border-color: var(--brand);
+}
+
+/* ── All btn-success on landing page: green brand ── */
+.page-landing .btn-success {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    border: none;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    font-family: var(--font-modern);
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.page-landing .btn-success:hover,
+.page-landing .btn-success:focus {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, #2E7D32 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+.page-landing .btn-success:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 8px rgba(76, 175, 80, 0.3);
+}
+
+/* ── Active city filter buttons: green filled ── */
+.page-landing .venue-city-btn.active {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
