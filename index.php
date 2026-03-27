@@ -204,21 +204,19 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                                 <label for="event_type" class="form-label">
                                     <i class="fas fa-star"></i> Event Type <span class="text-danger">*</span>
                                 </label>
-                                <input type="text" class="form-control form-control-sm" id="event_type" name="event_type"
-                                       list="eventTypeSuggestions"
-                                       placeholder="e.g., Wedding, Birthday, Corporate" required>
-                                <datalist id="eventTypeSuggestions">
-                                    <option value="Wedding">
-                                    <option value="Birthday">
-                                    <option value="Anniversary">
-                                    <option value="Corporate Event">
-                                    <option value="Engagement">
-                                    <option value="Reception">
-                                    <option value="Conference">
-                                    <option value="Cultural Program">
-                                    <option value="Other">
-                                </datalist>
-                                <div class="invalid-feedback">Please enter the event type.</div>
+                                <select class="form-select form-select-sm" id="event_type" name="event_type" required>
+                                    <option value="">— Select Event Type —</option>
+                                    <option value="Wedding">Wedding</option>
+                                    <option value="Birthday">Birthday</option>
+                                    <option value="Anniversary">Anniversary</option>
+                                    <option value="Corporate Event">Corporate Event</option>
+                                    <option value="Engagement">Engagement</option>
+                                    <option value="Reception">Reception</option>
+                                    <option value="Conference">Conference</option>
+                                    <option value="Cultural Program">Cultural Program</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <div class="invalid-feedback">Please select the event type.</div>
                             </div>
 
                             <button type="submit" class="btn btn-success w-100 py-3" style="font-size:1rem;letter-spacing:0.05em;">
