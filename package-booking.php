@@ -73,7 +73,13 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_booking'])) {
     $event_date  = trim($_POST['event_date']  ?? '');
     $guests      = intval($_POST['guests']     ?? 0);
-    $event_type  = trim($package['category_name'] ?? '');
+    $category_name = trim($package['category_name'] ?? '');
+    $pkg_name      = trim($package['name']          ?? '');
+    if (!empty($category_name) && !empty($pkg_name)) {
+        $event_type = $category_name . ' — ' . $pkg_name;
+    } else {
+        $event_type = !empty($category_name) ? $category_name : $pkg_name;
+    }
     $hall_id_sel = intval($_POST['hall_id']    ?? 0);
 
     // Basic validation
