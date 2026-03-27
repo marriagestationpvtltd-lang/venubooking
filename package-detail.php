@@ -195,6 +195,9 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                     <?php endif; ?>
 
                     <div class="d-flex flex-column flex-sm-row gap-2 mt-auto">
+                        <a href="<?php echo BASE_URL; ?>/package-booking.php?id=<?php echo (int)$package_id; ?>" class="btn btn-success flex-fill fw-semibold">
+                            <i class="fas fa-calendar-check me-2"></i>Book Now
+                        </a>
                         <?php
                         $wa_msg = "Hello, I would like to book this package:\n\nPackage: " . strip_tags($package['name']) . "\nPrice: " . strip_tags(formatCurrency($package['price']));
                         if (!empty($features)) {
@@ -304,7 +307,7 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 <style>
 .pkg-detail-img {
     width: 100%;
-    max-height: 420px;
+    max-height: 560px;
     object-fit: cover;
 }
 .pkg-detail-thumbs {
