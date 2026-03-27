@@ -5,9 +5,12 @@ $page_keywords    = 'testimonials, reviews, client feedback, venue reviews, Nepa
 require_once __DIR__ . '/includes/header.php';
 
 // Data
-$testimonial_images = getImagesBySection('testimonial');
-$office_whatsapp = getSetting('whatsapp_number', '');
+$testimonial_images  = getImagesBySection('testimonial');
+$user_reviews        = getApprovedUserReviews();
+$office_whatsapp     = getSetting('whatsapp_number', '');
 $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
+
+$has_content = !empty($testimonial_images) || !empty($user_reviews);
 ?>
 
 <!-- Page Hero -->
@@ -43,14 +46,11 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
     </div>
 </div>
 
+<?php if ($has_content): ?>
+<!-- Admin-uploaded testimonial images -->
 <?php if (!empty($testimonial_images)): ?>
-<!-- Testimonials Section -->
 <section class="testimonials-section py-5 bg-light" id="section-testimonials">
     <div class="container">
-        <?php
-        // Show all testimonials in a responsive grid instead of a carousel
-        // This is better for SEO as content is always visible
-        ?>
         <div class="row g-4 justify-content-center">
             <?php foreach ($testimonial_images as $testimonial): ?>
                 <div class="col-12 col-sm-6 col-md-4">
@@ -79,6 +79,43 @@ $clean_office_whatsapp = preg_replace('/[^0-9]/', '', $office_whatsapp);
         </div>
     </div>
 </section>
+<?php endif; ?>
+
+<!-- User-submitted reviews -->
+<?php if (!empty($user_reviews)): ?>
+<section class="py-5" id="section-user-reviews">
+    <div class="container">
+        <h2 class="h5 fw-bold mb-4 text-center">
+            <i class="fas fa-users text-success me-2"></i>What Our Clients Say
+        </h2>
+        <div class="row g-4 justify-content-center">
+            <?php foreach ($user_reviews as $review): ?>
+            <div class="col-12 col-sm-6 col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <!-- Stars -->
+                        <div class="mb-2" aria-label="<?php echo (int)$review['rating']; ?> stars">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="fas fa-star <?php echo $i <= (int)$review['rating'] ? 'text-warning' : 'text-muted opacity-25'; ?>" style="font-size:.85rem;"></i>
+                            <?php endfor; ?>
+                        </div>
+                        <!-- Quote -->
+                        <p class="mb-3" style="font-size:.95rem; color:#444;">
+                            <i class="fas fa-quote-left text-success me-1" style="opacity:.5;"></i><?php echo htmlspecialchars($review['review_text'], ENT_QUOTES, 'UTF-8'); ?>
+                        </p>
+                        <!-- Name -->
+                        <p class="mb-0 fw-semibold small text-muted">
+                            — <?php echo htmlspecialchars($review['reviewer_name'], ENT_QUOTES, 'UTF-8'); ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 <?php else: ?>
 <div class="container py-5 text-center">
     <i class="fas fa-quote-left fa-3x text-muted mb-3"></i>

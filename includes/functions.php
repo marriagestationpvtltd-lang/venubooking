@@ -3733,15 +3733,31 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                 <?php endif; ?>
                 
                 <?php if ($recipient === 'user' && $type === 'paid'): ?>
+                <?php
+                    $review_token = generateReviewToken($booking['id']);
+                    $review_url   = $review_token
+                        ? BASE_URL . '/write-review.php?token=' . urlencode($review_token)
+                        : '';
+                ?>
                 <div class="booking-details" style="background-color: #f0f9f0; border-left: 4px solid #4CAF50; padding: 20px; margin-top: 20px;">
                     <div class="section-title">Share Your Experience ⭐</div>
                     <p>We would greatly appreciate it if you could take a moment to write a review about your experience with us. Your honest feedback not only helps us improve our services but also helps other families make informed decisions for their special occasions.</p>
+                    <?php if (!empty($review_url)): ?>
                     <p style="text-align: center; margin: 15px 0;">
-                        <a href="<?php echo htmlspecialchars($google_review_link); ?>" 
+                        <a href="<?php echo htmlspecialchars($review_url, ENT_QUOTES, 'UTF-8'); ?>"
                            style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                            ⭐ Write a Google Review
+                            ✍️ Write Your Review
                         </a>
                     </p>
+                    <?php endif; ?>
+                    <?php if (!empty($google_review_link)): ?>
+                    <p style="text-align: center; margin: 10px 0;">
+                        <a href="<?php echo htmlspecialchars($google_review_link); ?>"
+                           style="display: inline-block; background-color: #ffffff; color: #4CAF50; border: 2px solid #4CAF50; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">
+                            ⭐ Also Write a Google Review
+                        </a>
+                    </p>
+                    <?php endif; ?>
                     <p style="font-size: 13px; color: #555; text-align: center;">It only takes a minute and means the world to our entire team.</p>
                 </div>
                 <?php endif; ?>
@@ -5453,5 +5469,212 @@ function getPolicyPagesRequiringAcceptance(): array
     } catch (\Throwable $e) {
         error_log('getPolicyPagesRequiringAcceptance error: ' . $e->getMessage());
         return [];
+    }
+}
+
+// ============================================================
+//  User Review Functions
+// ============================================================
+
+/**
+ * Generate (or retrieve existing) a review token for a booking.
+ * Returns the token string, or false on failure.
+ *
+ * @param int $booking_id
+ * @return string|false
+ */
+function generateReviewToken($booking_id) {
+    try {
+        $db = getDB();
+        // Return existing unused token if present
+        $stmt = $db->prepare(
+            "SELECT token FROM user_reviews WHERE booking_id = ? AND submitted = 0 LIMIT 1"
+        );
+        $stmt->execute([intval($booking_id)]);
+        $row = $stmt->fetch();
+        if ($row) {
+            return $row['token'];
+        }
+        // Create a new token
+        $token = bin2hex(random_bytes(32));
+        $ins = $db->prepare(
+            "INSERT INTO user_reviews (booking_id, token) VALUES (?, ?)"
+        );
+        $ins->execute([intval($booking_id), $token]);
+        return $token;
+    } catch (\Throwable $e) {
+        error_log('generateReviewToken error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Look up a review row by token.
+ * Returns the row array (joined with bookings) or false if not found.
+ *
+ * @param string $token
+ * @return array|false
+ */
+function getReviewByToken($token) {
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare(
+            "SELECT ur.*,
+                    b.full_name      AS booking_name,
+                    b.email          AS booking_email,
+                    b.event_type     AS booking_event_type,
+                    b.event_date     AS booking_event_date,
+                    b.booking_number AS booking_number
+             FROM user_reviews ur
+             LEFT JOIN bookings b ON ur.booking_id = b.id
+             WHERE ur.token = ?
+             LIMIT 1"
+        );
+        $stmt->execute([$token]);
+        return $stmt->fetch();
+    } catch (\Throwable $e) {
+        error_log('getReviewByToken error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Submit a review using a token.
+ * Fills in reviewer details and marks the row as submitted (status = 'pending').
+ * Returns true on success, false on failure or if token already used.
+ *
+ * @param string $token
+ * @param string $name
+ * @param string $email
+ * @param int    $rating  1–5
+ * @param string $text
+ * @return bool
+ */
+function submitUserReview($token, $name, $email, $rating, $text) {
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare(
+            "UPDATE user_reviews
+             SET reviewer_name  = ?,
+                 reviewer_email = ?,
+                 rating         = ?,
+                 review_text    = ?,
+                 submitted      = 1,
+                 status         = 'pending',
+                 updated_at     = NOW()
+             WHERE token = ? AND submitted = 0"
+        );
+        $stmt->execute([
+            substr(trim($name), 0, 255),
+            substr(trim($email), 0, 255),
+            max(1, min(5, intval($rating))),
+            trim($text),
+            $token,
+        ]);
+        return $stmt->rowCount() > 0;
+    } catch (\Throwable $e) {
+        error_log('submitUserReview error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get all approved (publicly visible) user reviews.
+ *
+ * @param int|null $limit
+ * @return array
+ */
+function getApprovedUserReviews($limit = null) {
+    try {
+        $db  = getDB();
+        $sql = "SELECT * FROM user_reviews
+                WHERE submitted = 1 AND status = 'approved'
+                ORDER BY updated_at DESC";
+        if ($limit !== null) {
+            $sql .= ' LIMIT ' . intval($limit);
+        }
+        $stmt = $db->query($sql);
+        return $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('getApprovedUserReviews error: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get all submitted reviews (admin moderation list).
+ *
+ * @return array
+ */
+function getAllSubmittedReviews() {
+    try {
+        $db   = getDB();
+        $stmt = $db->query(
+            "SELECT ur.*,
+                    b.booking_number,
+                    b.event_type  AS booking_event_type,
+                    b.event_date  AS booking_event_date,
+                    b.full_name   AS booking_name
+             FROM user_reviews ur
+             LEFT JOIN bookings b ON ur.booking_id = b.id
+             WHERE ur.submitted = 1
+             ORDER BY ur.created_at DESC"
+        );
+        return $stmt->fetchAll();
+    } catch (\Throwable $e) {
+        error_log('getAllSubmittedReviews error: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Update the moderation status of a review.
+ *
+ * @param int    $id
+ * @param string $status   'pending'|'approved'|'rejected'
+ * @param string $admin_note
+ * @return bool
+ */
+function updateReviewStatus($id, $status, $admin_note = '') {
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare(
+            "UPDATE user_reviews
+             SET status = ?, admin_note = ?, updated_at = NOW()
+             WHERE id = ?"
+        );
+        $stmt->execute([$status, $admin_note, intval($id)]);
+        return $stmt->rowCount() > 0;
+    } catch (\Throwable $e) {
+        error_log('updateReviewStatus error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get a single review row by id (for admin views).
+ *
+ * @param int $id
+ * @return array|false
+ */
+function getReviewById($id) {
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare(
+            "SELECT ur.*,
+                    b.booking_number,
+                    b.event_type AS booking_event_type,
+                    b.event_date AS booking_event_date,
+                    b.full_name  AS booking_name
+             FROM user_reviews ur
+             LEFT JOIN bookings b ON ur.booking_id = b.id
+             WHERE ur.id = ?
+             LIMIT 1"
+        );
+        $stmt->execute([intval($id)]);
+        return $stmt->fetch();
+    } catch (\Throwable $e) {
+        error_log('getReviewById error: ' . $e->getMessage());
+        return false;
     }
 }

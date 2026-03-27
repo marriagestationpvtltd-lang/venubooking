@@ -1208,6 +1208,10 @@ if (!empty($_conf_contact_phone)) {
 
 // Build thank you WhatsApp message (shown after payment is fully paid)
 $google_review_link = getSetting('google_review_link') ?: 'https://g.page/r/CXn4LyBY3iY7EBM/review';
+$review_token_wa    = generateReviewToken($booking['id']);
+$review_url_wa      = $review_token_wa
+    ? BASE_URL . '/write-review.php?token=' . urlencode($review_token_wa)
+    : '';
 $thankyou_text  = "🎉 *Thank You – " . strip_tags($booking['full_name']) . "!*\n\n";
 $thankyou_text .= "We hope your *" . strip_tags($booking['event_type']) . "* on ";
 if (!empty($booking['event_date'])) {
@@ -1220,8 +1224,12 @@ if (!empty($booking['event_date'])) {
 }
 $thankyou_text .= " was wonderful and memorable.\n\n";
 $thankyou_text .= "It was truly a pleasure serving you at *" . strip_tags($booking['venue_name']) . "*.\n\n";
+if (!empty($review_url_wa)) {
+    $thankyou_text .= "✍️ We would love to hear about your experience. Please share your review:\n";
+    $thankyou_text .= $review_url_wa . "\n\n";
+}
 if (!empty($google_review_link)) {
-    $thankyou_text .= "⭐ We would greatly appreciate your feedback. Please take a moment to leave us a review:\n";
+    $thankyou_text .= "⭐ You can also leave us a Google review:\n";
     $thankyou_text .= $google_review_link . "\n\n";
     $thankyou_text .= "Your kind words help us serve future clients better.\n\n";
 }
@@ -1428,12 +1436,24 @@ unset($_avail_svc);
                                     <form method="POST" action="" id="thankyouWhatsappForm">
                                         <input type="hidden" name="action" value="send_thankyou_whatsapp">
                                         <button type="submit" class="btn btn-success btn-sm w-100" <?php echo empty($booking['phone']) ? 'disabled' : ''; ?>>
-                                            <i class="fab fa-whatsapp me-1"></i> 🙏 Thank You + Google Review
+                                            <i class="fab fa-whatsapp me-1"></i> 🙏 Thank You + Review Request
                                         </button>
                                     </form>
                                 </div>
+                                <?php if (!empty($review_url_wa)): ?>
+                                <div class="mt-2">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-link me-1"></i> Customer Review Link:</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control form-control-sm" id="review-link-input"
+                                               value="<?php echo htmlspecialchars($review_url_wa, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" id="copyReviewLinkBtn" title="Copy link">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                                 <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-star text-warning me-1"></i> Sends thank you message with Google review link
+                                    <i class="fas fa-star text-warning me-1"></i> Sends thank you message with booking-specific review link
                                 </small>
                                 <?php if (empty($booking['phone'])): ?>
                                     <small class="text-danger d-block mt-1">
@@ -4189,6 +4209,26 @@ unset($_avail_svc);
             setTimeout(function() {
                 thankyouWhatsappForm.submit();
             }, WHATSAPP_REDIRECT_DELAY);
+        });
+    }
+
+    // Handle copy review link button
+    const copyReviewLinkBtn = document.getElementById('copyReviewLinkBtn');
+    if (copyReviewLinkBtn) {
+        copyReviewLinkBtn.addEventListener('click', function() {
+            const input = document.getElementById('review-link-input');
+            if (input) {
+                navigator.clipboard.writeText(input.value).then(function() {
+                    const icon = copyReviewLinkBtn.querySelector('i');
+                    if (icon) { icon.className = 'fas fa-check'; }
+                    setTimeout(function() {
+                        if (icon) { icon.className = 'fas fa-copy'; }
+                    }, 2000);
+                }).catch(function() {
+                    input.select();
+                    document.execCommand('copy');
+                });
+            }
         });
     }
 
