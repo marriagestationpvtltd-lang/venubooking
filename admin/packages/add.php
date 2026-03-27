@@ -16,6 +16,34 @@ $preselect_cat = isset($_GET['category_id']) ? intval($_GET['category_id']) : 0;
 // Load all active services for the features checkboxes
 $all_services = getActiveServices();
 
+// Load all active halls grouped by venue (for venue assignment)
+$halls_by_venue = [];
+try {
+    $hstmt = $db->query(
+        "SELECT h.id AS hall_id, h.name AS hall_name, h.base_price,
+                v.id AS venue_id, v.name AS venue_name
+         FROM halls h
+         INNER JOIN venues v ON v.id = h.venue_id
+         WHERE h.status = 'active' AND v.status = 'active'
+         ORDER BY v.name, h.name"
+    );
+    foreach ($hstmt->fetchAll() as $row) {
+        $halls_by_venue[$row['venue_id']]['venue_name'] = $row['venue_name'];
+        $halls_by_venue[$row['venue_id']]['halls'][]    = $row;
+    }
+} catch (\Throwable $e) {
+    error_log('packages/add.php: failed to load halls — ' . $e->getMessage());
+}
+
+// Load all active menus
+$all_menus = [];
+try {
+    $mstmt = $db->query("SELECT id, name, price_per_person FROM menus WHERE status = 'active' ORDER BY name");
+    $all_menus = $mstmt->fetchAll();
+} catch (\Throwable $e) {
+    error_log('packages/add.php: failed to load menus — ' . $e->getMessage());
+}
+
 // Batch-load all active designs for those services (keyed by service_id)
 $designs_by_service = [];
 if (!empty($all_services)) {
@@ -49,6 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Features: array of service IDs chosen from the checkbox list
     $features_raw = $_POST['features'] ?? [];
     $features     = array_values(array_filter(array_map('intval', $features_raw)));
+    // Venue/hall associations
+    $hall_ids_raw = $_POST['package_hall_ids'] ?? [];
+    $hall_ids     = array_values(array_filter(array_map('intval', $hall_ids_raw)));
+    // Menu associations
+    $menu_ids_raw = $_POST['package_menu_ids'] ?? [];
+    $menu_ids     = array_values(array_filter(array_map('intval', $menu_ids_raw)));
 
     if (empty($name) || $category_id <= 0 || $price < 0) {
         $error_message = 'Please fill in all required fields correctly.';
@@ -112,6 +146,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 foreach ($uploaded_photos as $i => $photo_path) {
                     $photo_stmt->execute([$package_id, $photo_path, $i + 1]);
+                }
+
+                // Insert venue/hall associations
+                if (!empty($hall_ids)) {
+                    try {
+                        $pv_stmt = $db->prepare(
+                            "INSERT IGNORE INTO package_venues (package_id, hall_id) VALUES (?, ?)"
+                        );
+                        foreach ($hall_ids as $hid) {
+                            $pv_stmt->execute([$package_id, $hid]);
+                        }
+                    } catch (\Throwable $pvErr) {
+                        error_log("add package: package_venues INSERT failed: " . $pvErr->getMessage());
+                    }
+                }
+
+                // Insert menu associations
+                if (!empty($menu_ids)) {
+                    try {
+                        $pm_stmt = $db->prepare(
+                            "INSERT IGNORE INTO package_menus (package_id, menu_id) VALUES (?, ?)"
+                        );
+                        foreach ($menu_ids as $mid) {
+                            $pm_stmt->execute([$package_id, $mid]);
+                        }
+                    } catch (\Throwable $pmErr) {
+                        error_log("add package: package_menus INSERT failed: " . $pmErr->getMessage());
+                    }
                 }
 
                 $db->commit();
@@ -306,6 +368,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="form-label">Package Photos</label>
                         <input type="file" class="form-control" name="photos[]" accept="image/*" multiple>
                         <small class="text-muted">You can select multiple photos (JPG, PNG, GIF, WebP; max 5MB each).</small>
+                    </div>
+
+                    <!-- Venue / Hall Assignment -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-building text-success me-1"></i> Available Venues &amp; Halls</label>
+                        <p class="text-muted small mb-2">Select the halls where this package is available. When a user books this package they will choose from these halls (or the package will apply to any hall if none are selected).</p>
+                        <?php
+                        $selected_hall_ids_post = array_flip(array_map('intval', $_POST['package_hall_ids'] ?? []));
+                        if (!empty($halls_by_venue)):
+                        ?>
+                        <div style="max-height:280px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                            <?php foreach ($halls_by_venue as $vid => $venueData): ?>
+                            <div class="mb-2">
+                                <div class="fw-semibold text-secondary small text-uppercase px-1 mb-1"
+                                     style="letter-spacing:.04em;">
+                                    <i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($venueData['venue_name']); ?>
+                                </div>
+                                <?php foreach ($venueData['halls'] as $hall): ?>
+                                <div class="form-check ms-3 mb-1">
+                                    <input class="form-check-input" type="checkbox" name="package_hall_ids[]"
+                                           id="hall_<?php echo (int)$hall['hall_id']; ?>"
+                                           value="<?php echo (int)$hall['hall_id']; ?>"
+                                           <?php echo isset($selected_hall_ids_post[(int)$hall['hall_id']]) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="hall_<?php echo (int)$hall['hall_id']; ?>">
+                                        <?php echo htmlspecialchars($hall['hall_name']); ?>
+                                        <span class="text-muted small ms-1">(<?php echo formatCurrency($hall['base_price']); ?>)</span>
+                                    </label>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-warning py-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No active halls found. <a href="../venues/index.php" class="alert-link">Add venues &amp; halls first.</a>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Menu Assignment -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-utensils text-success me-1"></i> Included Menus</label>
+                        <p class="text-muted small mb-2">Select menus that are included in this package. Customers booking via this package will have these menus pre-selected.</p>
+                        <?php
+                        $selected_menu_ids_post = array_flip(array_map('intval', $_POST['package_menu_ids'] ?? []));
+                        if (!empty($all_menus)):
+                        ?>
+                        <div style="max-height:220px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                            <?php foreach ($all_menus as $menu): ?>
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="package_menu_ids[]"
+                                       id="menu_<?php echo (int)$menu['id']; ?>"
+                                       value="<?php echo (int)$menu['id']; ?>"
+                                       <?php echo isset($selected_menu_ids_post[(int)$menu['id']]) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="menu_<?php echo (int)$menu['id']; ?>">
+                                    <?php echo htmlspecialchars($menu['name']); ?>
+                                    <span class="text-muted small ms-1">(<?php echo formatCurrency($menu['price_per_person']); ?>/person)</span>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-warning py-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No active menus found. <a href="../menus/index.php" class="alert-link">Add menus first.</a>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="d-flex justify-content-between">

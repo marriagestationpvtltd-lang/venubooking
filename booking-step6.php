@@ -458,6 +458,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
 
 $page_title = 'Complete Your Booking';
 require_once __DIR__ . '/includes/header.php';
+$is_package_booking = !empty($booking_data['is_package_booking']);
 ?>
 
 <!-- Booking Progress -->
@@ -466,6 +467,16 @@ require_once __DIR__ . '/includes/header.php';
         <div class="row">
             <div class="col">
                 <div class="progress-steps">
+                    <?php if ($is_package_booking): ?>
+                    <div class="step completed">
+                        <span class="step-number">1</span>
+                        <span class="step-label">Package Details</span>
+                    </div>
+                    <div class="step active">
+                        <span class="step-number">2</span>
+                        <span class="step-label">Confirm</span>
+                    </div>
+                    <?php else: ?>
                     <div class="step completed">
                         <span class="step-number">1</span>
                         <span class="step-label">Details</span>
@@ -490,6 +501,7 @@ require_once __DIR__ . '/includes/header.php';
                         <span class="step-number">6</span>
                         <span class="step-label">Confirm</span>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -814,9 +826,15 @@ require_once __DIR__ . '/includes/header.php';
                     <!-- Back Button for Step 1 (Initially Visible) -->
                     <div class="row" id="initial_back_button">
                         <div class="col-12">
+                            <?php if ($is_package_booking): ?>
+                            <a href="packages.php" class="btn btn-outline-secondary btn-lg w-100">
+                                <i class="fas fa-arrow-left"></i> Back to Packages
+                            </a>
+                            <?php else: ?>
                             <a href="booking-step5.php" class="btn btn-outline-secondary btn-lg w-100">
                                 <i class="fas fa-arrow-left"></i> Back to Services
                             </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </form>

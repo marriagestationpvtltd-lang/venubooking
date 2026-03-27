@@ -505,6 +505,10 @@ if (!empty($service_categories)) {
                                 }
                                 ?>
                                 <div class="mt-auto pt-2">
+                                    <a href="<?php echo BASE_URL; ?>/package-booking.php?id=<?php echo (int)$pkg['id']; ?>"
+                                       class="btn btn-success w-100 mb-2">
+                                        <i class="fas fa-calendar-check me-1"></i> Book Now
+                                    </a>
                                     <?php if (!empty($pkg_wa_url)): ?>
                                         <a href="<?php echo htmlspecialchars($pkg_wa_url, ENT_QUOTES, 'UTF-8'); ?>"
                                            target="_blank" rel="noopener noreferrer"

@@ -210,6 +210,10 @@ if (!empty($service_categories)) {
                                 }
                                 ?>
                                 <div class="mt-auto pt-2">
+                                    <a href="<?php echo BASE_URL; ?>/package-booking.php?id=<?php echo (int)$pkg['id']; ?>"
+                                       class="btn btn-success w-100 mb-2">
+                                        <i class="fas fa-calendar-check me-1"></i> Book Now
+                                    </a>
                                     <a href="<?php echo BASE_URL; ?>/package-detail.php?id=<?php echo (int)$pkg['id']; ?>"
                                        class="btn btn-outline-success w-100 mb-2">
                                         <i class="fas fa-eye me-1"></i> भ्युअल

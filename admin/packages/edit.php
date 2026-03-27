@@ -86,6 +86,55 @@ try {
     // table may not exist yet; silently continue
 }
 
+// Load all active halls grouped by venue (for venue assignment)
+$halls_by_venue = [];
+try {
+    $hstmt = $db->query(
+        "SELECT h.id AS hall_id, h.name AS hall_name, h.base_price,
+                v.id AS venue_id, v.name AS venue_name
+         FROM halls h
+         INNER JOIN venues v ON v.id = h.venue_id
+         WHERE h.status = 'active' AND v.status = 'active'
+         ORDER BY v.name, h.name"
+    );
+    foreach ($hstmt->fetchAll() as $row) {
+        $halls_by_venue[$row['venue_id']]['venue_name'] = $row['venue_name'];
+        $halls_by_venue[$row['venue_id']]['halls'][]    = $row;
+    }
+} catch (\Throwable $e) {
+    error_log('packages/edit.php: failed to load halls — ' . $e->getMessage());
+}
+
+// Load all active menus
+$all_menus = [];
+try {
+    $mstmt = $db->query("SELECT id, name, price_per_person FROM menus WHERE status = 'active' ORDER BY name");
+    $all_menus = $mstmt->fetchAll();
+} catch (\Throwable $e) {
+    error_log('packages/edit.php: failed to load menus — ' . $e->getMessage());
+}
+
+// Load existing venue/hall associations for this package
+$existing_hall_ids = [];
+try {
+    $pvload = $db->prepare("SELECT hall_id FROM package_venues WHERE package_id = ?");
+    $pvload->execute([$package_id]);
+    $existing_hall_ids = $pvload->fetchAll(PDO::FETCH_COLUMN);
+} catch (\Throwable $e) {
+    // Table may not exist yet on older installs
+    error_log('packages/edit.php: failed to load package_venues — ' . $e->getMessage());
+}
+
+// Load existing menu associations for this package
+$existing_menu_ids = [];
+try {
+    $pmload = $db->prepare("SELECT menu_id FROM package_menus WHERE package_id = ?");
+    $pmload->execute([$package_id]);
+    $existing_menu_ids = $pmload->fetchAll(PDO::FETCH_COLUMN);
+} catch (\Throwable $e) {
+    error_log('packages/edit.php: failed to load package_menus — ' . $e->getMessage());
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name          = trim($_POST['name'] ?? '');
     $category_id   = intval($_POST['category_id'] ?? 0);
@@ -95,6 +144,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status        = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
     $features_raw  = $_POST['features'] ?? [];
     $features      = array_values(array_filter(array_map('intval', $features_raw)));
+    // Venue/hall and menu associations
+    $hall_ids = array_values(array_filter(array_map('intval', $_POST['package_hall_ids'] ?? [])));
+    $menu_ids = array_values(array_filter(array_map('intval', $_POST['package_menu_ids'] ?? [])));
     // Photos to delete
     $delete_photo_ids = array_map('intval', $_POST['delete_photos'] ?? []);
 
@@ -174,6 +226,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $photo_ins->execute([$package_id, $photo_path, $i + 1]);
                 }
 
+                // Update venue/hall associations: replace all
+                try {
+                    $db->prepare("DELETE FROM package_venues WHERE package_id = ?")->execute([$package_id]);
+                    if (!empty($hall_ids)) {
+                        $pv_ins = $db->prepare(
+                            "INSERT IGNORE INTO package_venues (package_id, hall_id) VALUES (?, ?)"
+                        );
+                        foreach ($hall_ids as $hid) {
+                            $pv_ins->execute([$package_id, $hid]);
+                        }
+                    }
+                } catch (\Throwable $pvErr) {
+                    error_log("edit package: package_venues update failed: " . $pvErr->getMessage());
+                }
+
+                // Update menu associations: replace all
+                try {
+                    $db->prepare("DELETE FROM package_menus WHERE package_id = ?")->execute([$package_id]);
+                    if (!empty($menu_ids)) {
+                        $pm_ins = $db->prepare(
+                            "INSERT IGNORE INTO package_menus (package_id, menu_id) VALUES (?, ?)"
+                        );
+                        foreach ($menu_ids as $mid) {
+                            $pm_ins->execute([$package_id, $mid]);
+                        }
+                    }
+                } catch (\Throwable $pmErr) {
+                    error_log("edit package: package_menus update failed: " . $pmErr->getMessage());
+                }
+
                 $db->commit();
 
                 logActivity($current_user['id'], 'Updated service package', 'service_packages', $package_id, "Updated package: $name");
@@ -207,6 +289,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $existing_photos = $photo_load_stmt->fetchAll();
                     } catch (Exception $ePh) { /* ignore */ }
                 }
+                // Refresh hall/menu associations
+                try {
+                    $pvr = $db->prepare("SELECT hall_id FROM package_venues WHERE package_id = ?");
+                    $pvr->execute([$package_id]);
+                    $existing_hall_ids = $pvr->fetchAll(PDO::FETCH_COLUMN);
+                } catch (\Throwable $e) { /* ignore */ }
+                try {
+                    $pmr = $db->prepare("SELECT menu_id FROM package_menus WHERE package_id = ?");
+                    $pmr->execute([$package_id]);
+                    $existing_menu_ids = $pmr->fetchAll(PDO::FETCH_COLUMN);
+                } catch (\Throwable $e) { /* ignore */ }
             } catch (Exception $e) {
                 $db->rollBack();
                 foreach ($uploaded_photos as $f) { deleteUploadedFile($f); }
@@ -433,6 +526,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message) {
                         <?php endif; ?>
                         <input type="file" class="form-control" name="photos[]" accept="image/*" multiple>
                         <small class="text-muted">Upload additional photos (JPG, PNG, GIF, WebP; max 5MB each).</small>
+                    </div>
+
+                    <!-- Venue / Hall Assignment -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-building text-success me-1"></i> Available Venues &amp; Halls</label>
+                        <p class="text-muted small mb-2">Select the halls where this package is available. When a user books this package they will choose from these halls (or the package will apply to any hall if none are selected).</p>
+                        <?php
+                        $sel_hall_ids = ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message)
+                            ? array_flip(array_map('intval', $_POST['package_hall_ids'] ?? []))
+                            : array_flip(array_map('intval', $existing_hall_ids));
+                        if (!empty($halls_by_venue)):
+                        ?>
+                        <div style="max-height:280px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                            <?php foreach ($halls_by_venue as $vid => $venueData): ?>
+                            <div class="mb-2">
+                                <div class="fw-semibold text-secondary small text-uppercase px-1 mb-1"
+                                     style="letter-spacing:.04em;">
+                                    <i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($venueData['venue_name']); ?>
+                                </div>
+                                <?php foreach ($venueData['halls'] as $hall): ?>
+                                <div class="form-check ms-3 mb-1">
+                                    <input class="form-check-input" type="checkbox" name="package_hall_ids[]"
+                                           id="hall_<?php echo (int)$hall['hall_id']; ?>"
+                                           value="<?php echo (int)$hall['hall_id']; ?>"
+                                           <?php echo isset($sel_hall_ids[(int)$hall['hall_id']]) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="hall_<?php echo (int)$hall['hall_id']; ?>">
+                                        <?php echo htmlspecialchars($hall['hall_name']); ?>
+                                        <span class="text-muted small ms-1">(<?php echo formatCurrency($hall['base_price']); ?>)</span>
+                                    </label>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-warning py-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No active halls found. <a href="../venues/index.php" class="alert-link">Add venues &amp; halls first.</a>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Menu Assignment -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-utensils text-success me-1"></i> Included Menus</label>
+                        <p class="text-muted small mb-2">Select menus that are included in this package. Customers booking via this package will have these menus pre-selected.</p>
+                        <?php
+                        $sel_menu_ids = ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message)
+                            ? array_flip(array_map('intval', $_POST['package_menu_ids'] ?? []))
+                            : array_flip(array_map('intval', $existing_menu_ids));
+                        if (!empty($all_menus)):
+                        ?>
+                        <div style="max-height:220px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                            <?php foreach ($all_menus as $menu): ?>
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="package_menu_ids[]"
+                                       id="menu_<?php echo (int)$menu['id']; ?>"
+                                       value="<?php echo (int)$menu['id']; ?>"
+                                       <?php echo isset($sel_menu_ids[(int)$menu['id']]) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="menu_<?php echo (int)$menu['id']; ?>">
+                                    <?php echo htmlspecialchars($menu['name']); ?>
+                                    <span class="text-muted small ms-1">(<?php echo formatCurrency($menu['price_per_person']); ?>/person)</span>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-warning py-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No active menus found. <a href="../menus/index.php" class="alert-link">Add menus first.</a>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="d-flex justify-content-between">
