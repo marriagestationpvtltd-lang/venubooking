@@ -385,8 +385,12 @@ require_once __DIR__ . '/includes/header.php';
     'use strict';
     var form = document.querySelector('form[method="POST"]');
     if (form) {
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (e) {
             form.classList.add('was-validated');
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
         });
     }
 })();
