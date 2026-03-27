@@ -398,7 +398,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <select class="form-select" id="event_type" name="event_type" required>
                                     <option value="">Choose event type...</option>
                                     <?php
-                                    $selected_event_type = $_POST['event_type'] ?? '';
+                                    $selected_event_type = $_POST['event_type'] ?? ($package['category_name'] ?? '');
                                     $event_types = ['Wedding', 'Birthday Party', 'Corporate Event', 'Anniversary', 'Other Events'];
                                     foreach ($event_types as $etype):
                                     ?>
@@ -503,8 +503,8 @@ require_once __DIR__ . '/includes/header.php';
             <div class="modal-body">
                 <p class="text-muted mb-3">
                     <i class="fas fa-info-circle me-1"></i>
-                    Select one or more available time slots for your event on <strong id="pkgTsModalDate"></strong>.
-                    You can pick multiple consecutive slots — the booking will span from the earliest start to the latest end time.
+                    Select one available time slot for your event on <strong id="pkgTsModalDate"></strong>.
+                    Only a single time slot can be selected.
                     Slots already booked are shown as unavailable.
                 </p>
                 <div id="pkgTimeSlotsContainer">
@@ -565,6 +565,7 @@ $extra_js = '<script src="' . BASE_URL . '/js/booking-flow.js"></script>
     var _pkgHallId        = 0;
     var _pkgCurrentDate   = \'\';
     var _pkgHasSlotsConf  = false; // true once slots are loaded and there is ≥1 slot
+    var _pkgInitialized   = false; // true after initial page setup; guards auto-open
 
     // ── Helpers ───────────────────────────────────────────────────────────
     function escapeHtml(text) {
@@ -634,6 +635,10 @@ $extra_js = '<script src="' . BASE_URL . '/js/booking-flow.js"></script>
                 clearPkgSlotSelection();
                 _pkgHallId      = hallId;
                 _pkgCurrentDate = date;
+                // Auto-open the time slot modal when the user selects or changes a hall/date
+                if (_pkgInitialized) {
+                    openPkgTimeSlotsModal();
+                }
             }
         } else {
             section.style.display = \'none\';
@@ -761,6 +766,7 @@ $extra_js = '<script src="' . BASE_URL . '/js/booking-flow.js"></script>
                 var badge = this.querySelector(\'.slot-status-badge\');
 
                 if (existingIdx >= 0) {
+                    // Deselect this slot
                     _pkgSlots.splice(existingIdx, 1);
                     this.classList.remove(\'selected-slot\', \'border-warning\', \'shadow\');
                     this.classList.add(\'border-success\');
@@ -769,12 +775,22 @@ $extra_js = '<script src="' . BASE_URL . '/js/booking-flow.js"></script>
                         badge.innerHTML = \'<i class="fas fa-check-circle me-1"></i>Available\';
                     }
                 } else {
-                    _pkgSlots.push({
+                    // Single selection: deselect any previously selected slot first
+                    container.querySelectorAll(\'.time-slot-card.selected-slot\').forEach(function(otherCard) {
+                        otherCard.classList.remove(\'selected-slot\', \'border-warning\', \'shadow\');
+                        otherCard.classList.add(\'border-success\');
+                        var otherBadge = otherCard.querySelector(\'.slot-status-badge\');
+                        if (otherBadge) {
+                            otherBadge.className = \'badge bg-success slot-status-badge\';
+                            otherBadge.innerHTML = \'<i class="fas fa-check-circle me-1"></i>Available\';
+                        }
+                    });
+                    _pkgSlots = [{
                         id:    slotId,
                         name:  this.getAttribute(\'data-slot-name\'),
                         start: this.getAttribute(\'data-start\'),
                         end:   this.getAttribute(\'data-end\'),
-                    });
+                    }];
                     this.classList.add(\'selected-slot\', \'border-warning\', \'shadow\');
                     this.classList.remove(\'border-success\');
                     if (badge) {
@@ -840,6 +856,8 @@ $extra_js = '<script src="' . BASE_URL . '/js/booking-flow.js"></script>
 
         // Initial visibility (single-hall case: hall_id already set)
         updateTimeSlotSectionVisibility();
+        // Mark page as initialized so subsequent hall/date changes trigger auto-open
+        _pkgInitialized = true;
 
         // Open modal button (initial render; also re-wired after clearPkgSlotSelection)
         var openBtn = document.getElementById(\'pkgOpenSlotsBtn\');
