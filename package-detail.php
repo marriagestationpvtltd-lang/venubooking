@@ -9,6 +9,8 @@ $package_id = $package_id ?: 0;
 $package    = null;
 $features   = [];
 $photos     = [];
+$pkg_menus  = [];   // menus associated with this package
+$pkg_halls  = [];   // halls/venues associated with this package
 
 if ($package_id > 0) {
     $db = getDB();
@@ -63,6 +65,54 @@ if ($package_id > 0) {
                 }
             } catch (Exception $e) {
                 // table may not exist yet; silently skip
+            }
+
+            // Load menus associated with this package
+            try {
+                $pm_stmt = $db->prepare(
+                    "SELECT m.id, m.name, m.description, m.price_per_person, m.image
+                     FROM package_menus pm
+                     INNER JOIN menus m ON m.id = pm.menu_id AND m.status = 'active'
+                     WHERE pm.package_id = ?
+                     ORDER BY m.name"
+                );
+                $pm_stmt->execute([$package_id]);
+                $raw_menus = $pm_stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($raw_menus as $idx => $pmenu) {
+                    // Load legacy flat items
+                    $mi_stmt = $db->prepare(
+                        "SELECT item_name, category FROM menu_items
+                         WHERE menu_id = ? ORDER BY display_order, category, id"
+                    );
+                    $mi_stmt->execute([$pmenu['id']]);
+                    $raw_menus[$idx]['items'] = $mi_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Load structured sections → groups → items (getMenuStructure is defined in includes/functions.php)
+                    $raw_menus[$idx]['sections'] = getMenuStructure($pmenu['id']);
+                }
+                $pkg_menus = $raw_menus;
+            } catch (Exception $e) {
+                error_log('package-detail.php menu load error (package_id=' . $package_id . '): ' . $e->getMessage());
+                $pkg_menus = [];
+            }
+
+            // Load halls/venues associated with this package
+            try {
+                $pv_stmt = $db->prepare(
+                    "SELECT h.id AS hall_id, h.name AS hall_name, h.capacity,
+                            h.indoor_outdoor, h.base_price AS hall_price,
+                            v.id AS venue_id, v.name AS venue_name, v.location
+                     FROM package_venues pv
+                     INNER JOIN halls h ON h.id = pv.hall_id AND h.status = 'active'
+                     INNER JOIN venues v ON v.id = h.venue_id AND v.status = 'active'
+                     WHERE pv.package_id = ?
+                     ORDER BY v.name, h.name"
+                );
+                $pv_stmt->execute([$package_id]);
+                $pkg_halls = $pv_stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                error_log('package-detail.php venue load error (package_id=' . $package_id . '): ' . $e->getMessage());
+                $pkg_halls = [];
             }
         }
     } catch (Exception $e) {
@@ -194,6 +244,48 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                     </div>
                     <?php endif; ?>
 
+                    <?php if (!empty($pkg_menus)): ?>
+                    <h5 class="fw-semibold mb-3 mt-2"><i class="fas fa-utensils me-2 text-success"></i>Included Menus</h5>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <?php foreach ($pkg_menus as $pm): ?>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
+                            <i class="fas fa-concierge-bell me-1"></i><?php echo htmlspecialchars($pm['name'], ENT_QUOTES, 'UTF-8'); ?>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($pkg_halls)): ?>
+                    <h5 class="fw-semibold mb-3 mt-2"><i class="fas fa-map-marker-alt me-2 text-success"></i>Available Venues / Halls</h5>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Venue</th>
+                                    <th>Hall</th>
+                                    <th>Capacity</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($pkg_halls as $ph): ?>
+                                <tr>
+                                    <td>
+                                        <span class="fw-semibold"><?php echo htmlspecialchars($ph['venue_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <?php if (!empty($ph['location'])): ?>
+                                        <br><small class="text-muted"><i class="fas fa-map-pin me-1"></i><?php echo htmlspecialchars($ph['location'], ENT_QUOTES, 'UTF-8'); ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($ph['hall_name'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td><?php echo number_format((int)$ph['capacity']); ?> guests</td>
+                                    <td><?php echo ucfirst(htmlspecialchars($ph['indoor_outdoor'], ENT_QUOTES, 'UTF-8')); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="d-flex flex-column flex-sm-row gap-2 mt-auto">
                         <a href="<?php echo BASE_URL; ?>/package-booking.php?id=<?php echo (int)$package_id; ?>" class="btn btn-success flex-fill fw-semibold">
                             <i class="fas fa-calendar-check me-2"></i>Book Now
@@ -273,6 +365,135 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
         </div>
 
     </div><!-- /.row -->
+
+    <?php if (!empty($pkg_menus)): ?>
+    <!-- Full-width Menu Detail Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4 class="fw-bold mb-4"><i class="fas fa-utensils me-2 text-success"></i>Menu Details</h4>
+            <?php foreach ($pkg_menus as $pm_idx => $pm): ?>
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-success text-white d-flex align-items-center gap-3 py-3">
+                    <?php if (!empty($pm['image'])): ?>
+                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($pm['image'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($pm['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                         class="pkg-menu-img rounded-circle"
+                         loading="lazy">
+                    <?php else: ?>
+                    <div class="pkg-menu-icon-fallback"><i class="fas fa-concierge-bell"></i></div>
+                    <?php endif; ?>
+                    <div>
+                        <h5 class="mb-0 fw-semibold"><?php echo htmlspecialchars($pm['name'], ENT_QUOTES, 'UTF-8'); ?></h5>
+                        <?php if (!empty($pm['price_per_person']) && $pm['price_per_person'] > 0): ?>
+                        <small><?php echo formatCurrency($pm['price_per_person']); ?> / person</small>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <?php if (!empty($pm['description'])): ?>
+                    <p class="text-muted mb-4"><?php echo nl2br(htmlspecialchars($pm['description'], ENT_QUOTES, 'UTF-8')); ?></p>
+                    <?php endif; ?>
+
+                    <?php if (!empty($pm['sections'])): ?>
+                    <!-- Structured menu: sections → groups → items -->
+                    <div class="accordion pkg-menu-accordion" id="menuAccordion<?php echo $pm_idx; ?>">
+                        <?php foreach ($pm['sections'] as $sec_idx => $section): ?>
+                        <?php $sec_id = 'menuSec' . $pm_idx . '_' . $sec_idx; ?>
+                        <div class="accordion-item border mb-2 rounded">
+                            <h2 class="accordion-header" id="hd<?php echo $sec_id; ?>">
+                                <button class="accordion-button fw-semibold <?php echo $sec_idx > 0 ? 'collapsed' : ''; ?>"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#cl<?php echo $sec_id; ?>"
+                                        aria-expanded="<?php echo $sec_idx === 0 ? 'true' : 'false'; ?>"
+                                        aria-controls="cl<?php echo $sec_id; ?>">
+                                    <i class="fas fa-layer-group me-2 text-success"></i>
+                                    <?php echo htmlspecialchars($section['section_name'] ?? $section['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php if (!empty($section['choose_limit'])): ?>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle ms-2">Choose <?php echo (int)$section['choose_limit']; ?></span>
+                                    <?php endif; ?>
+                                </button>
+                            </h2>
+                            <div id="cl<?php echo $sec_id; ?>"
+                                 class="accordion-collapse collapse <?php echo $sec_idx === 0 ? 'show' : ''; ?>"
+                                 aria-labelledby="hd<?php echo $sec_id; ?>"
+                                 data-bs-parent="#menuAccordion<?php echo $pm_idx; ?>">
+                                <div class="accordion-body pt-2 pb-3">
+                                    <?php if (!empty($section['groups'])): ?>
+                                    <?php foreach ($section['groups'] as $grp): ?>
+                                    <div class="pkg-menu-group mb-3">
+                                        <h6 class="fw-semibold text-success mb-2">
+                                            <i class="fas fa-chevron-right me-1 small"></i>
+                                            <?php echo htmlspecialchars($grp['group_name'] ?? $grp['name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                                        </h6>
+                                        <?php if (!empty($grp['items'])): ?>
+                                        <div class="d-flex flex-wrap gap-2 ps-3">
+                                            <?php foreach ($grp['items'] as $gitem): ?>
+                                            <div class="pkg-menu-item-chip d-flex align-items-center gap-2">
+                                                <?php if (!empty($gitem['photo'])): ?>
+                                                <img src="<?php echo UPLOAD_URL . htmlspecialchars($gitem['photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                     alt="<?php echo htmlspecialchars($gitem['item_name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                     class="pkg-item-photo"
+                                                     loading="lazy">
+                                                <?php else: ?>
+                                                <span class="pkg-item-dot" aria-hidden="true"></span>
+                                                <?php endif; ?>
+                                                <span><?php echo htmlspecialchars($gitem['item_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <?php if (!empty($gitem['extra_charge']) && $gitem['extra_charge'] > 0): ?>
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">+<?php echo formatCurrency($gitem['extra_charge']); ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <?php else: ?>
+                                        <p class="text-muted small ps-3 mb-0">No items in this group.</p>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endforeach; ?>
+                                    <?php else: ?>
+                                    <p class="text-muted small mb-0">No groups in this section.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <?php elseif (!empty($pm['items'])): ?>
+                    <!-- Flat menu items grouped by category -->
+                    <?php
+                    $by_cat = [];
+                    foreach ($pm['items'] as $mi) {
+                        $cat = !empty($mi['category']) ? $mi['category'] : 'Items';
+                        $by_cat[$cat][] = $mi['item_name'];
+                    }
+                    ?>
+                    <?php foreach ($by_cat as $cat_name => $cat_items): ?>
+                    <div class="mb-3">
+                        <h6 class="fw-semibold text-success mb-2">
+                            <i class="fas fa-chevron-right me-1 small"></i>
+                            <?php echo htmlspecialchars($cat_name, ENT_QUOTES, 'UTF-8'); ?>
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2 ps-3">
+                            <?php foreach ($cat_items as $iname): ?>
+                            <div class="pkg-menu-item-chip d-flex align-items-center gap-2">
+                                <span class="pkg-item-dot" aria-hidden="true"></span>
+                                <span><?php echo htmlspecialchars($iname, ENT_QUOTES, 'UTF-8'); ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+
+                    <?php else: ?>
+                    <p class="text-muted mb-0"><em>No menu items available.</em></p>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
 <?php else: ?>
     <!-- Package not found -->
@@ -381,6 +602,58 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 .dropdown-item .fas { width: 1.1em; text-align: center; flex-shrink: 0; }
 .text-whatsapp  { color: #25D366 !important; }
 .text-facebook  { color: #1877F2 !important; }
+/* Menu detail section */
+.pkg-menu-img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,.5);
+    flex-shrink: 0;
+}
+.pkg-menu-icon-fallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+.pkg-menu-group {
+    border-left: 3px solid #d1e7dd;
+    padding-left: .75rem;
+}
+.pkg-menu-item-chip {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    padding: .25rem .75rem;
+    font-size: .875rem;
+}
+.pkg-item-photo {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.pkg-item-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #198754;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.pkg-menu-accordion .accordion-button:not(.collapsed) {
+    background-color: #d1e7dd;
+    color: #0a3622;
+}
+.pkg-menu-accordion .accordion-button::after {
+    filter: none;
+}
 </style>
 
 <?php
