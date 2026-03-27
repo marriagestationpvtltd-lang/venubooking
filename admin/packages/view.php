@@ -41,6 +41,22 @@ try {
 } catch (Exception $e) {
     // table may not exist yet
 }
+
+// Load gallery photos linked to this package
+$gallery_photos = [];
+try {
+    $gp_stmt = $db->prepare(
+        "SELECT si.id, si.title, si.image_path
+         FROM package_gallery_photos pgp
+         INNER JOIN site_images si ON si.id = pgp.site_image_id
+         WHERE pgp.package_id = ?
+         ORDER BY pgp.display_order, pgp.id"
+    );
+    $gp_stmt->execute([$package_id]);
+    $gallery_photos = $gp_stmt->fetchAll();
+} catch (Exception $e) {
+    // table may not exist yet
+}
 ?>
 
 <div class="row mb-3">
@@ -137,6 +153,26 @@ try {
                         <div class="col-auto">
                             <img src="<?php echo UPLOAD_URL . htmlspecialchars($photo['image_path']); ?>"
                                  alt="Package photo"
+                                 style="width:120px;height:90px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;">
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($gallery_photos)): ?>
+        <div class="card mt-3">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-photo-video"></i> Gallery Photos (<?php echo count($gallery_photos); ?>)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <?php foreach ($gallery_photos as $gphoto): ?>
+                        <div class="col-auto">
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($gphoto['image_path']); ?>"
+                                 alt="<?php echo htmlspecialchars($gphoto['title']); ?>"
+                                 title="<?php echo htmlspecialchars($gphoto['title']); ?>"
                                  style="width:120px;height:90px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;">
                         </div>
                     <?php endforeach; ?>

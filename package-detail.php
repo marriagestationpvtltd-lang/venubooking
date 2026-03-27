@@ -44,6 +44,26 @@ if ($package_id > 0) {
             } catch (Exception $e) {
                 $photos = [];
             }
+
+            // Also load gallery photos linked via package_gallery_photos
+            try {
+                $gp_stmt = $db->prepare(
+                    "SELECT si.image_path
+                     FROM package_gallery_photos pgp
+                     INNER JOIN site_images si ON si.id = pgp.site_image_id AND si.status = 'active'
+                     WHERE pgp.package_id = ?
+                     ORDER BY pgp.display_order, pgp.id"
+                );
+                $gp_stmt->execute([$package_id]);
+                foreach ($gp_stmt->fetchAll(PDO::FETCH_COLUMN) as $gpath) {
+                    $safe = !empty($gpath) ? basename($gpath) : '';
+                    if (!empty($safe) && preg_match(SAFE_FILENAME_PATTERN, $safe)) {
+                        $photos[] = $safe;
+                    }
+                }
+            } catch (Exception $e) {
+                // table may not exist yet; silently skip
+            }
         }
     } catch (Exception $e) {
         error_log('package-detail.php error: ' . $e->getMessage());
