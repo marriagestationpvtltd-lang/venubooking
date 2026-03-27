@@ -224,6 +224,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/gallery-cards/') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-layer-group"></i> Gallery Cards
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/reviews/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/reviews/') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-star"></i> Reviews
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/shared-folders/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'shared-folders') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-share-alt"></i> Photo Share
             </a>

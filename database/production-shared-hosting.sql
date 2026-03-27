@@ -2014,3 +2014,40 @@ DELIMITER ;
 
 CALL upgrade_service_package_features();
 DROP PROCEDURE IF EXISTS upgrade_service_package_features;
+
+-- ============================================================================
+-- UPGRADE: Create user_reviews table for token-based review submissions
+-- ============================================================================
+DROP PROCEDURE IF EXISTS upgrade_user_reviews;
+DELIMITER $$
+CREATE PROCEDURE upgrade_user_reviews()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = 'user_reviews'
+    ) THEN
+        CREATE TABLE user_reviews (
+            id            INT PRIMARY KEY AUTO_INCREMENT,
+            booking_id    INT NULL,
+            token         VARCHAR(64) NOT NULL UNIQUE,
+            reviewer_name VARCHAR(255) NOT NULL DEFAULT '',
+            reviewer_email VARCHAR(255) NOT NULL DEFAULT '',
+            rating        TINYINT NOT NULL DEFAULT 5,
+            review_text   TEXT NOT NULL DEFAULT '',
+            submitted     TINYINT(1) NOT NULL DEFAULT 0,
+            status        ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+            admin_note    TEXT,
+            created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_ur_token (token),
+            INDEX idx_ur_booking_id (booking_id),
+            INDEX idx_ur_status (status),
+            INDEX idx_ur_submitted (submitted),
+            CONSTRAINT fk_user_reviews_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL upgrade_user_reviews();
+DROP PROCEDURE IF EXISTS upgrade_user_reviews;
