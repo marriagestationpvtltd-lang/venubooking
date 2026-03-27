@@ -44,6 +44,19 @@ try {
     error_log('packages/add.php: failed to load menus — ' . $e->getMessage());
 }
 
+// Load gallery images for the gallery-photo selector
+$all_gallery_images = [];
+try {
+    $gi_stmt = $db->query(
+        "SELECT id, title, image_path FROM site_images
+         WHERE section = 'gallery' AND status = 'active'
+         ORDER BY display_order, id"
+    );
+    $all_gallery_images = $gi_stmt->fetchAll();
+} catch (\Throwable $e) {
+    error_log('packages/add.php: failed to load gallery images — ' . $e->getMessage());
+}
+
 // Batch-load all active designs for those services (keyed by service_id)
 $designs_by_service = [];
 if (!empty($all_services)) {
@@ -83,6 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Menu associations
     $menu_ids_raw = $_POST['package_menu_ids'] ?? [];
     $menu_ids     = array_values(array_filter(array_map('intval', $menu_ids_raw)));
+    // Gallery photo associations
+    $gallery_ids_raw = $_POST['gallery_image_ids'] ?? [];
+    $gallery_ids     = array_values(array_filter(array_map('intval', $gallery_ids_raw)));
 
     if (empty($name) || $category_id <= 0 || $price < 0) {
         $error_message = 'Please fill in all required fields correctly.';
@@ -173,6 +189,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     } catch (\Throwable $pmErr) {
                         error_log("add package: package_menus INSERT failed: " . $pmErr->getMessage());
+                    }
+                }
+
+                // Insert gallery photo associations
+                if (!empty($gallery_ids)) {
+                    try {
+                        $pgp_stmt = $db->prepare(
+                            "INSERT IGNORE INTO package_gallery_photos (package_id, site_image_id, display_order) VALUES (?, ?, ?)"
+                        );
+                        foreach ($gallery_ids as $gi => $gid) {
+                            $pgp_stmt->execute([$package_id, $gid, $gi + 1]);
+                        }
+                    } catch (\Throwable $pgpErr) {
+                        error_log("add package: package_gallery_photos INSERT failed: " . $pgpErr->getMessage());
                     }
                 }
 
@@ -438,6 +468,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                     </div>
 
+                    <!-- Gallery Photos Association -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-images text-success me-1"></i> Gallery Photos</label>
+                        <p class="text-muted small mb-2">Select photos from the general gallery to display alongside this package so users can see the kind of work done for this event type.</p>
+                        <?php
+                        $selected_gallery_ids_post = array_flip(array_map('intval', $_POST['gallery_image_ids'] ?? []));
+                        if (!empty($all_gallery_images)):
+                        ?>
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" id="gallerySearch"
+                                   placeholder="Search gallery photos..." autocomplete="off">
+                        </div>
+                        <div id="galleryContainer" style="max-height:320px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                            <div class="row g-2">
+                                <?php foreach ($all_gallery_images as $gimg): ?>
+                                <div class="col-auto gallery-pick-item">
+                                    <label class="d-block position-relative" style="cursor:pointer;"
+                                           title="<?php echo htmlspecialchars($gimg['title']); ?>">
+                                        <input type="checkbox" class="form-check-input position-absolute top-0 start-0 m-1"
+                                               name="gallery_image_ids[]"
+                                               value="<?php echo (int)$gimg['id']; ?>"
+                                               <?php echo isset($selected_gallery_ids_post[(int)$gimg['id']]) ? 'checked' : ''; ?>>
+                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($gimg['image_path']); ?>"
+                                             class="gallery-pick-thumb"
+                                             data-title="<?php echo htmlspecialchars(strtolower($gimg['title'])); ?>"
+                                             alt="<?php echo htmlspecialchars($gimg['title']); ?>"
+                                             loading="lazy">
+                                        <div class="gallery-pick-label"><?php echo htmlspecialchars($gimg['title']); ?></div>
+                                    </label>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-info py-2">
+                            <i class="fas fa-info-circle"></i>
+                            No gallery photos found. <a href="../images/index.php" class="alert-link">Upload gallery photos first.</a>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
                     <div class="d-flex justify-content-between">
                         <a href="index.php" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Cancel
@@ -469,6 +540,49 @@ document.getElementById('featureSearch')?.addEventListener('input', function () 
         group.style.display = groupVisible ? '' : 'none';
     });
 });
+
+// Live search filter for gallery photo picker
+document.getElementById('gallerySearch')?.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('#galleryContainer .gallery-pick-item').forEach(function (item) {
+        const img = item.querySelector('img');
+        const title = img ? (img.getAttribute('data-title') || '') : '';
+        item.style.display = (!q || title.includes(q)) ? '' : 'none';
+    });
+});
+
+// Highlight selected gallery thumbnails
+document.querySelectorAll('#galleryContainer input[type="checkbox"]').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+        this.closest('label').classList.toggle('gallery-pick-selected', this.checked);
+    });
+    if (cb.checked) cb.closest('label').classList.add('gallery-pick-selected');
+});
 </script>
+
+<style>
+.gallery-pick-thumb {
+    width: 90px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    display: block;
+    transition: border-color .15s;
+}
+label.gallery-pick-selected .gallery-pick-thumb {
+    border-color: #198754;
+}
+.gallery-pick-label {
+    font-size: 0.68rem;
+    text-align: center;
+    max-width: 90px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #555;
+    margin-top: 2px;
+}
+</style>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

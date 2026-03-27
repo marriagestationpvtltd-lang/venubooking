@@ -1651,6 +1651,28 @@ function getServicePackagesByCategory() {
                 } catch (Exception $e) {
                     $packages[$pi]['photos'] = [];
                 }
+
+                // Load gallery photos linked via package_gallery_photos → site_images
+                try {
+                    $gphotos_stmt = $db->prepare(
+                        "SELECT si.image_path
+                         FROM package_gallery_photos pgp
+                         INNER JOIN site_images si ON si.id = pgp.site_image_id AND si.status = 'active'
+                         WHERE pgp.package_id = ?
+                         ORDER BY pgp.display_order, pgp.id"
+                    );
+                    $gphotos_stmt->execute([$package['id']]);
+                    $gallery_paths = $gphotos_stmt->fetchAll(PDO::FETCH_COLUMN);
+                    // Validate filenames and merge into photos array
+                    foreach ($gallery_paths as $gpath) {
+                        $safe = !empty($gpath) ? basename($gpath) : '';
+                        if (!empty($safe) && preg_match(SAFE_FILENAME_PATTERN, $safe)) {
+                            $packages[$pi]['photos'][] = $safe;
+                        }
+                    }
+                } catch (Exception $e) {
+                    // table may not exist yet on older installs; silently skip
+                }
             }
 
             $categories[$ci]['packages'] = $packages;
