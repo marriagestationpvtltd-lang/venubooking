@@ -64,6 +64,34 @@ if ($package_id > 0) {
             } catch (Exception $e) {
                 // table may not exist yet; silently skip
             }
+
+            // Load menus assigned to this package with full structure
+            $package_menus = [];
+            $pkg_menu_count = 0;
+            try {
+                $menu_stmt = $db->prepare(
+                    "SELECT m.id, m.name, m.description, m.price_per_person, m.image
+                     FROM package_menus pm
+                     INNER JOIN menus m ON m.id = pm.menu_id
+                     WHERE pm.package_id = ? AND m.status = 'active'
+                     ORDER BY m.name"
+                );
+                $menu_stmt->execute([$package_id]);
+                $package_menus = $menu_stmt->fetchAll(PDO::FETCH_ASSOC);
+                $pkg_menu_count = count($package_menus);
+                foreach ($package_menus as &$pmenu) {
+                    try {
+                        $pmenu['structure'] = getMenuStructure($pmenu['id']);
+                    } catch (Exception $me) {
+                        error_log('package-detail.php getMenuStructure error (menu ' . $pmenu['id'] . '): ' . $me->getMessage());
+                        $pmenu['structure'] = [];
+                    }
+                }
+                unset($pmenu);
+            } catch (Exception $e) {
+                error_log('package-detail.php menu load error: ' . $e->getMessage());
+                $package_menus = [];
+            }
         }
     } catch (Exception $e) {
         error_log('package-detail.php error: ' . $e->getMessage());
@@ -333,6 +361,98 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
     </div>
     <?php endif; ?>
 
+    <?php if (!empty($package_menus)): ?>
+    <div class="row justify-content-center mt-4">
+        <div class="col-12 col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-3 p-md-4">
+                    <h5 class="fw-semibold mb-3"><i class="fas fa-utensils text-success me-2"></i>Included Menus</h5>
+                    <?php foreach ($package_menus as $pmenu_idx => $pmenu): ?>
+                    <div class="pkg-menu-block mb-4">
+                        <div class="d-flex align-items-start gap-3 mb-3">
+                            <?php if (!empty($pmenu['image'])): ?>
+                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($pmenu['image'], ENT_QUOTES, 'UTF-8'); ?>"
+                                 class="pkg-menu-thumb rounded"
+                                 loading="lazy"
+                                 alt="<?php echo htmlspecialchars($pmenu['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <?php endif; ?>
+                            <div>
+                                <h6 class="fw-bold mb-1"><?php echo htmlspecialchars($pmenu['name'], ENT_QUOTES, 'UTF-8'); ?></h6>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <?php echo formatCurrency($pmenu['price_per_person']); ?>/person
+                                </span>
+                                <?php if (!empty($pmenu['description'])): ?>
+                                <p class="text-muted small mb-0 mt-1"><?php echo nl2br(htmlspecialchars($pmenu['description'], ENT_QUOTES, 'UTF-8')); ?></p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php if (!empty($pmenu['structure'])): ?>
+                        <div class="pkg-menu-sections">
+                            <?php foreach ($pmenu['structure'] as $section): ?>
+                            <div class="pkg-menu-section mb-3">
+                                <div class="pkg-menu-section-title fw-semibold text-success mb-2">
+                                    <i class="fas fa-layer-group me-1" aria-hidden="true"></i>
+                                    <?php echo htmlspecialchars($section['section_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php if (!empty($section['choose_limit'])): ?>
+                                    <span class="text-muted small fw-normal ms-1">(Choose <?php echo (int)$section['choose_limit']; ?>)</span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($section['groups'])): ?>
+                                <div class="row g-2">
+                                    <?php foreach ($section['groups'] as $group): ?>
+                                    <div class="col-12 col-sm-6 col-md-4">
+                                        <div class="pkg-menu-group p-2 rounded border">
+                                            <div class="pkg-menu-group-name text-muted small fw-semibold mb-1">
+                                                <?php echo htmlspecialchars($group['group_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                <?php if (!empty($group['choose_limit'])): ?>
+                                                <span class="text-muted fw-normal">(Choose <?php echo (int)$group['choose_limit']; ?>)</span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <?php if (!empty($group['items'])): ?>
+                                            <ul class="list-unstyled mb-0">
+                                                <?php foreach ($group['items'] as $item): ?>
+                                                <li class="pkg-menu-item d-flex align-items-center gap-2 py-1">
+                                                    <?php if (!empty($item['photo'])): ?>
+                                                    <img src="<?php echo UPLOAD_URL . htmlspecialchars($item['photo'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                         class="pkg-menu-item-photo rounded-circle"
+                                                         loading="lazy"
+                                                         alt="<?php echo htmlspecialchars($item['item_name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <?php else: ?>
+                                                    <span class="pkg-menu-item-dot" aria-hidden="true"></span>
+                                                    <?php endif; ?>
+                                                    <span class="small">
+                                                        <?php echo htmlspecialchars($item['item_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                        <?php if (!empty($item['sub_category'])): ?>
+                                                        <em class="text-muted ms-1"><?php echo htmlspecialchars($item['sub_category'], ENT_QUOTES, 'UTF-8'); ?></em>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($item['extra_charge']) && $item['extra_charge'] > 0): ?>
+                                                        <span class="text-warning small ms-1">(+<?php echo formatCurrency($item['extra_charge']); ?>)</span>
+                                                        <?php endif; ?>
+                                                    </span>
+                                                </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($pmenu_idx < $pkg_menu_count - 1): ?>
+                    <hr class="my-3">
+                    <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
 <?php else: ?>
     <!-- Package not found -->
     <div class="text-center py-5">
@@ -461,6 +581,42 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
 .text-facebook  { color: #1877F2 !important; }
 /* YouTube embed */
 .pkg-yt-wrap { border-radius: 0.5rem; overflow: hidden; }
+/* Package menus */
+.pkg-menu-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.pkg-menu-section-title {
+    font-size: .9rem;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: .4rem;
+}
+.pkg-menu-group {
+    background: #f8f9fa;
+    font-size: .85rem;
+}
+.pkg-menu-group-name {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+.pkg-menu-item-photo {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+.pkg-menu-item-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #198754;
+    flex-shrink: 0;
+}
 /* Package photo lightbox */
 .pkg-lb-overlay {
     position: fixed;
