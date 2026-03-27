@@ -135,15 +135,33 @@ try {
     error_log('packages/edit.php: failed to load package_menus — ' . $e->getMessage());
 }
 
-// Load all gallery images for the gallery-photo selector
-$all_gallery_images = [];
+// Load gallery images grouped by Gallery Card Groups for the photo selector
+$gallery_groups = [];
 try {
     $gi_stmt = $db->query(
-        "SELECT id, title, image_path FROM site_images
-         WHERE section = 'gallery' AND status = 'active'
-         ORDER BY display_order, id"
+        "SELECT si.id, si.title, si.image_path, si.card_group_id,
+                COALESCE(gcg.title, 'Other Photos') AS card_group_title,
+                COALESCE(gcg.display_order, 99999) AS group_display_order
+         FROM site_images si
+         LEFT JOIN gallery_card_groups gcg
+                ON si.card_group_id = gcg.id AND gcg.status = 'active'
+         WHERE si.section = 'gallery' AND si.status = 'active'
+         ORDER BY
+             CASE WHEN si.card_group_id IS NOT NULL THEN COALESCE(gcg.display_order, 0) ELSE 99999 END ASC,
+             CASE WHEN si.card_group_id IS NOT NULL THEN si.card_group_id ELSE si.card_id END ASC,
+             si.display_order ASC,
+             si.id ASC"
     );
-    $all_gallery_images = $gi_stmt->fetchAll();
+    foreach ($gi_stmt->fetchAll() as $row) {
+        $gkey = $row['card_group_id'] ? 'g_' . (int)$row['card_group_id'] : 'ungrouped';
+        if (!isset($gallery_groups[$gkey])) {
+            $gallery_groups[$gkey] = [
+                'title'  => $row['card_group_title'],
+                'images' => [],
+            ];
+        }
+        $gallery_groups[$gkey]['images'][] = $row;
+    }
 } catch (\Throwable $e) {
     error_log('packages/edit.php: failed to load gallery images — ' . $e->getMessage());
 }
@@ -649,38 +667,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message) {
                     <!-- Gallery Photos Association -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold"><i class="fas fa-images text-success me-1"></i> Gallery Photos</label>
-                        <p class="text-muted small mb-2">Select photos from the general gallery to display alongside this package so users can see the kind of work done for this event type.</p>
+                        <p class="text-muted small mb-2">Select photos from the gallery grouped by Gallery Card Groups to display alongside this package.</p>
                         <?php
                         $sel_gallery_ids = ($_SERVER['REQUEST_METHOD'] === 'POST' && $error_message)
                             ? array_flip(array_map('intval', $_POST['gallery_image_ids'] ?? []))
                             : array_flip(array_map('intval', $existing_gallery_ids));
-                        if (!empty($all_gallery_images)):
+                        if (!empty($gallery_groups)):
                         ?>
                         <div class="mb-2">
                             <input type="text" class="form-control form-control-sm" id="gallerySearch"
                                    placeholder="Search gallery photos..." autocomplete="off">
                         </div>
-                        <div id="galleryContainer" style="max-height:320px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
-                            <div class="row g-2">
-                                <?php foreach ($all_gallery_images as $gimg): ?>
-                                <div class="col-auto gallery-pick-item">
-                                    <label class="d-block position-relative<?php echo isset($sel_gallery_ids[(int)$gimg['id']]) ? ' gallery-pick-selected' : ''; ?>"
-                                           style="cursor:pointer;"
-                                           title="<?php echo htmlspecialchars($gimg['title']); ?>">
-                                        <input type="checkbox" class="form-check-input position-absolute top-0 start-0 m-1"
-                                               name="gallery_image_ids[]"
-                                               value="<?php echo (int)$gimg['id']; ?>"
-                                               <?php echo isset($sel_gallery_ids[(int)$gimg['id']]) ? 'checked' : ''; ?>>
-                                        <img src="<?php echo UPLOAD_URL . htmlspecialchars($gimg['image_path']); ?>"
-                                             class="gallery-pick-thumb"
-                                             data-title="<?php echo htmlspecialchars(strtolower($gimg['title'])); ?>"
-                                             alt="<?php echo htmlspecialchars($gimg['title']); ?>"
-                                             loading="lazy">
-                                        <div class="gallery-pick-label"><?php echo htmlspecialchars($gimg['title']); ?></div>
-                                    </label>
+                        <div id="galleryContainer" style="max-height:400px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:8px;">
+                            <?php foreach ($gallery_groups as $gkey => $groupData): ?>
+                            <div class="gallery-card-group mb-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1 pb-1"
+                                     style="border-bottom:1px solid #dee2e6;">
+                                    <span class="fw-semibold text-secondary small text-uppercase" style="letter-spacing:.04em;">
+                                        <i class="fas fa-layer-group me-1"></i><?php echo htmlspecialchars($groupData['title']); ?>
+                                        <span class="text-muted fw-normal">(<?php echo count($groupData['images']); ?>)</span>
+                                    </span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-success gallery-group-toggle"
+                                            data-group="<?php echo htmlspecialchars($gkey); ?>">Select All</button>
                                 </div>
-                                <?php endforeach; ?>
+                                <div class="row g-2">
+                                    <?php foreach ($groupData['images'] as $gimg): ?>
+                                    <div class="col-auto gallery-pick-item" data-group="<?php echo htmlspecialchars($gkey); ?>">
+                                        <label class="d-block position-relative<?php echo isset($sel_gallery_ids[(int)$gimg['id']]) ? ' gallery-pick-selected' : ''; ?>"
+                                               style="cursor:pointer;"
+                                               title="<?php echo htmlspecialchars($gimg['title']); ?>">
+                                            <input type="checkbox" class="form-check-input position-absolute top-0 start-0 m-1"
+                                                   name="gallery_image_ids[]"
+                                                   value="<?php echo (int)$gimg['id']; ?>"
+                                                   <?php echo isset($sel_gallery_ids[(int)$gimg['id']]) ? 'checked' : ''; ?>>
+                                            <img src="<?php echo UPLOAD_URL . htmlspecialchars($gimg['image_path']); ?>"
+                                                 class="gallery-pick-thumb"
+                                                 data-title="<?php echo htmlspecialchars(strtolower($gimg['title'])); ?>"
+                                                 alt="<?php echo htmlspecialchars($gimg['title']); ?>"
+                                                 loading="lazy">
+                                            <div class="gallery-pick-label"><?php echo htmlspecialchars($gimg['title']); ?></div>
+                                        </label>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
+                            <?php endforeach; ?>
                         </div>
                         <?php else: ?>
                         <div class="alert alert-info py-2">
@@ -730,13 +761,19 @@ document.getElementById('featureSearch')?.addEventListener('input', function () 
     });
 });
 
-// Live search filter for gallery photo picker
+// Live search filter for gallery photo picker (works across card groups)
 document.getElementById('gallerySearch')?.addEventListener('input', function () {
     const q = this.value.trim().toLowerCase();
-    document.querySelectorAll('#galleryContainer .gallery-pick-item').forEach(function (item) {
-        const img = item.querySelector('img');
-        const title = img ? (img.getAttribute('data-title') || '') : '';
-        item.style.display = (!q || title.includes(q)) ? '' : 'none';
+    document.querySelectorAll('#galleryContainer .gallery-card-group').forEach(function (group) {
+        let groupVisible = false;
+        group.querySelectorAll('.gallery-pick-item').forEach(function (item) {
+            const img = item.querySelector('img');
+            const title = img ? (img.getAttribute('data-title') || '') : '';
+            const show = !q || title.includes(q);
+            item.style.display = show ? '' : 'none';
+            if (show) groupVisible = true;
+        });
+        group.style.display = groupVisible ? '' : 'none';
     });
 });
 
@@ -744,6 +781,22 @@ document.getElementById('gallerySearch')?.addEventListener('input', function () 
 document.querySelectorAll('#galleryContainer input[type="checkbox"]').forEach(function (cb) {
     cb.addEventListener('change', function () {
         this.closest('label').classList.toggle('gallery-pick-selected', this.checked);
+    });
+});
+
+// Select All / Deselect All per gallery card group
+document.querySelectorAll('.gallery-group-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        const group = this.dataset.group;
+        const items = document.querySelectorAll(
+            '#galleryContainer .gallery-pick-item[data-group="' + group + '"] input[type="checkbox"]'
+        );
+        const allChecked = Array.from(items).every(function (cb) { return cb.checked; });
+        items.forEach(function (cb) {
+            cb.checked = !allChecked;
+            cb.closest('label').classList.toggle('gallery-pick-selected', cb.checked);
+        });
+        this.textContent = allChecked ? 'Select All' : 'Deselect All';
     });
 });
 </script>
