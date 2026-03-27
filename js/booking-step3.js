@@ -110,10 +110,15 @@ function updateMenuSelection(checkbox) {
 function calculateMenuTotal() {
     const checkboxes = document.querySelectorAll('.menu-checkbox:checked');
     let menuTotal = 0;
-    
+
     checkboxes.forEach(checkbox => {
+        const menuId = parseInt(checkbox.value);
         const pricePerPerson = parseFloat(checkbox.dataset.price);
-        menuTotal += pricePerPerson * guestsCount;
+        // Per-item pricing menus: items have their own prices so base price_per_person is not charged
+        const isPerItem = window.menuPerItemPricingIds && window.menuPerItemPricingIds.has(menuId);
+        if (!isPerItem) {
+            menuTotal += pricePerPerson * guestsCount;
+        }
     });
 
     // Include extra charges from custom menu item selections (e.g. premium items with extra_charge)
