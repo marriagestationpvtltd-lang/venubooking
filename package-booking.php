@@ -73,7 +73,7 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_booking'])) {
     $event_date  = trim($_POST['event_date']  ?? '');
     $guests      = intval($_POST['guests']     ?? 0);
-    $event_type  = trim($_POST['event_type']   ?? '');
+    $event_type  = trim($package['category_name'] ?? '');
     $hall_id_sel = intval($_POST['hall_id']    ?? 0);
 
     // Basic validation
@@ -87,8 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_bookin
         $error = 'Please select a valid event date.';
     } elseif ($guests < 1) {
         $error = 'Please enter the number of guests (at least 1).';
-    } elseif (empty($event_type)) {
-        $error = 'Please select an event type.';
     } elseif (!empty($package_halls) && $hall_id_sel <= 0) {
         $error = 'Please select a venue/hall for this package.';
     }
@@ -391,24 +389,6 @@ require_once __DIR__ . '/includes/header.php';
                                        value="<?php echo htmlspecialchars($_POST['guests'] ?? ''); ?>"
                                        min="1" max="10000" placeholder="e.g., 200" required>
                                 <div class="invalid-feedback">Please enter a valid guest count.</div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="event_type" class="form-label">Event Type <span class="text-danger">*</span></label>
-                                <select class="form-select" id="event_type" name="event_type" required>
-                                    <option value="">Choose event type...</option>
-                                    <?php
-                                    $selected_event_type = $_POST['event_type'] ?? ($package['category_name'] ?? '');
-                                    $event_types = ['Wedding', 'Birthday Party', 'Corporate Event', 'Anniversary', 'Other Events'];
-                                    foreach ($event_types as $etype):
-                                    ?>
-                                    <option value="<?php echo htmlspecialchars($etype); ?>"
-                                            <?php echo ($selected_event_type === $etype) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($etype); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="invalid-feedback">Please select an event type.</div>
                             </div>
 
                             <?php if (!empty($package_halls)): ?>
