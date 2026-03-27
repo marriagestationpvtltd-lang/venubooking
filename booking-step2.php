@@ -9,13 +9,19 @@ $extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellu
 
 // Get booking data from session or POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $event_type_raw = trim($_POST['event_type'] ?? '');
+    if (empty($event_type_raw)) {
+        $_SESSION['booking_error_flash'] = 'Please enter the event type to continue.';
+        header('Location: index.php');
+        exit;
+    }
     $_SESSION['booking_data'] = [
         'shift'      => '',
         'start_time' => '',
         'end_time'   => '',
         'event_date' => $_POST['event_date'] ?? '',
         'guests'     => isset($_POST['guests']) && is_numeric($_POST['guests']) && (int)$_POST['guests'] > 0 ? (int)$_POST['guests'] : '',
-        'event_type' => $_POST['event_type'] ?? '',
+        'event_type' => $event_type_raw,
         'city_id'    => isset($_POST['city_id']) && is_numeric($_POST['city_id']) ? intval($_POST['city_id']) : null
     ];
     
@@ -100,7 +106,7 @@ if (isset($_GET['venue_id']) && is_numeric($_GET['venue_id'])) {
                 <?php if (!empty($booking_data['event_type'])): ?>
                 <span class="mx-2 d-none d-md-inline">|</span>
                 <span class="d-block d-md-inline">
-                    <i class="fas fa-tag"></i> <?php echo $booking_data['event_type']; ?>
+                    <i class="fas fa-tag"></i> <?php echo htmlspecialchars($booking_data['event_type'], ENT_QUOTES, 'UTF-8'); ?>
                 </span>
                 <?php endif; ?>
                 <span id="selectedSlotDisplay" class="d-block d-md-inline ms-md-2" style="display:none!important;"></span>
