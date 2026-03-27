@@ -1,5 +1,6 @@
 <?php
 $page_title = 'Book Your Event';
+$body_class = 'page-landing';
 $extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">';
 require_once __DIR__ . '/includes/header.php';
 
@@ -121,10 +122,10 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                         <span class="eyebrow-dot" aria-hidden="true"></span>
                         Premium Venue Booking
                     </div>
-                    <h1 class="display-4 text-white fw-bold mb-3">
+                    <h1 class="display-4 <?php echo !empty($banner_images) ? 'text-white' : 'hero-heading-dark'; ?> fw-bold mb-3">
                         Book Your Perfect Venue
                     </h1>
-                    <p class="lead text-white mb-4">
+                    <p class="lead <?php echo !empty($banner_images) ? 'text-white' : 'hero-lead-dark'; ?> mb-4">
                         Find and book the ideal venue for your wedding, birthday party, corporate event, or any special occasion. Trusted by 1,000+ happy clients.
                     </p>
                     <div class="d-flex flex-wrap gap-3 mb-2">
@@ -145,7 +146,7 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                             <div class="booking-card-icon mx-auto mb-2">
                                 <i class="fas fa-calendar-check"></i>
                             </div>
-                            <h4 class="text-success mb-0">Start Your Booking</h4>
+                            <h4 class="booking-card-title mb-0">Start Your Booking</h4>
                             <p class="text-muted small mt-1 mb-0">Fill in your event details to begin</p>
                         </div>
                         <?php if (!empty($_SESSION['booking_error_flash'])): ?>
