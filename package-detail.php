@@ -86,6 +86,24 @@ if ($package_id > 0) {
                         error_log('package-detail.php getMenuStructure error (menu ' . $pmenu['id'] . '): ' . $me->getMessage());
                         $pmenu['structure'] = [];
                     }
+                    // Also load simple menu items (menu_items table, grouped by category)
+                    try {
+                        $mi_stmt = $db->prepare(
+                            "SELECT item_name, category, display_order FROM menu_items
+                             WHERE menu_id = ? ORDER BY display_order, category, item_name"
+                        );
+                        $mi_stmt->execute([$pmenu['id']]);
+                        $mi_rows = $mi_stmt->fetchAll(PDO::FETCH_ASSOC);
+                        $items_by_cat = [];
+                        foreach ($mi_rows as $mi_row) {
+                            // Use empty string as key for uncategorized items; HTML skips the heading for it
+                            $cat = !empty($mi_row['category']) ? $mi_row['category'] : '';
+                            $items_by_cat[$cat][] = $mi_row['item_name'];
+                        }
+                        $pmenu['menu_items_by_category'] = $items_by_cat;
+                    } catch (Exception $me) {
+                        $pmenu['menu_items_by_category'] = [];
+                    }
                 }
                 unset($pmenu);
             } catch (Exception $e) {
@@ -438,6 +456,30 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                                     <?php endforeach; ?>
                                 </div>
                                 <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                        <?php if (!empty($pmenu['menu_items_by_category'])): ?>
+                        <div class="pkg-menu-flat-items<?php echo !empty($pmenu['structure']) ? ' mt-3' : ''; ?>">
+                            <?php foreach ($pmenu['menu_items_by_category'] as $mi_cat => $mi_names): ?>
+                            <div class="pkg-menu-section mb-2">
+                                <?php if ($mi_cat !== ''): ?>
+                                <div class="pkg-menu-section-title fw-semibold text-success mb-2">
+                                    <i class="fas fa-utensils me-1" aria-hidden="true"></i>
+                                    <?php echo htmlspecialchars($mi_cat, ENT_QUOTES, 'UTF-8'); ?>
+                                </div>
+                                <?php endif; ?>
+                                <div class="row g-1">
+                                    <?php foreach ($mi_names as $mi_name): ?>
+                                    <div class="col-12 col-sm-6 col-md-4">
+                                        <div class="pkg-menu-item d-flex align-items-center gap-2 py-1">
+                                            <span class="pkg-menu-item-dot" aria-hidden="true"></span>
+                                            <span class="small"><?php echo htmlspecialchars($mi_name, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
                             <?php endforeach; ?>
                         </div>
