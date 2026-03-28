@@ -495,11 +495,189 @@ async function downloadNow(files) {
 }
 
 /**
- * Fetch a ZIP from the server, show download progress, and trigger browser save.
- * Returns true on success, false when the server returns an error (HTML response)
- * or a network error occurs – callers should fall back to individual downloads.
+ * Two-step ZIP download (TransferNow-style):
+ *   Phase 1 – call api/generate-zip.php to build the ZIP and get a signed URL.
+ *   Phase 2 – fetch the pre-built ZIP from the signed URL and stream it to disk.
+ *
+ * Falls back to _downloadZipLegacy() (single-step, direct folder.php streaming)
+ * when the generate-zip API is unavailable or reports an error (e.g. ZipArchive
+ * not installed on the server).
+ *
+ * Returns true on success, false on failure (caller falls back to individual downloads).
  */
 async function _downloadZip(url) {
+    var overlay = document.getElementById('downloadProgressOverlay');
+    var dlBar   = document.getElementById('dlBar');
+    var dlPct   = document.getElementById('dlPercent');
+    var dlEta   = document.getElementById('dlEta');
+    var dlSpd   = document.getElementById('dlSpeed');
+    var dlTitle = document.getElementById('dlTitle');
+    var dlFile  = document.getElementById('dlFilename');
+    var dlSize  = document.getElementById('dlSizeInfo');
+    var dlIcon  = document.getElementById('dlIcon');
+
+    // Phase 1 UI: indeterminate spinner while the server builds the ZIP
+    dlBar.style.width          = '5%';
+    dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
+    dlBar.style.backgroundSize = '200% 100%';
+    dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
+    dlPct.textContent          = '';
+    dlEta.textContent          = '';
+    dlSpd.textContent          = '';
+    dlTitle.textContent        = 'Preparing ZIP\u2026';
+    dlFile.textContent         = '';
+    dlSize.textContent         = '';
+    dlIcon.className           = 'fas fa-spinner fa-spin';
+    overlay.classList.add('dl-active');
+
+    // ── Phase 1: ask the server to generate the ZIP and return a signed URL ──
+    // Extract the folder token and optional photo IDs from the incoming URL so we
+    // can forward them to api/generate-zip.php.
+    var parsedParams = new URLSearchParams(url.split('?')[1] || '');
+    var folderToken  = parsedParams.get('token') || window._folderToken || '';
+    var ids          = parsedParams.get('ids') || '';
+
+    var generateUrl = 'api/generate-zip.php?token=' + encodeURIComponent(folderToken);
+    if (ids) { generateUrl += '&ids=' + encodeURIComponent(ids); }
+
+    var downloadUrl  = null;
+    var zipFilename  = 'photos.zip';
+    var zipSize      = 0;
+
+    try {
+        var genRes = await fetch(generateUrl);
+        if (genRes.ok) {
+            var genCt = (genRes.headers.get('Content-Type') || '').split(';')[0].trim();
+            if (genCt === 'application/json') {
+                var genData = await genRes.json();
+                if (genData && genData.success && genData.url) {
+                    downloadUrl = genData.url;
+                    zipFilename = genData.filename || 'photos.zip';
+                    zipSize     = genData.size     || 0;
+                }
+            }
+        }
+    } catch (e) {
+        // Network error or JSON parse failure – fall through to legacy path
+    }
+
+    if (!downloadUrl) {
+        // The generate-zip API failed or is unavailable; use the legacy single-step approach
+        return await _downloadZipLegacy(url);
+    }
+
+    // ── Phase 2: download the pre-built ZIP from the signed URL ──────────────
+    dlBar.style.width          = '0%';
+    dlBar.style.background     = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+    dlBar.style.backgroundSize = '';
+    dlBar.style.animation      = '';
+    dlPct.textContent          = '0%';
+    dlTitle.textContent        = 'Downloading ZIP\u2026';
+    dlFile.textContent         = zipFilename;
+    if (zipSize > 0) { dlSize.textContent = _formatBytes(zipSize); }
+
+    try {
+        var response = await fetch(downloadUrl);
+
+        if (!response.ok) {
+            overlay.classList.remove('dl-active');
+            return false;
+        }
+
+        var contentType = (response.headers.get('Content-Type') || 'application/octet-stream').split(';')[0].trim();
+        if (contentType === 'text/html') {
+            overlay.classList.remove('dl-active');
+            return false;
+        }
+
+        // Prefer the filename from Content-Disposition over the one in the generate response
+        var resolvedFilename = zipFilename;
+        var cd = response.headers.get('Content-Disposition');
+        if (cd) {
+            var m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+            if (m && m[1]) {
+                var fn = m[1].replace(/['"]/g, '').trim();
+                if (fn) { resolvedFilename = fn; }
+            }
+        }
+
+        var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10) || zipSize;
+
+        if (contentLength === 0) {
+            dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
+            dlBar.style.backgroundSize = '200% 100%';
+            dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
+        }
+
+        var reader   = response.body.getReader();
+        var chunks   = [];
+        var received = 0;
+
+        while (true) {
+            var result = await reader.read();
+            if (result.done) break;
+            chunks.push(result.value);
+            received += result.value.length;
+            if (contentLength > 0) {
+                var pct = Math.min(Math.round((received / contentLength) * 100), 99);
+                dlBar.style.background     = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+                dlBar.style.backgroundSize = '';
+                dlBar.style.animation      = '';
+                dlBar.style.width          = pct + '%';
+                dlPct.textContent          = pct + '%';
+            }
+        }
+
+        var blob = new Blob(chunks, { type: 'application/zip' });
+
+        // Try File System Access API for a native Save As dialog
+        if ('showSaveFilePicker' in window) {
+            try {
+                var fileHandle = await window.showSaveFilePicker({
+                    suggestedName: resolvedFilename,
+                    types: [{ description: 'ZIP archive', accept: { 'application/zip': ['.zip'] } }]
+                });
+                var writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                dlBar.style.width = '100%'; dlBar.style.backgroundSize = ''; dlBar.style.animation = '';
+                dlPct.textContent = '100%'; dlTitle.textContent = 'Download Complete!';
+                dlSize.textContent = 'ZIP file saved'; dlIcon.className = 'fas fa-check-circle';
+                setTimeout(function() { overlay.classList.remove('dl-active'); }, 1500);
+                return true;
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    overlay.classList.remove('dl-active');
+                    return true; // user cancelled – not a failure
+                }
+                // Permission or other error – fall through to anchor fallback
+            }
+        }
+
+        // Fallback: create a temporary <a download> link and click it
+        var objectUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = objectUrl; a.download = resolvedFilename; a.style.display = 'none';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(u) { URL.revokeObjectURL(u); }, BLOB_REVOKE_DELAY, objectUrl);
+
+        dlBar.style.width = '100%'; dlBar.style.backgroundSize = ''; dlBar.style.animation = '';
+        dlPct.textContent = '100%'; dlTitle.textContent = 'Download Complete!';
+        dlSize.textContent = 'ZIP file saved'; dlIcon.className = 'fas fa-check-circle';
+        setTimeout(function() { overlay.classList.remove('dl-active'); }, 1500);
+        return true;
+    } catch (e) {
+        overlay.classList.remove('dl-active');
+        return false;
+    }
+}
+
+/**
+ * Legacy single-step ZIP download: fetch folder.php?download_all=1 directly and
+ * stream the response.  Used as a fallback when api/generate-zip.php is unavailable
+ * (e.g. ZipArchive not installed) or returns an error.
+ */
+async function _downloadZipLegacy(url) {
     var overlay = document.getElementById('downloadProgressOverlay');
     var dlBar   = document.getElementById('dlBar');
     var dlPct   = document.getElementById('dlPercent');
