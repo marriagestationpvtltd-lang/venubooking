@@ -5215,6 +5215,7 @@ function generateSharedFolderThumbnail(string $source_path, string $target_path,
 {
     // Require GD
     if (!function_exists('imagecreatefromjpeg')) {
+        error_log('generateSharedFolderThumbnail: GD extension (php-gd) is not available. Install/enable it to generate photo thumbnails.');
         return false;
     }
 
@@ -5280,10 +5281,17 @@ function generateSharedFolderThumbnail(string $source_path, string $target_path,
 
     // Ensure the target directory exists
     $target_dir = dirname($target_path);
-    if (!is_dir($target_dir) && !mkdir($target_dir, 0755, true)) {
-        imagedestroy($thumb);
-        error_log("generateSharedFolderThumbnail: failed to create directory {$target_dir}");
-        return false;
+    if (!is_dir($target_dir)) {
+        // Use a two-step check to handle concurrent uploads gracefully: if two
+        // requests both see the directory is missing and both call mkdir(), the
+        // second one will get false from mkdir() even though the directory now
+        // exists (created by the first).  Re-checking is_dir() after a failed
+        // mkdir() distinguishes a real failure from a benign race condition.
+        if (!mkdir($target_dir, 0755, true) && !is_dir($target_dir)) {
+            imagedestroy($thumb);
+            error_log("generateSharedFolderThumbnail: failed to create directory {$target_dir}");
+            return false;
+        }
     }
     // Ensure the directory is world-executable/readable so the web server can
     // serve thumbnails regardless of which system user PHP and Apache run as.

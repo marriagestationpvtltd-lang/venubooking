@@ -219,8 +219,15 @@ if (!class_exists('ZipArchive')) {
 
 $zip_cache_dir = rtrim(UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . 'zip_cache';
 if (!is_dir($zip_cache_dir)) {
-    @mkdir($zip_cache_dir, 0755, true);
+    $mkdir_ok = @mkdir($zip_cache_dir, 0755, true);
     @chmod($zip_cache_dir, 0755);
+    // mkdir() can fail on full disk, bad permissions, or a race with another request.
+    // Re-check is_dir() after the attempt: if another request created the directory
+    // concurrently that is fine; only abort if it truly does not exist.
+    if (!$mkdir_ok && !is_dir($zip_cache_dir)) {
+        error_log('generate-zip: failed to create zip_cache directory: ' . $zip_cache_dir);
+        _gz_json(false, ['error' => 'Server storage directory could not be created. Check uploads/ write permissions.'], 500);
+    }
 }
 
 // Security guards (idempotent – safe to recreate if missing)
