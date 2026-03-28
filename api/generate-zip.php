@@ -27,6 +27,10 @@ function _gz_json(bool $success, array $extra = [], int $status = 200): void
     exit;
 }
 
+// Release the session lock before doing potentially expensive work, so the
+// browser can make the follow-up download-zip.php request without being blocked.
+session_write_close();
+
 // ── Input ────────────────────────────────────────────────────────────────────
 
 $folder_token = isset($_GET['token']) ? trim($_GET['token']) : '';
@@ -221,8 +225,12 @@ if (!is_dir($zip_cache_dir)) {
 
 // Security guards (idempotent – safe to recreate if missing)
 $_htaccess = $zip_cache_dir . DIRECTORY_SEPARATOR . '.htaccess';
-if (!file_exists($_htaccess)) {
-    @file_put_contents($_htaccess, "Deny from all\nOptions -Indexes\n");
+// The marker line "# v2" distinguishes the Apache 2.4-compatible version from
+// the old "Deny from all" (Apache 2.2) version.  We rewrite if missing or outdated
+// so already-deployed servers heal automatically on the next ZIP generation.
+$_htaccess_content = "# v2\nRequire all denied\nOptions -Indexes\n";
+if (!file_exists($_htaccess) || strpos(@file_get_contents($_htaccess) ?: '', '# v2') === false) {
+    @file_put_contents($_htaccess, $_htaccess_content);
 }
 $_guard = $zip_cache_dir . DIRECTORY_SEPARATOR . 'index.php';
 if (!file_exists($_guard)) {
@@ -271,6 +279,11 @@ try {
     }
 
     $zip_closed = $zip->close();
+
+    // Ensure the file is readable by the web server even if the process umask
+    // is restrictive (e.g. 0027 or 0077) — download-zip.php runs in a separate
+    // request and needs read access via readfile().
+    @chmod($zip_cache_file, 0644);
 
     if ($added_count === 0 || $zip_closed === false) {
         @unlink($zip_cache_file);
