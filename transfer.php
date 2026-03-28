@@ -712,8 +712,12 @@ $csrf_token = generateCSRFToken();
         uploading = false;
 
         if (folderToken) {
-            const link = window.location.origin.replace(/\/$/, '') +
-                         BASE_URL + '/folder.php?token=' + encodeURIComponent(folderToken);
+            // BASE_URL already contains the full origin (scheme + host + path) when
+            // auto-detected, so we must NOT prepend window.location.origin again.
+            // When BASE_URL is a plain path (legacy / fallback), prepend origin.
+            const baseUrl = BASE_URL.startsWith('http') ? BASE_URL
+                          : window.location.origin.replace(/\/$/, '') + BASE_URL;
+            const link = baseUrl + '/folder.php?token=' + encodeURIComponent(folderToken);
             shareLinkEl.value = link;
             expireNote.textContent = 'This link expires in ' + expiryDays + ' day' + (expiryDays !== 1 ? 's' : '') + '.';
             uploadArea.style.display = 'none';
