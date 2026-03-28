@@ -55,6 +55,7 @@ REQUIRED_TABLES=(
     "settings"
     "activity_logs"
     "site_images"
+    "user_reviews"
 )
 
 # Required columns that must exist in specific tables
