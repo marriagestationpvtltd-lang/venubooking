@@ -1,7 +1,41 @@
 <?php
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions.php';
+
 $page_title       = 'Package Details';
 $page_description = 'View detailed information about our service package including features, pricing and photos.';
 $page_keywords    = 'service package details, venue package, event package, Nepal';
+
+// Pre-load package meta for Open Graph tags (before header outputs <head>)
+$_pkg_id_pre = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+if (!empty($_pkg_id_pre)) {
+    try {
+        $_db_pre  = getDB();
+        $_stmt_pre = $_db_pre->prepare(
+            "SELECT sp.name, sp.description, spp.image_path
+             FROM service_packages sp
+             LEFT JOIN service_package_photos spp ON spp.package_id = sp.id
+             WHERE sp.id = ? AND sp.status = 'active'
+             ORDER BY spp.display_order, spp.id
+             LIMIT 1"
+        );
+        $_stmt_pre->execute([$_pkg_id_pre]);
+        $_pkg_pre = $_stmt_pre->fetch();
+        if ($_pkg_pre) {
+            $page_title = htmlspecialchars($_pkg_pre['name']) . ' - Package Details';
+            if (!empty($_pkg_pre['description'])) {
+                $page_description = mb_substr(strip_tags($_pkg_pre['description']), 0, 200);
+            }
+            if (!empty($_pkg_pre['image_path'])) {
+                $page_og_image = rtrim(UPLOAD_URL, '/') . '/' . ltrim($_pkg_pre['image_path'], '/');
+            }
+        }
+    } catch (Exception $e) {
+        // Silently fail; defaults will be used
+    }
+}
+unset($_pkg_id_pre, $_db_pre, $_stmt_pre, $_pkg_pre);
+
 require_once __DIR__ . '/includes/header.php';
 
 $package_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
