@@ -2233,6 +2233,7 @@ if (!empty($vendors)):
 <?php
 // Get testimonials
 $testimonial_images = getImagesBySection('testimonial');
+$user_reviews = getApprovedUserReviews(6);
 if (!empty($testimonial_images)):
 ?>
 <!-- Testimonials Section -->
@@ -2300,6 +2301,45 @@ if (!empty($testimonial_images)):
         <div class="text-center mt-4">
             <a href="<?php echo BASE_URL; ?>/testimonials.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
                 <i class="fas fa-eye me-2"></i>View All
+            </a>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if (!empty($user_reviews)): ?>
+<!-- User Reviews Section -->
+<section class="py-5" id="section-user-reviews">
+    <div class="container">
+        <div class="text-center mb-5 reveal section-heading-wrap">
+            <span class="section-eyebrow">Client Reviews</span>
+            <h2 class="section-title">Real Experiences, Real Stories</h2>
+            <p class="text-muted mt-2">Hear what our happy clients have to say</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <?php foreach ($user_reviews as $review): ?>
+            <div class="col-12 col-sm-6 col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="mb-2" aria-label="<?php echo (int)$review['rating']; ?> <?php echo (int)$review['rating'] === 1 ? 'star' : 'stars'; ?>">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="fas fa-star <?php echo $i <= (int)$review['rating'] ? 'text-warning' : 'text-muted opacity-25'; ?>" style="font-size:.85rem;" aria-hidden="true"></i>
+                            <?php endfor; ?>
+                        </div>
+                        <p class="mb-3" style="font-size:.95rem; color:#444;">
+                            <i class="fas fa-quote-left text-success me-1" style="opacity:.5;"></i><?php echo htmlspecialchars($review['review_text'], ENT_QUOTES, 'UTF-8'); ?>
+                        </p>
+                        <p class="mb-0 fw-semibold small text-muted">
+                            — <?php echo htmlspecialchars($review['reviewer_name'], ENT_QUOTES, 'UTF-8'); ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="text-center mt-4">
+            <a href="<?php echo BASE_URL; ?>/testimonials.php" class="btn btn-outline-success px-5 py-2 section-view-btn">
+                <i class="fas fa-eye me-2"></i>View All Reviews
             </a>
         </div>
     </div>
