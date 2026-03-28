@@ -93,6 +93,8 @@
     document.addEventListener('mouseover', function (e) {
         var el = e.target;
         if (!isZoomTarget(el) || !el.src) { return; }
+        /* Skip on touch/mobile: the 400 px preview overflows narrow viewports */
+        if (window.matchMedia && window.matchMedia('(hover: none)').matches) { return; }
 
         previewImg.src = el.src;
         preview.style.display = 'block';
