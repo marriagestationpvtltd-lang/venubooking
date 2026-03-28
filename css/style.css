@@ -1769,6 +1769,24 @@ footer a:hover {
     line-height: 1.5;
 }
 
+.pkg-guest-limit-row {
+    display: flex;
+    align-items: center;
+}
+
+.pkg-guest-limit-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1565C0;
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 20px;
+    padding: 3px 12px;
+    line-height: 1.5;
+}
+
 /* ===== Booking Step 4 – Group Accordion ===== */
 
 .pkg-groups-accordion {
