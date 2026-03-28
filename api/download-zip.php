@@ -114,8 +114,15 @@ while (ob_get_level() > 0) {
     }
 }
 
-@apache_setenv('no-gzip', '1');
-@apache_setenv('dont-vary', '1');
+// apache_setenv() only exists when PHP runs as a mod_php Apache module.
+// On PHP-FPM (and other SAPI backends), calling it throws an Error in PHP 8
+// that is not silenced by @ and would reach the global exception handler.
+// The .htaccess SetEnvIfNoCase rules already cover Apache mod_deflate/mod_brotli,
+// so this call is only a belt-and-suspenders measure for mod_php environments.
+if (function_exists('apache_setenv')) {
+    apache_setenv('no-gzip', '1');
+    apache_setenv('dont-vary', '1');
+}
 
 header('Content-Type: application/zip');
 header('Content-Disposition: attachment; filename="' . str_replace(['"', "\r", "\n"], ['\"', '', ''], $zip_filename) . '"');
