@@ -1714,7 +1714,7 @@ function getServicePackagesByCategory() {
  * Returns an empty array on older installs where the table does not yet exist.
  *
  * Each row contains: hall_id, hall_name, hall_base_price, hall_capacity,
- *                    venue_id, venue_name
+ *                    venue_id, venue_name, venue_location, venue_address
  */
 function getPackageHalls($package_id) {
     $db = getDB();
@@ -1722,7 +1722,8 @@ function getPackageHalls($package_id) {
         $stmt = $db->prepare(
             "SELECT h.id AS hall_id, h.name AS hall_name,
                     h.base_price AS hall_base_price, h.capacity AS hall_capacity,
-                    v.id AS venue_id, v.name AS venue_name
+                    v.id AS venue_id, v.name AS venue_name,
+                    v.location AS venue_location, v.address AS venue_address
              FROM package_venues pv
              INNER JOIN halls  h ON h.id  = pv.hall_id
              INNER JOIN venues v ON v.id  = h.venue_id
