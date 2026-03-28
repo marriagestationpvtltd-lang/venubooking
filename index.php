@@ -495,7 +495,7 @@ try {
                                 <?php if (!empty($pkg['description'])): ?>
                                 <p class="text-muted small mb-2"><?php echo sanitize($pkg['description']); ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($pkg['guest_limit']) && $pkg['guest_limit'] > 0): ?>
+                                <?php if (!empty($pkg['guest_limit']) && $pkg['guest_limit'] > 0 && !empty($pkg['view_menus'])): ?>
                                 <div class="mb-2">
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">
                                         <i class="fas fa-utensils me-1"></i>खाना = <?php echo (int)$pkg['guest_limit']; ?> जना
@@ -3249,7 +3249,7 @@ document.addEventListener("DOMContentLoaded", function() {
         body += \'</div>\';
 
         // Food guest limit
-        if (pkg.guest_limit && pkg.guest_limit > 0) {
+        if (pkg.guest_limit && pkg.guest_limit > 0 && pkg.menus && pkg.menus.length > 0) {
             body += \'<div class="mb-3"><span class="badge bg-success-subtle text-success border border-success-subtle fs-6 px-3 py-2">\';
             body += \'<i class="fas fa-utensils me-2"></i>खाना = \' + escHtml(String(pkg.guest_limit)) + \' जना\';
             body += \'</span></div>\';

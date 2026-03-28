@@ -25,6 +25,32 @@ if (!empty($service_categories)) {
         }
     }
 }
+
+// Mark packages that have menus assigned (single query to avoid N+1)
+if (!empty($all_service_packages)) {
+    try {
+        $pkg_ids = array_map(fn($p) => (int)$p['id'], $all_service_packages);
+        $placeholders = implode(',', array_fill(0, count($pkg_ids), '?'));
+        $db_pkg_menu_check = getDB();
+        $stmt_menu_check = $db_pkg_menu_check->prepare(
+            "SELECT DISTINCT pm.package_id FROM package_menus pm
+             INNER JOIN menus m ON m.id = pm.menu_id
+             WHERE pm.package_id IN ($placeholders) AND m.status = 'active'"
+        );
+        $stmt_menu_check->execute($pkg_ids);
+        $pkg_ids_with_menus = array_flip($stmt_menu_check->fetchAll(PDO::FETCH_COLUMN));
+        foreach ($all_service_packages as &$pkg_ref) {
+            $pkg_ref['has_menus'] = isset($pkg_ids_with_menus[(int)$pkg_ref['id']]);
+        }
+        unset($pkg_ref);
+    } catch (\Throwable $e) {
+        error_log('packages.php menu check failed: ' . $e->getMessage());
+        foreach ($all_service_packages as &$pkg_ref) {
+            $pkg_ref['has_menus'] = false;
+        }
+        unset($pkg_ref);
+    }
+}
 ?>
 <!-- Packages page: ItemList structured data for Google rich results -->
 <?php if (!empty($all_service_packages)): ?>
@@ -232,7 +258,7 @@ if (!empty($service_categories)) {
                                     </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <?php if (isset($pkg['guest_limit']) && $pkg['guest_limit'] > 0): ?>
+                                <?php if (isset($pkg['guest_limit']) && $pkg['guest_limit'] > 0 && !empty($pkg['has_menus'])): ?>
                                 <div class="pkg-guest-limit-row mb-2">
                                     <span class="pkg-guest-limit-badge">
                                         <i class="fas fa-utensils me-1"></i>
