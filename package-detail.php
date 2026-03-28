@@ -224,6 +224,14 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                     <p class="text-muted mb-4"><?php echo nl2br(htmlspecialchars($package['description'], ENT_QUOTES, 'UTF-8')); ?></p>
                     <?php endif; ?>
 
+                    <?php if (isset($package['guest_limit']) && $package['guest_limit'] > 0): ?>
+                    <div class="pkg-detail-guest-limit mb-3">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle fs-6 px-3 py-2">
+                            <i class="fas fa-utensils me-2"></i>खाना = <?php echo (int)$package['guest_limit']; ?> जना
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
                     <?php if (!empty($features)): ?>
                     <h5 class="fw-semibold mb-3"><i class="fas fa-list-check me-2 text-success"></i>Package Features</h5>
                     <div class="pkg-service-icons d-flex flex-wrap gap-3 mb-4">

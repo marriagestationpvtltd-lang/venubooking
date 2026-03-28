@@ -232,6 +232,14 @@ if (!empty($service_categories)) {
                                     </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
+                                <?php if (isset($pkg['guest_limit']) && $pkg['guest_limit'] > 0): ?>
+                                <div class="pkg-guest-limit-row mb-2">
+                                    <span class="pkg-guest-limit-badge">
+                                        <i class="fas fa-utensils me-1"></i>
+                                        खाना = <?php echo (int)$pkg['guest_limit']; ?> जना
+                                    </span>
+                                </div>
+                                <?php endif; ?>
                                 <?php
                                 $wa_pkg_name  = strip_tags($pkg['name']);
                                 $wa_pkg_price = strip_tags(formatCurrency($pkg['price']));
