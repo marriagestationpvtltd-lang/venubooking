@@ -31,16 +31,37 @@ define('DB_CHARSET', 'utf8mb4');
 if (!empty($_ENV['APP_URL'])) {
     $baseUrl = rtrim($_ENV['APP_URL'], '/');
 } else {
-    // Dynamically detect the application root from the current request path.
-    // This works on most Apache/mod_php setups but can fail on some
-    // Nginx + PHP-FPM or reverse-proxy configurations.
-    $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '/';
-    $scriptDir = dirname($scriptPath);
+    // Dynamically detect the application root from the current request.
+    //
+    // Use REQUEST_URI (the browser-visible path) rather than SCRIPT_NAME
+    // (the server filesystem path).  When a custom domain is mapped to a
+    // sub-directory via cPanel/Plesk "add-on domain", SCRIPT_NAME contains
+    // the physical subdirectory prefix (e.g. /jsv8/transfer.php) while the
+    // browser only ever sees /transfer.php.  Using REQUEST_URI therefore
+    // produces a correct base path regardless of how the domain is mapped.
+    // Falls back to SCRIPT_NAME when REQUEST_URI is unavailable (CLI, etc.).
+    $requestPath = isset($_SERVER['REQUEST_URI'])
+        ? (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/')  // strip query/fragment safely
+        : ($_SERVER['SCRIPT_NAME'] ?? '/');
+    $requestDir  = dirname($requestPath);
 
     // Remove /admin or /api subdirectories from the path to get the application root.
     // This handles cases where script is in /admin/dashboard.php or /admin/venues/index.php.
-    $basePath = preg_replace('#/(admin|api)(/.*)?$#', '', $scriptDir);
-    $baseUrl = rtrim($basePath, '/');
+    $basePath = preg_replace('#/(admin|api)(/.*)?$#', '', $requestDir);
+    $basePath = rtrim($basePath, '/');
+
+    // Build a fully-qualified base URL (scheme + host + path) so that share
+    // links sent to external recipients are clickable absolute URLs.
+    // When HTTP_HOST is unavailable (CLI or unit-test runners), fall back to
+    // a root-relative path to preserve the existing behaviour.
+    // Sanitize HTTP_HOST to contain only valid hostname characters (letters,
+    // digits, hyphens, dots, and an optional port) to guard against
+    // Host-header injection attacks.
+    $scheme      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $rawHttpHost = $_SERVER['HTTP_HOST'] ?? '';
+    $httpHost    = preg_match('/^[a-zA-Z0-9][a-zA-Z0-9\-\.]*(?::\d+)?$/', $rawHttpHost)
+                   ? $rawHttpHost : '';
+    $baseUrl     = !empty($httpHost) ? $scheme . '://' . $httpHost . $basePath : $basePath;
 }
 
 define('BASE_URL', $baseUrl);
