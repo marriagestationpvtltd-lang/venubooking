@@ -276,87 +276,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="container">
         <div class="row g-4">
 
-            <!-- Left: Package summary -->
-            <div class="col-lg-5 col-md-6 order-md-2">
-                <div class="card shadow-sm sticky-top" style="top:80px;">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-box-open me-2"></i><?php echo htmlspecialchars($package['name']); ?></h5>
-                    </div>
-
-                    <?php if (!empty($photos)): ?>
-                    <div id="pkgBookCarousel" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner">
-                            <?php foreach ($photos as $i => $photo): ?>
-                            <div class="carousel-item <?php echo $i === 0 ? 'active' : ''; ?>">
-                                <img src="<?php echo UPLOAD_URL . htmlspecialchars(basename($photo), ENT_QUOTES, 'UTF-8'); ?>"
-                                     class="d-block w-100"
-                                     style="height:200px;object-fit:cover;"
-                                     alt="<?php echo htmlspecialchars($package['name']); ?>">
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php if (count($photos) > 1): ?>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#pkgBookCarousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#pkgBookCarousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        </button>
-                        <?php endif; ?>
-                    </div>
-                    <?php endif; ?>
-
-                    <div class="card-body">
-                        <?php if (!empty($package['category_name'])): ?>
-                        <p class="text-muted small mb-1">
-                            <i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($package['category_name']); ?>
-                        </p>
-                        <?php endif; ?>
-
-                        <h4 class="text-success fw-bold mb-2">
-                            <?php echo formatCurrency($package['price']); ?>
-                        </h4>
-
-                        <?php if (!empty($package['description'])): ?>
-                        <p class="text-muted small mb-3"><?php echo nl2br(htmlspecialchars($package['description'])); ?></p>
-                        <?php endif; ?>
-
-                        <?php if (!empty($features)): ?>
-                        <div class="mb-2">
-                            <p class="fw-semibold small mb-1"><i class="fas fa-check-circle text-success me-1"></i> Included:</p>
-                            <ul class="list-unstyled mb-0 small">
-                                <?php foreach ($features as $feat): ?>
-                                <li class="mb-1">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    <?php echo htmlspecialchars($feat['feature_text']); ?>
-                                </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                        <?php endif; ?>
-
-                        <?php if (!empty($package_menu_ids)): ?>
-                        <div class="mt-2 pt-2 border-top">
-                            <p class="small text-muted mb-0">
-                                <i class="fas fa-utensils text-success me-1"></i>
-                                <?php echo count($package_menu_ids); ?> menu(s) included
-                            </p>
-                        </div>
-                        <?php endif; ?>
-
-                        <?php if (!empty($package_halls)): ?>
-                        <div class="mt-2 pt-2 border-top">
-                            <p class="small text-muted mb-0">
-                                <i class="fas fa-building text-success me-1"></i>
-                                Available at <?php echo count($package_halls); ?> hall(s)
-                            </p>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: Booking form -->
+            <!-- Right: Booking form (first in DOM so it appears first on mobile) -->
             <div class="col-lg-7 col-md-6 order-md-1">
                 <h2 class="mb-1">Book This Package</h2>
                 <p class="text-muted mb-4">Fill in your event details below. Venue, menu, and services are already included in this package.</p>
@@ -479,6 +399,86 @@ require_once __DIR__ . '/includes/header.php';
                         </a>
                     </div>
                 </form>
+            </div>
+
+            <!-- Left: Package summary (second in DOM so it appears below on mobile) -->
+            <div class="col-lg-5 col-md-6 order-md-2">
+                <div class="card shadow-sm sticky-top" style="top:80px;">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-box-open me-2"></i><?php echo htmlspecialchars($package['name']); ?></h5>
+                    </div>
+
+                    <?php if (!empty($photos)): ?>
+                    <div id="pkgBookCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            <?php foreach ($photos as $i => $photo): ?>
+                            <div class="carousel-item <?php echo $i === 0 ? 'active' : ''; ?>">
+                                <img src="<?php echo UPLOAD_URL . htmlspecialchars(basename($photo), ENT_QUOTES, 'UTF-8'); ?>"
+                                     class="d-block w-100"
+                                     style="height:200px;object-fit:cover;"
+                                     alt="<?php echo htmlspecialchars($package['name']); ?>">
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php if (count($photos) > 1): ?>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#pkgBookCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#pkgBookCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <div class="card-body">
+                        <?php if (!empty($package['category_name'])): ?>
+                        <p class="text-muted small mb-1">
+                            <i class="fas fa-tag me-1"></i><?php echo htmlspecialchars($package['category_name']); ?>
+                        </p>
+                        <?php endif; ?>
+
+                        <h4 class="text-success fw-bold mb-2">
+                            <?php echo formatCurrency($package['price']); ?>
+                        </h4>
+
+                        <?php if (!empty($package['description'])): ?>
+                        <p class="text-muted small mb-3"><?php echo nl2br(htmlspecialchars($package['description'])); ?></p>
+                        <?php endif; ?>
+
+                        <?php if (!empty($features)): ?>
+                        <div class="mb-2">
+                            <p class="fw-semibold small mb-1"><i class="fas fa-check-circle text-success me-1"></i> Included:</p>
+                            <ul class="list-unstyled mb-0 small">
+                                <?php foreach ($features as $feat): ?>
+                                <li class="mb-1">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <?php echo htmlspecialchars($feat['feature_text']); ?>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($package_menu_ids)): ?>
+                        <div class="mt-2 pt-2 border-top">
+                            <p class="small text-muted mb-0">
+                                <i class="fas fa-utensils text-success me-1"></i>
+                                <?php echo count($package_menu_ids); ?> menu(s) included
+                            </p>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($package_halls)): ?>
+                        <div class="mt-2 pt-2 border-top">
+                            <p class="small text-muted mb-0">
+                                <i class="fas fa-building text-success me-1"></i>
+                                Available at <?php echo count($package_halls); ?> hall(s)
+                            </p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
         </div>
