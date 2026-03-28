@@ -230,21 +230,13 @@ async function startDownload(url, defaultName) {
 }
 
 function singlePhotoDownload(url, displayName) {
-    var idMatch   = (typeof url === 'string') ? url.match(/[?&]download_photo=(\d+)/) : null;
-    var photoId   = idMatch ? idMatch[1] : null;
-    var fileEntry = null;
-    if (photoId) {
-        for (var _i = 0; _i < _dlFiles.length; _i++) {
-            if (_dlFiles[_i].url.indexOf('download_photo=' + photoId) !== -1) {
-                fileEntry = _dlFiles[_i];
-                break;
-            }
-        }
-    }
-    var filename = fileEntry ? fileEntry.filename : (displayName || 'photo');
-    showDownloadConfirm(filename, 'Do you want to download this file?', function() {
-        startDownload(url, filename);
-    });
+    // Only navigate to relative URLs containing the expected download parameter
+    if (typeof url !== 'string') return false;
+    var isRelative = url.charAt(0) === '?';
+    var isSameOrigin = url.startsWith(window.location.origin + '/');
+    if (!isRelative && !isSameOrigin) return false;
+    if (!/[?&]download_photo=\d+/.test(url)) return false;
+    window.location.href = url;
     return false;
 }
 
@@ -456,55 +448,16 @@ function getSelectedFiles() {
     return _dlFiles.filter(function(f) { return selectedUrls.has(f.url); });
 }
 
-function showDownloadConfirm(filename, message, onConfirm) {
-    var modal  = document.getElementById('dlConfirmModal');
-    var msgEl  = document.getElementById('dlConfirmMessage');
-    var nameEl = document.getElementById('dlConfirmFilename');
-    var yesBtn = document.getElementById('dlConfirmYes');
-    var noBtn  = document.getElementById('dlConfirmCancel');
-
-    msgEl.textContent  = message  || 'Do you want to download this file?';
-    nameEl.textContent = filename || '';
-
-    function closeModal() { modal.style.display = 'none'; }
-
-    yesBtn.addEventListener('click', function() {
-        closeModal();
-        if (typeof onConfirm === 'function') { onConfirm(); }
-    }, { once: true });
-    noBtn.addEventListener('click', closeModal, { once: true });
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) { closeModal(); }
-    }, { once: true });
-
-    modal.style.display = 'flex';
-}
-
-function confirmAndDownloadNow(files) {
-    if (!files || files.length === 0) return false;
-    var count   = files.length;
-    var label   = count === 1 ? (files[0].filename || '1 file') : count + ' files';
-    var message = count === 1
-        ? 'Do you want to download this file?'
-        : 'Do you want to download all ' + count + ' files?';
-    showDownloadConfirm(label, message, function() { downloadNow(files); });
-    return false;
-}
 
 function downloadNowSelected() {
     var files = getSelectedFiles();
     if (files.length === 0) return false;
-    var count = files.length;
-    var label = count === 1
-        ? (files[0].filename || '1 file')
-        : count + ' files';
-    var message = count === 1
-        ? 'Do you want to download this file?'
-        : 'Do you want to download ' + count + ' selected files?';
-    showDownloadConfirm(label, message, function() {
-        downloadNow(files);
-    });
-    return false;
+    return downloadNow(files);
+}
+
+function confirmAndDownloadNow(files) {
+    if (!files || files.length === 0) return false;
+    return downloadNow(files);
 }
 
 async function downloadNow(files) {
@@ -520,103 +473,7 @@ async function downloadNow(files) {
         if (ids.length > 0) {
             var zipUrl = '?token=' + encodeURIComponent(window._folderToken || '')
                        + '&download_all=1&ids=' + ids.join(',');
-
-            var overlay = document.getElementById('downloadProgressOverlay');
-            var dlBar   = document.getElementById('dlBar');
-            var dlPct   = document.getElementById('dlPercent');
-            var dlTitle = document.getElementById('dlTitle');
-            var dlFile  = document.getElementById('dlFilename');
-            var dlSize  = document.getElementById('dlSizeInfo');
-            var dlIcon  = document.getElementById('dlIcon');
-            var dlEta   = document.getElementById('dlEta');
-            var dlSpd   = document.getElementById('dlSpeed');
-
-            if (overlay) {
-                dlBar.style.width          = '100%';
-                dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
-                dlBar.style.backgroundSize = '200% 100%';
-                dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
-                dlPct.textContent   = '';
-                dlTitle.textContent = 'Preparing ZIP download\u2026';
-                dlFile.textContent  = ids.length + ' files';
-                dlSize.textContent  = '';
-                dlEta.textContent   = 'Please wait\u2026';
-                dlSpd.textContent   = '';
-                dlIcon.className    = 'fas fa-spinner fa-spin';
-                overlay.classList.add('dl-active');
-            }
-
-            try {
-                var response = await fetch(zipUrl);
-                var contentType = (response.headers.get('Content-Type') || '').toLowerCase();
-
-                // If the server returned HTML instead of a ZIP the generation failed.
-                // Automatically fall back to downloading files individually.
-                // Accept any ZIP-related MIME type (application/zip, application/x-zip-compressed, etc.)
-                var isZip = contentType.indexOf('zip') !== -1 || contentType === 'application/octet-stream';
-                if (!response.ok || !isZip) {
-                    if (overlay) { overlay.classList.remove('dl-active'); }
-                    var _fbUrls = files.map(function(f) { return f.url; });
-                    return bulkDownloadIndividual(_fbUrls, null);
-                }
-
-                // ZIP succeeded – stream body into a Blob then trigger browser download.
-                var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
-                var reader = response.body.getReader();
-                var chunks = [];
-                var received = 0;
-
-                while (true) {
-                    var chunk = await reader.read();
-                    if (chunk.done) break;
-                    chunks.push(chunk.value);
-                    received += chunk.value.length;
-                    if (contentLength > 0 && overlay) {
-                        var pct = Math.min(Math.round((received / contentLength) * 100), 99);
-                        dlBar.style.width          = pct + '%';
-                        dlPct.textContent          = pct + '%';
-                        dlBar.style.background     = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
-                        dlBar.style.backgroundSize = '';
-                        dlBar.style.animation      = '';
-                    }
-                }
-
-                var cd = response.headers.get('Content-Disposition') || '';
-                var zipFilename = 'photos.zip';
-                var cdMatch = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
-                if (cdMatch && cdMatch[1]) {
-                    var _fn = cdMatch[1].replace(/['"]/g, '').trim();
-                    if (_fn) { zipFilename = _fn; }
-                }
-
-                var blob      = new Blob(chunks, { type: 'application/zip' });
-                var objectUrl = URL.createObjectURL(blob);
-                var a         = document.createElement('a');
-                a.href        = objectUrl;
-                a.download    = zipFilename;
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(function(u) { URL.revokeObjectURL(u); }, BLOB_REVOKE_DELAY, objectUrl);
-
-                if (overlay) {
-                    dlBar.style.width   = '100%';
-                    dlPct.textContent   = '100%';
-                    dlTitle.textContent = 'Download Complete!';
-                    dlFile.textContent  = '';
-                    dlSize.textContent  = 'ZIP file saved successfully';
-                    dlIcon.className    = 'fas fa-check-circle';
-                    dlEta.textContent   = '';
-                    dlSpd.textContent   = '';
-                    setTimeout(function() { overlay.classList.remove('dl-active'); }, 1500);
-                }
-            } catch (e) {
-                // Network / fetch error – fall back to individual file downloads.
-                if (overlay) { overlay.classList.remove('dl-active'); }
-                var _fbUrls2 = files.map(function(f) { return f.url; });
-                return bulkDownloadIndividual(_fbUrls2, null);
-            }
+            window.location.href = zipUrl;
             return false;
         }
 
@@ -625,7 +482,10 @@ async function downloadNow(files) {
     }
 
     if (files.length === 1) {
-        startDownload(files[0].url, files[0].filename);
+        var fileUrl = files[0].url;
+        if (typeof fileUrl === 'string' && /[?&]download_photo=\d+/.test(fileUrl)) {
+            window.location.href = fileUrl;
+        }
         return false;
     }
 }
@@ -786,46 +646,6 @@ function _showDlCompleteMessage(title, count) {
     dlIcon.className    = 'fas fa-check-circle';
     overlay.classList.add('dl-active');
     setTimeout(function() { overlay.classList.remove('dl-active'); }, 3000);
-}
-
-function showResumeDialog(alreadyCount, remainingCount) {
-    return new Promise(function(resolve) {
-        var modal = document.getElementById('resumeModal');
-        document.getElementById('resumeAlreadyCount').textContent   = alreadyCount;
-        document.getElementById('resumeRemainingCount').textContent = remainingCount;
-
-        var btnRemaining  = document.getElementById('resumeBtnRemaining');
-        var descPartial   = document.getElementById('resumeDescPartial');
-        var descAll       = document.getElementById('resumeDescAll');
-        var allCountSpan  = document.getElementById('resumeAllCount');
-
-        if (remainingCount === 0) {
-            btnRemaining.style.display = 'none';
-            if (allCountSpan) allCountSpan.textContent = alreadyCount;
-            if (descPartial) descPartial.style.display = 'none';
-            if (descAll)     descAll.style.display     = '';
-        } else {
-            btnRemaining.style.display = '';
-            if (descPartial) descPartial.style.display = '';
-            if (descAll)     descAll.style.display     = 'none';
-        }
-
-        function cleanup(value) {
-            modal.style.display              = 'none';
-            btnRemaining.onclick             = null;
-            btnAll.onclick                   = null;
-            btnCancel.onclick                = null;
-            resolve(value);
-        }
-
-        var btnAll       = document.getElementById('resumeBtnAll');
-        var btnCancel    = document.getElementById('resumeBtnCancel');
-        btnRemaining.onclick = function() { cleanup('remaining'); };
-        btnAll.onclick       = function() { cleanup('all'); };
-        btnCancel.onclick    = function() { cleanup(null); };
-
-        modal.style.display = 'flex';
-    });
 }
 
 function _formatEta(seconds) {

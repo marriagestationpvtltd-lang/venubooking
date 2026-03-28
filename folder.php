@@ -889,102 +889,73 @@ $has_any_banner = $show_banner_a || $show_banner_b;
 <?php endif; ?>
 
 <!-- Folder Header -->
+<?php
+$_ind_urls  = ($has_subfolders && $current_album !== null) ? $bulk_album_urls  : $bulk_all_urls;
+$_ind_files = ($has_subfolders && $current_album !== null) ? $bulk_album_files : $bulk_all_files;
+?>
 <div class="folder-header">
-    <div class="folder-header-accent"></div>
-    <div class="folder-header-body">
-    <?php if ($site_logo && file_exists(UPLOAD_PATH . $site_logo)): ?>
-    <div class="folder-brand-bar">
-        <a href="<?= BASE_URL ?>/" class="brand-link" title="Go to Home">
+    <div class="folder-header-brand">
+        <?php if ($site_logo && file_exists(UPLOAD_PATH . $site_logo)): ?>
+        <a href="<?= BASE_URL ?>/" class="brand-link" title="<?= htmlspecialchars($site_name) ?>">
             <img src="<?= UPLOAD_URL . htmlspecialchars($site_logo) ?>" alt="<?= htmlspecialchars($site_name) ?>" class="brand-logo">
         </a>
-        <div class="brand-text">
-            <p class="brand-name"><?= htmlspecialchars($site_name) ?></p>
-            <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
-        </div>
-        <a href="<?= BASE_URL ?>/" class="btn btn-outline-secondary btn-sm ms-auto go-home-btn">
-            <i class="fas fa-home me-1"></i> Go Back to Home
-        </a>
+        <?php else: ?>
+        <span class="brand-name-text"><?= htmlspecialchars($site_name) ?></span>
+        <?php endif; ?>
     </div>
-    <?php else: ?>
-    <div class="folder-brand-bar">
-        <div class="brand-text">
-            <p class="brand-name"><?= htmlspecialchars($site_name) ?></p>
-            <p class="brand-tagline"><i class="fas fa-shield-alt"></i> Professional &amp; Secure File Sharing</p>
-        </div>
-        <a href="<?= BASE_URL ?>/" class="btn btn-outline-secondary btn-sm ms-auto go-home-btn">
-            <i class="fas fa-home me-1"></i> Go Back to Home
-        </a>
-    </div>
-    <?php endif; ?>
-    <div class="row align-items-center">
-        <div class="col-md-8">
+    <div class="folder-header-body">
+        <div class="folder-title-wrap">
+            <span class="folder-title-icon"><i class="fas fa-images"></i></span>
             <h1 class="folder-title">
-                <span class="folder-title-icon"><i class="fas fa-folder-open"></i></span>
                 <?php if ($has_subfolders && $current_album !== null): ?>
                     <?= htmlspecialchars($current_album === '' ? 'General' : $current_album) ?>
                 <?php else: ?>
                     <?= htmlspecialchars($folder['folder_name']) ?>
                 <?php endif; ?>
             </h1>
-            <?php if (!$has_subfolders || $current_album === null): ?>
-                <?php if ($folder['description']): ?>
-                    <p class="folder-description"><?= nl2br(htmlspecialchars($folder['description'])) ?></p>
-                <?php endif; ?>
-                <?php if (($folder['transfer_source'] ?? 'admin') === 'public'): ?>
-                    <div style="margin-top:10px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:.9rem;color:#1e40af;">
-                        <i class="fas fa-paper-plane" style="margin-right:6px;"></i>
-                        <strong>Shared via file transfer</strong>
-                        <?php if (!empty($folder['sender_email'])): ?> — from <em><?= htmlspecialchars($folder['sender_email']) ?></em><?php endif; ?>
-                        <?php if (!empty($folder['sender_message'])): ?>
-                            <p style="margin:6px 0 0;font-style:italic;color:#1e3a8a;">"<?= nl2br(htmlspecialchars($folder['sender_message'])) ?>"</p>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-            <?php endif; ?>
-            <div class="stats-badges">
-                <?php if ($has_subfolders && $current_album === null): ?>
-                    <span class="stats-badge"><i class="fas fa-folder" style="color:#d97706;"></i> <?= count($subfolders) ?> Album<?= count($subfolders) !== 1 ? 's' : '' ?></span>
-                    <span class="stats-badge"><i class="fas fa-photo-video" style="color:#3b82f6;"></i> <?= count($photos) ?> File<?= count($photos) !== 1 ? 's' : '' ?></span>
-                <?php else: ?>
-                    <span class="stats-badge"><i class="fas fa-photo-video" style="color:#3b82f6;"></i> <?= count($visible_photos) ?> File<?= count($visible_photos) !== 1 ? 's' : '' ?></span>
-                <?php endif; ?>
-                <?php if ($folder['expires_at']): ?>
-                    <span class="stats-badge"><i class="fas fa-clock" style="color:#f59e0b;"></i> Expires: <?= date('M d, Y', strtotime($folder['expires_at'])) ?> (<?= convertToNepaliDate($folder['expires_at']) ?>)</span>
-                <?php endif; ?>
-            </div>
         </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <?php
-            $_ind_urls  = ($has_subfolders && $current_album !== null) ? $bulk_album_urls  : $bulk_all_urls;
-            $_ind_files = ($has_subfolders && $current_album !== null) ? $bulk_album_files : $bulk_all_files;
-            if (!empty($_ind_urls)):
-            ?>
-                <button type="button" class="btn btn-success download-all-btn" id="downloadNowBtn" onclick="return downloadNowSelected()">
-                    <i class="fas fa-download me-2"></i> Download Now (<?= count($_ind_urls) ?>)
-                </button>
-                <p class="text-muted mt-2 mb-0"><small><i class="fas fa-download"></i> Download all files at once</small></p>
+        <?php if (!$has_subfolders || $current_album === null): ?>
+            <?php if ($folder['description']): ?>
+                <p class="folder-description"><?= nl2br(htmlspecialchars($folder['description'])) ?></p>
             <?php endif; ?>
+            <?php if (($folder['transfer_source'] ?? 'admin') === 'public'): ?>
+                <div class="transfer-notice">
+                    <i class="fas fa-paper-plane"></i>
+                    <strong>Shared via file transfer</strong>
+                    <?php if (!empty($folder['sender_email'])): ?> — from <em><?= htmlspecialchars($folder['sender_email']) ?></em><?php endif; ?>
+                    <?php if (!empty($folder['sender_message'])): ?>
+                        <p class="transfer-message">"<?= nl2br(htmlspecialchars($folder['sender_message'])) ?>"</p>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+        <div class="stats-badges">
+            <?php if ($has_subfolders && $current_album === null): ?>
+                <span class="stats-badge"><i class="fas fa-folder" style="color:#d97706;"></i> <?= count($subfolders) ?> Album<?= count($subfolders) !== 1 ? 's' : '' ?></span>
+                <span class="stats-badge"><i class="fas fa-images" style="color:#3b82f6;"></i> <?= count($photos) ?> File<?= count($photos) !== 1 ? 's' : '' ?></span>
+            <?php else: ?>
+                <span class="stats-badge"><i class="fas fa-images" style="color:#3b82f6;"></i> <?= count($visible_photos) ?> File<?= count($visible_photos) !== 1 ? 's' : '' ?></span>
+            <?php endif; ?>
+            <?php if ($folder['expires_at']): ?>
+                <span class="stats-badge"><i class="fas fa-clock" style="color:#f59e0b;"></i> Expires: <?= date('M d, Y', strtotime($folder['expires_at'])) ?> (<?= convertToNepaliDate($folder['expires_at']) ?>)</span>
+            <?php endif; ?>
+        </div>
+        <?php if (!empty($_ind_urls)): ?>
+        <div class="header-actions">
+            <button type="button" class="btn-download-all" id="downloadNowBtn" onclick="return downloadNowSelected()">
+                <i class="fas fa-download"></i>
+                Download All Photos
+                <span class="dl-badge"><?= count($_ind_urls) ?></span>
+            </button>
             <?php if ($whatsapp_delete_url): ?>
-            <div class="whatsapp-delete-request">
-                <a href="<?= htmlspecialchars($whatsapp_delete_url) ?>" target="_blank" rel="noopener noreferrer" class="whatsapp-delete-btn">
-                    <i class="fab fa-whatsapp"></i> I downloaded my photos — please delete them
-                </a>
-                <p class="whatsapp-delete-note"><i class="fas fa-info-circle"></i> Press this button after you finish downloading</p>
-            </div>
+            <a href="<?= htmlspecialchars($whatsapp_delete_url) ?>" target="_blank" rel="noopener noreferrer" class="whatsapp-delete-btn">
+                <i class="fab fa-whatsapp"></i> Done downloading? Request deletion
+            </a>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
-    </div><!-- end folder-header-body -->
 </div><!-- end folder-header -->
-
-<!-- Security Panel -->
-<div class="security-panel">
-    <div class="security-item"><i class="fas fa-lock"></i> Private &amp; Secure Link</div>
-    <div class="security-item"><i class="fas fa-shield-alt"></i> Encrypted Transfer</div>
-    <div class="security-item"><i class="fas fa-user-shield"></i> Access-Controlled</div>
-    <div class="security-item"><i class="fas fa-camera"></i> Original Quality Files</div>
-    <div class="security-note"><i class="fas fa-info-circle"></i> Only people with this link can view &amp; download these files</div>
-</div>
 
 <?php
 $show_preview = !isset($folder['show_preview']) || $folder['show_preview'];
@@ -1221,38 +1192,8 @@ else:
 </div>
 
 <!-- Resume Modal -->
-<div id="resumeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
-    <div style="background:#fff;border-radius:20px;padding:30px 28px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:dlFadeIn 0.3s ease;">
-        <div style="font-size:2.5rem;color:#f59e0b;margin-bottom:12px;"><i class="fas fa-folder-open"></i></div>
-        <h5 style="font-weight:700;margin-bottom:8px;color:#333;">Previously Downloaded Files</h5>
-        <p id="resumeDescPartial" style="color:#555;margin-bottom:20px;">
-            <strong><span id="resumeAlreadyCount">0</span> files</strong> were already downloaded.<br>
-            Download only the remaining <strong><span id="resumeRemainingCount">0</span> files</strong>?
-        </p>
-        <p id="resumeDescAll" style="color:#555;margin-bottom:20px;display:none;">
-            <strong><span id="resumeAllCount">0</span> files</strong> have already been downloaded.<br>Would you like to download all again?
-        </p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-            <button id="resumeBtnRemaining" class="btn btn-success"><i class="fas fa-download me-2"></i>Yes, download remaining files only</button>
-            <button id="resumeBtnAll" class="btn btn-outline-secondary btn-sm"><i class="fas fa-redo me-2"></i>Download all again</button>
-            <button id="resumeBtnCancel" class="btn btn-outline-danger btn-sm"><i class="fas fa-times me-2"></i>Cancel</button>
-        </div>
-    </div>
-</div>
 
 <!-- Confirm Modal -->
-<div id="dlConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10001;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
-    <div style="background:#fff;border-radius:20px;padding:30px 28px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:dlFadeIn 0.3s ease;">
-        <div style="font-size:2.5rem;color:#28a745;margin-bottom:12px;"><i class="fas fa-file-download"></i></div>
-        <h5 style="font-weight:700;margin-bottom:8px;color:#333;">Download File</h5>
-        <p style="color:#555;margin-bottom:6px;" id="dlConfirmMessage">Do you want to download this file?</p>
-        <p style="font-weight:600;color:#333;word-break:break-all;margin-bottom:20px;font-size:0.95rem;" id="dlConfirmFilename"></p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-            <button id="dlConfirmYes" class="btn btn-success"><i class="fas fa-download me-2"></i>Yes, Download</button>
-            <button id="dlConfirmCancel" class="btn btn-outline-danger btn-sm"><i class="fas fa-times me-2"></i>Cancel</button>
-        </div>
-    </div>
-</div>
 
 <!-- Page Share Button -->
 <div class="page-share-wrap" aria-label="Share this page">

@@ -298,52 +298,94 @@
             background: var(--surface);
             border-radius: var(--radius);
             box-shadow: var(--shadow-lg);
-            padding: 0;
-            margin-bottom: 24px;
             overflow: hidden;
+            margin-bottom: 24px;
+            border-top: 4px solid var(--primary-green);
         }
 
-        .folder-header-accent {
-            height: 5px;
-            background: linear-gradient(90deg, var(--primary-green) 0%, var(--light-green) 60%, #86efac 100%);
+        .folder-header-brand {
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+        }
+
+        .folder-header-brand .brand-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .folder-header-brand .brand-logo {
+            height: 32px;
+            max-width: 120px;
+            object-fit: contain;
+        }
+
+        .folder-header-brand .brand-name-text {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
         }
 
         .folder-header-body {
-            padding: 28px 30px 24px;
+            padding: 28px 30px 28px;
         }
 
-        .folder-title {
-            font-size: 1.65rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 6px;
+        .folder-title-wrap {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
+            margin-bottom: 10px;
         }
 
         .folder-title-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
             display: inline-flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(234,179,8,0.25);
+            box-shadow: 0 2px 8px rgba(22,163,74,0.18);
         }
 
         .folder-title-icon i {
-            color: #d97706;
-            font-size: 1.3rem;
+            color: var(--primary-green);
+            font-size: 1.5rem;
+        }
+
+        .folder-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.2;
         }
 
         .folder-description {
             color: var(--text-secondary);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             font-size: 0.93rem;
             line-height: 1.6;
+        }
+
+        /* ── Transfer notice ── */
+        .transfer-notice {
+            margin-top: 10px;
+            margin-bottom: 14px;
+            padding: 10px 14px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            font-size: .9rem;
+            color: #1e40af;
+        }
+        .transfer-notice .transfer-message {
+            margin: 6px 0 0;
+            font-style: italic;
+            color: #1e3a8a;
         }
 
         /* ── Stats Badges ── */
@@ -352,6 +394,7 @@
             flex-wrap: wrap;
             gap: 8px;
             margin-top: 10px;
+            margin-bottom: 20px;
         }
 
         .stats-badge {
@@ -369,7 +412,49 @@
 
         .stats-badge i { font-size: 0.85rem; }
 
-        /* ── Download Buttons ── */
+        /* ── Header Actions ── */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        /* ── Download All Button ── */
+        .btn-download-all {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
+            border: none;
+            padding: 14px 28px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border-radius: 50px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 18px rgba(22,163,74,0.35);
+            text-decoration: none;
+            letter-spacing: 0.01em;
+        }
+
+        .btn-download-all:hover {
+            background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(22,163,74,0.45);
+            color: #fff;
+        }
+
+        .btn-download-all .dl-badge {
+            background: rgba(255,255,255,0.3);
+            border-radius: 50px;
+            padding: 2px 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        /* Legacy .download-all-btn kept for download-only view */
         .download-all-btn {
             background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
             border: none;
@@ -631,7 +716,7 @@
             font-size: 0.85rem;
         }
 
-        /* ── Download Progress Overlay ── */
+        /* ── Download Progress Overlay (for bulk individual downloads) ── */
         #downloadProgressOverlay {
             display: none;
             position: fixed;
@@ -808,6 +893,13 @@
                 font-size: 1.35rem;
             }
 
+            .btn-download-all {
+                width: 100%;
+                justify-content: center;
+                padding: 12px 24px;
+                font-size: 0.97rem;
+            }
+
             .download-all-btn {
                 width: 100%;
                 padding: 12px 24px;
@@ -818,75 +910,6 @@
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
                 gap: 12px;
             }
-
-            /* Mobile: Stack brand bar items vertically */
-            .folder-brand-bar {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-            .folder-brand-bar .go-home-btn {
-                margin-top: 10px;
-                width: 100%;
-                text-align: center;
-            }
-
-            /* Mobile: WhatsApp button full width */
-            .whatsapp-delete-btn {
-                width: 100%;
-                justify-content: center;
-                font-size: 0.9rem;
-                padding: 10px 20px;
-            }
-        }
-
-        /* ── Company Brand Bar ── */
-        .folder-brand-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-bottom: 18px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-            flex-wrap: wrap;
-        }
-        .folder-brand-bar .brand-link {
-            display: inline-block;
-            transition: transform 0.2s, opacity 0.2s;
-        }
-        .folder-brand-bar .brand-link:hover {
-            transform: scale(1.05);
-            opacity: 0.9;
-        }
-        .folder-brand-bar .brand-logo {
-            height: 40px;
-            max-width: 140px;
-            object-fit: contain;
-        }
-        .brand-text .brand-name {
-            font-size: 0.97rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-            margin: 0;
-        }
-        .brand-text .brand-tagline {
-            font-size: 0.74rem;
-            color: var(--text-secondary);
-            margin: 2px 0 0;
-        }
-        .go-home-btn {
-            font-size: 0.82rem;
-            border-radius: 20px;
-            padding: 6px 16px;
-            border-color: var(--border);
-            color: var(--text-secondary);
-            transition: all 0.25s;
-        }
-        .go-home-btn:hover {
-            background: var(--primary-green);
-            color: white;
-            border-color: var(--primary-green);
         }
 
         /* ── WhatsApp Deletion Request Button ── */
@@ -921,41 +944,6 @@
             font-size: 0.78rem;
             color: var(--text-secondary);
             margin-top: 7px;
-        }
-
-        /* ── Security Panel ── */
-        .security-panel {
-            background: var(--accent);
-            border: 1px solid #bbf7d0;
-            border-radius: var(--radius-sm);
-            padding: 11px 18px;
-            margin-bottom: 22px;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 14px;
-        }
-        .security-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            color: var(--primary-green);
-            font-weight: 600;
-        }
-        .security-item i {
-            font-size: 0.9rem;
-        }
-        .security-note {
-            margin-left: auto;
-            font-size: 0.74rem;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .security-note i {
-            color: #94a3b8;
         }
 
         /* ── Enhanced Footer ── */
@@ -994,23 +982,11 @@
             flex-wrap: wrap;
         }
 
-        @media (max-width: 576px) {
-            .security-note { display: none; }
-            .folder-brand-bar { padding-bottom: 14px; margin-bottom: 16px; }
-        }
-
         /* ── Sub-folder / Album Grid ── */
         .subfolder-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 20px;
-        }
-
-        /* Single-folder view: centre one large card */
-        .subfolder-grid.single-folder-view {
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            justify-content: center;
-            padding: 20px 0;
         }
 
         .subfolder-card {
@@ -1062,15 +1038,6 @@
             transform: scale(1.08) translateY(-3px);
         }
 
-        /* Kept for legacy rendering but hidden by default */
-        .subfolder-card .subfolder-thumb .thumb-preview {
-            display: none;
-        }
-
-        .subfolder-card .subfolder-thumb .folder-icon-overlay {
-            display: none;
-        }
-
         .subfolder-card .subfolder-info {
             padding: 14px 16px;
         }
@@ -1119,22 +1086,6 @@
         .breadcrumb-nav a:hover { text-decoration: underline; }
 
         .breadcrumb-nav .separator { color: #cbd5e1; }
-
-        .album-download-btn {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
-            border: none;
-            padding: 10px 24px;
-            font-size: 0.97rem;
-            font-weight: 600;
-            border-radius: 50px;
-            transition: all 0.25s;
-            box-shadow: 0 3px 14px rgba(22,163,74,0.3);
-        }
-
-        .album-download-btn:hover {
-            background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
-            transform: translateY(-2px);
-        }
 
         @media (max-width: 576px) {
             .subfolder-grid {
