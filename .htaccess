@@ -113,9 +113,9 @@ Options +FollowSymLinks
 # DISABLE RESPONSE COMPRESSION FOR FILE DOWNLOAD SCRIPTS
 # ============================================================================
 # folder.php and download.php stream binary files directly to the client.
-# Allowing mod_deflate to compress these responses causes the server to
-# buffer the entire output before sending it, which produces incomplete
-# downloads for large files and prevents the instant-start behaviour.
+# Allowing mod_deflate or mod_brotli to compress these responses causes the
+# server to buffer the entire output before sending it, which produces
+# incomplete downloads for large files and prevents the instant-start behaviour.
 <IfModule mod_deflate.c>
     SetEnvIfNoCase Request_URI folder\.php no-gzip dont-vary
     SetEnvIfNoCase Request_URI download\.php no-gzip dont-vary
@@ -127,6 +127,16 @@ Options +FollowSymLinks
     AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml text/javascript
     AddOutputFilterByType DEFLATE application/javascript application/x-javascript
     AddOutputFilterByType DEFLATE application/json application/xml application/xhtml+xml
+</IfModule>
+
+# Exclude the same binary-streaming endpoints from mod_brotli compression.
+# mod_brotli uses the "no-brotli" environment variable (analogous to "no-gzip"
+# for mod_deflate).  Without this, mod_brotli would brotli-encode the ZIP or
+# photo stream, changing Content-Length mid-flight and corrupting the download.
+<IfModule mod_brotli.c>
+    SetEnvIfNoCase Request_URI folder\.php no-brotli dont-vary
+    SetEnvIfNoCase Request_URI download\.php no-brotli dont-vary
+    SetEnvIfNoCase Request_URI api/download-zip\.php no-brotli dont-vary
 </IfModule>
 
 # ============================================================================
