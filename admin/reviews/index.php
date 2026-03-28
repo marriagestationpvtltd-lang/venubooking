@@ -58,34 +58,38 @@ $filter = trim($_GET['filter'] ?? 'all');
 try {
     if ($filter === 'pending') {
         $stmt = $db->query(
-            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, b.full_name AS booking_name
+            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, c.full_name AS booking_name
              FROM user_reviews ur
-             LEFT JOIN bookings b ON ur.booking_id = b.id
+             LEFT JOIN bookings b  ON ur.booking_id = b.id
+             LEFT JOIN customers c ON b.customer_id = c.id
              WHERE ur.submitted = 1 AND ur.status = 'pending'
              ORDER BY ur.created_at DESC"
         );
     } elseif ($filter === 'approved') {
         $stmt = $db->query(
-            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, b.full_name AS booking_name
+            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, c.full_name AS booking_name
              FROM user_reviews ur
-             LEFT JOIN bookings b ON ur.booking_id = b.id
+             LEFT JOIN bookings b  ON ur.booking_id = b.id
+             LEFT JOIN customers c ON b.customer_id = c.id
              WHERE ur.submitted = 1 AND ur.status = 'approved'
              ORDER BY ur.updated_at DESC"
         );
     } elseif ($filter === 'rejected') {
         $stmt = $db->query(
-            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, b.full_name AS booking_name
+            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, c.full_name AS booking_name
              FROM user_reviews ur
-             LEFT JOIN bookings b ON ur.booking_id = b.id
+             LEFT JOIN bookings b  ON ur.booking_id = b.id
+             LEFT JOIN customers c ON b.customer_id = c.id
              WHERE ur.submitted = 1 AND ur.status = 'rejected'
              ORDER BY ur.updated_at DESC"
         );
     } else {
         // All submitted reviews
         $stmt = $db->query(
-            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, b.full_name AS booking_name
+            "SELECT ur.*, b.booking_number, b.event_type AS booking_event_type, b.event_date AS booking_event_date, c.full_name AS booking_name
              FROM user_reviews ur
-             LEFT JOIN bookings b ON ur.booking_id = b.id
+             LEFT JOIN bookings b  ON ur.booking_id = b.id
+             LEFT JOIN customers c ON b.customer_id = c.id
              WHERE ur.submitted = 1
              ORDER BY ur.created_at DESC"
         );

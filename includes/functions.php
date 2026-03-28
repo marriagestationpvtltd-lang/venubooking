@@ -5567,13 +5567,14 @@ function getReviewByToken($token) {
         $db   = getDB();
         $stmt = $db->prepare(
             "SELECT ur.*,
-                    b.full_name      AS booking_name,
-                    b.email          AS booking_email,
+                    c.full_name      AS booking_name,
+                    c.email          AS booking_email,
                     b.event_type     AS booking_event_type,
                     b.event_date     AS booking_event_date,
                     b.booking_number AS booking_number
              FROM user_reviews ur
-             LEFT JOIN bookings b ON ur.booking_id = b.id
+             LEFT JOIN bookings b  ON ur.booking_id = b.id
+             LEFT JOIN customers c ON b.customer_id = c.id
              WHERE ur.token = ?
              LIMIT 1"
         );
@@ -5661,9 +5662,10 @@ function getAllSubmittedReviews() {
                     b.booking_number,
                     b.event_type  AS booking_event_type,
                     b.event_date  AS booking_event_date,
-                    b.full_name   AS booking_name
+                    c.full_name   AS booking_name
              FROM user_reviews ur
-             LEFT JOIN bookings b ON ur.booking_id = b.id
+             LEFT JOIN bookings b  ON ur.booking_id = b.id
+             LEFT JOIN customers c ON b.customer_id = c.id
              WHERE ur.submitted = 1
              ORDER BY ur.created_at DESC"
         );
@@ -5712,9 +5714,10 @@ function getReviewById($id) {
                     b.booking_number,
                     b.event_type AS booking_event_type,
                     b.event_date AS booking_event_date,
-                    b.full_name  AS booking_name
+                    c.full_name  AS booking_name
              FROM user_reviews ur
-             LEFT JOIN bookings b ON ur.booking_id = b.id
+             LEFT JOIN bookings b  ON ur.booking_id = b.id
+             LEFT JOIN customers c ON b.customer_id = c.id
              WHERE ur.id = ?
              LIMIT 1"
         );
