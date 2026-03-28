@@ -15,6 +15,7 @@ require_once __DIR__ . '/includes/ZipStream.php';
 $db = getDB();
 $error_message = '';
 $zip_error_message = ''; // Non-fatal error shown as alert on the folder page
+$download_error_message = ''; // Non-fatal error for a single-photo download attempt
 $folder = null;
 $photos = [];
 
@@ -176,7 +177,7 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
         if ($photo) {
             // Check max downloads if set
             if ($folder['max_downloads'] && $photo['download_count'] >= $folder['max_downloads']) {
-                $error_message = 'Maximum download limit reached for this photo.';
+                $download_error_message = 'Maximum download limit reached for this photo.';
             } else {
                 $file_path = UPLOAD_PATH . $photo['image_path'];
                 
@@ -351,11 +352,11 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
                     }
                     exit;
                 } else {
-                    $error_message = 'File not found.';
+                    $download_error_message = 'File not found.';
                 }
             }
         } else {
-            $error_message = 'Photo not found or no longer available.';
+            $download_error_message = 'Photo not found or no longer available.';
         }
     } catch (Throwable $e) {
         error_log('Photo download error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
@@ -369,7 +370,7 @@ if (!$error_message && isset($_GET['download_photo']) && is_numeric($_GET['downl
             // Cannot output HTML after binary headers were sent – just stop.
             exit;
         }
-        $error_message = 'Download failed. Please try again.';
+        $download_error_message = 'Download failed. Please try again.';
     }
 }
 
@@ -415,7 +416,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
     }
 
     if (empty($photos_to_zip)) {
-        $error_message = 'No photos to download.';
+        $zip_error_message = 'No photos to download.';
     } else {
         // Create safe folder name for ZIP
         $safe_folder_name = preg_replace('/[^a-zA-Z0-9_\-\s]/u', '_', $folder['folder_name']);
@@ -491,7 +492,7 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
         }
         
         if (empty($valid_files)) {
-            $error_message = 'No valid files to download.';
+            $zip_error_message = 'No valid files to download.';
         } else {
             // Disable output compression before any ZIP work begins so neither the
             // build step (ZipArchive) nor the streaming step (ZipStream) is
@@ -868,6 +869,14 @@ $has_any_banner = $show_banner_a || $show_banner_b;
 <div class="alert alert-warning alert-dismissible d-flex align-items-center gap-2 mb-3" role="alert">
     <i class="fas fa-exclamation-triangle"></i>
     <span><?= htmlspecialchars($zip_error_message) ?></span>
+    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+<?php endif; ?>
+
+<?php if ($download_error_message): ?>
+<div class="alert alert-warning alert-dismissible d-flex align-items-center gap-2 mb-3" role="alert">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span><?= htmlspecialchars($download_error_message) ?></span>
     <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 <?php endif; ?>
