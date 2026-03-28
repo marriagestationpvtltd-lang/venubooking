@@ -473,7 +473,12 @@ async function downloadNow(files) {
         if (ids.length > 0) {
             var zipUrl = '?token=' + encodeURIComponent(window._folderToken || '')
                        + '&download_all=1&ids=' + ids.join(',');
-            window.location.href = zipUrl;
+            var downloadLink = document.createElement('a');
+            downloadLink.href = zipUrl;
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            setTimeout(function() { if (downloadLink.parentNode) { downloadLink.parentNode.removeChild(downloadLink); } }, 1000);
             return false;
         }
 
