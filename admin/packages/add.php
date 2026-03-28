@@ -110,6 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Features: array of service IDs chosen from the checkbox list
     $features_raw = $_POST['features'] ?? [];
     $features     = array_values(array_filter(array_map('intval', $features_raw)));
+    // Custom free-text features
+    $custom_features_raw = $_POST['custom_features'] ?? [];
+    $custom_features     = array_values(array_filter(array_map('trim', $custom_features_raw)));
     // Venue/hall associations
     $hall_ids_raw = $_POST['package_hall_ids'] ?? [];
     $hall_ids     = array_values(array_filter(array_map('intval', $hall_ids_raw)));
@@ -176,6 +179,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         error_log("add package: unknown service_id $svc_id submitted for package $package_id; skipping feature.");
                     }
+                }
+                // Insert custom free-text features (service_id = NULL)
+                foreach ($custom_features as $i => $feat_text) {
+                    $feat_stmt->execute([$package_id, null, $feat_text, count($features) + $i + 1]);
                 }
 
                 // Insert photos
@@ -435,6 +442,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                     </div>
 
+                    <!-- Custom Free-Text Features -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Custom Features</label>
+                        <p class="text-muted small mb-2">Add custom feature labels (e.g., "Free Parking", "AC Banquet Hall") that are not in the services list above.</p>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control form-control-sm" id="customFeatInput"
+                                   placeholder="Type a feature and click Add..." maxlength="200" autocomplete="off">
+                            <button type="button" class="btn btn-outline-success btn-sm" id="customFeatAddBtn">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <div id="customFeatList" class="d-flex flex-wrap gap-2">
+                            <?php foreach (array_values(array_filter(array_map('trim', $_POST['custom_features'] ?? []))) as $cf): ?>
+                            <span class="badge bg-success d-flex align-items-center gap-1 py-2 px-2" style="font-size:0.8rem;font-weight:400;">
+                                <input type="hidden" name="custom_features[]" value="<?php echo htmlspecialchars($cf, ENT_QUOTES, 'UTF-8'); ?>">
+                                <?php echo htmlspecialchars($cf, ENT_QUOTES, 'UTF-8'); ?>
+                                <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.6rem;"
+                                        aria-label="Remove" onclick="this.closest('.badge').remove();"></button>
+                            </span>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Package Photos</label>
                         <input type="file" class="form-control" name="photos[]" accept="image/*" multiple>
@@ -580,6 +610,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
+// Custom features – dynamic add/remove tags
+(function () {
+    var input  = document.getElementById('customFeatInput');
+    var addBtn = document.getElementById('customFeatAddBtn');
+    var list   = document.getElementById('customFeatList');
+
+    function addCustomFeature(text) {
+        text = text.trim();
+        if (!text) return;
+        var span = document.createElement('span');
+        span.className = 'badge bg-success d-flex align-items-center gap-1 py-2 px-2';
+        span.style.fontSize = '0.8rem';
+        span.style.fontWeight = '400';
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'custom_features[]';
+        hidden.value = text;
+        span.appendChild(hidden);
+        span.appendChild(document.createTextNode(text));
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-close btn-close-white ms-1';
+        btn.style.fontSize = '0.6rem';
+        btn.setAttribute('aria-label', 'Remove');
+        btn.addEventListener('click', function () { span.remove(); });
+        span.appendChild(btn);
+        list.appendChild(span);
+        if (input) input.value = '';
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', function () {
+            if (input) addCustomFeature(input.value);
+        });
+    }
+    if (input) {
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomFeature(this.value);
+            }
+        });
+    }
+})();
+
 // Live search filter for services checkboxes (matches on service name only)
 document.getElementById('featureSearch')?.addEventListener('input', function () {
     const q = this.value.trim().toLowerCase();
