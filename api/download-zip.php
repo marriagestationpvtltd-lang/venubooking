@@ -61,6 +61,12 @@ clearstatcache(true, $zip_file);
 $zip_size = filesize($zip_file);
 
 if ($zip_size === false || $zip_size === 0) {
+    error_log(sprintf(
+        'download-zip: file is empty or unreadable (filesize=%s) for token %s, path %s',
+        var_export($zip_size, true),
+        $zip_token,
+        $zip_file
+    ));
     @unlink($zip_file);
     @unlink($meta_file);
     http_response_code(500);

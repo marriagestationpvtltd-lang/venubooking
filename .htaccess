@@ -119,6 +119,7 @@ Options +FollowSymLinks
 <IfModule mod_deflate.c>
     SetEnvIfNoCase Request_URI folder\.php no-gzip dont-vary
     SetEnvIfNoCase Request_URI download\.php no-gzip dont-vary
+    SetEnvIfNoCase Request_URI api/download-zip\.php no-gzip dont-vary
 
     # Enable gzip compression for text-based content (HTML, CSS, JS, JSON, XML).
     # This reduces bandwidth for all pages by 60–80% with negligible CPU cost.
