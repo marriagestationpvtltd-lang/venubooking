@@ -85,17 +85,36 @@
         return Array.from(document.querySelectorAll('.menu-checkbox:checked')).map(cb => parseInt(cb.value));
     }
 
+    // AbortController for the currently in-flight menu-structure request.
+    // Kept module-level so the form-submit handler can cancel it before navigation.
+    let _menuFetchController = null;
+
     async function loadMenuStructure(menuId) {
         if (menuStructures[menuId]) return menuStructures[menuId];
+
+        // Abort any previous in-flight request so only one is active at a time.
+        if (_menuFetchController) {
+            _menuFetchController.abort();
+        }
+        _menuFetchController = new AbortController();
+
         try {
-            const resp = await fetch(BASE_URL + '/api/get-menu-structure.php?menu_id=' + menuId);
+            const resp = await fetch(
+                BASE_URL + '/api/get-menu-structure.php?menu_id=' + menuId,
+                { signal: _menuFetchController.signal }
+            );
             const data = await resp.json();
+            _menuFetchController = null;
             if (data.success) {
                 menuStructures[menuId] = data;
                 return data;
             }
         } catch (e) {
-            console.error('Failed to load menu structure for menu', menuId, e);
+            // AbortError is expected when the user proceeds before loading finishes.
+            if (e.name !== 'AbortError') {
+                console.error('Failed to load menu structure for menu', menuId, e);
+            }
+            _menuFetchController = null;
         }
         return null;
     }
@@ -1048,10 +1067,16 @@
         }
     });
 
-    // On form submit, serialize selections
+    // On form submit, abort any in-flight menu-structure request to prevent a
+    // Status-0 / ERR_ABORTED entry in DevTools, serialize selections, then
+    // let the browser proceed with the normal form submission.
     const menuForm = document.getElementById('menuForm');
     if (menuForm) {
         menuForm.addEventListener('submit', function () {
+            if (_menuFetchController) {
+                _menuFetchController.abort();
+                _menuFetchController = null;
+            }
             serializeSelections();
         });
     }

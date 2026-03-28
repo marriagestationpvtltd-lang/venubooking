@@ -164,6 +164,13 @@ function designMenu() {
 function continueBooking() {
     const form = document.getElementById('menuForm');
     if (form) {
-        form.submit();
+        // requestSubmit() fires the 'submit' event so that the listener in
+        // booking-step3-menu.js can abort any in-flight fetch before navigating.
+        // Fall back to submit() for browsers that do not support requestSubmit().
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            form.submit();
+        }
     }
 }
