@@ -393,6 +393,19 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
     // folders before the ZIP creation even starts.  This is especially important on
     // shared-hosting servers where the default max_execution_time is 30–60 seconds.
     @set_time_limit(0);
+    // Raise memory limit so that building a ZIP from many large photos does not
+    // exhaust the default 128 M limit on shared-hosting servers.  We only raise
+    // it, never lower it, so we leave it alone when the host has already set a
+    // higher value.  -1 means "no limit" and is left untouched.
+    $_raw_mem    = (string)@ini_get('memory_limit');
+    if ($_raw_mem !== '-1') {
+        $_mem_val    = (int)$_raw_mem; // PHP casts "128M" → 128
+        $_mem_suffix = strtolower(substr(trim($_raw_mem), -1));
+        $_mem_bytes  = $_mem_val * ($_mem_suffix === 'g' ? 1073741824 : ($_mem_suffix === 'm' ? 1048576 : ($_mem_suffix === 'k' ? 1024 : 1)));
+        if ($_mem_bytes < 268435456) { // less than 256 M
+            @ini_set('memory_limit', '256M');
+        }
+    }
 
     // When inside an album, only ZIP photos from that album; otherwise ZIP everything
     $photos_to_zip = ($has_subfolders && $current_album !== null)
@@ -521,16 +534,23 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                 $_zip_cache_dir = rtrim(UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . 'zip_cache';
                 if (!is_dir($_zip_cache_dir)) {
                     @mkdir($_zip_cache_dir, 0755, true);
-                    // Protect generated ZIPs from direct HTTP access on Apache servers
-                    $_htaccess_path = $_zip_cache_dir . DIRECTORY_SEPARATOR . '.htaccess';
-                    if (!file_exists($_htaccess_path)) {
-                        @file_put_contents($_htaccess_path, "Deny from all\nOptions -Indexes\n");
-                    }
-                    // Universal guard for nginx and other servers: serve a 403 for any request
-                    $_guard_path = $_zip_cache_dir . DIRECTORY_SEPARATOR . 'index.php';
-                    if (!file_exists($_guard_path)) {
-                        @file_put_contents($_guard_path, "<?php http_response_code(403); exit;\n");
-                    }
+                    // Some shared-hosting servers apply a restrictive umask that
+                    // overrides the mode passed to mkdir, leaving the directory as
+                    // 0700 or 0750.  Explicitly chmod to ensure readability.
+                    @chmod($_zip_cache_dir, 0755);
+                }
+                // Always ensure security guards are in place, even when the
+                // directory already existed from a previous install that did not
+                // create them (guards only inside the mkdir block would be missed).
+                // Protect generated ZIPs from direct HTTP access on Apache servers.
+                $_htaccess_path = $_zip_cache_dir . DIRECTORY_SEPARATOR . '.htaccess';
+                if (!file_exists($_htaccess_path)) {
+                    @file_put_contents($_htaccess_path, "Deny from all\nOptions -Indexes\n");
+                }
+                // Universal guard for nginx and other servers: serve a 403 for any request.
+                $_guard_path = $_zip_cache_dir . DIRECTORY_SEPARATOR . 'index.php';
+                if (!file_exists($_guard_path)) {
+                    @file_put_contents($_guard_path, "<?php http_response_code(403); exit;\n");
                 }
                 $_zip_tmp_dir = (is_dir($_zip_cache_dir) && is_writable($_zip_cache_dir))
                     ? $_zip_cache_dir
