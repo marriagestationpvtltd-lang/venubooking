@@ -562,6 +562,9 @@ if (!$error_message && isset($_GET['download_all']) && $_GET['download_all'] ===
                             error_log('ZIP download error: ZipArchive::close() returned false for ' . $temp_zip);
                             $zip_error_message = 'ZIP download failed. Click the Download Now button to try downloading photos individually.';
                         } else {
+                            // Clear PHP's stat cache so filesize() reads the actual on-disk
+                            // size of the freshly-written ZIP and does not return a stale 0.
+                            clearstatcache(true, $temp_zip);
                             $zip_size = filesize($temp_zip);
                             if ($zip_size === false || $zip_size === 0) {
                                 @unlink($temp_zip);

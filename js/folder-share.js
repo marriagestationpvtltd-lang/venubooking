@@ -473,17 +473,16 @@ async function downloadNow(files) {
         if (ids.length > 0) {
             var zipUrl = '?token=' + encodeURIComponent(window._folderToken || '')
                        + '&download_all=1&ids=' + ids.join(',');
-            var downloadLink = document.createElement('a');
-            downloadLink.href = zipUrl;
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            setTimeout(function() { if (downloadLink.parentNode) { downloadLink.parentNode.removeChild(downloadLink); } }, 1000);
+            // Use fetch-based download so we can detect server-side ZIP failures
+            // and automatically fall back to individual photo downloads.
+            var zipOk = await _downloadZip(zipUrl);
+            if (!zipOk) {
+                return bulkDownloadIndividual(files.map(function(f) { return f.url; }), null);
+            }
             return false;
         }
 
-        var _fallbackUrls = files.map(function(f) { return f.url; });
-        return bulkDownloadIndividual(_fallbackUrls, null);
+        return bulkDownloadIndividual(files.map(function(f) { return f.url; }), null);
     }
 
     if (files.length === 1) {
@@ -491,6 +490,138 @@ async function downloadNow(files) {
         if (typeof fileUrl === 'string' && /[?&]download_photo=\d+/.test(fileUrl)) {
             window.location.href = fileUrl;
         }
+        return false;
+    }
+}
+
+/**
+ * Fetch a ZIP from the server, show download progress, and trigger browser save.
+ * Returns true on success, false when the server returns an error (HTML response)
+ * or a network error occurs – callers should fall back to individual downloads.
+ */
+async function _downloadZip(url) {
+    var overlay = document.getElementById('downloadProgressOverlay');
+    var dlBar   = document.getElementById('dlBar');
+    var dlPct   = document.getElementById('dlPercent');
+    var dlEta   = document.getElementById('dlEta');
+    var dlSpd   = document.getElementById('dlSpeed');
+    var dlTitle = document.getElementById('dlTitle');
+    var dlFile  = document.getElementById('dlFilename');
+    var dlSize  = document.getElementById('dlSizeInfo');
+    var dlIcon  = document.getElementById('dlIcon');
+
+    dlBar.style.width          = '0%';
+    dlBar.style.background     = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+    dlBar.style.backgroundSize = '';
+    dlBar.style.animation      = '';
+    dlPct.textContent          = '0%';
+    dlEta.textContent          = '';
+    dlSpd.textContent          = '';
+    dlTitle.textContent        = 'Preparing ZIP\u2026';
+    dlFile.textContent         = '';
+    dlSize.textContent         = '';
+    dlIcon.className           = 'fas fa-spinner fa-spin';
+    overlay.classList.add('dl-active');
+
+    try {
+        var response = await fetch(url);
+
+        if (!response.ok) {
+            overlay.classList.remove('dl-active');
+            return false;
+        }
+
+        var contentType = (response.headers.get('Content-Type') || 'application/octet-stream').split(';')[0].trim();
+
+        // If the server returns HTML it means ZIP creation failed – signal failure
+        // so the caller can fall back to individual photo downloads.
+        if (contentType === 'text/html') {
+            overlay.classList.remove('dl-active');
+            return false;
+        }
+
+        // Resolve download filename from Content-Disposition header
+        var resolvedFilename = 'photos.zip';
+        var cd = response.headers.get('Content-Disposition');
+        if (cd) {
+            var m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+            if (m && m[1]) {
+                var fn = m[1].replace(/['"]/g, '').trim();
+                if (fn) { resolvedFilename = fn; }
+            }
+        }
+
+        var contentLength = parseInt(response.headers.get('Content-Length') || '0', 10);
+
+        dlTitle.textContent = 'Downloading ZIP\u2026';
+        dlFile.textContent  = resolvedFilename;
+
+        // Show indeterminate bar when Content-Length is unknown
+        if (contentLength === 0) {
+            dlBar.style.background     = 'linear-gradient(90deg,#4CAF50 25%,#8BC34A 50%,#4CAF50 75%)';
+            dlBar.style.backgroundSize = '200% 100%';
+            dlBar.style.animation      = 'dlIndeterminate 1.5s linear infinite';
+        }
+
+        var reader   = response.body.getReader();
+        var chunks   = [];
+        var received = 0;
+
+        while (true) {
+            var result = await reader.read();
+            if (result.done) break;
+            chunks.push(result.value);
+            received += result.value.length;
+            if (contentLength > 0) {
+                var pct = Math.min(Math.round((received / contentLength) * 100), 99);
+                dlBar.style.background     = 'linear-gradient(90deg,#4CAF50,#8BC34A)';
+                dlBar.style.backgroundSize = '';
+                dlBar.style.animation      = '';
+                dlBar.style.width          = pct + '%';
+                dlPct.textContent          = pct + '%';
+            }
+        }
+
+        var blob = new Blob(chunks, { type: 'application/zip' });
+
+        // Try File System Access API for a native Save As dialog
+        if ('showSaveFilePicker' in window) {
+            try {
+                var fileHandle = await window.showSaveFilePicker({
+                    suggestedName: resolvedFilename,
+                    types: [{ description: 'ZIP archive', accept: { 'application/zip': ['.zip'] } }]
+                });
+                var writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                dlBar.style.width = '100%'; dlBar.style.backgroundSize = ''; dlBar.style.animation = '';
+                dlPct.textContent = '100%'; dlTitle.textContent = 'Download Complete!';
+                dlSize.textContent = 'ZIP file saved'; dlIcon.className = 'fas fa-check-circle';
+                setTimeout(function() { overlay.classList.remove('dl-active'); }, 1500);
+                return true;
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    overlay.classList.remove('dl-active');
+                    return true; // user cancelled – not a failure
+                }
+                // Permission or other error – fall through to anchor fallback
+            }
+        }
+
+        // Fallback: create a temporary <a download> link and click it
+        var objectUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = objectUrl; a.download = resolvedFilename; a.style.display = 'none';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(u) { URL.revokeObjectURL(u); }, BLOB_REVOKE_DELAY, objectUrl);
+
+        dlBar.style.width = '100%'; dlBar.style.backgroundSize = ''; dlBar.style.animation = '';
+        dlPct.textContent = '100%'; dlTitle.textContent = 'Download Complete!';
+        dlSize.textContent = 'ZIP file saved'; dlIcon.className = 'fas fa-check-circle';
+        setTimeout(function() { overlay.classList.remove('dl-active'); }, 1500);
+        return true;
+    } catch (e) {
+        overlay.classList.remove('dl-active');
         return false;
     }
 }
