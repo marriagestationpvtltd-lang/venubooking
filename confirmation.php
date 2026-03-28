@@ -98,6 +98,7 @@ if (!empty($whatsapp_admin_number)) {
     }
 }
 $page_title = 'Booking Confirmed';
+$page_robots = 'noindex, nofollow';
 require_once __DIR__ . '/includes/header.php';
 ?>
 

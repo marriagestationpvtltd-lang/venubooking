@@ -3,7 +3,6 @@ $page_title       = 'Service Packages';
 $page_description = 'Browse our premium service packages for weddings, birthdays, corporate events and more. Transparent pricing, wide variety of options.';
 $page_keywords    = 'service packages, venue packages, wedding packages, event packages, Nepal';
 require_once __DIR__ . '/includes/header.php';
-$page_canonical   = BASE_URL . '/packages.php';
 
 // Data
 $service_categories  = getServicePackagesByCategory();
@@ -27,6 +26,51 @@ if (!empty($service_categories)) {
     }
 }
 ?>
+<!-- Packages page: ItemList structured data for Google rich results -->
+<?php if (!empty($all_service_packages)): ?>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Service Packages",
+  "description": "Premium service packages for weddings, birthdays, corporate events and more.",
+  "url": "<?php echo htmlspecialchars(rtrim(BASE_URL, '/'), ENT_QUOTES, 'UTF-8'); ?>/packages.php",
+  "numberOfItems": <?php echo count($all_service_packages); ?>,
+  "itemListElement": [
+    <?php foreach ($all_service_packages as $pi => $pkg):
+        $pkg_price = !empty($pkg['price']) ? (float)$pkg['price'] : null;
+        $pkg_desc  = mb_substr(strip_tags($pkg['description'] ?? $pkg['name']), 0, 200);
+        $pkg_img   = '';
+        if (!empty($pkg['photo'])) {
+            $pkg_img = rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($pkg['photo']);
+        }
+    ?>
+    {
+      "@type": "ListItem",
+      "position": <?php echo $pi + 1; ?>,
+      "item": {
+        "@type": "Product",
+        "name": <?php echo json_encode($pkg['name'], JSON_UNESCAPED_UNICODE); ?>,
+        "description": <?php echo json_encode($pkg_desc, JSON_UNESCAPED_UNICODE); ?>,
+        "url": "<?php echo htmlspecialchars(rtrim(BASE_URL, '/'), ENT_QUOTES, 'UTF-8'); ?>/packages.php"
+        <?php if ($pkg_price !== null): ?>
+        ,"offers": {
+          "@type": "Offer",
+          "price": "<?php echo number_format($pkg_price, 2, '.', ''); ?>",
+          "priceCurrency": "NPR",
+          "availability": "https://schema.org/InStock"
+        }
+        <?php endif; ?>
+        <?php if (!empty($pkg_img)): ?>
+        ,"image": "<?php echo htmlspecialchars($pkg_img, ENT_QUOTES, 'UTF-8'); ?>"
+        <?php endif; ?>
+      }
+    }<?php echo ($pi < count($all_service_packages) - 1) ? ',' : ''; ?>
+    <?php endforeach; ?>
+  ]
+}
+</script>
+<?php endif; ?>
 
 <!-- Page Hero -->
 <div class="page-hero-bar bg-success text-white py-4">

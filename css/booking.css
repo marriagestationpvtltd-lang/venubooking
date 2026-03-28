@@ -1496,3 +1496,110 @@ html {
         padding: 0.4rem 0.35rem;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOKING FLOW — DESKTOP OPTIMIZATIONS (992px and above)
+   Tighter spacing, optimised card layouts, and proper two-column
+   split for step 6 so the sidebar earns its space on wide screens.
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+
+    /* ── Section heading: reduce bottom gap on desktop ── */
+    section.py-5 > .container > h2,
+    section.py-5 .container > h2.mb-4 {
+        font-size: 1.6rem;
+        margin-bottom: 0.4rem !important;
+    }
+
+    section.py-5 .container > .lead.text-muted.mb-4,
+    section.py-5 .container > p.text-muted.mb-4 {
+        margin-bottom: 1.25rem !important;
+    }
+
+    /* ── Venue / hall card image: slightly shorter on desktop ── */
+    .venue-image {
+        height: 185px;
+    }
+
+    .hall-image {
+        height: 195px;
+    }
+
+    /* ── Cards: consistent compact body ── */
+    .venue-card .card-body,
+    .menu-card .card-body {
+        padding: 1rem 1.1rem;
+    }
+
+    /* ── Booking step 6 sidebar: remove excessive top margin ── */
+    .sticky-top.card {
+        margin-top: 0 !important;
+    }
+
+    /* ── Step 6 card header: compact ── */
+    .card > .card-header.bg-success {
+        padding: 0.75rem 1.1rem;
+    }
+
+    /* ── Step 6 form cards: reduce inter-card gap ── */
+    .card.mb-4 {
+        margin-bottom: 1.25rem !important;
+    }
+
+    /* ── Price breakdown: compact on desktop ── */
+    .price-breakdown {
+        padding: 1rem;
+    }
+
+    /* ── Booking progress bar: no extra padding ── */
+    .booking-progress .container {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    /* ── Venue/hall search wrapper: max-width on desktop ── */
+    #venueSearchWrapper,
+    #hallSearchWrapper {
+        max-width: 540px;
+    }
+
+    /* ── Hall section: compact top margin ── */
+    #hallsSection {
+        margin-top: 2rem !important;
+    }
+
+    /* ── Menu card: make 3-up layout feel balanced ── */
+    .menu-card {
+        font-size: 0.95rem;
+    }
+
+    .menu-items {
+        font-size: 0.88rem;
+        max-height: 180px;
+    }
+
+    /* ── Service card grid: compact on desktop ── */
+    .service-card .card-body {
+        padding: 1rem 1.1rem;
+    }
+
+    /* ── Design selection grid: 5-up on XL, 4-up on LG ── */
+    .design-col-item {
+        flex: 0 0 auto;
+        width: 25%;
+    }
+
+    /* ── Bill summary table: full columns on desktop ── */
+    #bill_summary_section .table td,
+    #bill_summary_section .table th {
+        font-size: 0.95rem;
+        padding: 0.5rem 0.6rem;
+        white-space: normal;
+    }
+
+    /* ── Payment options: horizontal radio group ── */
+    #payment_options_section .form-check {
+        display: inline-flex;
+        margin-right: 1.5rem;
+    }
+}

@@ -44,6 +44,49 @@ $venues_js = array_map(function($v) {
 }, $venues);
 $venues_js_json = json_encode($venues_js, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
+<!-- Venues page: ItemList structured data for Google rich results -->
+<?php if (!empty($venues)): ?>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Premium Venues",
+  "description": "Explore our premium venues for weddings, events, and celebrations.",
+  "url": "<?php echo htmlspecialchars(rtrim(BASE_URL, '/'), ENT_QUOTES, 'UTF-8'); ?>/venues.php",
+  "numberOfItems": <?php echo count($venues); ?>,
+  "itemListElement": [
+    <?php foreach ($venues as $vi => $venue):
+        $venue_img = '';
+        if (!empty($venue['gallery_images'])) {
+            $venue_img = rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($venue['gallery_images'][0]['image_path']);
+        } elseif (!empty($venue['image'])) {
+            $venue_img = rtrim(UPLOAD_URL, '/') . '/' . rawurlencode($venue['image']);
+        }
+        $venue_desc = mb_substr(strip_tags($venue['description'] ?? ''), 0, 200);
+    ?>
+    {
+      "@type": "ListItem",
+      "position": <?php echo $vi + 1; ?>,
+      "item": {
+        "@type": "EventVenue",
+        "name": <?php echo json_encode($venue['name'], JSON_UNESCAPED_UNICODE); ?>,
+        "description": <?php echo json_encode($venue_desc, JSON_UNESCAPED_UNICODE); ?>,
+        "url": "<?php echo htmlspecialchars(rtrim(BASE_URL, '/'), ENT_QUOTES, 'UTF-8'); ?>/venues.php",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": <?php echo json_encode($venue['city_name'] ?? ($venue['location'] ?? ''), JSON_UNESCAPED_UNICODE); ?>,
+          "addressCountry": "NP"
+        }
+        <?php if (!empty($venue_img)): ?>
+        ,"image": "<?php echo htmlspecialchars($venue_img, ENT_QUOTES, 'UTF-8'); ?>"
+        <?php endif; ?>
+      }
+    }<?php echo ($vi < count($venues) - 1) ? ',' : ''; ?>
+    <?php endforeach; ?>
+  ]
+}
+</script>
+<?php endif; ?>
 
 <!-- Page Hero -->
 <div class="page-hero-bar bg-success text-white py-4">
