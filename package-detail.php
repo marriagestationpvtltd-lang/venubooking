@@ -9,6 +9,7 @@ $package_id = $package_id ?: 0;
 $package    = null;
 $features   = [];
 $photos     = [];
+$package_halls = [];
 
 if ($package_id > 0) {
     $db = getDB();
@@ -110,6 +111,9 @@ if ($package_id > 0) {
                 error_log('package-detail.php menu load error: ' . $e->getMessage());
                 $package_menus = [];
             }
+
+            // Load halls/venues assigned to this package
+            $package_halls = getPackageHalls($package_id);
         }
     } catch (Exception $e) {
         error_log('package-detail.php error: ' . $e->getMessage());
@@ -219,6 +223,39 @@ $package_share_id      = $package_id ? 'package-detail-' . $package_id : '';
                     <div class="pkg-detail-price mb-3">
                         <span class="h3 fw-bold text-success"><?php echo formatCurrency($package['price']); ?></span>
                     </div>
+
+                    <?php if (!empty($package_halls)): ?>
+                    <div class="pkg-detail-venues mb-3">
+                        <?php
+                        // Collect unique venues (a package can have halls in the same venue)
+                        $seen_venues = [];
+                        foreach ($package_halls as $ph) {
+                            $vid = $ph['venue_id'];
+                            if (!isset($seen_venues[$vid])) {
+                                $seen_venues[$vid] = [
+                                    'name'     => $ph['venue_name'],
+                                    'location' => $ph['venue_location'] ?? '',
+                                    'address'  => $ph['venue_address']  ?? '',
+                                ];
+                            }
+                        }
+                        ?>
+                        <?php foreach ($seen_venues as $venue): ?>
+                        <div class="d-flex align-items-start gap-2 mb-1">
+                            <i class="fas fa-map-marker-alt text-success mt-1" aria-hidden="true"></i>
+                            <div>
+                                <span class="fw-semibold"><?php echo htmlspecialchars($venue['name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                <?php if (!empty($venue['location'])): ?>
+                                <span class="text-muted"> &mdash; <?php echo htmlspecialchars($venue['location'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($venue['address'])): ?>
+                                <div class="text-muted small"><?php echo htmlspecialchars($venue['address'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
 
                     <?php if (!empty($package['description'])): ?>
                     <p class="text-muted mb-4"><?php echo nl2br(htmlspecialchars($package['description'], ENT_QUOTES, 'UTF-8')); ?></p>
