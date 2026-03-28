@@ -199,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_bookin
             'end_time'        => $slot_end_time,
             'city_id'         => 0,
             'is_package_booking' => true,
+            'package_guest_limit' => (int)($package['guest_limit'] ?? 0),
             'selected_slots'  => $session_slots,
             'slot_id'         => !empty($session_slots) ? $session_slots[0]['id'] : null,
             'slot_name'       => !empty($session_slots) ? implode(', ', array_column($session_slots, 'slot_name')) : null,
@@ -396,6 +397,13 @@ require_once __DIR__ . '/includes/header.php';
                                        value="<?php echo htmlspecialchars($_POST['guests'] ?? ''); ?>"
                                        min="1" max="10000" placeholder="e.g., 200" required>
                                 <div class="invalid-feedback">Please enter a valid guest count.</div>
+                                <?php if (!empty($package['guest_limit'])): ?>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle text-primary me-1"></i>
+                                    This package covers up to <strong><?php echo (int)$package['guest_limit']; ?> guests</strong>.
+                                    If your guest count exceeds this limit, menu charges will apply for the additional guests only.
+                                </div>
+                                <?php endif; ?>
                             </div>
 
                             <?php if (!empty($package_halls)): ?>

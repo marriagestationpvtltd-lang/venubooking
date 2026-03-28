@@ -340,6 +340,7 @@ CREATE TABLE IF NOT EXISTS service_packages (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    guest_limit INT NOT NULL DEFAULT 0 COMMENT 'Max guests included in package price. Extra menu charges apply only above this limit.',
     display_order INT DEFAULT 0,
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

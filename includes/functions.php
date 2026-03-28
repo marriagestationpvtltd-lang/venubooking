@@ -793,6 +793,30 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
     // Base-price menus: price_per_person × guests is the base; over-limit/item surcharges are extra.
     // $menu_extra_total: sum of per-person extra charges for base-price menus only (not per-item menus).
     //   It is used by booking-step6 to split the display into "base" and "extra" line items.
+    //
+    // When packages are selected, menu charges apply only to guests exceeding the package guest_limit.
+    // Guests up to the limit are covered by the package price (no extra per-person menu charge).
+    $menu_guests = $guests; // default: full guest count used for menu pricing
+    if (!empty($packages)) {
+        try {
+            $pkg_ids_gl = array_map('intval', $packages);
+            $placeholders_gl = implode(',', array_fill(0, count($pkg_ids_gl), '?'));
+            $gl_stmt = $db->prepare(
+                "SELECT COALESCE(SUM(guest_limit), 0) AS total_limit
+                 FROM service_packages
+                 WHERE id IN ($placeholders_gl) AND status = 'active'"
+            );
+            $gl_stmt->execute($pkg_ids_gl);
+            $gl_row = $gl_stmt->fetch();
+            $total_guest_limit = (int)($gl_row['total_limit'] ?? 0);
+            if ($total_guest_limit > 0) {
+                $menu_guests = max(0, $guests - $total_guest_limit);
+            }
+        } catch (\Throwable $glErr) {
+            error_log('calculateBookingTotal: guest_limit query failed: ' . $glErr->getMessage());
+        }
+    }
+
     $menu_total = 0;
     $menu_extra_total = 0.0;
     if (!empty($menus)) {
@@ -808,11 +832,11 @@ function calculateBookingTotal($hall_id, $menus, $guests, $services = [], $selec
 
             if (!empty($sel) && menuUsesPerItemPricing($menu_id, $sel)) {
                 // Per-item pricing: charge item prices only, base price_per_person is not used
-                $menu_total += $extra * $guests;
+                $menu_total += $extra * $menu_guests;
                 // $menu_extra_total intentionally not updated: items ARE the price, not "extra"
             } else {
                 // Base-price mode: price_per_person × guests + item surcharges/over-limit × guests
-                $menu_total += ($price_pp + $extra) * $guests;
+                $menu_total += ($price_pp + $extra) * $menu_guests;
                 $menu_extra_total += $extra;
             }
         }
@@ -1967,6 +1991,29 @@ function createBooking($data) {
                 }
             }
 
+            // Calculate the effective guest count for menu pricing.
+            // When packages are selected, menu charges apply only to guests exceeding
+            // the package guest_limit. Guests within the limit are covered by the package price.
+            $menu_guests = (int)$data['guests'];
+            if (!empty($data['packages'])) {
+                try {
+                    $pkg_ids_gl = array_map('intval', $data['packages']);
+                    $ph_gl = implode(',', array_fill(0, count($pkg_ids_gl), '?'));
+                    $gl_s = $db->prepare(
+                        "SELECT COALESCE(SUM(guest_limit), 0) AS total_limit
+                         FROM service_packages WHERE id IN ($ph_gl) AND status = 'active'"
+                    );
+                    $gl_s->execute($pkg_ids_gl);
+                    $gl_r = $gl_s->fetch();
+                    $total_gl = (int)($gl_r['total_limit'] ?? 0);
+                    if ($total_gl > 0) {
+                        $menu_guests = max(0, $menu_guests - $total_gl);
+                    }
+                } catch (\Throwable $glErr) {
+                    error_log("createBooking: guest_limit query failed: " . $glErr->getMessage());
+                }
+            }
+
             // Insert booking menus — wrapped in try-catch so a missing
             // booking_menus column (e.g. extra_total on older installs) does
             // not roll back the entire booking.
@@ -1979,10 +2026,10 @@ function createBooking($data) {
 
                         if ($menu) {
                             $menu_price = $menu['price_per_person'];
-                            $menu_total = $menu_price * $data['guests'];
+                            $menu_total = $menu_price * $menu_guests;
 
                             $stmt = $db->prepare("INSERT INTO booking_menus (booking_id, menu_id, price_per_person, number_of_guests, total_price) VALUES (?, ?, ?, ?, ?)");
-                            $stmt->execute([$booking_id, $menu_id, $menu_price, $data['guests'], $menu_total]);
+                            $stmt->execute([$booking_id, $menu_id, $menu_price, $menu_guests, $menu_total]);
                         }
                     } catch (\Throwable $menuErr) {
                         error_log("createBooking: booking_menus INSERT failed for menu {$menu_id}: " . $menuErr->getMessage());
@@ -2017,7 +2064,7 @@ function createBooking($data) {
                         // price_per_person is kept as the original base price for reference.
                         if (menuUsesPerItemPricing($menu_id_sel, $selections)) {
                             $db->prepare("UPDATE booking_menus SET total_price = ? WHERE booking_id = ? AND menu_id = ?")
-                               ->execute([$extra * intval($data['guests']), $booking_id, $menu_id_sel]);
+                               ->execute([$extra * $menu_guests, $booking_id, $menu_id_sel]);
                         }
 
                         // Get structure for snapshot labels

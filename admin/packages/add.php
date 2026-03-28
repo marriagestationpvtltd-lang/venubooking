@@ -104,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description   = trim($_POST['description'] ?? '');
     $youtube_url   = trim($_POST['youtube_url'] ?? '');
     $price         = floatval($_POST['price'] ?? 0);
+    $guest_limit   = intval($_POST['guest_limit'] ?? 0);
     $display_order = intval($_POST['display_order'] ?? 0);
     $status        = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
     // Features: array of service IDs chosen from the checkbox list
@@ -121,6 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($name) || $category_id <= 0 || $price < 0) {
         $error_message = 'Please fill in all required fields correctly.';
+    } elseif ($guest_limit <= 0) {
+        $error_message = 'Guest Limit is required and must be at least 1.';
     } else {
         // Handle photo uploads before transaction
         $uploaded_photos = [];
@@ -154,10 +157,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->beginTransaction();
 
                 $stmt = $db->prepare(
-                    "INSERT INTO service_packages (category_id, name, description, price, display_order, status, youtube_url)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)"
+                    "INSERT INTO service_packages (category_id, name, description, price, guest_limit, display_order, status, youtube_url)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                 );
-                $stmt->execute([$category_id, $name, $description, $price, $display_order, $status, $youtube_url ?: null]);
+                $stmt->execute([$category_id, $name, $description, $price, $guest_limit, $display_order, $status, $youtube_url ?: null]);
                 $package_id = $db->lastInsertId();
 
                 // Insert features – store both service_id and feature_text (name)
@@ -310,12 +313,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
+                                <label for="guest_limit" class="form-label">Guest Limit <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="guest_limit" name="guest_limit"
+                                       value="<?php echo (int)($_POST['guest_limit'] ?? 0); ?>"
+                                       min="1" placeholder="e.g., 200" required>
+                                <div class="form-text">Max guests included in the package price. Menu charges apply only to additional guests above this limit.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
                                 <label for="display_order" class="form-label">Display Order</label>
                                 <input type="number" class="form-control" id="display_order" name="display_order"
                                        value="<?php echo (int)($_POST['display_order'] ?? 0); ?>"
                                        min="0" placeholder="0">
                             </div>
                         </div>
+                    </div>
+
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
