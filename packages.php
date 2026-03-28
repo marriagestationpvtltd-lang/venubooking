@@ -197,7 +197,19 @@ if (!empty($all_service_packages)) {
                                     <?php echo htmlspecialchars($pkg['name']); ?>
                                 </h5>
                                 <?php if (!empty($pkg['description'])): ?>
-                                <p class="text-muted small mb-2"><?php echo sanitize($pkg['description']); ?></p>
+                                <?php
+                                    $_desc_plain = strip_tags($pkg['description']);
+                                    $_desc_limit = 120;
+                                    $_desc_short = mb_strlen($_desc_plain) > $_desc_limit
+                                        ? mb_substr($_desc_plain, 0, $_desc_limit) . '…'
+                                        : $_desc_plain;
+                                ?>
+                                <p class="text-muted small mb-2">
+                                    <?php echo htmlspecialchars($_desc_short, ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php if (mb_strlen($_desc_plain) > $_desc_limit): ?>
+                                    <a href="package-detail.php?id=<?php echo (int)$pkg['id']; ?>" class="text-success small ms-1">Read More</a>
+                                    <?php endif; ?>
+                                </p>
                                 <?php endif; ?>
                                 <?php if (!empty($pkg['features'])):
                                     $max_visible = 5;
