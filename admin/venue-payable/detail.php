@@ -390,6 +390,13 @@ $extra_css = '
     border: 1.5px solid #ffcc80;
     margin-bottom: 0.75rem;
 }
+.bm-payment-no-details {
+    flex-direction: column;
+}
+.bm-payment-no-details .alert {
+    border-radius: 10px;
+    width: 100%;
+}
 </style>
 ';
 
@@ -549,6 +556,26 @@ $agg_due = max(0.0, $agg_payable - $agg_paid);
             <?php if (empty($venue['bank_details']) && !empty($venue['qr_code']) && validateUploadedFilePath($venue['qr_code'])): ?>
                 <p class="text-muted mb-0"><i class="fas fa-info-circle me-1"></i>Scan the QR code to make payment.</p>
             <?php endif; ?>
+        </div>
+    </div>
+</div>
+<?php else: ?>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  NO PAYMENT DETAILS NOTICE                                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="bm-payment-card">
+    <div class="bm-payment-card-header">
+        <i class="fas fa-university"></i> Payment Details
+    </div>
+    <div class="bm-payment-body bm-payment-no-details">
+        <div class="alert alert-warning mb-0 w-100" style="border-radius:10px;">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            No bank details or QR code have been set for this venue provider.
+            <a href="<?php echo BASE_URL; ?>/admin/venues/edit.php?id=<?php echo $venue_id; ?>"
+               class="alert-link ms-1">
+                <i class="fas fa-edit me-1"></i>Add payment details
+            </a>
+            so they can be displayed here for reference when making payments.
         </div>
     </div>
 </div>
