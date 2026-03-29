@@ -1,0 +1,478 @@
+/*
+ * ═══════════════════════════════════════════════════════════
+ *  Nepali Cultural Animations & Effects
+ *  Inspired by: Prayer flags (लुङ्दर), marigold flowers (गेंदा),
+ *  Mandala art, Dhaka weave patterns (ढाका), Diya lamps (दिया)
+ * ═══════════════════════════════════════════════════════════
+ */
+
+/* ────────────────────────────────────────────────────────
+   CULTURAL WELCOME STRIP (सांस्कृतिक स्वागत पट्टी)
+   Full-width Nepali greeting banner above the hero section
+───────────────────────────────────────────────────────── */
+.nepal-cultural-strip {
+    width: 100%;
+    padding: 0.55rem 1rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(
+        90deg,
+        #8B0000 0%,
+        #C0392B 15%,
+        #8E44AD 35%,
+        #2980B9 55%,
+        #27AE60 75%,
+        #F39C12 90%,
+        #C0392B 100%
+    );
+    background-size: 200% 100%;
+    animation: culturalStripFlow 10s linear infinite;
+    z-index: 10;
+}
+
+@keyframes culturalStripFlow {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+.nepal-cultural-strip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        60deg,
+        transparent           0px,
+        transparent           10px,
+        rgba(255,255,255,0.05) 10px,
+        rgba(255,255,255,0.05) 12px
+    );
+    pointer-events: none;
+}
+
+.nepal-cultural-strip-text {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+    font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    min-height: 1.4em;
+}
+
+.nepal-cultural-strip-text .nc-strip-item {
+    display: inline-block;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* ────────────────────────────────────────────────────────
+   PRAYER FLAGS (लुङ्दर)
+   Five sacred colors: Blue (sky), White (air), Red (fire),
+   Green (water), Yellow (earth) – hung on a horizontal rope
+───────────────────────────────────────────────────────── */
+.nepal-prayer-flags {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    z-index: 6;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.prayer-flag-rope {
+    position: absolute;
+    top: 10px;
+    left: -10px;
+    right: -10px;
+    height: 1.5px;
+    background: linear-gradient(
+        90deg,
+        rgba(255,255,255,0)   0%,
+        rgba(255,255,255,0.45) 8%,
+        rgba(255,255,255,0.45) 92%,
+        rgba(255,255,255,0)   100%
+    );
+}
+
+.prayer-flag {
+    position: absolute;
+    top: 2px;
+    width: 22px;
+    height: 18px;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: 50% 0;
+    will-change: transform;
+    opacity: 0.9;
+}
+
+/* Staggered wave: every flag in a 5-cycle gets a unique speed + direction */
+.prayer-flag:nth-child(5n+1) { animation: prayerFlagWave 2.1s ease-in-out infinite alternate; }
+.prayer-flag:nth-child(5n+2) { animation: prayerFlagWave 2.5s ease-in-out infinite alternate-reverse; animation-delay: -0.3s; }
+.prayer-flag:nth-child(5n+3) { animation: prayerFlagWave 1.9s ease-in-out infinite alternate;         animation-delay: -0.6s; }
+.prayer-flag:nth-child(5n+4) { animation: prayerFlagWave 2.7s ease-in-out infinite alternate-reverse; animation-delay: -0.1s; }
+.prayer-flag:nth-child(5n+5) { animation: prayerFlagWave 2.3s ease-in-out infinite alternate;         animation-delay: -0.8s; }
+
+@keyframes prayerFlagWave {
+    0%   { transform: rotate(-8deg) skewX(4deg);  }
+    100% { transform: rotate(8deg)  skewX(-4deg); }
+}
+
+/* ────────────────────────────────────────────────────────
+   FALLING MARIGOLD PETALS (गेंदाको फूलका पंखुडी)
+   Warm orange/saffron petals drifting down the hero
+───────────────────────────────────────────────────────── */
+.nepal-petals-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 2;
+}
+
+.nepal-petal {
+    position: absolute;
+    top: -24px;
+    border-radius: 70% 0 70% 0;
+    will-change: transform, opacity;
+    animation: petalFall linear infinite;
+}
+
+@keyframes petalFall {
+    0% {
+        transform: translateY(0) translateX(0)  rotate(0deg)   scale(1);
+        opacity: 0;
+    }
+    6% {
+        opacity: 0.9;
+    }
+    50% {
+        transform: translateY(40vh) translateX(var(--petal-sway-mid, 18px))  rotate(360deg) scale(0.95);
+        opacity: 0.8;
+    }
+    90% {
+        opacity: 0.4;
+    }
+    100% {
+        transform: translateY(105vh) translateX(var(--petal-sway-end, -12px)) rotate(900deg) scale(0.6);
+        opacity: 0;
+    }
+}
+
+/* ────────────────────────────────────────────────────────
+   MANDALA BACKGROUND DECORATION (मण्डल सजावट)
+   Subtle slow-rotating sacred geometric pattern
+───────────────────────────────────────────────────────── */
+.nepal-mandala-wrap {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+    will-change: transform;
+}
+
+.nepal-mandala-wrap.mandala-hero-right {
+    width: clamp(260px, 38vw, 500px);
+    height: clamp(260px, 38vw, 500px);
+    right: -6%;
+    top: 50%;
+    transform: translateY(-50%);
+    animation: mandalaRotateCW 80s linear infinite;
+    opacity: 0.055;
+}
+
+.nepal-mandala-wrap.mandala-hero-left {
+    width: clamp(120px, 16vw, 220px);
+    height: clamp(120px, 16vw, 220px);
+    left: 1%;
+    bottom: 8%;
+    animation: mandalaRotateCCW 55s linear infinite;
+    opacity: 0.035;
+}
+
+.nepal-mandala-wrap svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+@keyframes mandalaRotateCW {
+    from { transform: translateY(-50%) rotate(0deg); }
+    to   { transform: translateY(-50%) rotate(360deg); }
+}
+
+@keyframes mandalaRotateCCW {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(-360deg); }
+}
+
+/* ────────────────────────────────────────────────────────
+   DIYA GLOW PARTICLES (दियाको चिनगारी)
+   Tiny golden sparks rising from the bottom of the hero
+───────────────────────────────────────────────────────── */
+.nepal-diya-particles {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    pointer-events: none;
+    z-index: 2;
+    overflow: hidden;
+}
+
+.diya-spark {
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform, opacity;
+    animation: diyaRise linear infinite;
+    opacity: 0;
+    background: radial-gradient(
+        circle,
+        #FFD700  0%,
+        #FF8C00  55%,
+        transparent 100%
+    );
+}
+
+@keyframes diyaRise {
+    0% {
+        transform: translateY(0)     scale(1);
+        opacity: 0;
+    }
+    12% {
+        opacity: 1;
+    }
+    75% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: translateY(-140px) scale(0.15) translateX(var(--drift, 0px));
+        opacity: 0;
+    }
+}
+
+/* ────────────────────────────────────────────────────────
+   DHAKA PATTERN DIVIDER (ढाका बुट्टा विभाजक)
+   Animated striped divider echoing hand-woven Dhaka fabric
+───────────────────────────────────────────────────────── */
+.dhaka-divider {
+    width: 100%;
+    height: 10px;
+    position: relative;
+    overflow: hidden;
+    background: repeating-linear-gradient(
+        90deg,
+        #C0392B  0px,  #C0392B  8px,
+        #F1C40F  8px,  #F1C40F 14px,
+        #27AE60 14px,  #27AE60 22px,
+        #2980B9 22px,  #2980B9 28px,
+        #8E44AD 28px,  #8E44AD 34px,
+        #F39C12 34px,  #F39C12 40px,
+        #C0392B 40px,  #C0392B 48px,
+        #FFFFFF 48px,  #FFFFFF 50px,
+        #C0392B 50px,  #C0392B 58px,
+        #F1C40F 58px,  #F1C40F 64px,
+        #27AE60 64px,  #27AE60 72px
+    );
+    animation: dhakaSweep 6s linear infinite;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+
+.dhaka-divider-sm {
+    height: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+@keyframes dhakaSweep {
+    from { background-position: 0   0; }
+    to   { background-position: 144px 0; }
+}
+
+/* ────────────────────────────────────────────────────────
+   LOTUS / RANGOLI SECTION DECORATION (रंगोली)
+   Decorative motifs flanking section headings
+───────────────────────────────────────────────────────── */
+.section-heading-wrap.nepal-rangoli {
+    position: relative;
+}
+
+.section-heading-wrap.nepal-rangoli .section-eyebrow::before,
+.section-heading-wrap.nepal-rangoli .section-eyebrow::after {
+    content: '❈';
+    font-size: 0.9rem;
+    color: var(--accent-orange, #FFA726);
+    margin: 0 0.4rem;
+    display: inline-block;
+    animation: rangoliSpin 8s linear infinite;
+}
+
+.section-heading-wrap.nepal-rangoli .section-eyebrow::after {
+    animation-direction: reverse;
+    animation-duration: 10s;
+}
+
+@keyframes rangoliSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* Lotus divider dots below section title */
+.nepal-lotus-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0.6rem auto 0;
+}
+
+.nepal-lotus-dots span {
+    display: inline-block;
+    border-radius: 50%;
+    animation: lotusPulse 2.8s ease-in-out infinite;
+}
+
+.nepal-lotus-dots span:nth-child(1) { width: 5px; height: 5px; background: #C0392B; animation-delay: 0s;   }
+.nepal-lotus-dots span:nth-child(2) { width: 7px; height: 7px; background: #F1C40F; animation-delay: 0.2s; }
+.nepal-lotus-dots span:nth-child(3) { width: 10px;height: 10px;background: #27AE60; animation-delay: 0.4s; }
+.nepal-lotus-dots span:nth-child(4) { width: 7px; height: 7px; background: #2980B9; animation-delay: 0.6s; }
+.nepal-lotus-dots span:nth-child(5) { width: 5px; height: 5px; background: #8E44AD; animation-delay: 0.8s; }
+
+@keyframes lotusPulse {
+    0%, 100% { transform: scale(1);   opacity: 0.7; }
+    50%       { transform: scale(1.5); opacity: 1;   }
+}
+
+/* ────────────────────────────────────────────────────────
+   STAT SECTION: Diya glow enhancement
+   Each stat icon gets a warm golden halo like a diya flame
+───────────────────────────────────────────────────────── */
+.stats-section .stat-icon-wrap {
+    position: relative;
+}
+
+.stats-section .stat-icon-wrap::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,215,0,0.35) 0%, transparent 70%);
+    animation: diyaHalo 2.8s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes diyaHalo {
+    0%   { transform: scale(0.85); opacity: 0.3; }
+    100% { transform: scale(1.35); opacity: 0.8; }
+}
+
+/* ────────────────────────────────────────────────────────
+   BOOKING CARD: Nepali cultural accent
+   Top color bar on the booking card using 5 sacred colors
+───────────────────────────────────────────────────────── */
+.booking-card::before {
+    content: '';
+    display: block;
+    height: 4px;
+    width: 100%;
+    border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+    background: linear-gradient(
+        90deg,
+        #2980B9  0%,
+        #FFFFFF  20%,
+        #C0392B  40%,
+        #27AE60  60%,
+        #F1C40F  80%,
+        #2980B9 100%
+    );
+    background-size: 200% 100%;
+    animation: sacredColorFlow 5s linear infinite;
+    margin-bottom: 0;
+}
+
+@keyframes sacredColorFlow {
+    0%   { background-position: 0%   50%; }
+    100% { background-position: 200% 50%; }
+}
+
+/* Ensure the booking card doesn't get double-border from existing ::before */
+.page-landing .booking-card {
+    overflow: hidden;
+}
+
+/* ────────────────────────────────────────────────────────
+   HERO EYEBROW: Nepali text additions
+───────────────────────────────────────────────────────── */
+.hero-eyebrow .hero-eyebrow-sep {
+    opacity: 0.7;
+    margin: 0 0.3rem;
+}
+
+.hero-eyebrow .hero-eyebrow-nepali {
+    font-family: 'Noto Sans Devanagari', sans-serif;
+    letter-spacing: 0.05em;
+}
+
+/* ────────────────────────────────────────────────────────
+   RESPONSIVE ADJUSTMENTS
+───────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .nepal-prayer-flags {
+        height: 40px;
+    }
+
+    .prayer-flag {
+        width: 18px;
+        height: 15px;
+    }
+
+    .nepal-mandala-wrap.mandala-hero-right {
+        opacity: 0.04;
+        width: 200px;
+        height: 200px;
+    }
+
+    .nepal-mandala-wrap.mandala-hero-left {
+        display: none;
+    }
+
+    .nepal-cultural-strip {
+        padding: 0.4rem 0.75rem;
+    }
+}
+
+/* ────────────────────────────────────────────────────────
+   ACCESSIBILITY: Respect prefers-reduced-motion
+───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .prayer-flag,
+    .nepal-mandala-wrap,
+    .diya-spark,
+    .dhaka-divider,
+    .nepal-cultural-strip,
+    .nepal-lotus-dots span,
+    .section-heading-wrap.nepal-rangoli .section-eyebrow::before,
+    .section-heading-wrap.nepal-rangoli .section-eyebrow::after,
+    .booking-card::before,
+    .stats-section .stat-icon-wrap::after {
+        animation: none;
+    }
+
+    .nepal-petal {
+        display: none;
+    }
+
+    .dhaka-divider {
+        background-position: 0 0;
+    }
+
+    .nepal-cultural-strip {
+        animation: none;
+        background: linear-gradient(90deg, #8B0000, #C0392B, #8E44AD);
+    }
+}

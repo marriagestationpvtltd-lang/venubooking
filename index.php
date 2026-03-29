@@ -1,7 +1,8 @@
 <?php
 $page_title = 'Book Your Event';
 $body_class = 'page-landing';
-$extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">';
+$extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">'
+           . '<link rel="stylesheet" href="' . BASE_URL . '/css/nepali-cultural.css">';
 require_once __DIR__ . '/includes/header.php';
 
 // Load privacy policy for gallery popup (first active policy requiring acceptance)
@@ -110,9 +111,94 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
 }
 </script>
 
+<!-- Nepali Cultural Welcome Strip (सांस्कृतिक स्वागत पट्टी) -->
+<div class="nepal-cultural-strip" role="region" aria-label="Cultural welcome message" aria-live="polite">
+    <p class="nepal-cultural-strip-text mb-0">
+        <span class="nc-strip-item">🙏 नमस्ते — तपाईंको शुभ समारोहको लागि सर्वोत्तम भेन्यू बुकिंग गर्नुहोस्</span>
+    </p>
+</div>
+
 <!-- Hero Section -->
 <section class="hero-section<?php if (!empty($banner_images)): ?> with-banner-image<?php endif; ?>" id="bookingSection">
-    <!-- Decorative floating shapes -->
+    <!-- Prayer Flags (लुङ्दर) – five sacred colors waving across the top -->
+    <div class="nepal-prayer-flags" aria-hidden="true">
+        <div class="prayer-flags-inner"></div>
+    </div>
+
+    <!-- Falling Marigold Petals (गेंदाको पंखुडी) -->
+    <div class="nepal-petals-container" aria-hidden="true"></div>
+
+    <!-- Diya sparkle particles (दियाको चिनगारी) -->
+    <div class="nepal-diya-particles" aria-hidden="true"></div>
+
+    <!-- Mandala background decorations (मण्डल) -->
+    <div class="nepal-mandala-wrap mandala-hero-right" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#FFD700" stroke-width="0.7">
+            <!-- Center -->
+            <circle cx="100" cy="100" r="8"/>
+            <circle cx="100" cy="100" r="14"/>
+            <!-- Inner petal ring (8 petals) -->
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(0   100 100)"/>
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(45  100 100)"/>
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(90  100 100)"/>
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(135 100 100)"/>
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(180 100 100)"/>
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(225 100 100)"/>
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(270 100 100)"/>
+            <ellipse cx="100" cy="76" rx="6"  ry="16" transform="rotate(315 100 100)"/>
+            <!-- Mid ring -->
+            <circle cx="100" cy="100" r="34"/>
+            <circle cx="100" cy="100" r="44"/>
+            <!-- Mid petal ring (16 petals) -->
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(0   100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(22.5 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(45  100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(67.5 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(90  100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(112.5 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(135 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(157.5 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(180 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(202.5 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(225 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(247.5 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(270 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(292.5 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(315 100 100)"/>
+            <ellipse cx="100" cy="57" rx="5"  ry="20" transform="rotate(337.5 100 100)"/>
+            <!-- Outer rings -->
+            <circle cx="100" cy="100" r="62"/>
+            <circle cx="100" cy="100" r="72"/>
+            <!-- Outer petal ring (8) -->
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(0   100 100)"/>
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(45  100 100)"/>
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(90  100 100)"/>
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(135 100 100)"/>
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(180 100 100)"/>
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(225 100 100)"/>
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(270 100 100)"/>
+            <ellipse cx="100" cy="33" rx="6"  ry="26" transform="rotate(315 100 100)"/>
+            <!-- Outermost ring -->
+            <circle cx="100" cy="100" r="90"/>
+            <circle cx="100" cy="100" r="96"/>
+        </svg>
+    </div>
+    <div class="nepal-mandala-wrap mandala-hero-left" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#FFD700" stroke-width="0.9">
+            <circle cx="100" cy="100" r="10"/>
+            <circle cx="100" cy="100" r="20"/>
+            <ellipse cx="100" cy="72" rx="7" ry="20" transform="rotate(0   100 100)"/>
+            <ellipse cx="100" cy="72" rx="7" ry="20" transform="rotate(60  100 100)"/>
+            <ellipse cx="100" cy="72" rx="7" ry="20" transform="rotate(120 100 100)"/>
+            <ellipse cx="100" cy="72" rx="7" ry="20" transform="rotate(180 100 100)"/>
+            <ellipse cx="100" cy="72" rx="7" ry="20" transform="rotate(240 100 100)"/>
+            <ellipse cx="100" cy="72" rx="7" ry="20" transform="rotate(300 100 100)"/>
+            <circle cx="100" cy="100" r="42"/>
+            <circle cx="100" cy="100" r="56"/>
+            <circle cx="100" cy="100" r="84"/>
+            <circle cx="100" cy="100" r="92"/>
+        </svg>
+    </div>
     <div class="hero-deco hero-deco-1" aria-hidden="true"></div>
     <div class="hero-deco hero-deco-2" aria-hidden="true"></div>
     <div class="hero-deco hero-deco-3" aria-hidden="true"></div>
@@ -138,7 +224,9 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                 <div class="col-lg-6 order-lg-1 order-2 mt-4 mt-lg-0">
                     <div class="hero-eyebrow">
                         <span class="eyebrow-dot" aria-hidden="true"></span>
-                        Premium Venue Booking
+                        <span>Premium Venue Booking</span>
+                        <span class="hero-eyebrow-sep" aria-hidden="true">|</span>
+                        <span class="hero-eyebrow-nepali">नेपाली संस्कृति</span>
                     </div>
                     <h1 class="display-4 <?php echo !empty($banner_images) ? 'text-white' : 'hero-heading-dark'; ?> fw-bold mb-3">
                         Book Your Perfect Venue
@@ -285,6 +373,9 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
 <!-- Anchor for scroll-down -->
 <div id="mainContentStart"></div>
 
+<!-- Dhaka Pattern Divider (ढाका बुट्टा) -->
+<div class="dhaka-divider" aria-hidden="true"></div>
+
 <!-- Stats Section -->
 <section class="stats-section reveal" aria-label="Key statistics">
     <div class="container">
@@ -320,6 +411,8 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
         </div>
     </div>
 </section>
+<!-- Dhaka Pattern Divider (ढाका बुट्टा) -->
+<div class="dhaka-divider dhaka-divider-sm" aria-hidden="true"></div>
 <script>
 // Animate stat counters when section enters viewport
 (function() {
@@ -420,9 +513,12 @@ try {
 <!-- Service Packages Section -->
 <section class="service-packages-section" id="section-packages">
     <div class="container">
-        <div class="text-center mb-4 reveal section-heading-wrap">
+        <div class="text-center mb-4 reveal section-heading-wrap nepal-rangoli">
             <span class="section-eyebrow">Service Packages</span>
             <h2 class="section-title">Our Service Packages</h2>
+            <div class="nepal-lotus-dots" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
             <p class="section-subtitle mt-2">Find the perfect package for your celebration</p>
             <?php echo getSectionShareButton('section-packages', BASE_URL . '/packages.php'); ?>
         </div>
@@ -644,8 +740,10 @@ try {
 </section>
 <?php endif; ?>
 
+<!-- Dhaka Pattern Divider (ढाका बुट्टा) -->
+<div class="dhaka-divider" aria-hidden="true"></div>
+
 <?php
-// Get gallery images grouped into photo cards (max 10 per card)
 $gallery_cards = getImagesByCards('gallery');
 if (!empty($gallery_cards)):
     // Build a flat JS-safe data array for the card modal
@@ -1334,9 +1432,12 @@ if (!empty($venues)):
 <!-- Venues Section -->
 <section class="venues-section py-5" id="section-venues">
     <div class="container">
-        <div class="text-center mb-4 reveal section-heading-wrap">
+        <div class="text-center mb-4 reveal section-heading-wrap nepal-rangoli">
             <span class="section-eyebrow">Our Venues</span>
             <h2 class="section-title">Our Premium Venues</h2>
+            <div class="nepal-lotus-dots" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
             <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
             <?php echo getSectionShareButton('section-venues', BASE_URL . '/venues.php'); ?>
         </div>
@@ -1464,6 +1565,9 @@ if (!empty($venues)):
     </div>
 </section>
 <?php endif; ?>
+
+<!-- Dhaka Pattern Divider (ढाका बुट्टा) -->
+<div class="dhaka-divider" aria-hidden="true"></div>
 
 
 <?php
@@ -2259,9 +2363,12 @@ if (!empty($testimonial_images)):
 <!-- Testimonials Section -->
 <section class="testimonials-section py-5 bg-light" id="section-testimonials">
     <div class="container">
-        <div class="text-center mb-5 reveal section-heading-wrap">
+        <div class="text-center mb-5 reveal section-heading-wrap nepal-rangoli">
             <span class="section-eyebrow">Testimonials</span>
             <h2 class="section-title">What Our Clients Say</h2>
+            <div class="nepal-lotus-dots" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
             <p class="text-muted mt-2">Memories made, moments cherished</p>
             <?php echo getSectionShareButton('section-testimonials', BASE_URL . '/testimonials.php'); ?>
         </div>
@@ -2784,6 +2891,7 @@ if (!empty($about_images)):
 $extra_js = '
 <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 <script src="' . BASE_URL . '/js/booking-flow.js"></script>
+<script src="' . BASE_URL . '/js/nepali-cultural.js"></script>
 <script>
 // Handle venue book button clicks - preferred venue message
 document.addEventListener("DOMContentLoaded", function() {
