@@ -3155,159 +3155,134 @@ unset($_avail_svc);
     <div class="col-lg-4">
         <!-- Booking Overview Card -->
         <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 20px;">
-            <div class="card-header bg-gradient-info text-white py-3">
-                <h5 class="mb-0 fw-semibold"><i class="fas fa-receipt me-2 opacity-75"></i> Booking Summary</h5>
+            <div class="card-header bg-gradient-info text-white py-2 px-3">
+                <h6 class="mb-0 fw-semibold"><i class="fas fa-receipt me-2 opacity-75"></i> Booking Summary</h6>
             </div>
-            <div class="card-body p-3">
-                <!-- Status Summary Row -->
-                <div class="mb-3 pb-2 border-bottom">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-muted fw-semibold">Booking Status</span>
-                        <span class="badge bg-<?php echo $booking_status_color; ?>">
-                            <i class="fas fa-circle-dot me-1"></i><?php echo $booking_status_display; ?>
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-muted fw-semibold">Payment Status</span>
-                        <span class="badge bg-<?php echo $payment_status_color; ?>">
-                            <i class="fas <?php echo $payment_status_icon; ?> me-1"></i><?php echo $payment_status_display; ?>
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="small text-muted fw-semibold">
-                            <i class="far fa-calendar-plus me-1"></i>Booked On
-                        </span>
-                        <span class="small fw-semibold">
-                            <?php echo date('M d, Y', strtotime($booking['created_at'])); ?>
-                            <br><small class="text-muted"><?php echo convertToNepaliDate($booking['created_at']); ?></small>
-                        </span>
-                    </div>
+            <div class="card-body p-0">
+                <!-- Status badges row -->
+                <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom flex-wrap">
+                    <span class="badge bg-<?php echo $booking_status_color; ?> summary-badge">
+                        <i class="fas fa-circle-dot me-1"></i><?php echo $booking_status_display; ?>
+                    </span>
+                    <span class="badge bg-<?php echo $payment_status_color; ?> summary-badge">
+                        <i class="fas <?php echo $payment_status_icon; ?> me-1"></i><?php echo $payment_status_display; ?>
+                    </span>
+                    <span class="ms-auto text-muted" style="font-size:.72rem;">
+                        <i class="far fa-calendar me-1"></i><?php echo date('d M Y', strtotime($booking['created_at'])); ?>
+                    </span>
                 </div>
 
-                <!-- Payment Summary -->
-                <div>
-                    <div class="payment-breakdown">
-                        <div class="d-flex justify-content-between py-1 align-items-center">
-                            <span class="text-muted small">Hall Price:</span>
-                            <strong class="text-dark small"><?php echo formatCurrency($booking['hall_price']); ?></strong>
-                        </div>
-                        <?php if ($booking['menu_total'] > 0): ?>
-                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Menu Total:</span>
-                            <strong class="text-dark small"><?php echo formatCurrency($booking['menu_total']); ?></strong>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($booking['services_total'] > 0): ?>
-                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Services Total:</span>
-                            <strong class="text-dark small"><?php echo formatCurrency($booking['services_total']); ?></strong>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($vendors_total > 0): ?>
-                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Vendors Total:</span>
-                            <strong class="text-dark small"><?php echo formatCurrency($vendors_total); ?></strong>
-                        </div>
-                        <?php endif; ?>
-                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Subtotal:</span>
-                            <strong class="text-dark small"><?php echo formatCurrency($booking['subtotal']); ?></strong>
-                        </div>
-                        <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
-                        <div class="d-flex justify-content-between py-1 align-items-center border-top">
-                            <span class="text-muted small">Tax (<?php echo getSetting('tax_rate', '13'); ?>%):</span>
-                            <strong class="text-dark small"><?php echo formatCurrency($booking['tax_amount']); ?></strong>
-                        </div>
-                        <?php endif; ?>
-                        <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
-                            <span class="fw-bold text-dark">Grand Total:</span>
-                            <span class="fw-bold text-success fs-5"><?php echo formatCurrency($booking['grand_total']); ?></span>
-                        </div>
-                    </div>
+                <!-- Payment Breakdown (compact table) -->
+                <div class="px-3 py-2">
+                    <table class="table table-sm table-borderless mb-0 summary-table">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted ps-0">Hall</td>
+                                <td class="text-end pe-0 fw-semibold"><?php echo formatCurrency($booking['hall_price']); ?></td>
+                            </tr>
+                            <?php if ($booking['menu_total'] > 0): ?>
+                            <tr>
+                                <td class="text-muted ps-0">Menu</td>
+                                <td class="text-end pe-0 fw-semibold"><?php echo formatCurrency($booking['menu_total']); ?></td>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if ($booking['services_total'] > 0): ?>
+                            <tr>
+                                <td class="text-muted ps-0">Services</td>
+                                <td class="text-end pe-0 fw-semibold"><?php echo formatCurrency($booking['services_total']); ?></td>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if ($vendors_total > 0): ?>
+                            <tr>
+                                <td class="text-muted ps-0">Vendors</td>
+                                <td class="text-end pe-0 fw-semibold"><?php echo formatCurrency($vendors_total); ?></td>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if (floatval(getSetting('tax_rate', '13')) > 0): ?>
+                            <tr class="border-top">
+                                <td class="text-muted ps-0">Tax (<?php echo getSetting('tax_rate', '13'); ?>%)</td>
+                                <td class="text-end pe-0 fw-semibold"><?php echo formatCurrency($booking['tax_amount']); ?></td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-top">
+                                <td class="ps-0 fw-bold text-dark">Grand Total</td>
+                                <td class="text-end pe-0">
+                                    <span class="fw-bold text-success" style="font-size:1.05rem;"><?php echo formatCurrency($booking['grand_total']); ?></span>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
 
-                    <!-- Venue Provider Payable & Payout Tracking -->
-                    <?php if ($is_payout_flash && $success_message): ?>
-                    <div class="alert alert-success alert-dismissible fade show mt-3 mb-0" role="alert" style="font-size:.85rem;">
-                        <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <!-- Venue Provider Payable & Payout -->
+                <?php if ($is_payout_flash && $success_message): ?>
+                <div class="alert alert-success alert-dismissible fade show mx-3 mb-2 py-1 px-2" role="alert" style="font-size:.8rem;">
+                    <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+                </div>
+                <?php endif; ?>
+                <?php if ($is_payout_flash && $error_message): ?>
+                <div class="alert alert-danger alert-dismissible fade show mx-3 mb-2 py-1 px-2" role="alert" style="font-size:.8rem;">
+                    <i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+                </div>
+                <?php endif; ?>
+                <div id="section-payout" class="border-top">
+                    <div class="d-flex justify-content-between align-items-center px-3 py-1 bg-info bg-opacity-10">
+                        <span class="small text-info-emphasis fw-semibold"><i class="fas fa-building me-1"></i>Venue Payable</span>
+                        <strong class="small text-info"><?php echo formatCurrency($venue_provider_payable); ?></strong>
+                    </div>
+                    <?php if ($venue_provider_payable > 0): ?>
+                    <?php if ($venue_amount_paid_out > 0): ?>
+                    <div class="d-flex justify-content-between align-items-center px-3 py-1 bg-success bg-opacity-10 border-top">
+                        <span class="small text-success"><i class="fas fa-check-circle me-1"></i>Paid to Venue</span>
+                        <strong class="small text-success"><?php echo formatCurrency($venue_amount_paid_out); ?></strong>
                     </div>
                     <?php endif; ?>
-                    <?php if ($is_payout_flash && $error_message): ?>
-                    <div class="alert alert-danger alert-dismissible fade show mt-3 mb-0" role="alert" style="font-size:.85rem;">
-                        <i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="d-flex justify-content-between align-items-center px-3 py-1 <?php echo $venue_due > 0 ? 'bg-warning bg-opacity-10' : 'bg-success bg-opacity-10'; ?> border-top">
+                        <span class="small fw-semibold <?php echo $venue_due > 0 ? 'text-warning-emphasis' : 'text-success'; ?>">
+                            <i class="fas fa-<?php echo $venue_due > 0 ? 'clock' : 'check-double'; ?> me-1"></i>
+                            <?php echo $venue_due > 0 ? 'Venue Due' : 'Venue Cleared'; ?>
+                        </span>
+                        <strong class="small <?php echo $venue_due > 0 ? 'text-danger' : 'text-success'; ?>">
+                            <?php echo $venue_due > 0 ? formatCurrency($venue_due) : 'Cleared'; ?>
+                        </strong>
                     </div>
                     <?php endif; ?>
-                    <div class="mt-3 rounded border overflow-hidden" id="section-payout" style="font-size:.875rem;">
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-info bg-opacity-10 border-bottom">
-                            <span class="fw-semibold text-info-emphasis">
-                                <i class="fas fa-building me-2"></i>Venue Provider Payable
-                                <small class="fw-normal text-muted d-block ms-4">Hall Price + Menu Total</small>
-                            </span>
-                            <strong class="text-info"><?php echo formatCurrency($venue_provider_payable); ?></strong>
-                        </div>
-                        <?php if ($venue_provider_payable > 0): ?>
-                        <?php if ($venue_amount_paid_out > 0): ?>
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-success bg-opacity-10 border-bottom">
-                            <span class="text-success small"><i class="fas fa-check-circle me-2"></i>Paid to Venue</span>
-                            <strong class="text-success"><?php echo formatCurrency($venue_amount_paid_out); ?></strong>
-                        </div>
-                        <?php endif; ?>
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 <?php echo $venue_due > 0 ? 'bg-warning bg-opacity-10' : 'bg-success bg-opacity-10'; ?> border-bottom">
-                            <span class="fw-semibold <?php echo $venue_due > 0 ? 'text-warning-emphasis' : 'text-success'; ?>">
-                                <i class="fas fa-<?php echo $venue_due > 0 ? 'clock' : 'check-double'; ?> me-2"></i>
-                                <?php echo $venue_due > 0 ? 'Venue Due' : 'Venue Fully Paid'; ?>
-                            </span>
-                            <strong class="<?php echo $venue_due > 0 ? 'text-danger' : 'text-success'; ?>">
-                                <?php echo $venue_due > 0 ? formatCurrency($venue_due) : 'Cleared'; ?>
-                            </strong>
-                        </div>
-                        <?php endif; ?>
-                    </div>
+                </div>
 
-                    <!-- Advance & Balance rows -->
-                    <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
-                        <?php // $advance already calculated before the Quick Check Panel section ?>
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-warning bg-opacity-10 border-bottom">
-                            <span class="fw-semibold text-warning-emphasis">
-                                <i class="fas fa-hand-holding-usd me-2"></i>Advance Required
-                                <small class="fw-normal text-muted ms-1">(<?php echo htmlspecialchars($advance['percentage']); ?>%)</small>
-                            </span>
-                            <strong><?php echo formatCurrency($advance['amount']); ?></strong>
-                        </div>
+                <!-- Advance & Balance -->
+                <div class="border-top">
+                    <?php // $advance already calculated before the Quick Check Panel section ?>
+                    <div class="d-flex justify-content-between align-items-center px-3 py-1 bg-warning bg-opacity-10">
+                        <span class="small text-warning-emphasis fw-semibold">
+                            <i class="fas fa-hand-holding-usd me-1"></i>Advance
+                            <span class="fw-normal text-muted">(<?php echo htmlspecialchars($advance['percentage']); ?>%)</span>
+                        </span>
                         <?php if ($booking['advance_payment_received'] === 1): ?>
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-success bg-opacity-10 border-bottom">
-                            <span class="fw-semibold text-success">
-                                <i class="fas fa-check-circle me-2"></i>Advance Received
-                            </span>
-                            <strong class="text-success"><?php echo formatCurrency($advance_amount_received > 0 ? $advance_amount_received : $advance['amount']); ?></strong>
-                        </div>
+                        <span class="small fw-bold text-success">
+                            <i class="fas fa-check-circle me-1"></i><?php echo formatCurrency($advance_amount_received > 0 ? $advance_amount_received : $advance['amount']); ?>
+                        </span>
                         <?php else: ?>
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-danger bg-opacity-10 border-bottom">
-                            <span class="fw-semibold text-danger">
-                                <i class="fas fa-times-circle me-2"></i>Advance Not Received
-                            </span>
-                            <strong class="text-danger"><?php echo formatCurrency(0); ?></strong>
-                        </div>
-                        <?php endif; ?>
-                        <!-- Balance Due / Fully Paid -->
-                        <?php if ($booking['payment_status'] !== 'paid'): ?>
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-primary bg-opacity-10">
-                            <div>
-                                <span class="fw-bold text-primary"><i class="fas fa-money-bill-wave me-2"></i>Balance Due</span>
-                                <small class="text-muted d-block ms-4">
-                                    <?php echo $booking['advance_payment_received'] === 1 ? 'After advance deduction' : 'Full amount outstanding'; ?>
-                                </small>
-                            </div>
-                            <strong class="text-danger fs-5"><?php echo formatCurrency($balance_due); ?></strong>
-                        </div>
-                        <?php else: ?>
-                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-success bg-opacity-10">
-                            <span class="fw-bold text-success"><i class="fas fa-check-double me-2"></i>Fully Paid</span>
-                            <span class="badge bg-success px-3 py-2">All Cleared</span>
-                        </div>
+                        <span class="small fw-bold text-danger">
+                            <i class="fas fa-times-circle me-1"></i>Not Received
+                        </span>
                         <?php endif; ?>
                     </div>
+                    <!-- Balance Due / Fully Paid — highlighted prominently -->
+                    <?php if ($booking['payment_status'] !== 'paid'): ?>
+                    <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-danger bg-opacity-10 border-top">
+                        <span class="fw-bold text-danger small"><i class="fas fa-money-bill-wave me-1"></i>Balance Due</span>
+                        <strong class="text-danger" style="font-size:1.05rem;"><?php echo formatCurrency($balance_due); ?></strong>
+                    </div>
+                    <?php else: ?>
+                    <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-success bg-opacity-10 border-top">
+                        <span class="fw-bold text-success small"><i class="fas fa-check-double me-1"></i>Fully Paid</span>
+                        <span class="badge bg-success">Cleared</span>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -3427,13 +3402,10 @@ unset($_avail_svc);
     .border-end-md { border-right: 1px solid #e9ecef !important; }
 }
 
-/* ─── Payment Breakdown in Sidebar ─── */
-.payment-breakdown {
-    background: #f8fafc;
-    padding: 1rem 1.1rem;
-    border-radius: 8px;
-    border: 1px solid #e8edf2;
-}
+/* ─── Compact Summary Sidebar ─── */
+.summary-badge { font-size: .75rem; }
+.summary-table td { font-size: .8rem; padding: .18rem 0; }
+.summary-table tfoot td { padding-top: .35rem; }
 
 /* ─── Service Description ─── */
 .service-description {
