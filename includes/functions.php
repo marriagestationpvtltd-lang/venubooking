@@ -4638,6 +4638,7 @@ function getAvailableVendors($event_date, $current_booking_id = 0) {
                   FROM booking_vendor_assignments bva
                   INNER JOIN bookings b ON bva.booking_id = b.id
                   WHERE b.event_date = ?
+                    AND b.booking_status != 'cancelled'
                     AND bva.vendor_id IS NOT NULL
                     $booking_exclude
               )
