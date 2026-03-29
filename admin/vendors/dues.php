@@ -225,6 +225,18 @@ $extra_css = '
 .bm-badge-manual  { background: #f3f4f6; color: #6b7280; }
 .bm-badge-type    { background: #e3f2fd; color: #1565c0; }
 
+/* Reusable colour helpers */
+.bm-text-paid { color: #4527a0; }
+.bm-text-due  { color: #e65100; }
+
+/* Tfoot label column */
+.bm-tfoot-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+}
+
 /* Empty state */
 .bm-empty-state { text-align: center; padding: 4rem 2rem !important; }
 .bm-empty-icon  { font-size: 3.5rem; color: #d1d5db; margin-bottom: 1rem; }
@@ -440,8 +452,8 @@ $filter_labels = [
                             <span class="fw-semibold"><?php echo (int)$v['assignment_count']; ?></span>
                         </td>
                         <td class="text-end fw-semibold"><?php echo formatCurrency($total_assigned); ?></td>
-                        <td class="text-end" style="color:#4527a0;"><?php echo $total_paid > 0 ? formatCurrency($total_paid) : '<span class="text-muted">—</span>'; ?></td>
-                        <td class="text-end fw-semibold <?php echo $is_cleared ? 'text-success' : ''; ?>" style="<?php echo !$is_cleared ? 'color:#e65100;' : ''; ?>">
+                        <td class="text-end bm-text-paid"><?php echo $total_paid > 0 ? formatCurrency($total_paid) : '<span class="text-muted">—</span>'; ?></td>
+                        <td class="text-end fw-semibold <?php echo $is_cleared ? 'text-success' : 'bm-text-due'; ?>">
                             <?php echo $is_cleared ? formatCurrency(0) : formatCurrency($total_due); ?>
                         </td>
                         <td class="text-center">
@@ -473,10 +485,10 @@ $filter_labels = [
             <?php if (!empty($vendors)): ?>
             <tfoot>
                 <tr>
-                    <td colspan="4" class="text-end text-muted" style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.5px;">Totals</td>
+                    <td colspan="4" class="text-end bm-tfoot-label">Totals</td>
                     <td class="text-end"><?php echo formatCurrency($summary['total_assigned']); ?></td>
-                    <td class="text-end" style="color:#4527a0;"><?php echo formatCurrency($summary['total_paid']); ?></td>
-                    <td class="text-end" style="color:#e65100;"><?php echo formatCurrency($summary['total_due']); ?></td>
+                    <td class="text-end bm-text-paid"><?php echo formatCurrency($summary['total_paid']); ?></td>
+                    <td class="text-end bm-text-due"><?php echo formatCurrency($summary['total_due']); ?></td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>
