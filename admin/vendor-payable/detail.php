@@ -352,16 +352,18 @@ $extra_css = '
     cursor: zoom-in;
 }
 .bm-qr-img {
-    width: 140px; height: 140px;
+    width: 180px; height: 180px;
     object-fit: contain;
     border: 2px solid #dee2e6;
     border-radius: 10px;
+    padding: 8px;
+    background: #fff;
     display: block;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
     transform-origin: top left;
 }
 .bm-qr-wrap:hover .bm-qr-img {
-    transform: scale(2.5);
+    transform: scale(2.0);
     box-shadow: 0 8px 32px rgba(0,0,0,0.25);
     z-index: 10;
     position: relative;
@@ -520,7 +522,7 @@ $agg_due = max(0.0, $agg_assigned - $agg_paid);
     </div>
 </div>
 
-<?php if (!empty($vendor['bank_details']) || !empty($vendor['qr_code'])): ?>
+<?php if (!empty($vendor['bank_details']) || (!empty($vendor['qr_code']) && validateUploadedFilePath($vendor['qr_code']))): ?>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!--  PAYMENT DETAILS (QR CODE + BANK DETAILS)                  -->
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -529,7 +531,7 @@ $agg_due = max(0.0, $agg_assigned - $agg_paid);
         <i class="fas fa-university"></i> Payment Details
     </div>
     <div class="bm-payment-body">
-        <?php if (!empty($vendor['qr_code'])): ?>
+        <?php if (!empty($vendor['qr_code']) && validateUploadedFilePath($vendor['qr_code'])): ?>
         <div>
             <div class="bm-qr-wrap" title="Hover to zoom in for scanning">
                 <img src="<?php echo htmlspecialchars(UPLOAD_URL . $vendor['qr_code']); ?>"
@@ -549,7 +551,7 @@ $agg_due = max(0.0, $agg_assigned - $agg_paid);
             <?php if (!empty($vendor['bank_details'])): ?>
                 <pre><?php echo htmlspecialchars($vendor['bank_details']); ?></pre>
             <?php endif; ?>
-            <?php if (empty($vendor['bank_details']) && !empty($vendor['qr_code'])): ?>
+            <?php if (empty($vendor['bank_details']) && !empty($vendor['qr_code']) && validateUploadedFilePath($vendor['qr_code'])): ?>
                 <p class="text-muted mb-0"><i class="fas fa-info-circle me-1"></i>Scan the QR code to make payment.</p>
             <?php endif; ?>
         </div>
