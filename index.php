@@ -112,13 +112,6 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
 }
 </script>
 
-<!-- Nepali Cultural Welcome Strip (सांस्कृतिक स्वागत पट्टी) -->
-<div class="nepal-cultural-strip" role="region" aria-label="Cultural welcome message" aria-live="polite">
-    <p class="nepal-cultural-strip-text mb-0">
-        <span class="nc-strip-item">🙏 नमस्ते — तपाईंको शुभ समारोहको लागि सर्वोत्तम भेन्यू बुकिंग गर्नुहोस्</span>
-    </p>
-</div>
-
 <!-- Hero Section -->
 <section class="hero-section<?php if (!empty($banner_images)): ?> with-banner-image<?php endif; ?>" id="bookingSection">
     <!-- Prayer Flags (लुङ्दर) – five sacred colors waving across the top -->

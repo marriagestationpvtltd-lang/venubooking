@@ -128,44 +128,12 @@
     }
 
     /* ════════════════════════════════════════════════════════════
-       4. CULTURAL GREETING TEXT CYCLE (सांस्कृतिक स्वागत)
-       Cycles through Nepali greetings in the welcome strip
-    ════════════════════════════════════════════════════════════ */
-    var GREETINGS = [
-        '🙏 नमस्ते — तपाईंको शुभ समारोहको लागि सर्वोत्तम भेन्यू बुकिंग गर्नुहोस्',
-        '🎊 स्वागत छ — नेपाली संस्कृतिले सजिएको सपनाको बिहे र उत्सव',
-        '🌸 शुभकामना — हाम्रो प्रिमियम भेन्यूहरूले तपाईंको समारोह अविस्मरणीय बनाउनेछ',
-        '🪔 दीपावली, बिहे, ब्रतबन्ध — हरेक उत्सवको लागि परिपूर्ण भेन्यू'
-    ];
-
-    function initGreetingCycle() {
-        var el = document.querySelector('.nc-strip-item');
-        if (!el) return;
-
-        var idx = 0;
-        el.textContent = GREETINGS[0];
-
-        setInterval(function () {
-            el.style.opacity   = '0';
-            el.style.transform = 'translateY(-10px)';
-
-            setTimeout(function () {
-                idx = (idx + 1) % GREETINGS.length;
-                el.textContent = GREETINGS[idx];
-                el.style.opacity   = '1';
-                el.style.transform = 'translateY(0)';
-            }, 480);
-        }, 5500);
-    }
-
-    /* ════════════════════════════════════════════════════════════
        Bootstrap
     ════════════════════════════════════════════════════════════ */
     function init() {
         buildPrayerFlags();
         initPetals();
         initDiyaParticles();
-        initGreetingCycle();
     }
 
     if (document.readyState === 'loading') {
