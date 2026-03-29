@@ -4064,6 +4064,9 @@ function calculatePaymentSummary($booking_id) {
     // Calculate advance payment info (percentage-based, for reference display only)
     $advance = calculateAdvancePayment($grand_total);
     
+    // Venue provider payable = hall price + menu total (amounts owed to venue/restaurant provider)
+    $venue_provider_payable = floatval($booking['hall_price']) + floatval($booking['menu_total']);
+
     return [
         'subtotal' => floatval($booking['subtotal']),
         'tax_amount' => floatval($booking['tax_amount']),
@@ -4074,6 +4077,7 @@ function calculatePaymentSummary($booking_id) {
         'advance_amount' => $advance['amount'],
         'advance_percentage' => $advance['percentage'],
         'advance_amount_received' => $advance_amount_received,
+        'venue_provider_payable' => $venue_provider_payable,
     ];
 }
 
