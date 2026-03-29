@@ -471,6 +471,9 @@ $advance_amount_received = $payment_summary['advance_amount_received'];
 // Calculate vendors total for display in the payment breakdown
 $vendors_total = $payment_summary['vendors_total'];
 
+// Venue provider payable = hall price + menu total
+$venue_provider_payable = $payment_summary['venue_provider_payable'];
+
 // Get vendor assignments for print invoice and display
 $vendor_assignments = getBookingVendorAssignments($booking_id);
 
@@ -997,6 +1000,10 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
         <!-- Payment Calculation Section -->
         <div class="payment-calculation-section">
             <table class="payment-table">
+                <tr>
+                    <td class="payment-label">Venue Provider Payable (Hall + Menu):</td>
+                    <td class="payment-value"><?php echo formatCurrency($venue_provider_payable); ?></td>
+                </tr>
                 <?php if ($has_invoice_vendors): ?>
                 <tr>
                     <td class="payment-label">Vendors Total:</td>
@@ -3173,6 +3180,17 @@ unset($_avail_svc);
                         <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
                             <span class="fw-bold text-dark">Grand Total:</span>
                             <span class="fw-bold text-success fs-5"><?php echo formatCurrency($booking['grand_total']); ?></span>
+                        </div>
+                    </div>
+
+                    <!-- Venue Provider Payable -->
+                    <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-info bg-opacity-10 border-bottom">
+                            <span class="fw-semibold text-info-emphasis">
+                                <i class="fas fa-building me-2"></i>Venue Provider Payable
+                                <small class="fw-normal text-muted d-block ms-4">Hall Price + Menu Total</small>
+                            </span>
+                            <strong class="text-info"><?php echo formatCurrency($venue_provider_payable); ?></strong>
                         </div>
                     </div>
 
