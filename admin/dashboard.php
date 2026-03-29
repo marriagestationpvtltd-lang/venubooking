@@ -112,6 +112,18 @@ $stmt = $db->query("SELECT COUNT(*) as count FROM bookings
                     WHERE event_date = CURDATE() AND booking_status != 'cancelled'");
 $stats['today_events'] = (int)$stmt->fetch()['count'];
 
+// Customer balance due (total billed minus verified payments)
+try {
+    $stmt = $db->query("SELECT COALESCE(SUM(p.paid_amount), 0) as total
+                        FROM payments p
+                        INNER JOIN bookings b ON p.booking_id = b.id
+                        WHERE p.payment_status = 'verified' AND b.booking_status != 'cancelled'");
+    $total_verified_payments = (float)$stmt->fetch()['total'];
+} catch (PDOException $e) {
+    $total_verified_payments = 0.0;
+}
+$stats['customer_balance_due'] = max(0.0, $stats['total_revenue'] - $total_verified_payments);
+
 // ─── Monthly Revenue (last 6 months) for chart ────────────────────────────────
 $monthly_data_raw = $db->query("
     SELECT
@@ -429,6 +441,9 @@ $extra_css = <<<CSS
     white-space: nowrap;
 }
 .db-amount { font-weight: 600; color: #1e293b; }
+.db-amount-due    { font-weight: 700; color: var(--db-red) !important; }
+.db-amount-profit { font-weight: 700; color: var(--db-green) !important; }
+.db-amount-loss   { font-weight: 700; color: var(--db-red) !important; }
 
 /* ── Status badges ──────────────────────────────────────────── */
 .db-badge {
@@ -645,6 +660,27 @@ a.db-mini-tile-link:hover { background: #f8fafc; }
     transition: background .15s;
 }
 .db-view-all:hover { background: #f8fafc; color: var(--db-blue); }
+
+/* ── Mobile responsive improvements ─────────────────────────── */
+@media (max-width: 575.98px) {
+    .db-metric-value { font-size: 1.4rem; }
+    .db-metric-card  { padding: 1.1rem 1rem; }
+    .db-today-banner { padding: 1.1rem 1.2rem; }
+    .db-today-banner .today-val { font-size: 1.7rem; }
+    .db-quick-actions-card { padding: 1.1rem; }
+    .db-qa-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: .5rem; }
+    .db-qa-btn  { padding: .75rem .3rem; font-size: .72rem; }
+    .db-qa-btn i { font-size: 1.1rem; }
+    .db-section-title { margin-top: 1rem; }
+}
+@media (max-width: 767.98px) {
+    .db-table-wrap { overflow-x: auto; }
+    .db-table-wrap table { min-width: 560px; }
+    .db-chart-header { padding: .9rem 1.1rem .6rem; }
+    .db-chart-body   { padding: .9rem 1rem; }
+    .db-table-header { padding: .9rem 1.1rem; }
+    .db-scroll-table { max-height: none; }
+}
 </style>
 CSS;
 
@@ -729,19 +765,18 @@ function dashBadge($status) {
         </a>
     </div>
 
-    <!-- Monthly Revenue Trend -->
+    <!-- Customer Balance Due -->
     <div class="col-xl-3 col-md-6">
-        <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card card-purple">
+        <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card card-red">
             <div class="d-flex align-items-start justify-content-between">
-                <div class="db-metric-icon icon-purple"><i class="fas fa-chart-line"></i></div>
+                <div class="db-metric-icon icon-red"><i class="fas fa-file-invoice-dollar"></i></div>
                 <div class="text-end">
-                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['month_revenue']); ?></p>
-                    <p class="db-metric-label">This Month Revenue</p>
+                    <p class="db-metric-value db-metric-value-sm db-amount-due"><?php echo formatCurrency($stats['customer_balance_due']); ?></p>
+                    <p class="db-metric-label">Customer Balance Due</p>
                 </div>
             </div>
-            <div class="db-metric-sub <?php echo $revenue_trend >= 0 ? 'trend-up' : 'trend-down'; ?>">
-                <i class="fas fa-arrow-<?php echo $revenue_trend >= 0 ? 'up' : 'down'; ?>-right"></i>
-                <?php echo abs($revenue_trend); ?>% vs last month
+            <div class="db-metric-sub trend-flat">
+                <i class="fas fa-info-circle me-1"></i>Outstanding from customers
             </div>
         </a>
     </div>
@@ -793,7 +828,7 @@ function dashBadge($status) {
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon <?php echo $profit_positive ? 'icon-green' : 'icon-red'; ?>"><i class="fas fa-sack-dollar"></i></div>
                 <div class="text-end">
-                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency(abs($stats['total_profit'])); ?></p>
+                    <p class="db-metric-value db-metric-value-sm <?php echo $profit_positive ? 'db-amount-profit' : 'db-amount-loss'; ?>"><?php echo formatCurrency(abs($stats['total_profit'])); ?></p>
                     <p class="db-metric-label">Net Profit</p>
                 </div>
             </div>
@@ -806,11 +841,11 @@ function dashBadge($status) {
 
     <!-- Outstanding Venue Provider Due -->
     <div class="col-xl-3 col-md-6">
-        <a href="<?php echo BASE_URL; ?>/admin/venue-payable/index.php" class="db-metric-card card-teal">
+        <a href="<?php echo BASE_URL; ?>/admin/venue-payable/index.php" class="db-metric-card card-red">
             <div class="d-flex align-items-start justify-content-between">
-                <div class="db-metric-icon icon-teal"><i class="fas fa-building"></i></div>
+                <div class="db-metric-icon icon-red"><i class="fas fa-building"></i></div>
                 <div class="text-end">
-                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['total_venue_payable']); ?></p>
+                    <p class="db-metric-value db-metric-value-sm db-amount-due"><?php echo formatCurrency($stats['total_venue_payable']); ?></p>
                     <p class="db-metric-label">Venue Provider Due</p>
                 </div>
             </div>
@@ -823,11 +858,11 @@ function dashBadge($status) {
 
     <!-- Outstanding Service Provider Due -->
     <div class="col-xl-3 col-md-6">
-        <a href="<?php echo BASE_URL; ?>/admin/vendor-payable/index.php" class="db-metric-card card-purple">
+        <a href="<?php echo BASE_URL; ?>/admin/vendor-payable/index.php" class="db-metric-card card-red">
             <div class="d-flex align-items-start justify-content-between">
-                <div class="db-metric-icon icon-purple"><i class="fas fa-handshake"></i></div>
+                <div class="db-metric-icon icon-red"><i class="fas fa-handshake"></i></div>
                 <div class="text-end">
-                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['total_vendor_due']); ?></p>
+                    <p class="db-metric-value db-metric-value-sm db-amount-due"><?php echo formatCurrency($stats['total_vendor_due']); ?></p>
                     <p class="db-metric-label">Service Provider Due</p>
                 </div>
             </div>
@@ -963,8 +998,8 @@ function dashBadge($status) {
                             <tr>
                                 <th>Booking #</th>
                                 <th>Customer</th>
-                                <th>Venue / Hall</th>
-                                <th>Event Date</th>
+                                <th class="d-none d-md-table-cell">Venue / Hall</th>
+                                <th class="d-none d-sm-table-cell">Event Date</th>
                                 <th>Amount</th>
                                 <th>Status</th>
                             </tr>
@@ -978,8 +1013,8 @@ function dashBadge($status) {
                                         </a>
                                     </td>
                                     <td><div class="db-customer-name" title="<?php echo htmlspecialchars($bk['full_name']); ?>"><?php echo htmlspecialchars($bk['full_name']); ?></div></td>
-                                    <td><div class="db-venue-text" title="<?php echo htmlspecialchars($bk['venue_name'] . ' / ' . $bk['hall_name']); ?>"><?php echo htmlspecialchars($bk['venue_name'] ?? '—'); ?></div></td>
-                                    <td class="db-nowrap"><?php echo date('d M Y', strtotime($bk['event_date'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($bk['event_date']); ?></small></td>
+                                    <td class="d-none d-md-table-cell"><div class="db-venue-text" title="<?php echo htmlspecialchars($bk['venue_name'] . ' / ' . $bk['hall_name']); ?>"><?php echo htmlspecialchars($bk['venue_name'] ?? '—'); ?></div></td>
+                                    <td class="d-none d-sm-table-cell db-nowrap"><?php echo date('d M Y', strtotime($bk['event_date'])); ?><br><small class="text-muted"><?php echo convertToNepaliDate($bk['event_date']); ?></small></td>
                                     <td class="db-amount"><?php echo formatCurrency($bk['grand_total']); ?></td>
                                     <td><?php echo dashBadge($bk['booking_status']); ?></td>
                                 </tr>

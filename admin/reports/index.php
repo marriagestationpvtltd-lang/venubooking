@@ -258,6 +258,18 @@ $extra_css = '
     background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;
     padding:.4rem .9rem; font-size:.82rem; color:#475569;
 }
+/* Mobile improvements */
+@media (max-width:575.98px) {
+    .rp-page-header { padding:1.1rem 1.2rem; }
+    .rp-kpi { padding:1rem 1.1rem; }
+    .rp-kpi-val { font-size:1.35rem; }
+    .rp-card-body { padding:.9rem 1rem; }
+    .rp-card-header { padding:.9rem 1rem; }
+}
+@media (max-width:767.98px) {
+    .rp-card .table-responsive { overflow-x: auto; }
+    .rp-card .table-responsive table { min-width: 480px; }
+}
 </style>
 ';
 ?>
@@ -309,11 +321,11 @@ $extra_css = '
     </div>
     <!-- Customer Due -->
     <div class="col-sm-6 col-xl-3">
-        <div class="rp-kpi k-amber">
+        <div class="rp-kpi k-red">
             <div class="d-flex align-items-start gap-3">
-                <div class="rp-kpi-icon" style="background:rgba(245,158,11,.12);color:var(--rp-amber)"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div class="rp-kpi-icon" style="background:rgba(239,68,68,.12);color:var(--rp-red)"><i class="fas fa-file-invoice-dollar"></i></div>
                 <div>
-                    <p class="rp-kpi-val"><?php echo formatCurrency($total_customer_due); ?></p>
+                    <p class="rp-kpi-val" style="color:var(--rp-red)"><?php echo formatCurrency($total_customer_due); ?></p>
                     <p class="rp-kpi-lbl">Customer Due</p>
                     <p class="rp-kpi-sub">Advance: <?php echo formatCurrency($overall['total_advance_received']); ?></p>
                 </div>
@@ -322,11 +334,11 @@ $extra_css = '
     </div>
     <!-- Net Profit -->
     <div class="col-sm-6 col-xl-3">
-        <div class="rp-kpi <?php echo $net_profit >= 0 ? 'k-teal' : 'k-red'; ?>">
+        <div class="rp-kpi <?php echo $net_profit >= 0 ? 'k-green' : 'k-red'; ?>">
             <div class="d-flex align-items-start gap-3">
-                <div class="rp-kpi-icon" style="background:<?php echo $net_profit >= 0 ? 'rgba(20,184,166,.12)' : 'rgba(239,68,68,.12)'; ?>;color:<?php echo $net_profit >= 0 ? 'var(--rp-teal)' : 'var(--rp-red)'; ?>"><i class="fas fa-chart-line"></i></div>
+                <div class="rp-kpi-icon" style="background:<?php echo $net_profit >= 0 ? 'rgba(16,185,129,.12)' : 'rgba(239,68,68,.12)'; ?>;color:<?php echo $net_profit >= 0 ? 'var(--rp-green)' : 'var(--rp-red)'; ?>"><i class="fas fa-chart-line"></i></div>
                 <div>
-                    <p class="rp-kpi-val"><?php echo formatCurrency(abs($net_profit)); ?></p>
+                    <p class="rp-kpi-val" style="color:<?php echo $net_profit >= 0 ? 'var(--rp-green)' : 'var(--rp-red)'; ?>"><?php echo formatCurrency(abs($net_profit)); ?></p>
                     <p class="rp-kpi-lbl">Net <?php echo $net_profit >= 0 ? 'Profit' : 'Loss'; ?></p>
                     <p class="rp-kpi-sub">Revenue − Total Payout</p>
                 </div>
@@ -352,11 +364,11 @@ $extra_css = '
     </div>
     <!-- Venue Due -->
     <div class="col-sm-6 col-xl-3">
-        <div class="rp-kpi k-purple">
+        <div class="rp-kpi k-red">
             <div class="d-flex align-items-start gap-3">
-                <div class="rp-kpi-icon" style="background:rgba(139,92,246,.12);color:var(--rp-purple)"><i class="fas fa-university"></i></div>
+                <div class="rp-kpi-icon" style="background:rgba(239,68,68,.12);color:var(--rp-red)"><i class="fas fa-university"></i></div>
                 <div>
-                    <p class="rp-kpi-val"><?php echo formatCurrency($total_venue_due); ?></p>
+                    <p class="rp-kpi-val" style="color:var(--rp-red)"><?php echo formatCurrency($total_venue_due); ?></p>
                     <p class="rp-kpi-lbl">Venue Payable</p>
                     <p class="rp-kpi-sub">Paid: <?php echo formatCurrency($overall['total_venue_paid']); ?></p>
                 </div>
@@ -382,7 +394,7 @@ $extra_css = '
             <div class="d-flex align-items-start gap-3">
                 <div class="rp-kpi-icon" style="background:rgba(239,68,68,.12);color:var(--rp-red)"><i class="fas fa-exclamation-circle"></i></div>
                 <div>
-                    <p class="rp-kpi-val"><?php echo formatCurrency($vendor_summary['total_due']); ?></p>
+                    <p class="rp-kpi-val" style="color:var(--rp-red)"><?php echo formatCurrency($vendor_summary['total_due']); ?></p>
                     <p class="rp-kpi-lbl">Vendor Payable</p>
                     <p class="rp-kpi-sub">Paid: <?php echo formatCurrency($vendor_summary['total_paid']); ?></p>
                 </div>
