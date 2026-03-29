@@ -5069,6 +5069,62 @@ function getVendorTotalReceivable($vendor_id) {
 }
 
 /**
+ * Get all vendor dues/payables summary for the admin dues report.
+ *
+ * Returns:
+ *   'summary' => [ total_assigned, total_paid, total_due ]
+ *   'vendors' => [ per-vendor rows with totals ]
+ *
+ * Manual (non-system) vendors are grouped by manual_vendor_name.
+ * Cancelled assignments are excluded from all totals.
+ */
+function getAllVendorDues() {
+    $db = getDB();
+    try {
+        $stmt = $db->query("
+            SELECT
+                COALESCE(SUM(assigned_amount), 0) AS total_assigned,
+                COALESCE(SUM(amount_paid), 0)     AS total_paid,
+                COALESCE(SUM(assigned_amount - amount_paid), 0) AS total_due
+            FROM booking_vendor_assignments
+            WHERE status != 'cancelled'
+        ");
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stmt = $db->query("
+            SELECT
+                bva.vendor_id,
+                bva.manual_vendor_name,
+                bva.manual_vendor_phone,
+                COALESCE(v.name, bva.manual_vendor_name, 'Unknown') AS vendor_name,
+                COALESCE(v.type, bva.manual_vendor_type, '')         AS vendor_type,
+                v.phone  AS vendor_phone,
+                v.email  AS vendor_email,
+                v.status AS vendor_status,
+                COUNT(bva.id)                                              AS assignment_count,
+                COALESCE(SUM(bva.assigned_amount), 0)                     AS total_assigned,
+                COALESCE(SUM(bva.amount_paid), 0)                         AS total_paid,
+                COALESCE(SUM(bva.assigned_amount - bva.amount_paid), 0)   AS total_due
+            FROM booking_vendor_assignments bva
+            LEFT JOIN vendors v ON bva.vendor_id = v.id
+            WHERE bva.status != 'cancelled'
+            GROUP BY bva.vendor_id,
+                     CASE WHEN bva.vendor_id IS NULL THEN bva.manual_vendor_name ELSE NULL END
+            ORDER BY total_due DESC, vendor_name ASC
+        ");
+        $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return ['summary' => $summary, 'vendors' => $vendors];
+    } catch (Exception $e) {
+        error_log("Error getting all vendor dues: " . $e->getMessage());
+        return [
+            'summary' => ['total_assigned' => 0, 'total_paid' => 0, 'total_due' => 0],
+            'vendors' => []
+        ];
+    }
+}
+
+/**
  * Build a WhatsApp notification URL for a vendor assignment.
  *
  * @param string $vendor_name
