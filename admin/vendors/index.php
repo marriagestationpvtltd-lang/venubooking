@@ -97,6 +97,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <td><?php echo htmlspecialchars($vendor['phone'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['city_name'] ?? '—'); ?></td>
+                            <td>
                                 <?php if ((float)$vendor['total_receivable'] > 0): ?>
                                     <a href="view.php?id=<?php echo $vendor['id']; ?>" class="text-success fw-semibold text-decoration-none">
                                         <?php echo formatCurrency($vendor['total_receivable']); ?>
