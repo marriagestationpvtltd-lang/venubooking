@@ -1381,34 +1381,30 @@ unset($_avail_svc);
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 fw-semibold"><i class="fas fa-sliders me-2 opacity-75"></i> Quick Actions</h5>
-                <small class="opacity-75 d-none d-sm-inline">Update status &amp; send messages</small>
+            <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center py-2">
+                <h6 class="mb-0 fw-semibold"><i class="fas fa-sliders me-2 opacity-75"></i> Quick Actions</h6>
+                <small class="opacity-75 d-none d-sm-inline">Status &amp; messaging</small>
             </div>
-            <div class="card-body p-3">
-                <div class="row g-3">
+            <div class="card-body p-2">
+                <div class="row g-2">
 
                     <!-- Booking Status -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="quick-check-item h-100">
-                            <div class="d-flex align-items-center mb-2">
+                            <div class="d-flex align-items-center mb-1">
                                 <i class="fas fa-circle-dot text-primary me-2"></i>
                                 <span class="fw-bold small text-uppercase text-muted">Booking Status</span>
                                 <span class="badge bg-<?php echo $booking_status_color; ?> ms-auto" id="booking-status-badge">
                                     <?php echo $booking_status_display; ?>
                                 </span>
                             </div>
-                            <small class="text-muted d-block mt-1">
-                                <i class="fas fa-lock me-1"></i>
-                                <strong>Updated – Read Only.</strong> Auto-set by Payment Status.
-                            </small>
                         </div>
                     </div>
 
                     <!-- Advance Payment Status (auto-managed by Payment Status) -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="quick-check-item h-100">
-                            <div class="d-flex align-items-center mb-2">
+                            <div class="d-flex align-items-center mb-1">
                                 <i class="fas fa-money-check-alt text-success me-2"></i>
                                 <span class="fw-bold small text-uppercase text-muted">Advance Payment</span>
                                 <?php if ($booking['advance_payment_received'] === 1): ?>
@@ -1418,52 +1414,32 @@ unset($_avail_svc);
                                 <?php endif; ?>
                             </div>
                             <?php if ($booking['advance_payment_received'] === 1 && $advance_amount_received > 0): ?>
-                                <div class="mt-1">
-                                    <span class="fw-semibold text-success small" id="advance-amount-display">
-                                        <i class="fas fa-check me-1"></i><?php echo formatCurrency($advance_amount_received); ?>
-                                    </span>
-                                </div>
+                                <span class="fw-semibold text-success small" id="advance-amount-display">
+                                    <i class="fas fa-check me-1"></i><?php echo formatCurrency($advance_amount_received); ?>
+                                </span>
                             <?php else: ?>
-                                <div class="mt-1" id="advance-amount-display-wrapper">
-                                    <span class="text-muted small" id="advance-amount-display">—</span>
-                                </div>
+                                <span class="text-muted small" id="advance-amount-display">—</span>
                             <?php endif; ?>
-                            <small class="text-muted d-block mt-1">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Auto-managed by Payment Status. Enter amount below when recording.
-                            </small>
                         </div>
                     </div>
 
                     <!-- Payment Status + Advance Amount Entry (unified) -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="quick-check-item h-100">
-                            <div class="d-flex align-items-center mb-2">
+                            <div class="d-flex align-items-center mb-1">
                                 <i class="fas fa-credit-card text-info me-2"></i>
                                 <span class="fw-bold small text-uppercase text-muted">Payment Status</span>
                                 <span class="badge bg-<?php echo $payment_status_color; ?> ms-auto" id="payment-status-badge">
                                     <?php echo $payment_status_display; ?>
                                 </span>
                             </div>
-                            <div class="payment-status-container">
-                                <p class="text-muted small mb-2">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Auto-updated when payments are recorded.
-                                </p>
-                                <?php if (in_array($booking['payment_status'], ['partial', 'paid']) && $advance_amount_received > 0): ?>
-                                <!-- Advance amount received: read-only display -->
-                                <div class="mt-2">
-                                    <label class="form-label form-label-sm fw-semibold mb-1 small">
-                                        <i class="fas fa-money-bill-wave text-success me-1"></i>Advance Amount Received
-                                    </label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <input type="text" class="form-control form-control-sm" readonly
-                                            value="<?php echo htmlspecialchars(number_format($advance_amount_received, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                    </div>
-                                </div>
-                                <?php endif; ?>
+                            <?php if (in_array($booking['payment_status'], ['partial', 'paid']) && $advance_amount_received > 0): ?>
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text px-1 quick-check-currency"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                <input type="text" class="form-control form-control-sm" readonly
+                                    value="<?php echo htmlspecialchars(number_format($advance_amount_received, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -1539,7 +1515,7 @@ unset($_avail_svc);
                             ?>
                             <!-- Thank You Message (shown after full payment - payment status is paid) -->
                             <div id="thankyou-section" <?php echo $show_thankyou ? '' : 'style="display:none"'; ?>>
-                                <div class="d-flex align-items-center mb-2">
+                                <div class="d-flex align-items-center mb-1">
                                     <i class="fas fa-heart text-danger me-2"></i>
                                     <span class="fw-bold small text-uppercase text-muted">Thank You &amp; Review Request</span>
                                 </div>
@@ -1552,20 +1528,16 @@ unset($_avail_svc);
                                     </form>
                                 </div>
                                 <?php if (!empty($review_url_wa)): ?>
-                                <div class="mt-2">
-                                    <small class="text-muted d-block mb-1"><i class="fas fa-link me-1"></i> Customer Review Link:</small>
+                                <div class="mt-1">
                                     <div class="input-group input-group-sm">
                                         <input type="text" class="form-control form-control-sm" id="review-link-input"
                                                value="<?php echo htmlspecialchars($review_url_wa, ENT_QUOTES, 'UTF-8'); ?>" readonly>
-                                        <button class="btn btn-outline-secondary btn-sm" type="button" id="copyReviewLinkBtn" title="Copy link">
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" id="copyReviewLinkBtn" title="Copy review link">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
                                 </div>
                                 <?php endif; ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-star text-warning me-1"></i> Sends thank you message with booking-specific review link
-                                </small>
                                 <?php if (empty($booking['phone'])): ?>
                                     <small class="text-danger d-block mt-1">
                                         <i class="fas fa-exclamation-circle me-1"></i> Phone not available
@@ -1574,7 +1546,7 @@ unset($_avail_svc);
                             </div>
                             <!-- Booking Confirmation (shown after advance payment received and payment status is partial) -->
                             <div id="booking-confirmation-section" <?php echo $show_confirmation ? '' : 'style="display:none"'; ?>>
-                                <div class="d-flex align-items-center mb-2">
+                                <div class="d-flex align-items-center mb-1">
                                     <i class="fas fa-check-circle text-success me-2"></i>
                                     <span class="fw-bold small text-uppercase text-muted">Booking Confirmation</span>
                                 </div>
@@ -1593,22 +1565,22 @@ unset($_avail_svc);
                                     </form>
                                 </div>
                                 <?php if (empty($booking['phone']) && empty($booking['email'])): ?>
-                                    <small class="text-muted d-block mt-2">
+                                    <small class="text-muted d-block mt-1">
                                         <i class="fas fa-info-circle me-1"></i> No contact info available
                                     </small>
                                 <?php elseif (empty($booking['phone'])): ?>
-                                    <small class="text-muted d-block mt-2">
+                                    <small class="text-muted d-block mt-1">
                                         <i class="fas fa-info-circle me-1"></i> Phone not available
                                     </small>
                                 <?php elseif (empty($booking['email'])): ?>
-                                    <small class="text-muted d-block mt-2">
+                                    <small class="text-muted d-block mt-1">
                                         <i class="fas fa-info-circle me-1"></i> Email not available
                                     </small>
                                 <?php endif; ?>
                             </div>
                             <!-- Send Payment Request (shown when payment status is pending or advance payment not yet received) -->
                             <div id="payment-request-section" <?php echo $show_payment_request ? '' : 'style="display:none"'; ?>>
-                                <div class="d-flex align-items-center mb-2">
+                                <div class="d-flex align-items-center mb-1">
                                     <i class="fas fa-paper-plane text-info me-2"></i>
                                     <span class="fw-bold small text-uppercase text-muted">Send Payment Request</span>
                                 </div>
@@ -1627,15 +1599,15 @@ unset($_avail_svc);
                                     </form>
                                 </div>
                                 <?php if (empty($booking['email']) && empty($booking['phone'])): ?>
-                                    <small class="text-muted d-block mt-2">
+                                    <small class="text-muted d-block mt-1">
                                         <i class="fas fa-info-circle me-1"></i> No contact info available
                                     </small>
                                 <?php elseif (empty($booking['email'])): ?>
-                                    <small class="text-muted d-block mt-2">
+                                    <small class="text-muted d-block mt-1">
                                         <i class="fas fa-info-circle me-1"></i> Email not available
                                     </small>
                                 <?php elseif (empty($booking['phone'])): ?>
-                                    <small class="text-muted d-block mt-2">
+                                    <small class="text-muted d-block mt-1">
                                         <i class="fas fa-info-circle me-1"></i> Phone not available
                                     </small>
                                 <?php endif; ?>
@@ -1646,7 +1618,7 @@ unset($_avail_svc);
                     <!-- Venue Provider Notification -->
                     <div class="col-md-6">
                         <div class="quick-check-item h-100">
-                            <div class="d-flex align-items-center mb-2">
+                            <div class="d-flex align-items-center mb-1">
                                 <i class="fas fa-building text-warning me-2"></i>
                                 <span class="fw-bold small text-uppercase text-muted">Notify Venue Provider</span>
                             </div>
@@ -1658,12 +1630,12 @@ unset($_avail_svc);
                                 </button>
                             </form>
                             <?php if (empty($booking['venue_contact_phone'])): ?>
-                                <small class="text-muted d-block mt-2">
+                                <small class="text-muted d-block mt-1">
                                     <i class="fas fa-info-circle me-1"></i>
                                     No venue contact phone. <a href="<?php echo BASE_URL; ?>/admin/venues/" class="alert-link">Update venue</a>.
                                 </small>
                             <?php else: ?>
-                                <small class="text-muted d-block mt-2">
+                                <small class="text-muted d-block mt-1">
                                     <i class="fas fa-phone me-1"></i>
                                     <?php echo htmlspecialchars($booking['venue_contact_phone']); ?>
                                 </small>
@@ -1676,7 +1648,7 @@ unset($_avail_svc);
                         <div class="quick-check-item">
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                 <div class="d-flex align-items-center">
-                                    <i class="fab fa-whatsapp text-success me-2" style="font-size:1.1rem;"></i>
+                                    <i class="fab fa-whatsapp text-success me-2"></i>
                                     <span class="fw-bold small text-uppercase text-muted">Send WhatsApp to All</span>
                                 </div>
                                 <button type="button"
@@ -1688,15 +1660,15 @@ unset($_avail_svc);
                                 </button>
                             </div>
                             <?php if (!$send_all_whatsapp_enabled): ?>
-                                <small class="text-danger d-block mt-2">
-                                    <i class="fas fa-lock me-1"></i> Available only after advance payment is received (booking confirmed).
+                                <small class="text-danger d-block mt-1">
+                                    <i class="fas fa-lock me-1"></i> Available only after advance payment is received.
                                 </small>
                             <?php elseif (empty($all_combo_wa_urls)): ?>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> No contact information available to send messages.
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-info-circle me-1"></i> No contact information available.
                                 </small>
                             <?php else: ?>
-                                <small class="text-muted d-block mt-2">
+                                <small class="text-muted d-block mt-1">
                                     <i class="fas fa-users me-1"></i> Sends to:
                                     <?php
                                     $_all_recipients = [];
@@ -3360,22 +3332,22 @@ unset($_avail_svc);
 
 /* Quick Check */
 .quick-check-item {
-    padding: 1rem 1.1rem;
+    padding: 0.5rem 0.65rem;
     background: #fff;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid #e2e8f0;
-    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+    transition: background .15s ease, border-color .15s ease;
 }
 .quick-check-item:hover {
     background: #f8fafc;
     border-color: #c7d3df;
-    box-shadow: 0 2px 6px rgba(0,0,0,.06);
 }
 /* Quick check section titles */
 .quick-check-item .fw-bold.small.text-uppercase.text-muted {
     font-size: .75rem;
     letter-spacing: .05em;
 }
+.quick-check-currency { font-size: .75rem; }
 
 /* Status Update Form */
 .status-update-form .form-select {
