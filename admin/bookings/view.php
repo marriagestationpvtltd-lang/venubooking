@@ -485,8 +485,8 @@ $venue_due              = $payment_summary['venue_due'];
 // Get vendor assignments for print invoice and display
 $vendor_assignments = getBookingVendorAssignments($booking_id);
 
-// Get available vendors for the assignment form (used in Quick Check panel)
-$all_vendors = getAvailableVendors($booking['event_date'], $booking_id);
+// Get all vendors for the assignment form (admin can assign any vendor regardless of date availability)
+$all_vendors = getAdminVendors();
 
 // Batch-fetch primary photo URLs for all relevant vendors (avoids N+1 queries)
 $_vendor_photo_ids = array_unique(array_merge(
