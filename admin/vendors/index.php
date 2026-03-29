@@ -89,8 +89,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['city_name'] ?? '—'); ?></td>
                             <td>
-                                <span class="badge bg-<?php echo $vendor['status'] == 'active' ? 'success' : 'secondary'; ?>">
-                                    <?php echo ucfirst($vendor['status']); ?>
+                                <span class="badge bg-<?php echo $vendor['status'] === 'active' ? 'success' : ($vendor['status'] === 'unapproved' ? 'warning text-dark' : 'secondary'); ?>">
+                                    <?php echo $vendor['status'] === 'unapproved' ? 'Unapproved' : ucfirst($vendor['status']); ?>
                                 </span>
                             </td>
                             <td>

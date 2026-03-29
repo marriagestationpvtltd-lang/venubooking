@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $address           = trim($_POST['address']           ?? '');
     $city_id           = intval($_POST['city_id']         ?? 0);
     $notes             = trim($_POST['notes']             ?? '');
-    $status            = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
+    $status            = in_array($_POST['status'] ?? '', ['active', 'inactive', 'unapproved']) ? $_POST['status'] : 'unapproved';
 
     if (empty($name)) {
         $error_message = 'Vendor name is required.';
@@ -171,8 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-4">
                             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="status" name="status">
-                                <option value="active"   <?php echo (($_POST['status'] ?? 'active') === 'active')   ? 'selected' : ''; ?>>Active</option>
-                                <option value="inactive" <?php echo (($_POST['status'] ?? '') === 'inactive') ? 'selected' : ''; ?>>Inactive</option>
+                                <option value="unapproved" <?php echo (($_POST['status'] ?? 'unapproved') === 'unapproved') ? 'selected' : ''; ?>>Unapproved</option>
+                                <option value="active"     <?php echo (($_POST['status'] ?? '') === 'active')   ? 'selected' : ''; ?>>Active</option>
+                                <option value="inactive"   <?php echo (($_POST['status'] ?? '') === 'inactive') ? 'selected' : ''; ?>>Inactive</option>
                             </select>
                         </div>
 

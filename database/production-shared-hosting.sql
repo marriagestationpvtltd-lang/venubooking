@@ -700,7 +700,7 @@ CREATE TABLE IF NOT EXISTS vendors (
     city_id INT NULL,
     photo VARCHAR(255) DEFAULT NULL,
     notes TEXT,
-    status ENUM('active', 'inactive') DEFAULT 'active',
+    status ENUM('active', 'inactive', 'unapproved') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL,
