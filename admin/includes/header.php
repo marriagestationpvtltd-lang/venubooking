@@ -132,6 +132,15 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
         .nav-link-sub {
             padding-left: 2.5rem;
         }
+
+        .nav-link .nav-chevron {
+            margin-left: auto;
+            transition: transform 0.25s;
+        }
+
+        .nav-link[aria-expanded="true"] .nav-chevron {
+            transform: rotate(180deg);
+        }
         
         .nav-section-label {
             font-size: .62rem;
@@ -233,16 +242,35 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             </a>
 
             <!-- ── Vendors ───────────────────────────────── -->
+            <?php
+            $self = $_SERVER['PHP_SELF'];
+            $vendor_list_active    = strpos($self, '/admin/vendors/') !== false && strpos($self, 'dues') === false;
+            $vendor_types_active   = strpos($self, 'vendor-types') !== false;
+            $vendor_dues_active    = basename($self) === 'dues.php' && strpos($self, '/vendors/') !== false;
+            $vendor_payable_active = strpos($self, 'vendor-payable') !== false;
+            $vendor_active = $vendor_list_active || $vendor_types_active || $vendor_dues_active || $vendor_payable_active;
+            ?>
             <div class="nav-section-label">Vendors</div>
-            <a href="<?php echo BASE_URL; ?>/admin/vendors/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendors') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-user-tie"></i> Vendors
+            <a href="#vendorSubmenu" class="nav-link <?php echo $vendor_active ? 'active' : ''; ?>"
+               data-bs-toggle="collapse"
+               aria-expanded="<?php echo $vendor_active ? 'true' : 'false'; ?>">
+                <i class="fas fa-user-tie"></i> Manage Vendors
+                <i class="fas fa-chevron-down nav-chevron"></i>
             </a>
-            <a href="<?php echo BASE_URL; ?>/admin/vendors/dues.php" class="nav-link nav-link-sub <?php echo basename($_SERVER['PHP_SELF']) === 'dues.php' && strpos($_SERVER['PHP_SELF'], 'vendors') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-money-bill-wave"></i> Vendor Dues
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/vendor-types/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendor-types') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-tags"></i> Vendor Types
-            </a>
+            <div class="collapse <?php echo $vendor_active ? 'show' : ''; ?>" id="vendorSubmenu">
+                <a href="<?php echo BASE_URL; ?>/admin/vendors/index.php" class="nav-link nav-link-sub <?php echo $vendor_list_active ? 'active' : ''; ?>">
+                    <i class="fas fa-list"></i> All Vendors
+                </a>
+                <a href="<?php echo BASE_URL; ?>/admin/vendor-types/index.php" class="nav-link nav-link-sub <?php echo $vendor_types_active ? 'active' : ''; ?>">
+                    <i class="fas fa-tags"></i> Vendor Types
+                </a>
+                <a href="<?php echo BASE_URL; ?>/admin/vendors/dues.php" class="nav-link nav-link-sub <?php echo $vendor_dues_active ? 'active' : ''; ?>">
+                    <i class="fas fa-money-bill-wave"></i> Vendor Dues
+                </a>
+                <a href="<?php echo BASE_URL; ?>/admin/vendor-payable/index.php" class="nav-link nav-link-sub <?php echo $vendor_payable_active ? 'active' : ''; ?>">
+                    <i class="fas fa-hand-holding-usd"></i> Vendor Payable
+                </a>
+            </div>
 
             <!-- ── Finance & Reports ─────────────────────── -->
             <div class="nav-section-label">Finance &amp; Reports</div>
@@ -251,9 +279,6 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/venue-payable/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'venue-payable') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-hand-holding-usd"></i> Venue Payable
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/vendor-payable/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendor-payable') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-money-bill-wave"></i> Vendor Payable
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'reports') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-chart-bar"></i> Reports
