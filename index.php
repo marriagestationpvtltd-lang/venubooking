@@ -1,6 +1,7 @@
 <?php
 $page_title = 'Book Your Event';
 $body_class = 'page-landing';
+require_once __DIR__ . '/config/database.php';
 $extra_css = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">'
            . '<link rel="stylesheet" href="' . BASE_URL . '/css/nepali-cultural.css">';
 require_once __DIR__ . '/includes/header.php';
