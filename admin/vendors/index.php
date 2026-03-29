@@ -3,7 +3,15 @@ $page_title = 'Manage Vendors';
 require_once __DIR__ . '/../includes/header.php';
 $db = getDB();
 
-$stmt = $db->query("SELECT v.*, c.name AS city_name FROM vendors v LEFT JOIN cities c ON v.city_id = c.id ORDER BY v.type, v.name");
+$stmt = $db->query("
+    SELECT v.*, c.name AS city_name,
+           COALESCE(SUM(CASE WHEN bva.status != 'cancelled' THEN bva.assigned_amount ELSE 0 END), 0) AS total_receivable
+    FROM vendors v
+    LEFT JOIN cities c ON v.city_id = c.id
+    LEFT JOIN booking_vendor_assignments bva ON bva.vendor_id = v.id
+    GROUP BY v.id
+    ORDER BY v.type, v.name
+");
 $vendors = $stmt->fetchAll();
 
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
@@ -44,6 +52,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <th>Phone</th>
                         <th>Email</th>
                         <th>City</th>
+                        <th>Receivable</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -89,11 +98,23 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['city_name'] ?? '—'); ?></td>
                             <td>
+                                <?php if ((float)$vendor['total_receivable'] > 0): ?>
+                                    <a href="view.php?id=<?php echo $vendor['id']; ?>" class="text-success fw-semibold text-decoration-none">
+                                        <?php echo formatCurrency($vendor['total_receivable']); ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
                                 <span class="badge bg-<?php echo $vendor['status'] == 'active' ? 'success' : 'secondary'; ?>">
                                     <?php echo ucfirst($vendor['status']); ?>
                                 </span>
                             </td>
                             <td>
+                                <a href="view.php?id=<?php echo $vendor['id']; ?>" class="btn btn-sm btn-info" title="View Profile" aria-label="View Profile">
+                                    <i class="fas fa-eye"></i>
+                                </a>
                                 <a href="edit.php?id=<?php echo $vendor['id']; ?>" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
@@ -110,7 +131,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <?php endforeach; ?>
                     <?php if (empty($vendors)): ?>
                         <tr>
-                            <td colspan="10" class="text-center text-muted py-4">
+                            <td colspan="11" class="text-center text-muted py-4">
                                 No vendors found. <a href="add.php">Add your first vendor</a>.
                             </td>
                         </tr>

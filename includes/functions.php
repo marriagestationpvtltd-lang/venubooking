@@ -4953,6 +4953,59 @@ function getVendorAssignmentStatusColor($status) {
 }
 
 /**
+ * Get all booking assignments for a specific system vendor (vendor_id IS NOT NULL).
+ * Returns each assignment enriched with booking details.
+ *
+ * @param int $vendor_id
+ * @return array
+ */
+function getVendorAssignments($vendor_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("
+            SELECT bva.*,
+                   b.booking_number, b.event_date, b.event_type,
+                   COALESCE(h.name, b.custom_hall_name)   AS hall_name,
+                   COALESCE(ve.name, b.custom_venue_name) AS venue_name,
+                   b.customer_name
+            FROM booking_vendor_assignments bva
+            JOIN bookings b ON bva.booking_id = b.id
+            LEFT JOIN halls h   ON b.hall_id = h.id
+            LEFT JOIN venues ve ON h.venue_id = ve.id
+            WHERE bva.vendor_id = ?
+            ORDER BY b.event_date DESC, bva.id DESC
+        ");
+        $stmt->execute([intval($vendor_id)]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting vendor assignments: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get the total amount a system vendor should receive from all non-cancelled assignments.
+ *
+ * @param int $vendor_id
+ * @return float
+ */
+function getVendorTotalReceivable($vendor_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("
+            SELECT COALESCE(SUM(assigned_amount), 0)
+            FROM booking_vendor_assignments
+            WHERE vendor_id = ? AND status != 'cancelled'
+        ");
+        $stmt->execute([intval($vendor_id)]);
+        return (float)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        error_log("Error getting vendor total receivable: " . $e->getMessage());
+        return 0.0;
+    }
+}
+
+/**
  * Build a WhatsApp notification URL for a vendor assignment.
  *
  * @param string $vendor_name
