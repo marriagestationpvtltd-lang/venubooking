@@ -15,6 +15,7 @@ $new_vendor_email_sent = false;
 $is_vendor_flash = false;
 $is_packages_flash = false;
 $is_admin_services_flash = false;
+$is_payout_flash = false;
 
 // Display flash message from previous redirect (e.g., after creating a booking)
 $_flash_section = $_SESSION['flash_section'] ?? '';
@@ -25,6 +26,8 @@ if (!empty($_SESSION['flash_success'])) {
         $is_packages_flash = true;
     } elseif ($_flash_section === 'admin_services') {
         $is_admin_services_flash = true;
+    } elseif ($_flash_section === 'payout') {
+        $is_payout_flash = true;
     } else {
         $is_vendor_flash = true;
     }
@@ -36,6 +39,8 @@ if (!empty($_SESSION['flash_error'])) {
         $is_packages_flash = true;
     } elseif ($_flash_section === 'admin_services') {
         $is_admin_services_flash = true;
+    } elseif ($_flash_section === 'payout') {
+        $is_payout_flash = true;
     } else {
         $is_vendor_flash = true;
     }
@@ -410,6 +415,41 @@ if (isset($_POST['action'])) {
         $_SESSION['flash_section'] = 'admin_services';
         header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
         exit;
+    } elseif ($action === 'record_vendor_payout') {
+        $assignment_id = intval($_POST['assignment_id'] ?? 0);
+        $amount_paid   = max(0.0, floatval($_POST['amount_paid'] ?? 0));
+
+        // Validate assignment belongs to this booking and cap at assigned_amount
+        $db_chk = getDB()->prepare("SELECT assigned_amount FROM booking_vendor_assignments WHERE id = ? AND booking_id = ?");
+        $db_chk->execute([$assignment_id, $booking_id]);
+        $va_row = $db_chk->fetch();
+        if ($va_row) {
+            $amount_paid = min($amount_paid, floatval($va_row['assigned_amount']));
+        }
+
+        if ($assignment_id > 0 && $va_row && recordVendorPayout($assignment_id, $amount_paid)) {
+            logActivity($current_user['id'], 'Recorded vendor payout', 'booking_vendor_assignments', $booking_id, "Assignment {$assignment_id}: paid " . number_format($amount_paid, 2));
+            $_SESSION['flash_success'] = 'Vendor payout amount updated.';
+        } else {
+            $_SESSION['flash_error'] = 'Failed to update vendor payout amount.';
+        }
+        $_SESSION['flash_section'] = 'payout';
+        header('Location: view.php?id=' . urlencode($booking_id) . '#section-payout');
+        exit;
+    } elseif ($action === 'record_venue_payment') {
+        $payment_sum_chk   = calculatePaymentSummary($booking_id);
+        $venue_payable_chk = $payment_sum_chk['venue_provider_payable'];
+        $venue_amount_paid = min(max(0.0, floatval($_POST['venue_amount_paid'] ?? 0)), $venue_payable_chk);
+
+        if (recordVenuePayment($booking_id, $venue_amount_paid)) {
+            logActivity($current_user['id'], 'Recorded venue payment', 'bookings', $booking_id, "Venue paid: " . number_format($venue_amount_paid, 2));
+            $_SESSION['flash_success'] = 'Venue payment amount updated.';
+        } else {
+            $_SESSION['flash_error'] = 'Failed to update venue payment amount.';
+        }
+        $_SESSION['flash_section'] = 'payout';
+        header('Location: view.php?id=' . urlencode($booking_id) . '#section-payout');
+        exit;
     } elseif ($action === 'send_all_vendor_emails') {
         $va_all      = getBookingVendorAssignments($booking_id);
         $sent_count  = 0;
@@ -441,14 +481,14 @@ if (isset($_POST['action'])) {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<?php if ($success_message && !$is_vendor_flash && !$is_packages_flash && !$is_admin_services_flash): ?>
+<?php if ($success_message && !$is_vendor_flash && !$is_packages_flash && !$is_admin_services_flash && !$is_payout_flash): ?>
     <div class="alert alert-success alert-dismissible fade show" id="flash-success-alert" role="alert">
         <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
-<?php if ($error_message && !$is_vendor_flash && !$is_packages_flash && !$is_admin_services_flash): ?>
+<?php if ($error_message && !$is_vendor_flash && !$is_packages_flash && !$is_admin_services_flash && !$is_payout_flash): ?>
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -469,10 +509,14 @@ $advance = [
 $advance_amount_received = $payment_summary['advance_amount_received'];
 
 // Calculate vendors total for display in the payment breakdown
-$vendors_total = $payment_summary['vendors_total'];
+$vendors_total      = $payment_summary['vendors_total'];
+$vendors_paid_total = $payment_summary['vendors_paid_total'];
+$vendors_due        = $payment_summary['vendors_due'];
 
 // Venue provider payable = hall price + menu total
 $venue_provider_payable = $payment_summary['venue_provider_payable'];
+$venue_amount_paid_out  = $payment_summary['venue_amount_paid'];
+$venue_due              = $payment_summary['venue_due'];
 
 // Get vendor assignments for print invoice and display
 $vendor_assignments = getBookingVendorAssignments($booking_id);
@@ -2388,6 +2432,16 @@ unset($_avail_svc);
                                             <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></span>
                                         <?php endif; ?>
                                         <span class="text-primary fw-bold" style="font-size:.75rem;"><?php echo formatCurrency($va['assigned_amount'] ?? 0); ?></span>
+                                        <?php
+                                        $va_paid = floatval($va['amount_paid'] ?? 0);
+                                        $va_due  = max(0.0, floatval($va['assigned_amount'] ?? 0) - $va_paid);
+                                        ?>
+                                        <?php if ($va_paid > 0): ?>
+                                        <span class="text-success" style="font-size:.68rem;" title="Paid"><i class="fas fa-check-circle me-1"></i><?php echo formatCurrency($va_paid); ?></span>
+                                        <?php endif; ?>
+                                        <?php if ($va_due > 0): ?>
+                                        <span class="text-danger fw-semibold" style="font-size:.68rem;" title="Due">Due: <?php echo formatCurrency($va_due); ?></span>
+                                        <?php endif; ?>
                                         <?php if (!empty($va['task_description'])): ?>
                                             <span class="text-muted" title="<?php echo htmlspecialchars($va['notes'] ?? ''); ?>"><?php echo htmlspecialchars($va['task_description']); ?></span>
                                         <?php endif; ?>
@@ -3183,8 +3237,20 @@ unset($_avail_svc);
                         </div>
                     </div>
 
-                    <!-- Venue Provider Payable -->
-                    <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
+                    <!-- Venue Provider Payable & Payout Tracking -->
+                    <?php if ($is_payout_flash && $success_message): ?>
+                    <div class="alert alert-success alert-dismissible fade show mt-3 mb-0" role="alert" style="font-size:.85rem;">
+                        <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($is_payout_flash && $error_message): ?>
+                    <div class="alert alert-danger alert-dismissible fade show mt-3 mb-0" role="alert" style="font-size:.85rem;">
+                        <i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <?php endif; ?>
+                    <div class="mt-3 rounded border overflow-hidden" id="section-payout" style="font-size:.875rem;">
                         <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-info bg-opacity-10 border-bottom">
                             <span class="fw-semibold text-info-emphasis">
                                 <i class="fas fa-building me-2"></i>Venue Provider Payable
@@ -3192,7 +3258,103 @@ unset($_avail_svc);
                             </span>
                             <strong class="text-info"><?php echo formatCurrency($venue_provider_payable); ?></strong>
                         </div>
+                        <?php if ($venue_provider_payable > 0): ?>
+                        <?php if ($venue_amount_paid_out > 0): ?>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-success bg-opacity-10 border-bottom">
+                            <span class="text-success small"><i class="fas fa-check-circle me-2"></i>Paid to Venue</span>
+                            <strong class="text-success"><?php echo formatCurrency($venue_amount_paid_out); ?></strong>
+                        </div>
+                        <?php endif; ?>
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 <?php echo $venue_due > 0 ? 'bg-warning bg-opacity-10' : 'bg-success bg-opacity-10'; ?> border-bottom">
+                            <span class="fw-semibold <?php echo $venue_due > 0 ? 'text-warning-emphasis' : 'text-success'; ?>">
+                                <i class="fas fa-<?php echo $venue_due > 0 ? 'clock' : 'check-double'; ?> me-2"></i>
+                                <?php echo $venue_due > 0 ? 'Venue Due' : 'Venue Fully Paid'; ?>
+                            </span>
+                            <strong class="<?php echo $venue_due > 0 ? 'text-danger' : 'text-success'; ?>">
+                                <?php echo $venue_due > 0 ? formatCurrency($venue_due) : 'Cleared'; ?>
+                            </strong>
+                        </div>
+                        <div class="px-3 py-2">
+                            <form method="POST" class="d-flex align-items-center gap-2 flex-wrap">
+                                <input type="hidden" name="action" value="record_venue_payment">
+                                <label class="small fw-semibold mb-0 flex-shrink-0">Record Paid:</label>
+                                <div class="input-group input-group-sm" style="max-width:160px;">
+                                    <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <input type="number" name="venue_amount_paid" class="form-control form-control-sm"
+                                           min="0" step="0.01" max="<?php echo htmlspecialchars(number_format($venue_provider_payable, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                           value="<?php echo htmlspecialchars(number_format($venue_amount_paid_out, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-info">
+                                    <i class="fas fa-save me-1"></i>Save
+                                </button>
+                            </form>
+                        </div>
+                        <?php endif; ?>
                     </div>
+
+                    <?php if (!empty($vendor_assignments)): ?>
+                    <!-- Vendor Payouts -->
+                    <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
+                        <div class="px-3 py-2 bg-purple bg-opacity-10 border-bottom" style="background:#f3eeff;">
+                            <span class="fw-semibold" style="color:#6f42c1;">
+                                <i class="fas fa-user-tie me-2"></i>Vendor Payouts
+                            </span>
+                            <?php if ($vendors_total > 0): ?>
+                            <span class="float-end fw-bold" style="color:#6f42c1;"><?php echo formatCurrency($vendors_total); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php foreach ($vendor_assignments as $pva):
+                            if (floatval($pva['assigned_amount'] ?? 0) <= 0 && floatval($pva['amount_paid'] ?? 0) <= 0) continue;
+                            $pva_assigned = floatval($pva['assigned_amount'] ?? 0);
+                            $pva_paid     = floatval($pva['amount_paid'] ?? 0);
+                            $pva_due      = max(0.0, $pva_assigned - $pva_paid);
+                            $pva_name     = htmlspecialchars($pva['vendor_name'] ?? '', ENT_QUOTES, 'UTF-8');
+                        ?>
+                        <div class="border-bottom px-3 py-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold small"><?php echo $pva_name; ?></span>
+                                <span class="small text-dark fw-bold"><?php echo formatCurrency($pva_assigned); ?></span>
+                            </div>
+                            <?php if (!empty($pva['task_description'])): ?>
+                            <div class="text-muted mb-1" style="font-size:.72rem;"><?php echo htmlspecialchars($pva['task_description'], ENT_QUOTES, 'UTF-8'); ?></div>
+                            <?php endif; ?>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small <?php echo $pva_paid > 0 ? 'text-success' : 'text-muted'; ?>">
+                                    <i class="fas fa-<?php echo $pva_paid > 0 ? 'check-circle' : 'circle'; ?> me-1"></i>
+                                    Paid: <strong><?php echo formatCurrency($pva_paid); ?></strong>
+                                </span>
+                                <span class="small <?php echo $pva_due > 0 ? 'text-danger fw-bold' : 'text-success'; ?>">
+                                    Due: <?php echo $pva_due > 0 ? formatCurrency($pva_due) : '<i class="fas fa-check me-1"></i>Cleared'; ?>
+                                </span>
+                            </div>
+                            <form method="POST" class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                <input type="hidden" name="action" value="record_vendor_payout">
+                                <input type="hidden" name="assignment_id" value="<?php echo (int)$pva['id']; ?>">
+                                <div class="input-group input-group-sm" style="max-width:160px;">
+                                    <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <input type="number" name="amount_paid" class="form-control form-control-sm"
+                                           min="0" step="0.01" max="<?php echo htmlspecialchars(number_format($pva_assigned, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                           value="<?php echo htmlspecialchars(number_format($pva_paid, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                           placeholder="Amount paid">
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-outline-primary py-0">
+                                    <i class="fas fa-save me-1"></i>Save
+                                </button>
+                            </form>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php if ($vendors_paid_total > 0 || $vendors_due > 0): ?>
+                        <div class="px-3 py-2 d-flex justify-content-between align-items-center" style="background:#fafafa;">
+                            <span class="small text-muted">Total Paid / Due</span>
+                            <span class="small">
+                                <strong class="text-success"><?php echo formatCurrency($vendors_paid_total); ?></strong>
+                                &nbsp;/&nbsp;
+                                <strong class="<?php echo $vendors_due > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo formatCurrency($vendors_due); ?></strong>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
 
                     <!-- Advance & Balance rows -->
                     <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
