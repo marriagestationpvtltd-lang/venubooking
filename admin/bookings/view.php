@@ -309,13 +309,14 @@ if (isset($_POST['action'])) {
         $is_manual            = !empty($_POST['is_manual_vendor']);
         $manual_vendor_name   = trim($_POST['manual_vendor_name'] ?? '');
         $manual_vendor_phone  = trim($_POST['manual_vendor_phone'] ?? '');
+        $manual_vendor_type   = trim($_POST['manual_vendor_type'] ?? '');
 
         if ($is_manual) {
             // Manual vendor: name is required; vendor_id is not used
             if ($manual_vendor_name === '') {
                 $_SESSION['flash_error'] = 'Please enter the vendor name.';
             } else {
-                $assignment_id = addVendorAssignment($booking_id, null, $task_description, $assigned_amount, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null, $manual_vendor_name, $manual_vendor_phone);
+                $assignment_id = addVendorAssignment($booking_id, null, $task_description, $assigned_amount, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null, $manual_vendor_name, $manual_vendor_phone, $manual_vendor_type);
                 if ($assignment_id) {
                     logActivity($current_user['id'], 'Added manual vendor assignment', 'booking_vendor_assignments', $booking_id, "Manual vendor \"{$manual_vendor_name}\": {$task_description}");
                     $_SESSION['flash_success'] = 'Manual vendor assigned successfully!';
@@ -332,7 +333,7 @@ if (isset($_POST['action'])) {
                                 unset($_fds, $_fdr);
                             } catch (Exception $e) { /* non-fatal */ }
                         }
-                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($manual_vendor_name, $manual_vendor_phone, $booking, '', $_flash_design_info);
+                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($manual_vendor_name, $manual_vendor_phone, $booking, $manual_vendor_type, $_flash_design_info);
                         unset($_flash_design_info);
                     }
                 } else {
@@ -2318,6 +2319,15 @@ unset($_avail_svc);
                                                                    placeholder="Phone number"
                                                                    style="width:130px;font-size:.78rem;">
                                                         </div>
+                                                        <div class="col-auto">
+                                                            <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Type</label>
+                                                            <select name="manual_vendor_type" class="form-select form-select-sm" style="font-size:.78rem;min-width:110px;">
+                                                                <option value="">&#x2014; Type &#x2014;</option>
+                                                                <?php foreach (getVendorTypes() as $vt): ?>
+                                                                <option value="<?php echo htmlspecialchars($vt['slug']); ?>"><?php echo htmlspecialchars($vt['label']); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-auto">
@@ -2364,6 +2374,9 @@ unset($_avail_svc);
                                         <span class="fw-semibold"><?php echo htmlspecialchars($va['vendor_name']); ?></span>
                                         <?php if ($va_is_manual): ?>
                                             <span class="badge bg-warning text-dark border" style="font-size:.62rem;" title="Manually entered vendor"><i class="fas fa-pencil-alt me-1"></i>Manual</span>
+                                            <?php if (!empty($va['manual_vendor_type'])): ?>
+                                            <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['manual_vendor_type'])); ?></span>
+                                            <?php endif; ?>
                                         <?php else: ?>
                                             <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></span>
                                         <?php endif; ?>
@@ -2385,7 +2398,7 @@ unset($_avail_svc);
                                                 </select>
                                             </form>
                                             <?php if (!empty($va['vendor_phone'])): ?>
-                                                <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($va['vendor_name'], $va['vendor_phone'], $booking, $va_is_manual ? '' : ($va['vendor_type'] ?? ''), $svc_design); ?>
+                                                <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($va['vendor_name'], $va['vendor_phone'], $booking, $va_is_manual ? ($va['manual_vendor_type'] ?? '') : ($va['vendor_type'] ?? ''), $svc_design); ?>
                                                 <?php if (!empty($va_wa_url)): ?>
                                                 <a href="<?php echo htmlspecialchars($va_wa_url); ?>" target="_blank" rel="noopener noreferrer"
                                                    class="btn btn-sm btn-outline-success py-0 px-1" title="Notify via WhatsApp" style="font-size:.7rem;">
