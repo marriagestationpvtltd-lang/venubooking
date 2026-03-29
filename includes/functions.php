@@ -4633,6 +4633,69 @@ function getVendor($vendor_id) {
 }
 
 /**
+ * Get the list of service cities for a vendor from vendor_service_cities.
+ *
+ * @param int $vendor_id
+ * @return array  Each element has keys: id, city_id, city_name
+ */
+function getVendorServiceCities($vendor_id) {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare(
+            "SELECT vsc.id, vsc.city_id, c.name AS city_name
+               FROM vendor_service_cities vsc
+               JOIN cities c ON c.id = vsc.city_id
+              WHERE vsc.vendor_id = ?
+           ORDER BY c.name"
+        );
+        $stmt->execute([intval($vendor_id)]);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("getVendorServiceCities() failed: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Replace all service-city associations for a vendor with the given city IDs.
+ * Passing an empty array clears all service cities.
+ *
+ * @param int   $vendor_id
+ * @param int[] $city_ids
+ * @return bool
+ */
+function setVendorServiceCities($vendor_id, array $city_ids) {
+    $db = getDB();
+    try {
+        $db->beginTransaction();
+
+        // Remove existing associations
+        $del = $db->prepare("DELETE FROM vendor_service_cities WHERE vendor_id = ?");
+        $del->execute([intval($vendor_id)]);
+
+        // Insert new associations (ignore duplicates just in case)
+        if (!empty($city_ids)) {
+            $ins = $db->prepare(
+                "INSERT IGNORE INTO vendor_service_cities (vendor_id, city_id) VALUES (?, ?)"
+            );
+            foreach ($city_ids as $city_id) {
+                $city_id = intval($city_id);
+                if ($city_id > 0) {
+                    $ins->execute([intval($vendor_id), $city_id]);
+                }
+            }
+        }
+
+        $db->commit();
+        return true;
+    } catch (Exception $e) {
+        $db->rollBack();
+        error_log("setVendorServiceCities() failed: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * Get all photos for a vendor from the vendor_photos table
  *
  * @param int $vendor_id

@@ -20,6 +20,7 @@ if (!$vendor) {
 $vendor_photos      = getVendorPhotos($vendor_id);
 $vendor_assignments = getVendorAssignments($vendor_id);
 $total_receivable   = getVendorTotalReceivable($vendor_id);
+$vendor_service_cities = getVendorServiceCities($vendor_id);
 
 // Group totals by status for summary; also compute overall paid/due
 $status_totals = [];
@@ -127,6 +128,14 @@ foreach ($vendor_assignments as $a) {
                     <?php if (!empty($vendor['city_name'])): ?>
                         <dt class="col-5 text-muted">City</dt>
                         <dd class="col-7"><?php echo htmlspecialchars($vendor['city_name']); ?></dd>
+                    <?php endif; ?>
+                    <?php if (!empty($vendor_service_cities)): ?>
+                        <dt class="col-5 text-muted">Service Cities</dt>
+                        <dd class="col-7">
+                            <?php foreach ($vendor_service_cities as $sc): ?>
+                                <span class="badge bg-secondary me-1 mb-1"><?php echo htmlspecialchars($sc['city_name']); ?></span>
+                            <?php endforeach; ?>
+                        </dd>
                     <?php endif; ?>
                     <?php if (!empty($vendor['address'])): ?>
                         <dt class="col-5 text-muted">Address</dt>
