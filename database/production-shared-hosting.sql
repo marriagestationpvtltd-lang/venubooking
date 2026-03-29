@@ -714,6 +714,21 @@ CREATE TABLE IF NOT EXISTS vendors (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
+-- TABLE: vendor_service_cities (many-to-many: vendors ↔ cities where they operate)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS vendor_service_cities (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    vendor_id INT NOT NULL,
+    city_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_vendor_city (vendor_id, city_id),
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE,
+    INDEX idx_vsc_vendor_id (vendor_id),
+    INDEX idx_vsc_city_id (city_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
 -- TABLE: vendor_photos (multiple photos per vendor)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS vendor_photos (

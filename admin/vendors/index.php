@@ -14,6 +14,29 @@ $stmt = $db->query("
 ");
 $vendors = $stmt->fetchAll();
 
+// Batch-load service cities for all vendors (avoids N+1 queries)
+$vendor_ids = array_column($vendors, 'id');
+$service_cities_map = [];
+if (!empty($vendor_ids)) {
+    try {
+        $placeholders = implode(',', array_fill(0, count($vendor_ids), '?'));
+        $sc_stmt = $db->prepare(
+            "SELECT vsc.vendor_id, c.name AS city_name
+               FROM vendor_service_cities vsc
+               JOIN cities c ON c.id = vsc.city_id
+              WHERE vsc.vendor_id IN ($placeholders)
+             ORDER BY c.name"
+        );
+        $sc_stmt->execute($vendor_ids);
+        foreach ($sc_stmt->fetchAll() as $row) {
+            $service_cities_map[$row['vendor_id']][] = $row['city_name'];
+        }
+    } catch (Exception $e) {
+        // Table may not exist on older installs; fall back to city_name from vendors query
+        $service_cities_map = [];
+    }
+}
+
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
 $error_message   = isset($_SESSION['error_message'])   ? $_SESSION['error_message']   : '';
 
@@ -51,7 +74,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <th>Type</th>
                         <th>Phone</th>
                         <th>Email</th>
-                        <th>City</th>
+                        <th>Service Cities</th>
                         <th>Receivable</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -96,7 +119,18 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <td><?php echo htmlspecialchars(getVendorTypeLabel($vendor['type'])); ?></td>
                             <td><?php echo htmlspecialchars($vendor['phone'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
-                            <td><?php echo htmlspecialchars($vendor['city_name'] ?? '—'); ?></td>
+                            <td>
+                                <?php
+                                $svc_cities = $service_cities_map[$vendor['id']] ?? [];
+                                if (!empty($svc_cities)):
+                                    echo htmlspecialchars(implode(', ', $svc_cities));
+                                elseif (!empty($vendor['city_name'])):
+                                    echo htmlspecialchars($vendor['city_name']);
+                                else:
+                                    echo '—';
+                                endif;
+                                ?>
+                            </td>
                             <td>
                                 <?php if ((float)$vendor['total_receivable'] > 0): ?>
                                     <a href="view.php?id=<?php echo $vendor['id']; ?>" class="text-success fw-semibold text-decoration-none">
