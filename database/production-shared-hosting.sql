@@ -2139,3 +2139,55 @@ DELIMITER ;
 
 CALL upgrade_user_reviews();
 DROP PROCEDURE IF EXISTS upgrade_user_reviews;
+
+-- ============================================================================
+-- UPGRADE: Fix vendor_service_cities unique key constraint
+-- Ensures the unique key is the composite (vendor_id, city_id) so that multiple
+-- vendors can independently share the same service city. Fixes the bug where
+-- saving one vendor's service cities could remove another vendor's city assignment.
+-- ============================================================================
+DROP PROCEDURE IF EXISTS upgrade_vendor_service_cities_constraint;
+DELIMITER $$
+CREATE PROCEDURE upgrade_vendor_service_cities_constraint()
+BEGIN
+    -- Only run if the vendor_service_cities table exists
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+         WHERE table_schema = DATABASE()
+           AND table_name = 'vendor_service_cities'
+    ) THEN
+        -- Drop any incorrect single-column unique key on city_id alone
+        IF EXISTS (
+            SELECT 1 FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME   = 'vendor_service_cities'
+               AND INDEX_NAME   = 'uq_city'
+               AND NON_UNIQUE   = 0
+        ) THEN
+            ALTER TABLE vendor_service_cities DROP INDEX uq_city;
+        END IF;
+
+        -- Remove duplicate (vendor_id, city_id) rows, keeping the one with the smallest id
+        DELETE t1 FROM vendor_service_cities t1
+        INNER JOIN vendor_service_cities t2
+           ON t1.vendor_id = t2.vendor_id
+          AND t1.city_id   = t2.city_id
+          AND t1.id > t2.id;
+
+        -- Add correct composite unique key if missing
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME   = 'vendor_service_cities'
+               AND INDEX_NAME   = 'uq_vendor_city'
+               AND NON_UNIQUE   = 0
+        ) THEN
+            ALTER TABLE vendor_service_cities
+                ADD UNIQUE KEY uq_vendor_city (vendor_id, city_id);
+        END IF;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL upgrade_vendor_service_cities_constraint();
+DROP PROCEDURE IF EXISTS upgrade_vendor_service_cities_constraint;
