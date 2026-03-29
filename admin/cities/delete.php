@@ -42,6 +42,33 @@ try {
         exit;
     }
 
+    // Check if any vendors have this city as a service city
+    try {
+        $vendor_check = $db->prepare("SELECT COUNT(*) as count FROM vendor_service_cities WHERE city_id = ?");
+        $vendor_check->execute([$city_id]);
+        $vendor_result = $vendor_check->fetch();
+        if ($vendor_result['count'] > 0) {
+            $_SESSION['error_message'] = 'Cannot delete city. It is assigned as a service city for ' . $vendor_result['count'] . ' vendor(s). Please remove it from those vendors first.';
+            header('Location: index.php');
+            exit;
+        }
+    } catch (Exception $e) {
+        // vendor_service_cities table may not exist on older installs; skip this check
+        if (strpos($e->getMessage(), 'vendor_service_cities') === false) {
+            error_log('cities/delete.php vendor_service_cities check failed: ' . $e->getMessage());
+        }
+    }
+
+    // Check if any vendors have this as their primary city
+    $vendor_primary_check = $db->prepare("SELECT COUNT(*) as count FROM vendors WHERE city_id = ?");
+    $vendor_primary_check->execute([$city_id]);
+    $vendor_primary_result = $vendor_primary_check->fetch();
+    if ($vendor_primary_result['count'] > 0) {
+        $_SESSION['error_message'] = 'Cannot delete city. It is the primary city for ' . $vendor_primary_result['count'] . ' vendor(s). Please reassign those vendors first.';
+        header('Location: index.php');
+        exit;
+    }
+
     $stmt = $db->prepare("DELETE FROM cities WHERE id = ?");
     if ($stmt->execute([$city_id])) {
         logActivity($current_user['id'], 'Deleted city', 'cities', $city_id, "Deleted city: {$city['name']}");
