@@ -133,6 +133,16 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             padding-left: 2.5rem;
         }
         
+        .nav-section-label {
+            font-size: .62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: rgba(255,255,255,.35);
+            padding: .75rem 1.5rem .2rem;
+            margin-top: .25rem;
+        }
+        
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -182,6 +192,24 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/dashboard.php" class="nav-link <?php echo $current_page == 'dashboard' ? 'active' : ''; ?>">
                 <i class="fas fa-home"></i> Dashboard
             </a>
+
+            <!-- ── Bookings & Events ─────────────────────── -->
+            <div class="nav-section-label">Bookings &amp; Events</div>
+            <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php" class="nav-link <?php echo (strpos($_SERVER['PHP_SELF'], 'bookings/') !== false && strpos($_SERVER['PHP_SELF'], 'calendar') === false) ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-check"></i> Bookings
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/bookings/calendar.php" class="nav-link nav-link-sub <?php echo strpos($_SERVER['PHP_SELF'], 'bookings/calendar') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-alt"></i> Booking Calendar
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/customers/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'customers') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-users"></i> Customers
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/planner/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/planner/') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-tasks"></i> Planner
+            </a>
+
+            <!-- ── Venue & Hall ──────────────────────────── -->
+            <div class="nav-section-label">Venue &amp; Hall</div>
             <a href="<?php echo BASE_URL; ?>/admin/venues/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'venues') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-building"></i> Venues
             </a>
@@ -194,21 +222,18 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/menus/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'menus') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-utensils"></i> Menus
             </a>
-            <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php" class="nav-link <?php echo (strpos($_SERVER['PHP_SELF'], 'bookings/') !== false && strpos($_SERVER['PHP_SELF'], 'calendar') === false) ? 'active' : ''; ?>">
-                <i class="fas fa-calendar-check"></i> Bookings
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/bookings/calendar.php" class="nav-link nav-link-sub <?php echo strpos($_SERVER['PHP_SELF'], 'bookings/calendar') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-calendar-alt"></i> Booking Calendar
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/customers/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'customers') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-users"></i> Customers
-            </a>
+
+            <!-- ── Services & Packages ───────────────────── -->
+            <div class="nav-section-label">Services &amp; Packages</div>
             <a href="<?php echo BASE_URL; ?>/admin/services/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'services') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-concierge-bell"></i> Services
             </a>
             <a href="<?php echo BASE_URL; ?>/admin/packages/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/packages/') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-box-open"></i> Packages
             </a>
+
+            <!-- ── Vendors ───────────────────────────────── -->
+            <div class="nav-section-label">Vendors</div>
             <a href="<?php echo BASE_URL; ?>/admin/vendors/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendors') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-user-tie"></i> Vendors
             </a>
@@ -218,21 +243,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/vendor-types/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendor-types') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-tags"></i> Vendor Types
             </a>
-            <a href="<?php echo BASE_URL; ?>/admin/planner/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/planner/') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-tasks"></i> Planner
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/images/') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-images"></i> Images
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/gallery-cards/') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-layer-group"></i> Gallery Cards
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/reviews/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/reviews/') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-star"></i> Reviews
-            </a>
-            <a href="<?php echo BASE_URL; ?>/admin/shared-folders/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'shared-folders') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-share-alt"></i> Photo Share
-            </a>
+
+            <!-- ── Finance & Reports ─────────────────────── -->
+            <div class="nav-section-label">Finance &amp; Reports</div>
             <a href="<?php echo BASE_URL; ?>/admin/payment-methods/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'payment-methods') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-credit-card"></i> Payment Methods
             </a>
@@ -245,6 +258,24 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'reports') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-chart-bar"></i> Reports
             </a>
+
+            <!-- ── Media & Content ───────────────────────── -->
+            <div class="nav-section-label">Media &amp; Content</div>
+            <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/images/') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-images"></i> Images
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/gallery-cards/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/gallery-cards/') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-layer-group"></i> Gallery Cards
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/reviews/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], '/admin/reviews/') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-star"></i> Reviews
+            </a>
+            <a href="<?php echo BASE_URL; ?>/admin/shared-folders/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'shared-folders') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-share-alt"></i> Photo Share
+            </a>
+
+            <!-- ── System ────────────────────────────────── -->
+            <div class="nav-section-label">System</div>
             <a href="<?php echo BASE_URL; ?>/admin/policy-pages/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'policy-pages') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-file-alt"></i> Policy Pages
             </a>
