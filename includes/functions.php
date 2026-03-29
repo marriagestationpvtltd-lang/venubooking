@@ -4761,14 +4761,18 @@ function getBookingVendorAssignments($booking_id) {
     $db = getDB();
     try {
         $stmt = $db->prepare("
-            SELECT bva.*, v.name as vendor_name, v.type as vendor_type, v.phone as vendor_phone,
+            SELECT bva.*,
+                   COALESCE(v.name,  bva.manual_vendor_name)  as vendor_name,
+                   COALESCE(v.type,  'manual')                 as vendor_type,
+                   COALESCE(v.phone, bva.manual_vendor_phone)  as vendor_phone,
                    v.email as vendor_email, v.short_description as vendor_description,
                    c.name as vendor_city
             FROM booking_vendor_assignments bva
-            INNER JOIN vendors v ON bva.vendor_id = v.id
+            LEFT JOIN vendors v ON bva.vendor_id = v.id
             LEFT JOIN cities c ON v.city_id = c.id
             WHERE bva.booking_id = ?
-            ORDER BY bva.booking_service_id IS NULL, bva.booking_service_id, v.type, v.name
+            ORDER BY bva.booking_service_id IS NULL, bva.booking_service_id,
+                     COALESCE(v.type, 'manual'), COALESCE(v.name, bva.manual_vendor_name)
         ");
         $stmt->execute([intval($booking_id)]);
         return $stmt->fetchAll();
@@ -4782,31 +4786,35 @@ function getBookingVendorAssignments($booking_id) {
  * Add a vendor assignment to a booking
  *
  * @param int $booking_id
- * @param int $vendor_id
+ * @param int|null $vendor_id  Pass 0 or null for a manual (non-system) vendor
  * @param string $task_description
  * @param float $assigned_amount
  * @param string $notes
  * @param int|null $booking_service_id Optional booking_services.id to link the assignment to a specific service
+ * @param string $manual_vendor_name  Free-text name when vendor_id is not set
+ * @param string $manual_vendor_phone Free-text phone when vendor_id is not set
  * @return int|false New assignment ID or false on failure
  */
-function addVendorAssignment($booking_id, $vendor_id, $task_description, $assigned_amount, $notes, $booking_service_id = null) {
+function addVendorAssignment($booking_id, $vendor_id, $task_description, $assigned_amount, $notes, $booking_service_id = null, $manual_vendor_name = '', $manual_vendor_phone = '') {
     $db = getDB();
     try {
         $booking_id = intval($booking_id);
-        $vendor_id = intval($vendor_id);
-        $task_description = trim($task_description);
-        $assigned_amount = max(0, floatval($assigned_amount));
-        $notes = trim($notes);
+        $vendor_id  = ($vendor_id !== null && intval($vendor_id) > 0) ? intval($vendor_id) : null;
+        $task_description   = trim($task_description);
+        $assigned_amount    = max(0, floatval($assigned_amount));
+        $notes              = trim($notes);
+        $manual_vendor_name  = trim($manual_vendor_name);
+        $manual_vendor_phone = trim($manual_vendor_phone);
         $booking_service_id = ($booking_service_id !== null && intval($booking_service_id) > 0)
             ? intval($booking_service_id)
             : null;
 
-        if ($vendor_id <= 0) {
-            throw new Exception("A valid vendor must be selected");
+        if ($vendor_id === null && $manual_vendor_name === '') {
+            throw new Exception("A valid vendor must be selected or a manual vendor name must be provided");
         }
 
         // Prevent duplicate: same vendor already assigned to the same booking service
-        if ($booking_service_id !== null) {
+        if ($booking_service_id !== null && $vendor_id !== null) {
             $chk = $db->prepare("SELECT COUNT(*) FROM booking_vendor_assignments WHERE booking_id = ? AND booking_service_id = ? AND vendor_id = ?");
             $chk->execute([$booking_id, $booking_service_id, $vendor_id]);
             if ((int)$chk->fetchColumn() > 0) {
@@ -4815,10 +4823,17 @@ function addVendorAssignment($booking_id, $vendor_id, $task_description, $assign
         }
 
         $stmt = $db->prepare("
-            INSERT INTO booking_vendor_assignments (booking_id, booking_service_id, vendor_id, task_description, assigned_amount, notes, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'assigned')
+            INSERT INTO booking_vendor_assignments
+                (booking_id, booking_service_id, vendor_id, manual_vendor_name, manual_vendor_phone,
+                 task_description, assigned_amount, notes, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'assigned')
         ");
-        $stmt->execute([$booking_id, $booking_service_id, $vendor_id, $task_description, $assigned_amount, $notes]);
+        $stmt->execute([
+            $booking_id, $booking_service_id, $vendor_id,
+            $vendor_id === null ? $manual_vendor_name  : null,
+            $vendor_id === null ? $manual_vendor_phone : null,
+            $task_description, $assigned_amount, $notes
+        ]);
         $new_id = (int)$db->lastInsertId();
         recalculateBookingTotals($booking_id);
         return $new_id;
