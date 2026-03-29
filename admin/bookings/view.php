@@ -1160,6 +1160,46 @@ if (!empty($booking['venue_address'])) {
 if (!empty($booking['map_link'])) {
     $whatsapp_text .= "🗺️ " . strip_tags($booking['map_link']) . "\n";
 }
+if (!empty($booking['menus'])) {
+    $whatsapp_text .= "\n🍽️ *Menus:*\n";
+    foreach ($booking['menus'] as $_wa_menu) {
+        $_wa_menu_name = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_wa_menu['menu_name']));
+        $whatsapp_text .= "• *" . $_wa_menu_name . "*\n";
+        if (!empty($_wa_menu['items'])) {
+            $_wa_by_cat = [];
+            foreach ($_wa_menu['items'] as $_wa_item) {
+                $_wa_cat = !empty($_wa_item['category']) ? strip_tags($_wa_item['category']) : '';
+                $_wa_by_cat[$_wa_cat][] = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_wa_item['item_name']));
+            }
+            foreach ($_wa_by_cat as $_wa_cat => $_wa_cat_items) {
+                if (!empty($_wa_cat)) {
+                    $_wa_cat_esc = str_replace(['*', '_'], ['\*', '\_'], $_wa_cat);
+                    $whatsapp_text .= "   _" . $_wa_cat_esc . ":_ " . implode(', ', $_wa_cat_items) . "\n";
+                } else {
+                    foreach ($_wa_cat_items as $_wa_item_name) {
+                        $whatsapp_text .= "   - " . $_wa_item_name . "\n";
+                    }
+                }
+            }
+        }
+        $_wa_sel = $booking['menu_item_selections'][$_wa_menu['menu_id']] ?? null;
+        if (!empty($_wa_sel)) {
+            $whatsapp_text .= "   📋 _Selected Items:_\n";
+            foreach ($_wa_sel['sections'] as $_wa_sec => $_wa_grps) {
+                $_wa_sec_esc = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_wa_sec));
+                $whatsapp_text .= "   _" . $_wa_sec_esc . "_\n";
+                foreach ($_wa_grps as $_wa_grp => $_wa_its) {
+                    $_wa_grp_esc = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_wa_grp));
+                    $_wa_names = array_map(function($i){ return str_replace(['*', '_'], ['\*', '\_'], strip_tags($i['item_name'])); }, $_wa_its);
+                    $whatsapp_text .= "   • " . $_wa_grp_esc . ": " . implode(', ', $_wa_names) . "\n";
+                }
+            }
+        }
+    }
+}
+if (!empty($booking['menu_special_instructions'])) {
+    $whatsapp_text .= "\n📝 *Menu Instructions:*\n" . strip_tags($booking['menu_special_instructions']) . "\n";
+}
 $whatsapp_text .= "\n💰 Total Amount: *" . formatCurrency($booking['grand_total']) . "*\n";
 $whatsapp_text .= "💵 Advance (" . $advance['percentage'] . "%): *" . formatCurrency($advance['amount']) . "*\n";
 
@@ -1209,14 +1249,37 @@ if (!empty($booking['map_link'])) {
 if (!empty($booking['menus'])) {
     $confirmation_text .= "\n🍽️ *Menus:*\n";
     foreach ($booking['menus'] as $_conf_menu) {
-        $confirmation_text .= "• " . strip_tags($_conf_menu['menu_name']) . "\n";
+        $_conf_menu_name = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_conf_menu['menu_name']));
+        $confirmation_text .= "• *" . $_conf_menu_name . "*\n";
+        // Standard menu items grouped by category
+        if (!empty($_conf_menu['items'])) {
+            $_conf_by_cat = [];
+            foreach ($_conf_menu['items'] as $_conf_item) {
+                $_conf_cat = !empty($_conf_item['category']) ? strip_tags($_conf_item['category']) : '';
+                $_conf_by_cat[$_conf_cat][] = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_conf_item['item_name']));
+            }
+            foreach ($_conf_by_cat as $_conf_cat => $_conf_cat_items) {
+                if (!empty($_conf_cat)) {
+                    $_conf_cat_esc = str_replace(['*', '_'], ['\*', '\_'], $_conf_cat);
+                    $confirmation_text .= "   _" . $_conf_cat_esc . ":_ " . implode(', ', $_conf_cat_items) . "\n";
+                } else {
+                    foreach ($_conf_cat_items as $_conf_item_name) {
+                        $confirmation_text .= "   - " . $_conf_item_name . "\n";
+                    }
+                }
+            }
+        }
         // Custom selections for this menu
         $_conf_sel = $booking['menu_item_selections'][$_conf_menu['menu_id']] ?? null;
         if (!empty($_conf_sel)) {
+            $confirmation_text .= "   📋 _Selected Items:_\n";
             foreach ($_conf_sel['sections'] as $_csec => $_cgrps) {
+                $_csec_esc = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_csec));
+                $confirmation_text .= "   _" . $_csec_esc . "_\n";
                 foreach ($_cgrps as $_cgrp => $_cits) {
-                    $_cnames = array_map(function($i){ return strip_tags($i['item_name']); }, $_cits);
-                    $confirmation_text .= "   _" . strip_tags($_cgrp) . ":_ " . implode(', ', $_cnames) . "\n";
+                    $_cgrp_esc = str_replace(['*', '_'], ['\*', '\_'], strip_tags($_cgrp));
+                    $_cnames = array_map(function($i){ return str_replace(['*', '_'], ['\*', '\_'], strip_tags($i['item_name'])); }, $_cits);
+                    $confirmation_text .= "   • " . $_cgrp_esc . ": " . implode(', ', $_cnames) . "\n";
                 }
             }
         }
