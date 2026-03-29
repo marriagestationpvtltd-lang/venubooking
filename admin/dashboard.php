@@ -67,6 +67,24 @@ $stmt = $db->query("SELECT COALESCE(SUM(GREATEST(hall_price + menu_total - COALE
                     FROM bookings WHERE booking_status != 'cancelled'");
 $stats['total_venue_payable'] = (float)$stmt->fetch()['total'];
 
+// Total venue cost (gross, before any deduction of payments already made)
+$stmt = $db->query("SELECT COALESCE(SUM(hall_price + menu_total), 0) as total
+                    FROM bookings WHERE booking_status != 'cancelled'");
+$stats['total_venue_cost'] = (float)$stmt->fetch()['total'];
+
+// Total vendor payable (sum of all vendor assignment amounts for non-cancelled bookings)
+$stmt = $db->query("SELECT COALESCE(SUM(bva.assigned_amount), 0) as total
+                    FROM booking_vendor_assignments bva
+                    INNER JOIN bookings b ON bva.booking_id = b.id
+                    WHERE b.booking_status != 'cancelled'");
+$stats['total_vendor_payable'] = (float)$stmt->fetch()['total'];
+
+// Total payout = venue cost + vendor assignments
+$stats['total_payout'] = $stats['total_venue_cost'] + $stats['total_vendor_payable'];
+
+// Net profit = total revenue - total payout
+$stats['total_profit'] = $stats['total_revenue'] - $stats['total_payout'];
+
 // Total venues & halls
 $stmt = $db->query("SELECT COUNT(*) as count FROM venues WHERE status = 'active'");
 $stats['total_venues'] = (int)$stmt->fetch()['count'];
@@ -722,23 +740,58 @@ function dashBadge($status) {
 </div>
 
 <!-- ════════════════════════════════════════════════════════════
-     VENUE PROVIDER PAYABLE SUMMARY
+     FINANCIAL SUMMARY — Revenue / Payout / Profit
 ════════════════════════════════════════════════════════════ -->
-<div class="db-section-title">Venue Provider Payable</div>
+<div class="db-section-title">Financial Summary</div>
 <div class="row g-3 mb-4">
-    <!-- Outstanding Venue Provider Payable (still due) -->
-    <div class="col-xl-6 col-md-6">
+    <!-- Total Payout -->
+    <div class="col-xl-4 col-md-6">
+        <div class="db-metric-card card-red">
+            <div class="d-flex align-items-start justify-content-between">
+                <div class="db-metric-icon icon-red"><i class="fas fa-arrow-up-from-bracket"></i></div>
+                <div class="text-end">
+                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['total_payout']); ?></p>
+                    <p class="db-metric-label">Total Payout</p>
+                </div>
+            </div>
+            <div class="db-metric-sub trend-flat">
+                <i class="fas fa-building me-1"></i><?php echo formatCurrency($stats['total_venue_cost']); ?> venues &nbsp;·&nbsp;
+                <i class="fas fa-handshake ms-1 me-1"></i><?php echo formatCurrency($stats['total_vendor_payable']); ?> vendors
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Profit -->
+    <div class="col-xl-4 col-md-6">
+        <?php $profit_positive = $stats['total_profit'] >= 0; ?>
+        <div class="db-metric-card <?php echo $profit_positive ? 'card-green' : 'card-red'; ?>">
+            <div class="d-flex align-items-start justify-content-between">
+                <div class="db-metric-icon <?php echo $profit_positive ? 'icon-green' : 'icon-red'; ?>"><i class="fas fa-sack-dollar"></i></div>
+                <div class="text-end">
+                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency(abs($stats['total_profit'])); ?></p>
+                    <p class="db-metric-label">Net Profit</p>
+                </div>
+            </div>
+            <div class="db-metric-sub <?php echo $profit_positive ? 'trend-up' : 'trend-down'; ?>">
+                <i class="fas fa-arrow-<?php echo $profit_positive ? 'up' : 'down'; ?>-right"></i>
+                <?php echo $profit_positive ? 'Revenue exceeds payout' : 'Payout exceeds revenue'; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding Venue Provider Due -->
+    <div class="col-xl-4 col-md-6">
         <div class="db-metric-card card-teal">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-teal"><i class="fas fa-building"></i></div>
                 <div class="text-end">
                     <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['total_venue_payable']); ?></p>
-                    <p class="db-metric-label">Venue Provider Payable (Due)</p>
+                    <p class="db-metric-label">Venue Provider Due</p>
                 </div>
             </div>
             <div class="db-metric-sub trend-flat">
                 <i class="fas fa-info-circle"></i>
-                Total outstanding amount still owed to venues
+                Outstanding amount still owed to venues
             </div>
         </div>
     </div>
