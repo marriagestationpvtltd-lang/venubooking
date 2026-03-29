@@ -73,11 +73,16 @@ $stmt = $db->query("SELECT COALESCE(SUM(hall_price + menu_total), 0) as total
 $stats['total_venue_cost'] = (float)$stmt->fetch()['total'];
 
 // Total vendor payable (sum of all vendor assignment amounts for non-cancelled bookings)
-$stmt = $db->query("SELECT COALESCE(SUM(bva.assigned_amount), 0) as total
+$stmt = $db->query("SELECT
+                        COALESCE(SUM(bva.assigned_amount), 0) as total_assigned,
+                        COALESCE(SUM(bva.amount_paid), 0)     as total_paid
                     FROM booking_vendor_assignments bva
                     INNER JOIN bookings b ON bva.booking_id = b.id
-                    WHERE b.booking_status != 'cancelled'");
-$stats['total_vendor_payable'] = (float)$stmt->fetch()['total'];
+                    WHERE bva.status != 'cancelled' AND b.booking_status != 'cancelled'");
+$vendor_summary = $stmt->fetch();
+$stats['total_vendor_payable'] = (float)$vendor_summary['total_assigned'];
+$stats['total_vendor_paid']    = (float)$vendor_summary['total_paid'];
+$stats['total_vendor_due']     = max(0.0, $stats['total_vendor_payable'] - $stats['total_vendor_paid']);
 
 // Total payout = venue cost + vendor assignments
 $stats['total_payout'] = $stats['total_venue_cost'] + $stats['total_vendor_payable'];
@@ -757,7 +762,7 @@ function dashBadge($status) {
 <div class="db-section-title">Financial Summary</div>
 <div class="row g-3 mb-4">
     <!-- Total Payout -->
-    <div class="col-xl-4 col-md-6">
+    <div class="col-xl-3 col-md-6">
         <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card card-red">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-red"><i class="fas fa-arrow-up-from-bracket"></i></div>
@@ -774,7 +779,7 @@ function dashBadge($status) {
     </div>
 
     <!-- Net Profit -->
-    <div class="col-xl-4 col-md-6">
+    <div class="col-xl-3 col-md-6">
         <?php $profit_positive = $stats['total_profit'] >= 0; ?>
         <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card <?php echo $profit_positive ? 'card-green' : 'card-red'; ?>">
             <div class="d-flex align-items-start justify-content-between">
@@ -792,8 +797,8 @@ function dashBadge($status) {
     </div>
 
     <!-- Outstanding Venue Provider Due -->
-    <div class="col-xl-4 col-md-6">
-        <a href="<?php echo BASE_URL; ?>/admin/venues/index.php" class="db-metric-card card-teal">
+    <div class="col-xl-3 col-md-6">
+        <a href="<?php echo BASE_URL; ?>/admin/venue-payable/index.php" class="db-metric-card card-teal">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-teal"><i class="fas fa-building"></i></div>
                 <div class="text-end">
@@ -804,6 +809,23 @@ function dashBadge($status) {
             <div class="db-metric-sub trend-flat">
                 <i class="fas fa-info-circle"></i>
                 Outstanding amount still owed to venues
+            </div>
+        </a>
+    </div>
+
+    <!-- Outstanding Service Provider Due -->
+    <div class="col-xl-3 col-md-6">
+        <a href="<?php echo BASE_URL; ?>/admin/vendor-payable/index.php" class="db-metric-card card-purple">
+            <div class="d-flex align-items-start justify-content-between">
+                <div class="db-metric-icon icon-purple"><i class="fas fa-handshake"></i></div>
+                <div class="text-end">
+                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['total_vendor_due']); ?></p>
+                    <p class="db-metric-label">Service Provider Due</p>
+                </div>
+            </div>
+            <div class="db-metric-sub trend-flat">
+                <i class="fas fa-coins me-1"></i><?php echo formatCurrency($stats['total_vendor_payable']); ?> assigned &nbsp;·&nbsp;
+                <i class="fas fa-check-circle ms-1 me-1"></i><?php echo formatCurrency($stats['total_vendor_paid']); ?> paid
             </div>
         </a>
     </div>
