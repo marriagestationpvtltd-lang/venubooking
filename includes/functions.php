@@ -4613,6 +4613,31 @@ function getVendors($type = null) {
 }
 
 /**
+ * Get all vendors (active and unapproved) for admin selection.
+ * Returns every vendor regardless of date or booking availability,
+ * so admins can always see and assign any vendor.
+ *
+ * @return array
+ */
+function getAdminVendors() {
+    $db = getDB();
+    try {
+        $stmt = $db->prepare("
+            SELECT v.*, c.name AS city_name
+            FROM vendors v
+            LEFT JOIN cities c ON v.city_id = c.id
+            WHERE v.status IN ('active', 'unapproved')
+            ORDER BY v.status != 'active', v.type, v.name
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Error getting admin vendors: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * Get active vendors not yet assigned to any booking on the given event date
  *
  * @param string $event_date  Date string (YYYY-MM-DD)
