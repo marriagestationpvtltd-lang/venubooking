@@ -54,6 +54,9 @@ try {
         }
     } catch (Exception $e) {
         // vendor_service_cities table may not exist on older installs; skip this check
+        if (strpos($e->getMessage(), 'vendor_service_cities') === false) {
+            error_log('cities/delete.php vendor_service_cities check failed: ' . $e->getMessage());
+        }
     }
 
     // Check if any vendors have this as their primary city
