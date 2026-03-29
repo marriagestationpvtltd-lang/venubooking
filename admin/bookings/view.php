@@ -316,32 +316,49 @@ if (isset($_POST['action'])) {
         $manual_vendor_type   = trim($_POST['manual_vendor_type'] ?? '');
 
         if ($is_manual) {
-            // Manual vendor: name is required; vendor_id is not used
+            // Manual vendor: create an unapproved vendor record, then assign it
             if ($manual_vendor_name === '') {
                 $_SESSION['flash_error'] = 'Please enter the vendor name.';
             } else {
-                $assignment_id = addVendorAssignment($booking_id, null, $task_description, 0 /* amount handled separately */, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null, $manual_vendor_name, $manual_vendor_phone, $manual_vendor_type);
-                if ($assignment_id) {
-                    logActivity($current_user['id'], 'Added manual vendor assignment', 'booking_vendor_assignments', $booking_id, "Manual vendor \"{$manual_vendor_name}\": {$task_description}");
-                    $_SESSION['flash_success'] = 'Manual vendor assigned successfully!';
-                    if (!empty($manual_vendor_phone)) {
-                        $_flash_design_info = null;
-                        if ($booking_service_id > 0) {
-                            try {
-                                $_fds = getDB()->prepare("SELECT sd.name, sd.photo FROM booking_services bs JOIN service_designs sd ON bs.design_id = sd.id WHERE bs.id = ? AND bs.design_id > 0");
-                                $_fds->execute([$booking_service_id]);
-                                $_fdr = $_fds->fetch();
-                                if ($_fdr && !empty($_fdr['photo'])) {
-                                    $_flash_design_info = ['name' => $_fdr['name'] ?? '', 'photo' => rtrim(UPLOAD_URL, '/') . '/' . $_fdr['photo']];
+                try {
+                    $db_nv   = getDB();
+                    $nv_stmt = $db_nv->prepare("INSERT INTO vendors (name, phone, type, status) VALUES (?, ?, ?, 'unapproved')");
+                    $nv_stmt->execute([
+                        $manual_vendor_name,
+                        $manual_vendor_phone !== '' ? $manual_vendor_phone : null,
+                        $manual_vendor_type !== '' ? $manual_vendor_type : 'other',
+                    ]);
+                    $new_vendor_id = (int)$db_nv->lastInsertId();
+                    if ($new_vendor_id > 0) {
+                        $assignment_id = addVendorAssignment($booking_id, $new_vendor_id, $task_description, 0 /* amount handled separately */, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null);
+                        if ($assignment_id) {
+                            logActivity($current_user['id'], 'Created unapproved vendor and assigned', 'booking_vendor_assignments', $booking_id, "Created unapproved vendor \"{$manual_vendor_name}\": {$task_description}");
+                            $_SESSION['flash_success'] = 'New vendor created (unapproved) and assigned successfully!';
+                            if (!empty($manual_vendor_phone)) {
+                                $_flash_design_info = null;
+                                if ($booking_service_id > 0) {
+                                    try {
+                                        $_fds = getDB()->prepare("SELECT sd.name, sd.photo FROM booking_services bs JOIN service_designs sd ON bs.design_id = sd.id WHERE bs.id = ? AND bs.design_id > 0");
+                                        $_fds->execute([$booking_service_id]);
+                                        $_fdr = $_fds->fetch();
+                                        if ($_fdr && !empty($_fdr['photo'])) {
+                                            $_flash_design_info = ['name' => $_fdr['name'] ?? '', 'photo' => rtrim(UPLOAD_URL, '/') . '/' . $_fdr['photo']];
+                                        }
+                                        unset($_fds, $_fdr);
+                                    } catch (Exception $e) { /* non-fatal */ }
                                 }
-                                unset($_fds, $_fdr);
-                            } catch (Exception $e) { /* non-fatal */ }
+                                $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($manual_vendor_name, $manual_vendor_phone, $booking, $manual_vendor_type, $_flash_design_info);
+                                unset($_flash_design_info);
+                            }
+                        } else {
+                            $_SESSION['flash_error'] = 'Vendor created but assignment failed. Please try again.';
                         }
-                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($manual_vendor_name, $manual_vendor_phone, $booking, $manual_vendor_type, $_flash_design_info);
-                        unset($_flash_design_info);
+                    } else {
+                        $_SESSION['flash_error'] = 'Failed to create vendor. Please try again.';
                     }
-                } else {
-                    $_SESSION['flash_error'] = 'Failed to add vendor assignment. Please try again.';
+                } catch (Exception $e) {
+                    error_log("Error creating unapproved vendor: " . $e->getMessage());
+                    $_SESSION['flash_error'] = 'An error occurred while creating the vendor. Please try again.';
                 }
             }
         } elseif ($vendor_id_input <= 0) {
@@ -2320,13 +2337,15 @@ unset($_avail_svc);
                                     </div>
                                 </div>
                                 <!-- Inline vendor assignment form (collapsed, toggled by + button) -->
-                                <div class="collapse" id="inline-va-<?php echo $svc_id; ?>">
+                                <div class="collapse" id="inline-va-<?php echo $svc_id; ?>"
+                                     data-vendor-type-slug="<?php echo htmlspecialchars($svc_vt_slug); ?>">
                                     <div class="px-2 py-2 border-top" style="background:#eef4ff;">
                                         <form method="POST" action="" class="inline-va-form">
                                             <input type="hidden" name="action" value="add_vendor_assignment">
                                             <input type="hidden" name="booking_service_id" value="<?php echo $svc_id; ?>">
                                             <input type="hidden" name="task_description" value="<?php echo htmlspecialchars($service['service_name']); ?>">
                                             <input type="hidden" name="is_manual_vendor" value="<?php echo empty($vendor_types_available) ? '1' : '0'; ?>" class="inline-va-is-manual-flag">
+                                            <input type="hidden" name="manual_vendor_type" value="<?php echo htmlspecialchars($svc_vt_slug); ?>" class="inline-va-manual-type-field">
                                             <!-- Mode toggle -->
                                             <div class="mb-2 d-flex align-items-center gap-2" style="font-size:.75rem;">
                                                 <?php if (!empty($vendor_types_available)): ?>
@@ -2369,15 +2388,6 @@ unset($_avail_svc);
                                                             <input type="text" name="manual_vendor_phone" class="form-control form-control-sm"
                                                                    placeholder="Phone number"
                                                                    style="width:130px;font-size:.78rem;">
-                                                        </div>
-                                                        <div class="col-auto">
-                                                            <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Type</label>
-                                                            <select name="manual_vendor_type" class="form-select form-select-sm" style="font-size:.78rem;min-width:110px;">
-                                                                <option value="">&#x2014; Type &#x2014;</option>
-                                                                <?php foreach (getVendorTypes() as $vt): ?>
-                                                                <option value="<?php echo htmlspecialchars($vt['slug']); ?>"><?php echo htmlspecialchars($vt['label']); ?></option>
-                                                                <?php endforeach; ?>
-                                                            </select>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2424,6 +2434,9 @@ unset($_avail_svc);
                                             <?php endif; ?>
                                         <?php else: ?>
                                             <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></span>
+                                            <?php if (($va['vendor_status'] ?? '') === 'unapproved'): ?>
+                                            <span class="badge bg-warning text-dark border" style="font-size:.62rem;" title="Unapproved vendor — not visible on public listing"><i class="fas fa-exclamation-triangle me-1"></i>Unapproved</span>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                         <?php if (!empty($va['task_description'])): ?>
                                             <span class="text-muted" title="<?php echo htmlspecialchars($va['notes'] ?? ''); ?>"><?php echo htmlspecialchars($va['task_description']); ?></span>
@@ -4480,7 +4493,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 o.value = v.id;
                 var label = v.name + (v.city ? ' (' + v.city + ')' : '');
                 if (v.is_unapproved) {
-                    label += ' \u2014 \u26a0\ufe0f Unverified Vendor';
+                    label += ' \u2014 Unapproved Vendor';
                     o.style.color = '#856404';
                 }
                 o.textContent = label;
@@ -4498,10 +4511,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     var cityHtml = v.city ? '<div class="small text-muted">' + esc(v.city) + '</div>' : '';
                     var descHtml = v.description ? '<div class="small text-muted text-truncate">' + esc(v.description) + '</div>' : '';
                     var unverifiedBadge = v.is_unapproved
-                        ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">\u26a0\ufe0f Unverified</span>'
+                        ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Unapproved Vendor</span>'
                         : '';
                     listWrap.insertAdjacentHTML('beforeend',
-                        '<button type="button" class="inline-va-vendor-photo-item' + (v.is_unapproved ? ' vendor-unverified' : '') + '" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
+                        '<button type="button" class="inline-va-vendor-photo-item' + (v.is_unapproved ? ' vendor-unapproved' : '') + '" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
                             photoHtml +
                             '<span class="min-width-0 flex-grow-1">' +
                                 '<span class="d-block fw-semibold text-truncate">' + esc(v.name) + unverifiedBadge + '</span>' +
@@ -4537,9 +4550,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // When a collapse relevant to inline vendor assignment opens, populate its vendor select
     document.addEventListener('show.bs.collapse', function(e) {
         if (!e.target || !e.target.id || e.target.id.indexOf('inline-va-') !== 0) return;
+        // Auto-set the hidden manual vendor type from the collapse container's data attribute
+        var collapseTypeSlug = e.target.dataset.vendorTypeSlug || '';
+        var hiddenTypeField = e.target.querySelector('input.inline-va-manual-type-field');
+        if (hiddenTypeField && collapseTypeSlug) {
+            hiddenTypeField.value = collapseTypeSlug;
+        }
         var selectEl = e.target.querySelector('.inline-va-vendor-select');
         if (!selectEl) return;
-        var typeSlug = selectEl.dataset.vendorTypeSlug || '';
+        var typeSlug = selectEl.dataset.vendorTypeSlug || collapseTypeSlug;
         var category = selectEl.dataset.serviceCategory || '';
         populateVendorSelect(selectEl, typeSlug, category);
         syncVendorPhotoSelection(selectEl);

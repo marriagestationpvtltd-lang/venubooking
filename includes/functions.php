@@ -4959,7 +4959,8 @@ function getBookingVendorAssignments($booking_id) {
                    COALESCE(v.type,  bva.manual_vendor_type, 'manual') as vendor_type,
                    COALESCE(v.phone, bva.manual_vendor_phone)  as vendor_phone,
                    v.email as vendor_email, v.short_description as vendor_description,
-                   c.name as vendor_city
+                   c.name as vendor_city,
+                   v.status as vendor_status
             FROM booking_vendor_assignments bva
             LEFT JOIN vendors v ON bva.vendor_id = v.id
             LEFT JOIN cities c ON v.city_id = c.id
