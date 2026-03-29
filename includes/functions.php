@@ -3644,6 +3644,46 @@ function generateBookingEmailHTML($booking, $recipient = 'user', $type = 'new', 
                                 <span class="detail-value"><?php echo formatCurrency($menu['price_per_person']); ?>/person × <?php echo $menu['number_of_guests']; ?> = <?php echo formatCurrency($menu['total_price']); ?></span>
                             <?php endif; ?>
                         </div>
+                        <?php
+                        if (!empty($menu['items'])):
+                            $by_category = [];
+                            foreach ($menu['items'] as $item) {
+                                $cat = !empty($item['category']) ? $item['category'] : '';
+                                $by_category[$cat][] = $item['item_name'];
+                            }
+                        ?>
+                        <div class="detail-row" style="padding-left:16px;margin-top:2px;">
+                            <?php foreach ($by_category as $category => $cat_items): ?>
+                            <div style="margin-bottom:2px;font-size:12px;">
+                                <?php if (!empty($category)): ?>
+                                    <span style="color:#555;font-weight:600;"><?php echo htmlspecialchars($category); ?>:</span>
+                                    <span style="color:#333;"><?php echo htmlspecialchars(implode(', ', $cat_items)); ?></span>
+                                <?php else: ?>
+                                    <span style="color:#333;"><?php echo htmlspecialchars(implode(', ', $cat_items)); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                        <?php
+                        $menu_sel = $booking['menu_item_selections'][$menu['menu_id']] ?? null;
+                        if (!empty($menu_sel)):
+                        ?>
+                        <div class="detail-row" style="padding-left:16px;margin-top:2px;">
+                            <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:2px;">Selected Items:</div>
+                            <?php foreach ($menu_sel['sections'] as $sec_name => $groups): ?>
+                            <div style="font-size:12px;font-style:italic;color:#555;margin-bottom:1px;"><?php echo htmlspecialchars($sec_name); ?></div>
+                            <?php foreach ($groups as $grp_name => $items):
+                                $item_names = array_map(function($i){ return $i['item_name']; }, $items);
+                            ?>
+                            <div style="font-size:12px;margin-left:10px;margin-bottom:1px;">
+                                <span style="color:#666;"><?php echo htmlspecialchars($grp_name); ?>:</span>
+                                <span style="color:#333;"><?php echo htmlspecialchars(implode(', ', $item_names)); ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
                 <?php endif; ?>
