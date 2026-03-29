@@ -470,9 +470,13 @@ $filter_labels = [
                         </td>
                         <td class="text-center">
                             <?php if (!$is_manual): ?>
+                                <a href="dues-detail.php?vendor_id=<?php echo (int)$v['vendor_id']; ?>"
+                                   class="btn btn-sm btn-outline-warning" title="View Dues &amp; Pay">
+                                    <i class="fas fa-hand-holding-usd me-1"></i>Dues
+                                </a>
                                 <a href="view.php?id=<?php echo (int)$v['vendor_id']; ?>"
-                                   class="btn btn-sm btn-outline-primary" title="View Vendor">
-                                    <i class="fas fa-eye me-1"></i>View
+                                   class="btn btn-sm btn-outline-secondary ms-1" title="View Vendor Profile">
+                                    <i class="fas fa-user me-1"></i>Profile
                                 </a>
                             <?php else: ?>
                                 <span class="text-muted small">—</span>
