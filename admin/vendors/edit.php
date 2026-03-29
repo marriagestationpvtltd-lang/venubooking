@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $address           = trim($_POST['address']           ?? '');
     $city_id           = intval($_POST['city_id']         ?? 0);
     $notes             = trim($_POST['notes']             ?? '');
-    $status            = in_array($_POST['status'] ?? '', ['active', 'inactive']) ? $_POST['status'] : 'active';
+    $status            = in_array($_POST['status'] ?? '', ['active', 'inactive', 'unapproved']) ? $_POST['status'] : 'active';
 
     // Handle photo deletions
     $delete_photo_ids = isset($_POST['delete_photos']) ? array_map('intval', (array)$_POST['delete_photos']) : [];
@@ -188,8 +188,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-md-4">
                             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                             <select class="form-select" id="status" name="status">
-                                <option value="active"   <?php echo $vendor['status'] === 'active'   ? 'selected' : ''; ?>>Active</option>
-                                <option value="inactive" <?php echo $vendor['status'] === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                                <option value="unapproved" <?php echo $vendor['status'] === 'unapproved' ? 'selected' : ''; ?>>Unapproved</option>
+                                <option value="active"     <?php echo $vendor['status'] === 'active'     ? 'selected' : ''; ?>>Active</option>
+                                <option value="inactive"   <?php echo $vendor['status'] === 'inactive'   ? 'selected' : ''; ?>>Inactive</option>
                             </select>
                         </div>
 

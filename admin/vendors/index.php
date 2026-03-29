@@ -97,7 +97,6 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <td><?php echo htmlspecialchars($vendor['phone'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['email'] ?? '—'); ?></td>
                             <td><?php echo htmlspecialchars($vendor['city_name'] ?? '—'); ?></td>
-                            <td>
                                 <?php if ((float)$vendor['total_receivable'] > 0): ?>
                                     <a href="view.php?id=<?php echo $vendor['id']; ?>" class="text-success fw-semibold text-decoration-none">
                                         <?php echo formatCurrency($vendor['total_receivable']); ?>
@@ -107,8 +106,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <span class="badge bg-<?php echo $vendor['status'] == 'active' ? 'success' : 'secondary'; ?>">
-                                    <?php echo ucfirst($vendor['status']); ?>
+                                <span class="badge bg-<?php echo $vendor['status'] === 'active' ? 'success' : ($vendor['status'] === 'unapproved' ? 'warning text-dark' : 'secondary'); ?>">
+                                    <?php echo $vendor['status'] === 'unapproved' ? 'Unapproved' : ucfirst($vendor['status']); ?>
                                 </span>
                             </td>
                             <td>

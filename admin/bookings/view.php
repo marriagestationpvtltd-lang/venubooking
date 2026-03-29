@@ -1647,11 +1647,12 @@ unset($_avail_svc);
                 $vendors_by_type = [];
                 foreach ($all_vendors as $v) {
                     $vendors_by_type[$v['type']][] = [
-                        'id'          => $v['id'],
-                        'name'        => $v['name'],
-                        'description' => $v['short_description'] ?? '',
-                        'city'        => $v['city_name'] ?? '',
-                        'photo'       => $vendor_primary_photos[$v['id']] ?? '',
+                        'id'            => $v['id'],
+                        'name'          => $v['name'],
+                        'description'   => $v['short_description'] ?? '',
+                        'city'          => $v['city_name'] ?? '',
+                        'photo'         => $vendor_primary_photos[$v['id']] ?? '',
+                        'is_unapproved' => ($v['status'] === 'unapproved'),
                     ];
                 }
                 // Filter vendor types list to only those that have available vendors
@@ -2715,7 +2716,12 @@ unset($_avail_svc);
                                             catalogVendorsByType[vendorTypeSlug].forEach(function(v) {
                                                 var o = document.createElement('option');
                                                 o.value = v.id;
-                                                o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                                                var label = v.name + (v.city ? ' (' + v.city + ')' : '');
+                                                if (v.is_unapproved) {
+                                                    label += ' \u2014 \u26a0\ufe0f Unverified Vendor';
+                                                    o.style.color = '#856404';
+                                                }
+                                                o.textContent = label;
                                                 vendorSelect.appendChild(o);
                                             });
                                             vendorRow.classList.remove('d-none');
@@ -4407,7 +4413,12 @@ document.addEventListener('DOMContentLoaded', function() {
             vendorsByType[resolved].forEach(function(v) {
                 var o = document.createElement('option');
                 o.value = v.id;
-                o.textContent = v.name + (v.city ? ' (' + v.city + ')' : '');
+                var label = v.name + (v.city ? ' (' + v.city + ')' : '');
+                if (v.is_unapproved) {
+                    label += ' \u2014 \u26a0\ufe0f Unverified Vendor';
+                    o.style.color = '#856404';
+                }
+                o.textContent = label;
                 if (v.photo) {
                     o.dataset.photo = v.photo;
                 }
@@ -4421,11 +4432,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         : '<span class="inline-va-vendor-photo-placeholder" aria-hidden="true"><i class="fas fa-user" aria-hidden="true"></i></span>';
                     var cityHtml = v.city ? '<div class="small text-muted">' + esc(v.city) + '</div>' : '';
                     var descHtml = v.description ? '<div class="small text-muted text-truncate">' + esc(v.description) + '</div>' : '';
+                    var unverifiedBadge = v.is_unapproved
+                        ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">\u26a0\ufe0f Unverified</span>'
+                        : '';
                     listWrap.insertAdjacentHTML('beforeend',
-                        '<button type="button" class="inline-va-vendor-photo-item" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
+                        '<button type="button" class="inline-va-vendor-photo-item' + (v.is_unapproved ? ' vendor-unverified' : '') + '" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
                             photoHtml +
                             '<span class="min-width-0 flex-grow-1">' +
-                                '<span class="d-block fw-semibold text-truncate">' + esc(v.name) + '</span>' +
+                                '<span class="d-block fw-semibold text-truncate">' + esc(v.name) + unverifiedBadge + '</span>' +
                                 cityHtml +
                                 descHtml +
                             '</span>' +

@@ -4528,12 +4528,14 @@ function getAvailableVendors($event_date, $current_booking_id = 0) {
         // Exclude vendors assigned to OTHER bookings on the same date.
         // Vendors already assigned to the current booking remain available so they
         // can be assigned to additional services within the same booking.
+        // Both 'active' and 'unapproved' vendors are included; the caller can
+        // inspect the status field to distinguish verified from unverified vendors.
         $booking_exclude = $current_booking_id > 0 ? 'AND bva.booking_id != ?' : '';
         $stmt = $db->prepare("
             SELECT v.*, c.name AS city_name
             FROM vendors v
             LEFT JOIN cities c ON v.city_id = c.id
-            WHERE v.status = 'active'
+            WHERE v.status IN ('active', 'unapproved')
               AND v.id NOT IN (
                   SELECT DISTINCT bva.vendor_id
                   FROM booking_vendor_assignments bva
@@ -4541,7 +4543,7 @@ function getAvailableVendors($event_date, $current_booking_id = 0) {
                   WHERE b.event_date = ?
                     $booking_exclude
               )
-            ORDER BY v.type, v.name
+            ORDER BY v.status != 'active', v.type, v.name
         ");
         $params = [$event_date];
         if ($current_booking_id > 0) {
