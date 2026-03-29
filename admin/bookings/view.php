@@ -306,8 +306,40 @@ if (isset($_POST['action'])) {
         $assigned_amount      = max(0, floatval($_POST['assigned_amount'] ?? 0));
         $assignment_notes     = trim($_POST['assignment_notes'] ?? '');
         $booking_service_id   = intval($_POST['booking_service_id'] ?? 0);
+        $is_manual            = !empty($_POST['is_manual_vendor']);
+        $manual_vendor_name   = trim($_POST['manual_vendor_name'] ?? '');
+        $manual_vendor_phone  = trim($_POST['manual_vendor_phone'] ?? '');
 
-        if ($vendor_id_input <= 0) {
+        if ($is_manual) {
+            // Manual vendor: name is required; vendor_id is not used
+            if ($manual_vendor_name === '') {
+                $_SESSION['flash_error'] = 'Please enter the vendor name.';
+            } else {
+                $assignment_id = addVendorAssignment($booking_id, null, $task_description, $assigned_amount, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null, $manual_vendor_name, $manual_vendor_phone);
+                if ($assignment_id) {
+                    logActivity($current_user['id'], 'Added manual vendor assignment', 'booking_vendor_assignments', $booking_id, "Manual vendor \"{$manual_vendor_name}\": {$task_description}");
+                    $_SESSION['flash_success'] = 'Manual vendor assigned successfully!';
+                    if (!empty($manual_vendor_phone)) {
+                        $_flash_design_info = null;
+                        if ($booking_service_id > 0) {
+                            try {
+                                $_fds = getDB()->prepare("SELECT sd.name, sd.photo FROM booking_services bs JOIN service_designs sd ON bs.design_id = sd.id WHERE bs.id = ? AND bs.design_id > 0");
+                                $_fds->execute([$booking_service_id]);
+                                $_fdr = $_fds->fetch();
+                                if ($_fdr && !empty($_fdr['photo'])) {
+                                    $_flash_design_info = ['name' => $_fdr['name'] ?? '', 'photo' => rtrim(UPLOAD_URL, '/') . '/' . $_fdr['photo']];
+                                }
+                                unset($_fds, $_fdr);
+                            } catch (Exception $e) { /* non-fatal */ }
+                        }
+                        $_SESSION['flash_vendor_wa_url'] = buildVendorAssignmentWhatsAppUrl($manual_vendor_name, $manual_vendor_phone, $booking, '', $_flash_design_info);
+                        unset($_flash_design_info);
+                    }
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to add vendor assignment. Please try again.';
+                }
+            }
+        } elseif ($vendor_id_input <= 0) {
             $_SESSION['flash_error'] = 'Please select a vendor.';
         } else {
             // Duplicate check: same vendor already assigned to this service?
@@ -2208,7 +2240,7 @@ unset($_avail_svc);
                                     </div>
                                     <div class="flex-shrink-0 d-flex align-items-center gap-1">
                                         <!-- Plus button: toggles inline vendor assignment form (hidden once a vendor is assigned) -->
-                                        <?php if (!empty($vendor_types_available) && empty($svc_vendors)): ?>
+                                        <?php if (empty($svc_vendors)): ?>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-primary py-0 px-2 inline-va-toggle"
                                                 title="Assign vendor for this service"
@@ -2236,15 +2268,30 @@ unset($_avail_svc);
                                     </div>
                                 </div>
                                 <!-- Inline vendor assignment form (collapsed, toggled by + button) -->
-                                <?php if (!empty($vendor_types_available)): ?>
                                 <div class="collapse" id="inline-va-<?php echo $svc_id; ?>">
                                     <div class="px-2 py-2 border-top" style="background:#eef4ff;">
                                         <form method="POST" action="" class="inline-va-form">
                                             <input type="hidden" name="action" value="add_vendor_assignment">
                                             <input type="hidden" name="booking_service_id" value="<?php echo $svc_id; ?>">
                                             <input type="hidden" name="task_description" value="<?php echo htmlspecialchars($service['service_name']); ?>">
+                                            <input type="hidden" name="is_manual_vendor" value="<?php echo empty($vendor_types_available) ? '1' : '0'; ?>" class="inline-va-is-manual-flag">
+                                            <!-- Mode toggle -->
+                                            <div class="mb-2 d-flex align-items-center gap-2" style="font-size:.75rem;">
+                                                <?php if (!empty($vendor_types_available)): ?>
+                                                <button type="button" class="btn btn-sm py-0 px-2 btn-primary inline-va-mode-btn active"
+                                                        data-mode="system" style="font-size:.72rem;">
+                                                    <i class="fas fa-user-tie me-1"></i>System Vendor
+                                                </button>
+                                                <?php endif; ?>
+                                                <button type="button" class="btn btn-sm py-0 px-2 <?php echo empty($vendor_types_available) ? 'btn-primary active' : 'btn-outline-secondary'; ?> inline-va-mode-btn"
+                                                        data-mode="manual" style="font-size:.72rem;">
+                                                    <i class="fas fa-pencil-alt me-1"></i>Manual Vendor
+                                                </button>
+                                            </div>
                                             <div class="row g-2 align-items-end">
-                                                <div class="col inline-va-vendor-wrap">
+                                                <!-- System vendor dropdown (hidden when manual mode) -->
+                                                <?php if (!empty($vendor_types_available)): ?>
+                                                <div class="col inline-va-vendor-wrap inline-va-system-fields">
                                                     <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Vendor <span class="text-danger">*</span></label>
                                                     <select name="vendor_id" class="form-select form-select-sm inline-va-vendor-select"
                                                             data-vendor-type-slug="<?php echo htmlspecialchars($svc_vt_slug); ?>"
@@ -2253,6 +2300,25 @@ unset($_avail_svc);
                                                         <option value="">&#x2014; Select Vendor &#x2014;</option>
                                                     </select>
                                                     <div class="inline-va-vendor-photo-list mt-2"></div>
+                                                </div>
+                                                <?php endif; ?>
+                                                <!-- Manual vendor fields (hidden by default when system vendors exist) -->
+                                                <div class="col inline-va-manual-fields<?php echo !empty($vendor_types_available) ? ' d-none' : ''; ?>">
+                                                    <div class="row g-2">
+                                                        <div class="col">
+                                                            <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Vendor Name <span class="text-danger">*</span></label>
+                                                            <input type="text" name="manual_vendor_name" class="form-control form-control-sm"
+                                                                   placeholder="Enter vendor name"
+                                                                   <?php echo empty($vendor_types_available) ? 'required' : ''; ?>
+                                                                   style="font-size:.78rem;">
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Phone</label>
+                                                            <input type="text" name="manual_vendor_phone" class="form-control form-control-sm"
+                                                                   placeholder="Phone number"
+                                                                   style="width:130px;font-size:.78rem;">
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div class="col-auto">
                                                     <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Amount</label>
@@ -2269,12 +2335,12 @@ unset($_avail_svc);
                                         </form>
                                     </div>
                                 </div>
-                                <?php endif; ?>
                                 <!-- Existing vendor assignments shown below the service -->
                                 <?php if (!empty($svc_vendors)): ?>
                                 <div class="px-2 pb-2 pt-1" style="background:#f8fff9;">
                                     <?php foreach ($svc_vendors as $idx => $va):
-                                        $va_photo_url = $vendor_primary_photos[$va['vendor_id']] ?? '';
+                                        $va_is_manual = empty($va['vendor_id']);
+                                        $va_photo_url = $va_is_manual ? '' : ($vendor_primary_photos[$va['vendor_id']] ?? '');
                                         $is_last_va   = ($idx === count($svc_vendors) - 1);
                                     ?>
                                     <div class="d-flex align-items-center gap-2 py-1 flex-wrap<?php echo $is_last_va ? '' : ' border-bottom'; ?>" style="font-size:.8rem;">
@@ -2290,13 +2356,17 @@ unset($_avail_svc);
                                                 </div>
                                             </div>
                                         <?php else: ?>
-                                            <span class="d-inline-flex align-items-center justify-content-center bg-secondary text-white rounded-circle flex-shrink-0"
+                                            <span class="d-inline-flex align-items-center justify-content-center <?php echo $va_is_manual ? 'bg-warning text-dark' : 'bg-secondary text-white'; ?> rounded-circle flex-shrink-0"
                                                   style="width:30px;height:30px;font-size:.7rem;">
-                                                <i class="fas fa-user"></i>
+                                                <i class="fas <?php echo $va_is_manual ? 'fa-pencil-alt' : 'fa-user'; ?>"></i>
                                             </span>
                                         <?php endif; ?>
                                         <span class="fw-semibold"><?php echo htmlspecialchars($va['vendor_name']); ?></span>
-                                        <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></span>
+                                        <?php if ($va_is_manual): ?>
+                                            <span class="badge bg-warning text-dark border" style="font-size:.62rem;" title="Manually entered vendor"><i class="fas fa-pencil-alt me-1"></i>Manual</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></span>
+                                        <?php endif; ?>
                                         <span class="text-primary fw-bold" style="font-size:.75rem;"><?php echo formatCurrency($va['assigned_amount'] ?? 0); ?></span>
                                         <?php if (!empty($va['task_description'])): ?>
                                             <span class="text-muted" title="<?php echo htmlspecialchars($va['notes'] ?? ''); ?>"><?php echo htmlspecialchars($va['task_description']); ?></span>
@@ -2315,7 +2385,7 @@ unset($_avail_svc);
                                                 </select>
                                             </form>
                                             <?php if (!empty($va['vendor_phone'])): ?>
-                                                <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($va['vendor_name'], $va['vendor_phone'], $booking, $va['vendor_type'] ?? '', $svc_design); ?>
+                                                <?php $va_wa_url = buildVendorAssignmentWhatsAppUrl($va['vendor_name'], $va['vendor_phone'], $booking, $va_is_manual ? '' : ($va['vendor_type'] ?? ''), $svc_design); ?>
                                                 <?php if (!empty($va_wa_url)): ?>
                                                 <a href="<?php echo htmlspecialchars($va_wa_url); ?>" target="_blank" rel="noopener noreferrer"
                                                    class="btn btn-sm btn-outline-success py-0 px-1" title="Notify via WhatsApp" style="font-size:.7rem;">
@@ -4379,6 +4449,37 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('change', function(e) {
         if (!e.target || !e.target.classList || !e.target.classList.contains('inline-va-vendor-select')) return;
         syncVendorPhotoSelection(e.target);
+    });
+
+    // Manual / System vendor mode toggle
+    document.addEventListener('click', function(e) {
+        var modeBtn = e.target.closest('.inline-va-mode-btn');
+        if (!modeBtn) return;
+        var form = modeBtn.closest('form');
+        if (!form) return;
+        var mode = modeBtn.dataset.mode || 'system';
+        var isManual = (mode === 'manual');
+
+        // Update button active states
+        form.querySelectorAll('.inline-va-mode-btn').forEach(function(b) {
+            b.classList.toggle('active', b === modeBtn);
+            b.classList.toggle('btn-primary', b === modeBtn);
+            b.classList.toggle('btn-outline-secondary', b !== modeBtn);
+        });
+
+        // Show/hide field groups
+        var systemFields = form.querySelector('.inline-va-system-fields');
+        var manualFields = form.querySelector('.inline-va-manual-fields');
+        if (systemFields) systemFields.classList.toggle('d-none', isManual);
+        if (manualFields) manualFields.classList.toggle('d-none', !isManual);
+
+        // Update required attributes and the hidden flag
+        var vendorSelect = form.querySelector('.inline-va-vendor-select');
+        var manualNameInput = form.querySelector('input[name="manual_vendor_name"]');
+        var flagInput = form.querySelector('.inline-va-is-manual-flag');
+        if (vendorSelect) vendorSelect.required = !isManual;
+        if (manualNameInput) manualNameInput.required = isManual;
+        if (flagInput) flagInput.value = isManual ? '1' : '0';
     });
 })();
 </script>
