@@ -4463,7 +4463,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
+     * Append a single vendor as an <option> to a <select> element.
+     */
+    function appendVendorOption(selectEl, v) {
+        var o = document.createElement('option');
+        o.value = v.id;
+        var label = v.name + (v.city ? ' (' + v.city + ')' : '');
+        if (v.is_unapproved) {
+            label += ' \u2014 \u26a0\ufe0f Unverified Vendor';
+            o.style.color = '#856404';
+        }
+        o.textContent = label;
+        if (v.photo) { o.dataset.photo = v.photo; }
+        if (v.description) { o.dataset.description = v.description; }
+        selectEl.appendChild(o);
+    }
+
+    /**
+     * Append a single vendor card to the photo-list container.
+     */
+    function appendVendorPhotoItem(listWrap, v) {
+        if (!listWrap) return;
+        var photoHtml = v.photo
+            ? '<img src="' + esc(v.photo) + '" alt="' + esc(v.name) + '" class="inline-va-vendor-photo-thumb">'
+            : '<span class="inline-va-vendor-photo-placeholder" aria-hidden="true"><i class="fas fa-user" aria-hidden="true"></i></span>';
+        var cityHtml = v.city ? '<div class="small text-muted">' + esc(v.city) + '</div>' : '';
+        var descHtml = v.description ? '<div class="small text-muted text-truncate">' + esc(v.description) + '</div>' : '';
+        var unverifiedBadge = v.is_unapproved
+            ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">\u26a0\ufe0f Unverified</span>'
+            : '';
+        listWrap.insertAdjacentHTML('beforeend',
+            '<button type="button" class="inline-va-vendor-photo-item' + (v.is_unapproved ? ' vendor-unverified' : '') + '" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
+                photoHtml +
+                '<span class="min-width-0 flex-grow-1">' +
+                    '<span class="d-block fw-semibold text-truncate">' + esc(v.name) + unverifiedBadge + '</span>' +
+                    cityHtml +
+                    descHtml +
+                '</span>' +
+            '</button>'
+        );
+    }
+
+    /**
      * Populate a vendor <select> with options for the given vendor type.
+     * Matching-type vendors are shown first; all other vendors follow in an
+     * "Other Vendors" optgroup so the admin can pick any system vendor.
      */
     function populateVendorSelect(selectEl, typeSlug, categoryLabel) {
         if (selectEl.dataset.populated === '1') return; // already populated
@@ -4474,54 +4518,48 @@ document.addEventListener('DOMContentLoaded', function() {
         if (listWrap) {
             listWrap.innerHTML = '';
         }
-        if (resolved && vendorsByType[resolved] && vendorsByType[resolved].length > 0) {
-            vendorsByType[resolved].forEach(function(v) {
-                var o = document.createElement('option');
-                o.value = v.id;
-                var label = v.name + (v.city ? ' (' + v.city + ')' : '');
-                if (v.is_unapproved) {
-                    label += ' \u2014 \u26a0\ufe0f Unverified Vendor';
-                    o.style.color = '#856404';
-                }
-                o.textContent = label;
-                if (v.photo) {
-                    o.dataset.photo = v.photo;
-                }
-                if (v.description) {
-                    o.dataset.description = v.description;
-                }
-                selectEl.appendChild(o);
-                if (listWrap) {
-                    var photoHtml = v.photo
-                        ? '<img src="' + esc(v.photo) + '" alt="' + esc(v.name) + '" class="inline-va-vendor-photo-thumb">'
-                        : '<span class="inline-va-vendor-photo-placeholder" aria-hidden="true"><i class="fas fa-user" aria-hidden="true"></i></span>';
-                    var cityHtml = v.city ? '<div class="small text-muted">' + esc(v.city) + '</div>' : '';
-                    var descHtml = v.description ? '<div class="small text-muted text-truncate">' + esc(v.description) + '</div>' : '';
-                    var unverifiedBadge = v.is_unapproved
-                        ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">\u26a0\ufe0f Unverified</span>'
-                        : '';
-                    listWrap.insertAdjacentHTML('beforeend',
-                        '<button type="button" class="inline-va-vendor-photo-item' + (v.is_unapproved ? ' vendor-unverified' : '') + '" data-vendor-id="' + esc(String(v.id)) + '" aria-label="Select vendor: ' + esc(v.name) + '">' +
-                            photoHtml +
-                            '<span class="min-width-0 flex-grow-1">' +
-                                '<span class="d-block fw-semibold text-truncate">' + esc(v.name) + unverifiedBadge + '</span>' +
-                                cityHtml +
-                                descHtml +
-                            '</span>' +
-                        '</button>'
-                    );
-                }
-            });
-        } else {
-            // No vendor type match: show informational message
+
+        var matchedVendors = (resolved && vendorsByType[resolved]) ? vendorsByType[resolved] : [];
+        var otherVendors = [];
+        for (var t in vendorsByType) {
+            if (t !== resolved) {
+                vendorsByType[t].forEach(function(v) { otherVendors.push(v); });
+            }
+        }
+
+        var totalVendors = matchedVendors.length + otherVendors.length;
+        if (totalVendors === 0) {
             var o = document.createElement('option');
             o.value = '';
             o.disabled = true;
-            o.textContent = '\u2014 No vendors available for this service type \u2014';
+            o.textContent = '\u2014 No vendors available \u2014';
             selectEl.appendChild(o);
             if (listWrap) {
-                listWrap.innerHTML = '<div class="small text-muted border rounded px-2 py-2 bg-light">\u2014 No vendors available for this service type \u2014</div>';
+                listWrap.innerHTML = '<div class="small text-muted border rounded px-2 py-2 bg-light">\u2014 No vendors available \u2014</div>';
             }
+            return;
+        }
+
+        // Add matched-type vendors (with optgroup label only when other vendors also exist)
+        if (matchedVendors.length > 0) {
+            if (otherVendors.length > 0) {
+                var matchGrp = document.createElement('optgroup');
+                matchGrp.label = (vendorTypesMap[resolved] || resolved || 'Matching') + ' Vendors';
+                matchedVendors.forEach(function(v) { appendVendorOption(matchGrp, v); });
+                selectEl.appendChild(matchGrp);
+            } else {
+                matchedVendors.forEach(function(v) { appendVendorOption(selectEl, v); });
+            }
+            matchedVendors.forEach(function(v) { appendVendorPhotoItem(listWrap, v); });
+        }
+
+        // Add all other vendors so the admin can pick any system vendor
+        if (otherVendors.length > 0) {
+            var otherGrp = document.createElement('optgroup');
+            otherGrp.label = matchedVendors.length > 0 ? 'Other Vendors' : 'All Vendors';
+            otherVendors.forEach(function(v) { appendVendorOption(otherGrp, v); });
+            selectEl.appendChild(otherGrp);
+            otherVendors.forEach(function(v) { appendVendorPhotoItem(listWrap, v); });
         }
     }
 
