@@ -4220,8 +4220,8 @@ function addAdminService($booking_id, $service_name, $description, $quantity, $p
             throw new Exception("Service name is required");
         }
         
-        if ($price <= 0) {
-            throw new Exception("Price must be greater than 0");
+        if ($price < 0) {
+            throw new Exception("Price must be 0 or greater");
         }
         
         // Store the catalog service_id reference when available so photo/vendor-type lookups work
