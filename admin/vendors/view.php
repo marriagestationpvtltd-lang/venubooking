@@ -1,8 +1,12 @@
 <?php
-$page_title = 'Vendor Profile';
-require_once __DIR__ . '/../includes/header.php';
+// ── Bootstrap before header so we can redirect on POST ───────────────────────
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/functions.php';
+requireLogin();
 
-$db = getDB();
+$current_user = getCurrentUser();
+$db           = getDB();
 
 $vendor_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($vendor_id <= 0) {
@@ -17,9 +21,56 @@ if (!$vendor) {
     exit;
 }
 
-$vendor_photos      = getVendorPhotos($vendor_id);
-$vendor_assignments = getVendorAssignments($vendor_id);
-$total_receivable   = getVendorTotalReceivable($vendor_id);
+// ── Handle POST: record vendor payout ────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'record_vendor_payout') {
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error_message'] = 'Invalid security token.';
+    } else {
+        $assignment_id = intval($_POST['assignment_id'] ?? 0);
+        if ($assignment_id > 0) {
+            try {
+                $asgn_stmt = $db->prepare(
+                    "SELECT assigned_amount FROM booking_vendor_assignments WHERE id = ? AND vendor_id = ?"
+                );
+                $asgn_stmt->execute([$assignment_id, $vendor_id]);
+                $asgn_row = $asgn_stmt->fetch();
+                if ($asgn_row) {
+                    $amount_paid = min(
+                        max(0.0, floatval($_POST['amount_paid'] ?? 0)),
+                        floatval($asgn_row['assigned_amount'])
+                    );
+                    if (recordVendorPayout($assignment_id, $amount_paid)) {
+                        logActivity(
+                            $current_user['id'],
+                            'Recorded vendor payout',
+                            'booking_vendor_assignments',
+                            $assignment_id,
+                            "Vendor ID: {$vendor_id} | Paid: " . number_format($amount_paid, 2)
+                        );
+                        $_SESSION['success_message'] = 'Vendor payment updated successfully.';
+                    } else {
+                        $_SESSION['error_message'] = 'Failed to update vendor payment.';
+                    }
+                } else {
+                    $_SESSION['error_message'] = 'Assignment not found.';
+                }
+            } catch (Exception $e) {
+                error_log('Vendor view POST error: ' . $e->getMessage());
+                $_SESSION['error_message'] = 'An error occurred while saving the payment.';
+            }
+        }
+    }
+    header('Location: view.php?id=' . $vendor_id . '#assignments');
+    exit;
+}
+
+// ── Page setup ────────────────────────────────────────────────────────────────
+$page_title = 'Manage Vendor';
+require_once __DIR__ . '/../includes/header.php';
+
+$vendor_photos         = getVendorPhotos($vendor_id);
+$vendor_assignments    = getVendorAssignments($vendor_id);
+$total_receivable      = getVendorTotalReceivable($vendor_id);
 $vendor_service_cities = getVendorServiceCities($vendor_id);
 
 // Group totals by status for summary; also compute overall paid/due
@@ -39,6 +90,7 @@ foreach ($vendor_assignments as $a) {
         $grand_due  += max(0.0, (float)$a['assigned_amount'] - $paid);
     }
 }
+$csrf_token = generateCSRFToken();
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -49,7 +101,10 @@ foreach ($vendor_assignments as $a) {
         </ol>
     </nav>
     <div>
-        <a href="edit.php?id=<?php echo $vendor_id; ?>" class="btn btn-sm btn-warning">
+        <a href="dues.php" class="btn btn-sm btn-outline-warning">
+            <i class="fas fa-list-alt"></i> All Dues Overview
+        </a>
+        <a href="edit.php?id=<?php echo $vendor_id; ?>" class="btn btn-sm btn-warning ms-1">
             <i class="fas fa-edit"></i> Edit Vendor
         </a>
         <a href="index.php" class="btn btn-sm btn-secondary ms-1">
@@ -230,9 +285,14 @@ foreach ($vendor_assignments as $a) {
         <?php endif; ?>
 
         <!-- Assignments Table -->
-        <div class="card">
-            <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="fas fa-list-alt"></i> Booking Assignments</h6>
+        <div class="card" id="assignments">
+            <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                <h6 class="mb-0"><i class="fas fa-list-alt"></i> Booking Assignments &amp; Payments</h6>
+                <?php if ($grand_due > 0): ?>
+                    <span class="badge bg-danger fs-6">Due: <?php echo formatCurrency($grand_due); ?></span>
+                <?php elseif (!empty($vendor_assignments)): ?>
+                    <span class="badge bg-success"><i class="fas fa-check-circle"></i> All Cleared</span>
+                <?php endif; ?>
             </div>
             <div class="card-body p-0">
                 <?php if (empty($vendor_assignments)): ?>
@@ -253,11 +313,17 @@ foreach ($vendor_assignments as $a) {
                                     <th>Status</th>
                                     <th class="text-end">Assigned</th>
                                     <th class="text-end">Paid</th>
-                                    <th class="text-end">Remaining Due</th>
+                                    <th class="text-end">Due</th>
+                                    <th class="text-center">Record Payment</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($vendor_assignments as $a): ?>
+                                    <?php
+                                        $row_paid = (float)($a['amount_paid'] ?? 0);
+                                        $row_due  = $a['status'] !== 'cancelled' ? max(0.0, (float)$a['assigned_amount'] - $row_paid) : 0.0;
+                                        $is_cleared = $a['status'] !== 'cancelled' && $row_due <= 0.001;
+                                    ?>
                                     <tr>
                                         <td>
                                             <a href="../bookings/view.php?id=<?php echo $a['booking_id']; ?>" class="text-decoration-none fw-semibold">
@@ -293,10 +359,6 @@ foreach ($vendor_assignments as $a) {
                                         <td class="text-end fw-semibold <?php echo $a['status'] === 'cancelled' ? 'text-muted text-decoration-line-through' : 'text-dark'; ?>">
                                             <?php echo formatCurrency($a['assigned_amount']); ?>
                                         </td>
-                                        <?php
-                                            $row_paid = (float)($a['amount_paid'] ?? 0);
-                                            $row_due  = $a['status'] !== 'cancelled' ? max(0.0, (float)$a['assigned_amount'] - $row_paid) : 0.0;
-                                        ?>
                                         <td class="text-end text-primary">
                                             <?php echo $a['status'] !== 'cancelled' ? formatCurrency($row_paid) : '—'; ?>
                                         </td>
@@ -309,6 +371,33 @@ foreach ($vendor_assignments as $a) {
                                                 <i class="fas fa-check-circle"></i> Cleared
                                             <?php endif; ?>
                                         </td>
+                                        <td class="text-center">
+                                            <?php if ($a['status'] !== 'cancelled'): ?>
+                                                <form method="post"
+                                                      action="view.php?id=<?php echo $vendor_id; ?>"
+                                                      class="d-flex align-items-center gap-1 justify-content-center vendor-pay-form"
+                                                      onsubmit="return confirmVendorPayment(this)">
+                                                    <input type="hidden" name="action"        value="record_vendor_payout">
+                                                    <input type="hidden" name="csrf_token"    value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                                    <input type="hidden" name="assignment_id" value="<?php echo (int)$a['id']; ?>">
+                                                    <input type="number"
+                                                           name="amount_paid"
+                                                           step="0.01" min="0"
+                                                           max="<?php echo floatval($a['assigned_amount']); ?>"
+                                                           class="form-control form-control-sm"
+                                                           style="width:110px;"
+                                                           value="<?php echo number_format($row_paid, 2, '.', ''); ?>"
+                                                           <?php echo $is_cleared ? 'title="Already cleared"' : ''; ?>>
+                                                    <button type="submit"
+                                                            class="btn btn-sm <?php echo $is_cleared ? 'btn-outline-success' : 'btn-warning'; ?>"
+                                                            title="<?php echo $is_cleared ? 'Payment cleared' : 'Save payment'; ?>">
+                                                        <i class="fas <?php echo $is_cleared ? 'fa-check' : 'fa-save'; ?>"></i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="text-muted small">Cancelled</span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -318,6 +407,7 @@ foreach ($vendor_assignments as $a) {
                                     <th class="text-end"><?php echo formatCurrency($total_receivable); ?></th>
                                     <th class="text-end text-primary"><?php echo formatCurrency($grand_paid); ?></th>
                                     <th class="text-end text-danger"><?php echo formatCurrency($grand_due); ?></th>
+                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -333,6 +423,21 @@ foreach ($vendor_assignments as $a) {
 document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
     new bootstrap.Tooltip(el);
 });
+
+// Confirm before recording a vendor payment
+function confirmVendorPayment(form) {
+    var amount = parseFloat(form.amount_paid.value);
+    if (isNaN(amount) || amount < 0) {
+        alert('Please enter a valid payment amount.');
+        return false;
+    }
+    var max = parseFloat(form.amount_paid.max);
+    if (amount > max) {
+        alert('Payment cannot exceed the assigned amount (' + max.toFixed(2) + ').');
+        return false;
+    }
+    return confirm('Save payment of ' + amount.toFixed(2) + ' for this assignment?');
+}
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
