@@ -148,6 +148,7 @@ if (isset($_POST['update_venue']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_phone = trim($_POST['contact_phone']);
     $contact_email = trim($_POST['contact_email']);
     $map_link = trim($_POST['map_link'] ?? '');
+    $bank_details = trim($_POST['bank_details'] ?? '');
     $status = $_POST['status'];
 
     // Validation
@@ -172,6 +173,29 @@ if (isset($_POST['update_venue']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             if (empty($error_message)) {
+                // Handle QR code upload
+                $qr_code = $venue['qr_code'] ?? null;
+                $has_new_qr_upload = isset($_FILES['venue_qr_code']) && ($_FILES['venue_qr_code']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+                if ($has_new_qr_upload) {
+                    $qr_result = handleImageUpload($_FILES['venue_qr_code'], 'venue-qr');
+                    if ($qr_result['success']) {
+                        if (!empty($venue['qr_code'])) {
+                            deleteUploadedFile($venue['qr_code']);
+                        }
+                        $qr_code = $qr_result['filename'];
+                    } else {
+                        $error_message = $qr_result['message'];
+                    }
+                }
+                if (isset($_POST['delete_venue_qr_code']) && !$has_new_qr_upload) {
+                    if (!empty($venue['qr_code'])) {
+                        deleteUploadedFile($venue['qr_code']);
+                    }
+                    $qr_code = null;
+                }
+            }
+
+            if (empty($error_message)) {
                 $sql = "UPDATE venues SET 
                         name = ?,
                         city_id = ?,
@@ -181,6 +205,8 @@ if (isset($_POST['update_venue']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_phone = ?,
                         contact_email = ?,
                         map_link = ?,
+                        bank_details = ?,
+                        qr_code = ?,
                         status = ?
                         WHERE id = ?";
                 
@@ -194,6 +220,8 @@ if (isset($_POST['update_venue']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contact_phone,
                     $contact_email,
                     $map_link ?: null,
+                    $bank_details ?: null,
+                    $qr_code,
                     $status,
                     $venue_id
                 ]);
@@ -325,6 +353,33 @@ try {
                                value="<?php echo htmlspecialchars($venue['map_link'] ?? ''); ?>" 
                                placeholder="e.g., https://maps.google.com/?q=...">
                         <small class="text-muted">Paste the Google Maps share link so users can view the exact location.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bank_details" class="form-label"><i class="fas fa-university me-1"></i>Bank Details</label>
+                        <textarea class="form-control" id="bank_details" name="bank_details" rows="4"
+                                  placeholder="Bank Name:&#10;Account Name:&#10;Account Number:&#10;Branch:"><?php echo htmlspecialchars($venue['bank_details'] ?? ''); ?></textarea>
+                        <small class="text-muted">Enter bank account details for payment (bank name, account name/number, etc.).</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-qrcode me-1"></i>Payment QR Code</label>
+                        <?php if (!empty($venue['qr_code'])): ?>
+                            <div class="mb-2 d-flex align-items-center gap-3">
+                                <img src="<?php echo htmlspecialchars(UPLOAD_URL . $venue['qr_code']); ?>"
+                                     alt="Payment QR Code"
+                                     style="width:120px;height:120px;object-fit:contain;border:2px solid #dee2e6;border-radius:8px;">
+                                <div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="delete_venue_qr_code" id="delete_venue_qr_code" value="1">
+                                        <label class="form-check-label text-danger" for="delete_venue_qr_code">Remove current QR code</label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Upload a new image below to replace it.</small>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        <input type="file" class="form-control" id="venue_qr_code" name="venue_qr_code" accept="image/*">
+                        <small class="text-muted">Upload a QR code image for payment scanning. JPG, PNG, or WebP. Max 5MB.</small>
                     </div>
 
                     <div class="mb-3">

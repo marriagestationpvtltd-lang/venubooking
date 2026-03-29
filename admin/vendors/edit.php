@@ -35,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $address           = trim($_POST['address']           ?? '');
     $city_id           = intval($_POST['city_id']         ?? 0);
     $notes             = trim($_POST['notes']             ?? '');
+    $bank_details      = trim($_POST['bank_details']      ?? '');
     $status            = in_array($_POST['status'] ?? '', ['active', 'inactive', 'unapproved']) ? $_POST['status'] : 'active';
 
     // Handle photo deletions
@@ -85,8 +86,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($error_message)) {
-                $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, short_description = ?, phone = ?, email = ?, address = ?, city_id = ?, photo = NULL, notes = ?, status = ? WHERE id = ?");
-                $stmt->execute([$name, $type, $short_description ?: null, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $notes ?: null, $status, $vendor_id]);
+                // Handle QR code upload
+                $qr_code = $vendor['qr_code'] ?? null;
+                $has_new_qr_upload = isset($_FILES['qr_code']) && ($_FILES['qr_code']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+                if ($has_new_qr_upload) {
+                    $qr_result = handleImageUpload($_FILES['qr_code'], 'vendor-qr');
+                    if ($qr_result['success']) {
+                        if (!empty($vendor['qr_code'])) {
+                            deleteUploadedFile($vendor['qr_code']);
+                        }
+                        $qr_code = $qr_result['filename'];
+                    } else {
+                        $error_message = $qr_result['message'];
+                    }
+                }
+                if (isset($_POST['delete_qr_code']) && !$has_new_qr_upload) {
+                    if (!empty($vendor['qr_code'])) {
+                        deleteUploadedFile($vendor['qr_code']);
+                    }
+                    $qr_code = null;
+                }
+            }
+
+            if (empty($error_message)) {
+                $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, short_description = ?, phone = ?, email = ?, address = ?, city_id = ?, photo = NULL, notes = ?, bank_details = ?, qr_code = ?, status = ? WHERE id = ?");
+                $stmt->execute([$name, $type, $short_description ?: null, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $notes ?: null, $bank_details ?: null, $qr_code, $status, $vendor_id]);
 
                 logActivity($current_user['id'], 'Updated vendor', 'vendors', $vendor_id, "Updated vendor: $name ($type)");
 
@@ -197,6 +221,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-12">
                             <label for="notes" class="form-label">Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="3"><?php echo htmlspecialchars($vendor['notes'] ?? ''); ?></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="bank_details" class="form-label"><i class="fas fa-university me-1"></i>Bank Details</label>
+                            <textarea class="form-control" id="bank_details" name="bank_details" rows="4"
+                                      placeholder="Bank Name:&#10;Account Name:&#10;Account Number:&#10;Branch:"><?php echo htmlspecialchars($vendor['bank_details'] ?? ''); ?></textarea>
+                            <small class="text-muted">Enter bank account details for payment (bank name, account name/number, etc.).</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-qrcode me-1"></i>Payment QR Code</label>
+                            <?php if (!empty($vendor['qr_code'])): ?>
+                                <div class="mb-2 d-flex align-items-center gap-3">
+                                    <img src="<?php echo htmlspecialchars(UPLOAD_URL . $vendor['qr_code']); ?>"
+                                         alt="Payment QR Code"
+                                         style="width:120px;height:120px;object-fit:contain;border:2px solid #dee2e6;border-radius:8px;">
+                                    <div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="delete_qr_code" id="delete_qr_code" value="1">
+                                            <label class="form-check-label text-danger" for="delete_qr_code">Remove current QR code</label>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">Upload a new image below to replace it.</small>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                            <input type="file" class="form-control" id="qr_code" name="qr_code" accept="image/*">
+                            <small class="text-muted">Upload a QR code image for payment scanning. JPG, PNG, or WebP. Max 5MB.</small>
                         </div>
 
                         <div class="col-12">

@@ -17,7 +17,7 @@ if ($venue_id <= 0) {
 
 // ── Load venue info ─────────────────────────────────────────────────────────
 try {
-    $venue_stmt = $db->prepare("SELECT id, name, contact_phone, contact_email, location, address FROM venues WHERE id = ?");
+    $venue_stmt = $db->prepare("SELECT id, name, contact_phone, contact_email, location, address, bank_details, qr_code FROM venues WHERE id = ?");
     $venue_stmt->execute([$venue_id]);
     $venue = $venue_stmt->fetch();
 } catch (PDOException $e) {
@@ -324,6 +324,70 @@ $extra_css = '
     .bm-stat-card:hover   { transform: translateY(-3px); }
     .bm-pay-btn:hover     { transform: scale(1.08); }
 }
+
+/* ── Payment Details (QR + Bank) ──────────────────────────────── */
+.bm-payment-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    border: 1px solid #f0f2f5;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+.bm-payment-card-header {
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #f0f7ff 0%, #e8f5e9 100%);
+    border-bottom: 1px solid #e9ecef;
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 1rem; font-weight: 700; color: #1a252f;
+}
+.bm-payment-body {
+    display: flex; align-items: flex-start; gap: 2rem;
+    padding: 1.5rem;
+    flex-wrap: wrap;
+}
+.bm-qr-wrap {
+    position: relative;
+    flex-shrink: 0;
+    cursor: zoom-in;
+}
+.bm-qr-img {
+    width: 140px; height: 140px;
+    object-fit: contain;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    display: block;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transform-origin: top left;
+}
+.bm-qr-wrap:hover .bm-qr-img {
+    transform: scale(2.5);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    z-index: 10;
+    position: relative;
+}
+.bm-qr-hint {
+    font-size: 0.72rem; color: #9ca3af; text-align: center; margin-top: 4px;
+}
+.bm-bank-details {
+    flex: 1; min-width: 200px;
+}
+.bm-bank-details pre {
+    white-space: pre-wrap; word-break: break-word;
+    font-size: 0.88rem; color: #374151;
+    background: #f8f9fb; border-radius: 8px;
+    padding: 0.85rem 1rem; margin: 0;
+    border: 1px solid #e9ecef;
+    font-family: \'Courier New\', monospace;
+}
+.bm-due-highlight {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: #fff3e0; color: #e65100;
+    border-radius: 10px; padding: 0.6rem 1.1rem;
+    font-size: 1.05rem; font-weight: 700;
+    border: 1.5px solid #ffcc80;
+    margin-bottom: 0.75rem;
+}
 </style>
 ';
 
@@ -450,6 +514,43 @@ $agg_due = max(0.0, $agg_payable - $agg_paid);
         </div>
     </div>
 </div>
+
+<?php if (!empty($venue['bank_details']) || !empty($venue['qr_code'])): ?>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  PAYMENT DETAILS (QR CODE + BANK DETAILS)                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="bm-payment-card">
+    <div class="bm-payment-card-header">
+        <i class="fas fa-university"></i> Payment Details
+    </div>
+    <div class="bm-payment-body">
+        <?php if (!empty($venue['qr_code'])): ?>
+        <div>
+            <div class="bm-qr-wrap" title="Hover to zoom in for scanning">
+                <img src="<?php echo htmlspecialchars(UPLOAD_URL . $venue['qr_code']); ?>"
+                     alt="Payment QR Code"
+                     class="bm-qr-img">
+            </div>
+            <p class="bm-qr-hint"><i class="fas fa-search-plus me-1"></i>Hover to zoom</p>
+        </div>
+        <?php endif; ?>
+        <div class="bm-bank-details">
+            <?php if ($agg_due > 0.005): ?>
+                <div class="bm-due-highlight">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Due Amount: <?php echo formatCurrency($agg_due); ?>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($venue['bank_details'])): ?>
+                <pre><?php echo htmlspecialchars($venue['bank_details']); ?></pre>
+            <?php endif; ?>
+            <?php if (empty($venue['bank_details']) && !empty($venue['qr_code'])): ?>
+                <p class="text-muted mb-0"><i class="fas fa-info-circle me-1"></i>Scan the QR code to make payment.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!--  BOOKINGS TABLE                                            -->
