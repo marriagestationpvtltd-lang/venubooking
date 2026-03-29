@@ -4028,7 +4028,8 @@ function calculatePaymentSummary($booking_id) {
     
     // Get booking totals, advance payment status and actual received amount from database
     $stmt = $db->prepare("SELECT hall_price, menu_total, services_total, subtotal, tax_amount, grand_total,
-                                  advance_payment_received, advance_amount_received
+                                  advance_payment_received, advance_amount_received,
+                                  COALESCE(venue_amount_paid, 0) as venue_amount_paid
                           FROM bookings WHERE id = ?");
     $stmt->execute([$booking_id]);
     $booking = $stmt->fetch();
@@ -4045,11 +4046,15 @@ function calculatePaymentSummary($booking_id) {
     $payment_result = $stmt->fetch();
     $total_paid = floatval($payment_result['total_paid']);
     
-    // Calculate vendor assignments total
-    $stmt = $db->prepare("SELECT COALESCE(SUM(assigned_amount), 0) as vendors_total FROM booking_vendor_assignments WHERE booking_id = ?");
+    // Calculate vendor assignments total and how much has been paid out
+    $stmt = $db->prepare("SELECT COALESCE(SUM(assigned_amount), 0) as vendors_total,
+                                 COALESCE(SUM(amount_paid), 0) as vendors_paid_total
+                          FROM booking_vendor_assignments WHERE booking_id = ?");
     $stmt->execute([$booking_id]);
     $vendor_result = $stmt->fetch();
-    $vendors_total = floatval($vendor_result['vendors_total']);
+    $vendors_total      = floatval($vendor_result['vendors_total']);
+    $vendors_paid_total = floatval($vendor_result['vendors_paid_total']);
+    $vendors_due        = max(0.0, $vendors_total - $vendors_paid_total);
 
     // Calculate grand total
     $grand_total = floatval($booking['grand_total']);
@@ -4066,19 +4071,71 @@ function calculatePaymentSummary($booking_id) {
     
     // Venue provider payable = hall price + menu total (amounts owed to venue/restaurant provider)
     $venue_provider_payable = floatval($booking['hall_price']) + floatval($booking['menu_total']);
+    $venue_amount_paid      = floatval($booking['venue_amount_paid']);
+    $venue_due              = max(0.0, $venue_provider_payable - $venue_amount_paid);
 
     return [
         'subtotal' => floatval($booking['subtotal']),
         'tax_amount' => floatval($booking['tax_amount']),
         'grand_total' => $grand_total,
         'vendors_total' => $vendors_total,
+        'vendors_paid_total' => $vendors_paid_total,
+        'vendors_due' => $vendors_due,
         'total_paid' => $total_paid,
         'due_amount' => $due_amount,
         'advance_amount' => $advance['amount'],
         'advance_percentage' => $advance['percentage'],
         'advance_amount_received' => $advance_amount_received,
         'venue_provider_payable' => $venue_provider_payable,
+        'venue_amount_paid' => $venue_amount_paid,
+        'venue_due' => $venue_due,
     ];
+}
+
+/**
+ * Record a payout (or update the paid amount) for a vendor assignment.
+ *
+ * @param int   $assignment_id  The booking_vendor_assignments.id to update
+ * @param float $amount_paid    New total amount paid out to this vendor for this assignment
+ * @return bool
+ */
+function recordVendorPayout($assignment_id, $amount_paid) {
+    $db = getDB();
+    try {
+        $assignment_id = intval($assignment_id);
+        $amount_paid   = max(0.0, floatval($amount_paid));
+        if ($assignment_id <= 0) {
+            return false;
+        }
+        $stmt = $db->prepare("UPDATE booking_vendor_assignments SET amount_paid = ? WHERE id = ?");
+        return $stmt->execute([$amount_paid, $assignment_id]);
+    } catch (Exception $e) {
+        error_log("Error recording vendor payout: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Record a payout (or update the paid amount) for the venue provider on a booking.
+ *
+ * @param int   $booking_id      The bookings.id to update
+ * @param float $venue_amount_paid New total amount paid out to the venue provider
+ * @return bool
+ */
+function recordVenuePayment($booking_id, $venue_amount_paid) {
+    $db = getDB();
+    try {
+        $booking_id       = intval($booking_id);
+        $venue_amount_paid = max(0.0, floatval($venue_amount_paid));
+        if ($booking_id <= 0) {
+            return false;
+        }
+        $stmt = $db->prepare("UPDATE bookings SET venue_amount_paid = ? WHERE id = ?");
+        return $stmt->execute([$venue_amount_paid, $booking_id]);
+    } catch (Exception $e) {
+        error_log("Error recording venue payment: " . $e->getMessage());
+        return false;
+    }
 }
 
 /**

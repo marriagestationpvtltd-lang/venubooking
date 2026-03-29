@@ -428,6 +428,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     payment_status ENUM('pending', 'partial', 'paid', 'cancelled') DEFAULT 'pending',
     advance_payment_received TINYINT(1) DEFAULT 0 COMMENT 'Whether advance payment has been received (0=No, 1=Yes)',
     advance_amount_received DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'Actual advance payment amount received from customer (manually entered by admin)',
+    venue_amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'Amount actually paid out to the venue provider (hall + menu charges)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
@@ -733,7 +734,8 @@ CREATE TABLE IF NOT EXISTS booking_vendor_assignments (
     manual_vendor_name  VARCHAR(255) DEFAULT NULL COMMENT 'Free-text vendor name when vendor_id IS NULL',
     manual_vendor_phone VARCHAR(50)  DEFAULT NULL COMMENT 'Free-text vendor phone when vendor_id IS NULL',
     task_description VARCHAR(255) NOT NULL COMMENT 'What the vendor will do for this booking',
-    assigned_amount DECIMAL(10, 2) DEFAULT 0.00 COMMENT 'Amount to be paid to vendor',
+    assigned_amount DECIMAL(10, 2) NOT NULL DEFAULT 0 COMMENT 'Amount to be paid to vendor',
+    amount_paid DECIMAL(10, 2) NOT NULL DEFAULT 0 COMMENT 'Amount actually paid out to this vendor for this assignment',
     notes TEXT,
     status ENUM('assigned', 'confirmed', 'completed', 'cancelled') DEFAULT 'assigned',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1322,6 +1324,47 @@ DELIMITER ;
 
 CALL upgrade_bookings_columns();
 DROP PROCEDURE IF EXISTS upgrade_bookings_columns;
+
+-- ---- payout tracking columns ------------------------------------------------
+-- Adds venue_amount_paid to bookings and amount_paid to booking_vendor_assignments
+-- for installations that pre-date this migration.
+
+DROP PROCEDURE IF EXISTS upgrade_payout_tracking_columns;
+
+DELIMITER $$
+CREATE PROCEDURE upgrade_payout_tracking_columns()
+BEGIN
+    -- Add venue_amount_paid to bookings if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'bookings'
+          AND column_name = 'venue_amount_paid'
+    ) THEN
+        ALTER TABLE bookings
+            ADD COLUMN venue_amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0
+                COMMENT 'Amount actually paid out to the venue provider (hall + menu charges)'
+            AFTER advance_amount_received;
+    END IF;
+
+    -- Add amount_paid to booking_vendor_assignments if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'booking_vendor_assignments'
+          AND column_name = 'amount_paid'
+    ) THEN
+        ALTER TABLE booking_vendor_assignments
+            ADD COLUMN amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0
+                COMMENT 'Amount actually paid out to this vendor for this assignment'
+            AFTER assigned_amount;
+    END IF;
+END$$
+
+DELIMITER ;
+
+CALL upgrade_payout_tracking_columns();
+DROP PROCEDURE IF EXISTS upgrade_payout_tracking_columns;
 
 -- ---- booking_services table -------------------------------------------------
 -- createBooking() inserts description, category, added_by, quantity,
