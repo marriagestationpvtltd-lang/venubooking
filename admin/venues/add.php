@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_phone = trim($_POST['contact_phone']);
     $contact_email = trim($_POST['contact_email']);
     $map_link = trim($_POST['map_link'] ?? '');
+    $bank_details = trim($_POST['bank_details'] ?? '');
     $status = $_POST['status'];
 
     // Validation
@@ -41,9 +42,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
+            // Handle QR code upload
+            $qr_code_filename = null;
+            $has_qr_upload = isset($_FILES['venue_qr_code'])
+                && ($_FILES['venue_qr_code']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+            if (empty($error_message) && $has_qr_upload) {
+                $qr_result = handleImageUpload($_FILES['venue_qr_code'], 'venue-qr');
+                if ($qr_result['success']) {
+                    $qr_code_filename = $qr_result['filename'];
+                } else {
+                    $error_message = $qr_result['message'];
+                }
+            }
+
             if (empty($error_message)) {
-                $sql = "INSERT INTO venues (name, city_id, address, description, image, contact_phone, contact_email, map_link, status) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO venues (name, city_id, address, description, image, contact_phone, contact_email, map_link, bank_details, qr_code, status) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = $db->prepare($sql);
                 $result = $stmt->execute([
@@ -55,6 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contact_phone,
                     $contact_email,
                     $map_link ?: null,
+                    $bank_details ?: null,
+                    $qr_code_filename,
                     $status
                 ]);
 
@@ -105,17 +121,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Clear form
                     $_POST = [];
                 } else {
-                    // Delete uploaded image if database insert fails
+                    // Delete uploaded files if database insert fails
                     if ($image_filename) {
                         deleteUploadedFile($image_filename);
+                    }
+                    if ($qr_code_filename) {
+                        deleteUploadedFile($qr_code_filename);
                     }
                     $error_message = 'Failed to add venue. Please try again.';
                 }
             }
         } catch (Exception $e) {
-            // Delete uploaded image on exception
+            // Delete uploaded files on exception
             if (isset($image_filename) && $image_filename) {
                 deleteUploadedFile($image_filename);
+            }
+            if (isset($qr_code_filename) && $qr_code_filename) {
+                deleteUploadedFile($qr_code_filename);
             }
             $error_message = 'Error adding venue. Please try again or contact support.';
         }
@@ -215,6 +237,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                value="<?php echo isset($_POST['map_link']) ? htmlspecialchars($_POST['map_link']) : ''; ?>" 
                                placeholder="e.g., https://maps.google.com/?q=...">
                         <small class="text-muted">Paste the Google Maps share link so users can view the exact location.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bank_details" class="form-label"><i class="fas fa-university me-1"></i>Bank Details</label>
+                        <textarea class="form-control" id="bank_details" name="bank_details" rows="4"
+                                  placeholder="Bank Name:&#10;Account Name:&#10;Account Number:&#10;Branch:"><?php echo isset($_POST['bank_details']) ? htmlspecialchars($_POST['bank_details']) : ''; ?></textarea>
+                        <small class="text-muted">Enter bank account details for payment (bank name, account name/number, etc.).</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-qrcode me-1"></i>Payment QR Code</label>
+                        <input type="file" class="form-control" id="venue_qr_code" name="venue_qr_code" accept="image/*">
+                        <small class="text-muted">Upload a QR code image for payment scanning. JPG, PNG, or WebP. Max 5MB.</small>
                     </div>
 
                     <div class="mb-3">
