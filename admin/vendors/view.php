@@ -21,8 +21,10 @@ $vendor_photos      = getVendorPhotos($vendor_id);
 $vendor_assignments = getVendorAssignments($vendor_id);
 $total_receivable   = getVendorTotalReceivable($vendor_id);
 
-// Group totals by status for summary
+// Group totals by status for summary; also compute overall paid/due
 $status_totals = [];
+$grand_paid = 0.0;
+$grand_due  = 0.0;
 foreach ($vendor_assignments as $a) {
     $s = $a['status'];
     if (!isset($status_totals[$s])) {
@@ -30,6 +32,11 @@ foreach ($vendor_assignments as $a) {
     }
     $status_totals[$s]['count']++;
     $status_totals[$s]['amount'] += (float)$a['assigned_amount'];
+    if ($s !== 'cancelled') {
+        $paid = (float)($a['amount_paid'] ?? 0);
+        $grand_paid += $paid;
+        $grand_due  += max(0.0, (float)$a['assigned_amount'] - $paid);
+    }
 }
 ?>
 
@@ -136,17 +143,51 @@ foreach ($vendor_assignments as $a) {
 
     <!-- Receivable Summary -->
     <div class="col-md-8">
-        <!-- Total Receivable Highlight -->
-        <div class="card border-success mb-4">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
-                     style="width:64px;height:64px;flex-shrink:0;">
-                    <i class="fas fa-hand-holding-usd fa-2x text-success"></i>
+        <!-- Total Receivable / Paid / Due Highlight -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card border-success h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
+                             style="width:52px;height:52px;flex-shrink:0;">
+                            <i class="fas fa-hand-holding-usd fa-lg text-success"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">कुल पाउनुपर्ने रकम</div>
+                            <div class="fw-bold fs-5 text-success"><?php echo formatCurrency($total_receivable); ?></div>
+                            <div class="text-muted" style="font-size:0.75rem;">Total Receivable (excl. cancelled)</div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <div class="text-muted small mb-1">कम्पनीमार्फत पाउनुपर्ने कुल रकम</div>
-                    <div class="fw-bold fs-3 text-success"><?php echo formatCurrency($total_receivable); ?></div>
-                    <div class="text-muted small">Total Receivable Amount (excluding cancelled assignments)</div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-primary h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                             style="width:52px;height:52px;flex-shrink:0;">
+                            <i class="fas fa-check-circle fa-lg text-primary"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">भुक्तान भएको रकम</div>
+                            <div class="fw-bold fs-5 text-primary"><?php echo formatCurrency($grand_paid); ?></div>
+                            <div class="text-muted" style="font-size:0.75rem;">Total Paid Out</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-danger h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center"
+                             style="width:52px;height:52px;flex-shrink:0;">
+                            <i class="fas fa-clock fa-lg text-danger"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">बाँकी रकम</div>
+                            <div class="fw-bold fs-5 text-danger"><?php echo formatCurrency($grand_due); ?></div>
+                            <div class="text-muted" style="font-size:0.75rem;">Remaining Due</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -201,7 +242,9 @@ foreach ($vendor_assignments as $a) {
                                     <th>Venue / Hall</th>
                                     <th>Task</th>
                                     <th>Status</th>
-                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Assigned</th>
+                                    <th class="text-end">Paid</th>
+                                    <th class="text-end">Remaining Due</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -213,7 +256,12 @@ foreach ($vendor_assignments as $a) {
                                             </a>
                                         </td>
                                         <td><?php echo htmlspecialchars($a['customer_name'] ?? '—'); ?></td>
-                                        <td><?php echo !empty($a['event_date']) ? date('d M Y', strtotime($a['event_date'])) : '—'; ?></td>
+                                        <td data-sort="<?php echo htmlspecialchars($a['event_date'] ?? ''); ?>">
+                                            <?php echo !empty($a['event_date']) ? date('d M Y', strtotime($a['event_date'])) : '—'; ?>
+                                            <?php if (!empty($a['event_date'])): ?>
+                                                <br><small class="text-muted"><?php echo convertToNepaliDate($a['event_date']); ?></small>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php echo htmlspecialchars($a['venue_name'] ?? ''); ?>
                                             <?php if (!empty($a['hall_name'])): ?>
@@ -233,16 +281,34 @@ foreach ($vendor_assignments as $a) {
                                                 <?php echo ucfirst($a['status']); ?>
                                             </span>
                                         </td>
-                                        <td class="text-end fw-semibold <?php echo $a['status'] === 'cancelled' ? 'text-muted text-decoration-line-through' : 'text-success'; ?>">
+                                        <td class="text-end fw-semibold <?php echo $a['status'] === 'cancelled' ? 'text-muted text-decoration-line-through' : 'text-dark'; ?>">
                                             <?php echo formatCurrency($a['assigned_amount']); ?>
+                                        </td>
+                                        <?php
+                                            $row_paid = (float)($a['amount_paid'] ?? 0);
+                                            $row_due  = $a['status'] !== 'cancelled' ? max(0.0, (float)$a['assigned_amount'] - $row_paid) : 0.0;
+                                        ?>
+                                        <td class="text-end text-primary">
+                                            <?php echo $a['status'] !== 'cancelled' ? formatCurrency($row_paid) : '—'; ?>
+                                        </td>
+                                        <td class="text-end fw-semibold <?php echo $row_due > 0 ? 'text-danger' : ($a['status'] !== 'cancelled' ? 'text-success' : 'text-muted'); ?>">
+                                            <?php if ($a['status'] === 'cancelled'): ?>
+                                                <span class="text-muted">—</span>
+                                            <?php elseif ($row_due > 0): ?>
+                                                <?php echo formatCurrency($row_due); ?>
+                                            <?php else: ?>
+                                                <i class="fas fa-check-circle"></i> Cleared
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <th colspan="6" class="text-end">Total Receivable (excl. cancelled):</th>
-                                    <th class="text-end text-success"><?php echo formatCurrency($total_receivable); ?></th>
+                                    <th colspan="6" class="text-end">Total (excl. cancelled):</th>
+                                    <th class="text-end"><?php echo formatCurrency($total_receivable); ?></th>
+                                    <th class="text-end text-primary"><?php echo formatCurrency($grand_paid); ?></th>
+                                    <th class="text-end text-danger"><?php echo formatCurrency($grand_due); ?></th>
                                 </tr>
                             </tfoot>
                         </table>
