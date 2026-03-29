@@ -607,6 +607,18 @@ $extra_css = <<<CSS
 .db-mini-tile-num { font-size: 1.4rem; font-weight: 700; color: #1e293b; }
 .db-mini-tile-lbl { font-size: .72rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
 
+/* ── Clickable card links ────────────────────────────────────── */
+a.db-metric-card,
+a.db-status-card,
+a.db-mini-tile-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+a.db-status-card { display: flex; }
+a.db-mini-tile-link { padding: 1rem; text-align: center; }
+a.db-mini-tile-link:hover { background: #f8fafc; }
+
 /* ── View-all link ──────────────────────────────────────────── */
 .db-view-all {
     display: block;
@@ -650,18 +662,18 @@ function dashBadge($status) {
     </div>
     <div class="today-icon"><i class="fas fa-calendar-star"></i></div>
     <div class="d-flex gap-3 flex-wrap">
-        <div class="text-center">
+        <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php?status_filter=pending" class="text-center text-white text-decoration-none">
             <div class="db-today-stat-num"><?php echo $stats['pending_bookings']; ?></div>
             <div class="db-today-stat-lbl">Pending</div>
-        </div>
-        <div class="text-center">
+        </a>
+        <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php?status_filter=confirmed" class="text-center text-white text-decoration-none">
             <div class="db-today-stat-num"><?php echo $stats['confirmed_bookings']; ?></div>
             <div class="db-today-stat-lbl">Confirmed</div>
-        </div>
-        <div class="text-center">
+        </a>
+        <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="text-center text-white text-decoration-none">
             <div class="db-today-stat-num"><?php echo formatCurrency($stats['month_revenue']); ?></div>
             <div class="db-today-stat-lbl">This Month</div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -672,7 +684,7 @@ function dashBadge($status) {
 <div class="row g-3 mb-2">
     <!-- Total Bookings -->
     <div class="col-xl-3 col-md-6">
-        <div class="db-metric-card card-blue">
+        <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php" class="db-metric-card card-blue">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-blue"><i class="fas fa-calendar-check"></i></div>
                 <div class="text-end">
@@ -684,12 +696,12 @@ function dashBadge($status) {
                 <i class="fas fa-arrow-<?php echo $booking_trend >= 0 ? 'up' : 'down'; ?>-right"></i>
                 <?php echo abs($booking_trend); ?>% vs last month
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Total Revenue -->
     <div class="col-xl-3 col-md-6">
-        <div class="db-metric-card card-green">
+        <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card card-green">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-green"><i class="fas fa-coins"></i></div>
                 <div class="text-end">
@@ -701,12 +713,12 @@ function dashBadge($status) {
                 <i class="fas fa-calendar-month"></i>
                 <?php echo formatCurrency($stats['month_revenue']); ?> this month
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Monthly Revenue Trend -->
     <div class="col-xl-3 col-md-6">
-        <div class="db-metric-card card-purple">
+        <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card card-purple">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-purple"><i class="fas fa-chart-line"></i></div>
                 <div class="text-end">
@@ -718,12 +730,12 @@ function dashBadge($status) {
                 <i class="fas fa-arrow-<?php echo $revenue_trend >= 0 ? 'up' : 'down'; ?>-right"></i>
                 <?php echo abs($revenue_trend); ?>% vs last month
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Customers -->
     <div class="col-xl-3 col-md-6">
-        <div class="db-metric-card card-cyan">
+        <a href="<?php echo BASE_URL; ?>/admin/customers/index.php" class="db-metric-card card-cyan">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-cyan"><i class="fas fa-users"></i></div>
                 <div class="text-end">
@@ -735,7 +747,7 @@ function dashBadge($status) {
                 <i class="fas fa-user-plus"></i>
                 <?php echo $stats['new_customers_month']; ?> new this month
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -746,7 +758,7 @@ function dashBadge($status) {
 <div class="row g-3 mb-4">
     <!-- Total Payout -->
     <div class="col-xl-4 col-md-6">
-        <div class="db-metric-card card-red">
+        <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card card-red">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-red"><i class="fas fa-arrow-up-from-bracket"></i></div>
                 <div class="text-end">
@@ -758,13 +770,13 @@ function dashBadge($status) {
                 <i class="fas fa-building me-1"></i><?php echo formatCurrency($stats['total_venue_cost']); ?> venues &nbsp;·&nbsp;
                 <i class="fas fa-handshake ms-1 me-1"></i><?php echo formatCurrency($stats['total_vendor_payable']); ?> vendors
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Net Profit -->
     <div class="col-xl-4 col-md-6">
         <?php $profit_positive = $stats['total_profit'] >= 0; ?>
-        <div class="db-metric-card <?php echo $profit_positive ? 'card-green' : 'card-red'; ?>">
+        <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-metric-card <?php echo $profit_positive ? 'card-green' : 'card-red'; ?>">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon <?php echo $profit_positive ? 'icon-green' : 'icon-red'; ?>"><i class="fas fa-sack-dollar"></i></div>
                 <div class="text-end">
@@ -776,12 +788,12 @@ function dashBadge($status) {
                 <i class="fas fa-arrow-<?php echo $profit_positive ? 'up' : 'down'; ?>-right"></i>
                 <?php echo $profit_positive ? 'Revenue exceeds payout' : 'Payout exceeds revenue'; ?>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Outstanding Venue Provider Due -->
     <div class="col-xl-4 col-md-6">
-        <div class="db-metric-card card-teal">
+        <a href="<?php echo BASE_URL; ?>/admin/venues/index.php" class="db-metric-card card-teal">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-teal"><i class="fas fa-building"></i></div>
                 <div class="text-end">
@@ -793,7 +805,7 @@ function dashBadge($status) {
                 <i class="fas fa-info-circle"></i>
                 Outstanding amount still owed to venues
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -802,40 +814,40 @@ function dashBadge($status) {
 ════════════════════════════════════════════════════════════ -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3">
-        <div class="db-status-card">
+        <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php?status_filter=pending" class="db-status-card">
             <div class="db-metric-icon icon-amber"><i class="fas fa-hourglass-half"></i></div>
             <div>
                 <div class="db-status-num counter" data-target="<?php echo $stats['pending_bookings']; ?>"><?php echo $stats['pending_bookings']; ?></div>
                 <div class="db-status-lbl"><span class="db-status-dot dot-amber"></span>Pending</div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-6 col-xl-3">
-        <div class="db-status-card">
+        <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php?status_filter=confirmed" class="db-status-card">
             <div class="db-metric-icon icon-blue"><i class="fas fa-thumbs-up"></i></div>
             <div>
                 <div class="db-status-num counter" data-target="<?php echo $stats['confirmed_bookings']; ?>"><?php echo $stats['confirmed_bookings']; ?></div>
                 <div class="db-status-lbl"><span class="db-status-dot dot-blue"></span>Confirmed</div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-6 col-xl-3">
-        <div class="db-status-card">
+        <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php?status_filter=completed" class="db-status-card">
             <div class="db-metric-icon icon-green"><i class="fas fa-check-double"></i></div>
             <div>
                 <div class="db-status-num counter" data-target="<?php echo $stats['completed_bookings']; ?>"><?php echo $stats['completed_bookings']; ?></div>
                 <div class="db-status-lbl"><span class="db-status-dot dot-green"></span>Completed</div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-6 col-xl-3">
-        <div class="db-status-card">
+        <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php?status_filter=cancelled" class="db-status-card">
             <div class="db-metric-icon icon-red"><i class="fas fa-ban"></i></div>
             <div>
                 <div class="db-status-num counter" data-target="<?php echo $stats['cancelled_bookings']; ?>"><?php echo $stats['cancelled_bookings']; ?></div>
                 <div class="db-status-lbl"><span class="db-status-dot dot-red"></span>Cancelled</div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -883,13 +895,17 @@ function dashBadge($status) {
             </div>
             <!-- Mini venue/hall tiles -->
             <div class="row g-0 border-top">
-                <div class="col-6 p-3 text-center border-end">
-                    <div class="db-mini-tile-num"><?php echo $stats['total_venues']; ?></div>
-                    <div class="db-mini-tile-lbl">Active Venues</div>
+                <div class="col-6 border-end">
+                    <a href="<?php echo BASE_URL; ?>/admin/venues/index.php" class="db-mini-tile-link">
+                        <div class="db-mini-tile-num"><?php echo $stats['total_venues']; ?></div>
+                        <div class="db-mini-tile-lbl">Active Venues</div>
+                    </a>
                 </div>
-                <div class="col-6 p-3 text-center">
-                    <div class="db-mini-tile-num"><?php echo $stats['total_halls']; ?></div>
-                    <div class="db-mini-tile-lbl">Active Halls</div>
+                <div class="col-6">
+                    <a href="<?php echo BASE_URL; ?>/admin/halls/index.php" class="db-mini-tile-link">
+                        <div class="db-mini-tile-num"><?php echo $stats['total_halls']; ?></div>
+                        <div class="db-mini-tile-lbl">Active Halls</div>
+                    </a>
                 </div>
             </div>
         </div>
