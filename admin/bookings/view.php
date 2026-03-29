@@ -308,7 +308,6 @@ if (isset($_POST['action'])) {
     } elseif ($action === 'add_vendor_assignment') {
         $vendor_id_input      = intval($_POST['vendor_id'] ?? 0);
         $task_description     = trim($_POST['task_description'] ?? '');
-        $assigned_amount      = max(0, floatval($_POST['assigned_amount'] ?? 0));
         $assignment_notes     = trim($_POST['assignment_notes'] ?? '');
         $booking_service_id   = intval($_POST['booking_service_id'] ?? 0);
         $is_manual            = !empty($_POST['is_manual_vendor']);
@@ -321,7 +320,7 @@ if (isset($_POST['action'])) {
             if ($manual_vendor_name === '') {
                 $_SESSION['flash_error'] = 'Please enter the vendor name.';
             } else {
-                $assignment_id = addVendorAssignment($booking_id, null, $task_description, $assigned_amount, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null, $manual_vendor_name, $manual_vendor_phone, $manual_vendor_type);
+                $assignment_id = addVendorAssignment($booking_id, null, $task_description, 0 /* amount handled separately */, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null, $manual_vendor_name, $manual_vendor_phone, $manual_vendor_type);
                 if ($assignment_id) {
                     logActivity($current_user['id'], 'Added manual vendor assignment', 'booking_vendor_assignments', $booking_id, "Manual vendor \"{$manual_vendor_name}\": {$task_description}");
                     $_SESSION['flash_success'] = 'Manual vendor assigned successfully!';
@@ -358,7 +357,7 @@ if (isset($_POST['action'])) {
             if ($is_duplicate) {
                 $_SESSION['flash_error'] = 'This vendor is already assigned to this service.';
             } else {
-                $assignment_id = addVendorAssignment($booking_id, $vendor_id_input, $task_description, $assigned_amount, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null);
+                $assignment_id = addVendorAssignment($booking_id, $vendor_id_input, $task_description, 0 /* amount handled separately */, $assignment_notes, $booking_service_id > 0 ? $booking_service_id : null);
                 if ($assignment_id) {
                     logActivity($current_user['id'], 'Added vendor assignment', 'booking_vendor_assignments', $booking_id, "Assigned vendor ID {$vendor_id_input}: {$task_description}");
                     $_SESSION['flash_success'] = 'Vendor assigned successfully!';
@@ -414,41 +413,6 @@ if (isset($_POST['action'])) {
         }
         $_SESSION['flash_section'] = 'admin_services';
         header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
-        exit;
-    } elseif ($action === 'record_vendor_payout') {
-        $assignment_id = intval($_POST['assignment_id'] ?? 0);
-        $amount_paid   = max(0.0, floatval($_POST['amount_paid'] ?? 0));
-
-        // Validate assignment belongs to this booking and cap at assigned_amount
-        $db_chk = getDB()->prepare("SELECT assigned_amount FROM booking_vendor_assignments WHERE id = ? AND booking_id = ?");
-        $db_chk->execute([$assignment_id, $booking_id]);
-        $va_row = $db_chk->fetch();
-        if ($va_row) {
-            $amount_paid = min($amount_paid, floatval($va_row['assigned_amount']));
-        }
-
-        if ($assignment_id > 0 && $va_row && recordVendorPayout($assignment_id, $amount_paid)) {
-            logActivity($current_user['id'], 'Recorded vendor payout', 'booking_vendor_assignments', $booking_id, "Assignment {$assignment_id}: paid " . number_format($amount_paid, 2));
-            $_SESSION['flash_success'] = 'Vendor payout amount updated.';
-        } else {
-            $_SESSION['flash_error'] = 'Failed to update vendor payout amount.';
-        }
-        $_SESSION['flash_section'] = 'payout';
-        header('Location: view.php?id=' . urlencode($booking_id) . '#section-payout');
-        exit;
-    } elseif ($action === 'record_venue_payment') {
-        $payment_sum_chk   = calculatePaymentSummary($booking_id);
-        $venue_payable_chk = $payment_sum_chk['venue_provider_payable'];
-        $venue_amount_paid = min(max(0.0, floatval($_POST['venue_amount_paid'] ?? 0)), $venue_payable_chk);
-
-        if (recordVenuePayment($booking_id, $venue_amount_paid)) {
-            logActivity($current_user['id'], 'Recorded venue payment', 'bookings', $booking_id, "Venue paid: " . number_format($venue_amount_paid, 2));
-            $_SESSION['flash_success'] = 'Venue payment amount updated.';
-        } else {
-            $_SESSION['flash_error'] = 'Failed to update venue payment amount.';
-        }
-        $_SESSION['flash_section'] = 'payout';
-        header('Location: view.php?id=' . urlencode($booking_id) . '#section-payout');
         exit;
     } elseif ($action === 'send_all_vendor_emails') {
         $va_all      = getBookingVendorAssignments($booking_id);
@@ -2383,12 +2347,6 @@ unset($_avail_svc);
                                                     </div>
                                                 </div>
                                                 <div class="col-auto">
-                                                    <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Amount</label>
-                                                    <input type="number" name="assigned_amount" class="form-control form-control-sm"
-                                                           value="0" min="0" step="0.01"
-                                                           style="width:90px;font-size:.78rem;">
-                                                </div>
-                                                <div class="col-auto">
                                                     <button type="submit" class="btn btn-sm btn-success">
                                                         <i class="fas fa-user-plus me-1"></i>Assign
                                                     </button>
@@ -2431,17 +2389,6 @@ unset($_avail_svc);
                                             <?php endif; ?>
                                         <?php else: ?>
                                             <span class="badge bg-light text-secondary border" style="font-size:.62rem;"><?php echo htmlspecialchars(getVendorTypeLabel($va['vendor_type'])); ?></span>
-                                        <?php endif; ?>
-                                        <span class="text-primary fw-bold" style="font-size:.75rem;"><?php echo formatCurrency($va['assigned_amount'] ?? 0); ?></span>
-                                        <?php
-                                        $va_paid = floatval($va['amount_paid'] ?? 0);
-                                        $va_due  = max(0.0, floatval($va['assigned_amount'] ?? 0) - $va_paid);
-                                        ?>
-                                        <?php if ($va_paid > 0): ?>
-                                        <span class="text-success" style="font-size:.68rem;" title="Paid"><i class="fas fa-check-circle me-1"></i><?php echo formatCurrency($va_paid); ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($va_due > 0): ?>
-                                        <span class="text-danger fw-semibold" style="font-size:.68rem;" title="Due">Due: <?php echo formatCurrency($va_due); ?></span>
                                         <?php endif; ?>
                                         <?php if (!empty($va['task_description'])): ?>
                                             <span class="text-muted" title="<?php echo htmlspecialchars($va['notes'] ?? ''); ?>"><?php echo htmlspecialchars($va['task_description']); ?></span>
@@ -3280,87 +3227,8 @@ unset($_avail_svc);
                                 <?php echo $venue_due > 0 ? formatCurrency($venue_due) : 'Cleared'; ?>
                             </strong>
                         </div>
-                        <div class="px-3 py-2">
-                            <form method="POST" class="d-flex align-items-center gap-2 flex-wrap">
-                                <input type="hidden" name="action" value="record_venue_payment">
-                                <label class="small fw-semibold mb-0 flex-shrink-0">Record Paid:</label>
-                                <div class="input-group input-group-sm" style="max-width:160px;">
-                                    <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <input type="number" name="venue_amount_paid" class="form-control form-control-sm"
-                                           min="0" step="0.01" max="<?php echo htmlspecialchars(number_format($venue_provider_payable, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                           value="<?php echo htmlspecialchars(number_format($venue_amount_paid_out, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-info">
-                                    <i class="fas fa-save me-1"></i>Save
-                                </button>
-                            </form>
-                        </div>
                         <?php endif; ?>
                     </div>
-
-                    <?php if (!empty($vendor_assignments)): ?>
-                    <!-- Vendor Payouts -->
-                    <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
-                        <div class="px-3 py-2 bg-purple bg-opacity-10 border-bottom" style="background:#f3eeff;">
-                            <span class="fw-semibold" style="color:#6f42c1;">
-                                <i class="fas fa-user-tie me-2"></i>Vendor Payouts
-                            </span>
-                            <?php if ($vendors_total > 0): ?>
-                            <span class="float-end fw-bold" style="color:#6f42c1;"><?php echo formatCurrency($vendors_total); ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <?php foreach ($vendor_assignments as $pva):
-                            if (floatval($pva['assigned_amount'] ?? 0) <= 0 && floatval($pva['amount_paid'] ?? 0) <= 0) continue;
-                            $pva_assigned = floatval($pva['assigned_amount'] ?? 0);
-                            $pva_paid     = floatval($pva['amount_paid'] ?? 0);
-                            $pva_due      = max(0.0, $pva_assigned - $pva_paid);
-                            $pva_name     = htmlspecialchars($pva['vendor_name'] ?? '', ENT_QUOTES, 'UTF-8');
-                        ?>
-                        <div class="border-bottom px-3 py-2">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-semibold small"><?php echo $pva_name; ?></span>
-                                <span class="small text-dark fw-bold"><?php echo formatCurrency($pva_assigned); ?></span>
-                            </div>
-                            <?php if (!empty($pva['task_description'])): ?>
-                            <div class="text-muted mb-1" style="font-size:.72rem;"><?php echo htmlspecialchars($pva['task_description'], ENT_QUOTES, 'UTF-8'); ?></div>
-                            <?php endif; ?>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="small <?php echo $pva_paid > 0 ? 'text-success' : 'text-muted'; ?>">
-                                    <i class="fas fa-<?php echo $pva_paid > 0 ? 'check-circle' : 'circle'; ?> me-1"></i>
-                                    Paid: <strong><?php echo formatCurrency($pva_paid); ?></strong>
-                                </span>
-                                <span class="small <?php echo $pva_due > 0 ? 'text-danger fw-bold' : 'text-success'; ?>">
-                                    Due: <?php echo $pva_due > 0 ? formatCurrency($pva_due) : '<i class="fas fa-check me-1"></i>Cleared'; ?>
-                                </span>
-                            </div>
-                            <form method="POST" class="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                                <input type="hidden" name="action" value="record_vendor_payout">
-                                <input type="hidden" name="assignment_id" value="<?php echo (int)$pva['id']; ?>">
-                                <div class="input-group input-group-sm" style="max-width:160px;">
-                                    <span class="input-group-text"><?php echo htmlspecialchars(getSetting('currency', 'NPR'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <input type="number" name="amount_paid" class="form-control form-control-sm"
-                                           min="0" step="0.01" max="<?php echo htmlspecialchars(number_format($pva_assigned, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                           value="<?php echo htmlspecialchars(number_format($pva_paid, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>"
-                                           placeholder="Amount paid">
-                                </div>
-                                <button type="submit" class="btn btn-sm btn-outline-primary py-0">
-                                    <i class="fas fa-save me-1"></i>Save
-                                </button>
-                            </form>
-                        </div>
-                        <?php endforeach; ?>
-                        <?php if ($vendors_paid_total > 0 || $vendors_due > 0): ?>
-                        <div class="px-3 py-2 d-flex justify-content-between align-items-center" style="background:#fafafa;">
-                            <span class="small text-muted">Total Paid / Due</span>
-                            <span class="small">
-                                <strong class="text-success"><?php echo formatCurrency($vendors_paid_total); ?></strong>
-                                &nbsp;/&nbsp;
-                                <strong class="<?php echo $vendors_due > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo formatCurrency($vendors_due); ?></strong>
-                            </span>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                    <?php endif; ?>
 
                     <!-- Advance & Balance rows -->
                     <div class="mt-3 rounded border overflow-hidden" style="font-size:.875rem;">
