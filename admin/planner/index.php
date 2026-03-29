@@ -96,7 +96,7 @@ $stats = $db->query(
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover datatable">
+            <table id="planner-table" class="table table-hover">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -176,18 +176,24 @@ $stats = $db->query(
                             </td>
                         </tr>
                     <?php endforeach; ?>
-                    <?php if (empty($plans)): ?>
-                        <tr>
-                            <td colspan="9" class="text-center text-muted py-5">
-                                <i class="fas fa-tasks fa-3x mb-3 d-block"></i>
-                                No event plans yet. <a href="add.php">Create your first plan</a>.
-                            </td>
-                        </tr>
-                    <?php endif; ?>
+
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
+<?php
+$extra_js = '<script>
+$(document).ready(function() {
+    $("#planner-table").DataTable({
+        pageLength: 25,
+        order: [[0, "desc"]],
+        language: {
+            emptyTable: \'<i class="fas fa-tasks fa-2x mb-2 d-block"></i>No event plans yet. <a href="' . htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8') . '/admin/planner/add.php">Create your first plan</a>.\'
+        }
+    });
+});
+</script>';
+?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
