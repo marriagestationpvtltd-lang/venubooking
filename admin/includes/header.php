@@ -239,6 +239,9 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="<?php echo BASE_URL; ?>/admin/venue-payable/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'venue-payable') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-hand-holding-usd"></i> Venue Payable
             </a>
+            <a href="<?php echo BASE_URL; ?>/admin/vendor-payable/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'vendor-payable') !== false ? 'active' : ''; ?>">
+                <i class="fas fa-money-bill-wave"></i> Vendor Payable
+            </a>
             <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="nav-link <?php echo strpos($_SERVER['PHP_SELF'], 'reports') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-chart-bar"></i> Reports
             </a>
