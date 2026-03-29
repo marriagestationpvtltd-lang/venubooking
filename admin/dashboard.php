@@ -521,14 +521,6 @@ $extra_css = <<<CSS
     font-weight: 600;
     margin-bottom: 1.2rem;
 }
-.db-qa-group-label {
-    font-size: .62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .09em;
-    color: rgba(255,255,255,.4);
-    margin-bottom: .5rem;
-}
 .db-qa-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -1075,9 +1067,7 @@ function dashBadge($status) {
 <div class="db-quick-actions-card mb-4">
     <h6><i class="fas fa-bolt me-1"></i> Quick Actions</h6>
 
-    <!-- Bookings & Customers -->
-    <div class="db-qa-group-label">Bookings &amp; Customers</div>
-    <div class="db-qa-grid mb-3">
+    <div class="db-qa-grid">
         <a href="<?php echo BASE_URL; ?>/admin/bookings/index.php" class="db-qa-btn">
             <i class="fas fa-calendar-check"></i> Bookings
         </a>
@@ -1087,67 +1077,23 @@ function dashBadge($status) {
         <a href="<?php echo BASE_URL; ?>/admin/customers/index.php" class="db-qa-btn">
             <i class="fas fa-users"></i> Customers
         </a>
-        <a href="<?php echo BASE_URL; ?>/admin/planner/index.php" class="db-qa-btn">
-            <i class="fas fa-tasks"></i> Planner
-        </a>
-    </div>
-
-    <!-- Venue & Hall -->
-    <div class="db-qa-group-label">Venue &amp; Hall</div>
-    <div class="db-qa-grid mb-3">
         <a href="<?php echo BASE_URL; ?>/admin/venues/index.php" class="db-qa-btn">
             <i class="fas fa-building"></i> Venues
         </a>
         <a href="<?php echo BASE_URL; ?>/admin/halls/index.php" class="db-qa-btn">
             <i class="fas fa-door-open"></i> Halls
         </a>
-        <a href="<?php echo BASE_URL; ?>/admin/menus/index.php" class="db-qa-btn">
-            <i class="fas fa-utensils"></i> Menus
-        </a>
-    </div>
-
-    <!-- Services & Vendors -->
-    <div class="db-qa-group-label">Services &amp; Vendors</div>
-    <div class="db-qa-grid mb-3">
         <a href="<?php echo BASE_URL; ?>/admin/services/index.php" class="db-qa-btn">
             <i class="fas fa-concierge-bell"></i> Services
-        </a>
-        <a href="<?php echo BASE_URL; ?>/admin/packages/index.php" class="db-qa-btn">
-            <i class="fas fa-box-open"></i> Packages
         </a>
         <a href="<?php echo BASE_URL; ?>/admin/vendors/index.php" class="db-qa-btn">
             <i class="fas fa-user-tie"></i> Vendors
         </a>
-    </div>
-
-    <!-- Finance & Reports -->
-    <div class="db-qa-group-label">Finance &amp; Reports</div>
-    <div class="db-qa-grid mb-3">
         <a href="<?php echo BASE_URL; ?>/admin/reports/index.php" class="db-qa-btn">
             <i class="fas fa-chart-bar"></i> Reports
         </a>
-        <a href="<?php echo BASE_URL; ?>/admin/payment-methods/index.php" class="db-qa-btn">
-            <i class="fas fa-credit-card"></i> Payments
-        </a>
-        <a href="<?php echo BASE_URL; ?>/admin/venue-payable/index.php" class="db-qa-btn">
-            <i class="fas fa-hand-holding-usd"></i> Venue Pay
-        </a>
-        <a href="<?php echo BASE_URL; ?>/admin/vendor-payable/index.php" class="db-qa-btn">
-            <i class="fas fa-money-bill-wave"></i> Vendor Pay
-        </a>
-    </div>
-
-    <!-- Media & System -->
-    <div class="db-qa-group-label">Media &amp; System</div>
-    <div class="db-qa-grid">
         <a href="<?php echo BASE_URL; ?>/admin/shared-folders/index.php" class="db-qa-btn">
             <i class="fas fa-share-alt"></i> Photo Share
-        </a>
-        <a href="<?php echo BASE_URL; ?>/admin/images/index.php" class="db-qa-btn">
-            <i class="fas fa-images"></i> Images
-        </a>
-        <a href="<?php echo BASE_URL; ?>/admin/reviews/index.php" class="db-qa-btn">
-            <i class="fas fa-star"></i> Reviews
         </a>
         <a href="<?php echo BASE_URL; ?>/admin/settings/index.php" class="db-qa-btn">
             <i class="fas fa-cog"></i> Settings
