@@ -3887,21 +3887,21 @@ html {
 .booking-terms-scroll::-webkit-scrollbar-thumb { background: #4CAF50; border-radius: 2px; }
 
 /* ════════════════════════════════════════════════════════════════
-   LANDING PAGE REDESIGN — Modern, Clean, Premium SaaS UI
+   LANDING PAGE REDESIGN — Elegant Nepal Premium UI
    Scoped to .page-landing body class set in index.php
    ════════════════════════════════════════════════════════════════ */
 
 /* ── Landing page body & base ── */
 .page-landing {
-    background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
+    background: #f8faf8;
     min-height: 100vh;
     font-family: var(--font-modern);
 }
 
-/* ── Navbar: brand green on landing page ── */
+/* ── Navbar: deep forest-green on landing page ── */
 .page-landing #mainNavbar {
-    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%) !important;
-    box-shadow: 0 2px 16px rgba(76, 175, 80, 0.2);
+    background: linear-gradient(135deg, #0b2c1a 0%, #1b4d2e 100%) !important;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.25);
 }
 
 .page-landing #mainNavbar .navbar-brand,
@@ -3909,9 +3909,9 @@ html {
     font-family: var(--font-modern);
 }
 
-/* ── Hero section: soft light gradient when no banner ── */
+/* ── Hero section: rich deep forest-green when no banner ── */
 .page-landing .hero-section {
-    background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
+    background: linear-gradient(140deg, #0b2c1a 0%, #1b4d2e 45%, #0e3520 100%);
 }
 
 /* When banner image is present keep the image overlay dark enough */
@@ -3919,9 +3919,14 @@ html {
     background: none;
 }
 
-/* No-banner overlay: transparent so light gradient shows through */
+/* No-banner overlay: subtle dark tint for depth on dark background */
 .page-landing .hero-section:not(.with-banner-image) .hero-overlay {
-    background: transparent;
+    background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.20) 0%,
+        rgba(0, 0, 0, 0.08) 50%,
+        rgba(0, 0, 0, 0.18) 100%
+    );
     padding-top: clamp(2.5rem, 5vw, 4rem);
     padding-bottom: clamp(2.5rem, 5vw, 4rem);
 }
@@ -3930,95 +3935,103 @@ html {
 .page-landing .hero-section.with-banner-image .hero-overlay {
     background: linear-gradient(
         135deg,
-        rgba(15, 15, 40, 0.60) 0%,
-        rgba(15, 15, 40, 0.50) 50%,
-        rgba(15, 15, 40, 0.60) 100%
+        rgba(11, 44, 26, 0.68) 0%,
+        rgba(11, 44, 26, 0.52) 50%,
+        rgba(11, 44, 26, 0.65) 100%
     );
 }
 
-/* ── Hero heading: dark on light background ── */
+/* ── Hero heading: white on dark background ── */
+/* font-family/weight override .hero-section h1 which has higher element specificity */
 .hero-heading-dark {
-    color: var(--text-dark) !important;
-    text-shadow: none !important;
     font-family: var(--font-modern) !important;
     font-weight: 800 !important;
     letter-spacing: -0.03em;
-    background: linear-gradient(135deg, var(--text-dark) 0%, var(--brand-dark) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
 }
 
-/* ── Hero lead text: soft gray on light background ── */
+/* Use three-class chain for sufficient specificity without !important */
+.page-landing .hero-section .hero-heading-dark {
+    color: #ffffff;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Hero lead text: soft white on dark background ── */
+/* Use three-class chain for sufficient specificity without !important */
+.page-landing .hero-section .hero-lead-dark {
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    opacity: 1;
+}
+
+/* font-family override */
 .hero-lead-dark {
-    color: #4b5563 !important;
-    text-shadow: none !important;
     font-family: var(--font-modern) !important;
     font-weight: 400;
-    opacity: 1 !important;
 }
 
-/* ── Hero eyebrow badge: green on light background ── */
+/* ── Hero eyebrow badge: white/transparent on dark background ── */
 .page-landing .hero-section:not(.with-banner-image) .hero-eyebrow {
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    color: var(--brand);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.13);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #fff;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 .page-landing .hero-section:not(.with-banner-image) .hero-eyebrow .eyebrow-dot {
-    background: var(--brand);
-    animation: pulseDotBrand 2.2s ease-in-out infinite;
+    background: #D4AF37;
+    animation: pulseDotGold 2.2s ease-in-out infinite;
 }
 
-@keyframes pulseDotBrand {
-    0%, 100% { opacity: 1;   transform: scale(1);   }
-    50%       { opacity: 0.4; transform: scale(1.6); }
+@keyframes pulseDotGold {
+    0%, 100% { opacity: 1;   transform: scale(1);   box-shadow: 0 0 0 0 rgba(212,175,55,0.4); }
+    50%       { opacity: 0.75; transform: scale(1.5); box-shadow: 0 0 0 5px rgba(212,175,55,0); }
 }
 
-/* ── Hero trust badges: green-tinted on light background ── */
+/* ── Hero trust badges: white/translucent on dark background ── */
 .page-landing .hero-section:not(.with-banner-image) .hero-trust-badge {
-    color: #374151;
-    background: rgba(76, 175, 80, 0.08);
-    border: 1px solid rgba(76, 175, 80, 0.18);
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.20);
     border-radius: 50px;
-    padding: 0.35rem 0.85rem;
+    padding: 0.38rem 0.9rem;
 }
 
 .page-landing .hero-section:not(.with-banner-image) .hero-trust-badge i {
-    color: var(--brand);
+    color: #D4AF37;
 }
 
-/* ── Hero decorative blobs: green-tinted ── */
+/* ── Hero decorative blobs: white-tinted for dark background ── */
 .page-landing .hero-section:not(.with-banner-image) .hero-deco-1 {
-    background: rgba(76, 175, 80, 0.06);
+    background: rgba(255, 255, 255, 0.05);
 }
 .page-landing .hero-section:not(.with-banner-image) .hero-deco-2 {
-    background: rgba(76, 175, 80, 0.04);
+    background: rgba(255, 255, 255, 0.04);
 }
 .page-landing .hero-section:not(.with-banner-image) .hero-deco-3 {
-    background: rgba(76, 175, 80, 0.07);
+    background: rgba(212, 175, 55, 0.08);
 }
 
-/* ── Hero scroll-down: green on light background ── */
+/* ── Hero scroll-down: white on dark background ── */
 .page-landing .hero-section:not(.with-banner-image) .hero-scroll-down {
-    color: rgba(76, 175, 80, 0.6);
+    color: rgba(255, 255, 255, 0.65);
 }
 .page-landing .hero-section:not(.with-banner-image) .hero-scroll-down:hover {
-    color: var(--brand);
+    color: #fff;
 }
 .page-landing .hero-section:not(.with-banner-image) .hero-scroll-down .scroll-arrow-ring {
-    border-color: rgba(76, 175, 80, 0.35);
+    border-color: rgba(255, 255, 255, 0.35);
 }
 
-/* ── Booking card: clean white glass card ── */
+/* ── Booking card: glassmorphism card on dark hero ── */
 .page-landing .booking-card {
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.97);
     border-radius: var(--radius-lg);
-    box-shadow: 0 4px 32px rgba(76, 175, 80, 0.12), 0 1px 6px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e5e7eb;
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.32), 0 8px 24px rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     padding: clamp(1.5rem, 3vw, 2.25rem);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 }
 
 .page-landing .booking-card-title {
@@ -4105,22 +4118,27 @@ html {
     color: var(--brand) !important;
 }
 
-/* ── Stats section: green gradient ── */
+/* ── Stats section: deep navy with gold accents ── */
 .page-landing .stats-section {
-    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 60%, var(--brand-light) 100%);
-    box-shadow: 0 4px 24px rgba(76, 175, 80, 0.25);
+    background: linear-gradient(135deg, #0a1628 0%, #12243d 60%, #0b1e38 100%);
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.3);
 }
 
 .page-landing .stat-icon-wrap {
-    background: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.9);
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.22);
+    color: #D4AF37;
 }
 
-/* ── Section eyebrow badges: green ── */
+.page-landing .stat-number .stat-suffix {
+    color: #D4AF37;
+}
+
+/* ── Section eyebrow badges: warm gold ── */
 .page-landing .section-eyebrow {
-    background: rgba(76, 175, 80, 0.1);
-    color: var(--brand);
-    border-color: rgba(76, 175, 80, 0.25);
+    background: rgba(201, 146, 42, 0.1);
+    color: #8B6914;
+    border-color: rgba(201, 146, 42, 0.28);
     font-family: var(--font-modern);
     font-weight: 700;
 }
@@ -4504,4 +4522,87 @@ html {
     .page-hero-bar .h1 {
         font-size: clamp(1.3rem, 6vw, 1.75rem);
     }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LANDING PAGE PREMIUM ENHANCEMENTS
+   Additional polish for the redesigned dark-hero layout
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Hero: subtle geometric pattern overlay on dark green ── */
+.page-landing .hero-section:not(.with-banner-image)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg stroke='%23ffffff' stroke-width='0.4' stroke-opacity='0.06'%3E%3Cpath d='M40 0 L80 40 L40 80 L0 40 Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-size: 80px 80px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Hero: faint gold shimmer line at bottom for visual depth ── */
+.page-landing .hero-section::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.5) 25%, rgba(212,175,55,0.8) 50%, rgba(212,175,55,0.5) 75%, transparent 100%);
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* ── Stats: gold number animation glow ── */
+.page-landing .stats-section .stat-number {
+    text-shadow: 0 0 20px rgba(212,175,55,0.2);
+}
+
+/* ── Booking card: gold-tinted top accent on the card icon ── */
+.page-landing .booking-card-icon {
+    background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%);
+    box-shadow: 0 4px 16px rgba(27,94,32,0.4);
+    border: 2px solid rgba(212,175,55,0.3);
+}
+
+/* ── Section headings: elegant underline decoration ── */
+.page-landing .section-title {
+    position: relative;
+    display: inline-block;
+}
+
+/* ── Package cards: gold-tinted hover ── */
+.page-landing .service-packages-section .card:hover {
+    box-shadow: 0 16px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(201,146,42,0.15) !important;
+}
+
+/* ── Pro feature cards: larger icon on hover ── */
+.page-landing .pro-feature-icon {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.page-landing .pro-feature-card:hover .pro-feature-icon {
+    transform: scale(1.08) translateY(-3px);
+}
+
+/* ── Gallery section title ── */
+.page-landing .gallery-section h2 {
+    font-weight: 800;
+}
+
+/* ── "View All" button: slightly bolder with subtle gold-tinted hover ── */
+.page-landing .section-view-btn {
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.6rem 2rem;
+}
+
+/* ── About section: gold accent line ── */
+.page-landing .about-section .section-eyebrow {
+    margin-bottom: 0.8rem;
+}
+
+/* ── Testimonial cards: subtle gold border on hover ── */
+.page-landing .testimonial-card:hover {
+    border-color: rgba(201,146,42,0.25) !important;
 }

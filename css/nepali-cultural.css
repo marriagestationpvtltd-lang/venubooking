@@ -12,28 +12,30 @@
 ───────────────────────────────────────────────────────── */
 .nepal-cultural-strip {
     width: 100%;
-    padding: 0.55rem 1rem;
+    padding: 0.45rem 1rem;
     text-align: center;
     position: relative;
     overflow: hidden;
     background: linear-gradient(
         90deg,
-        #8B0000 0%,
-        #C0392B 15%,
-        #8E44AD 35%,
-        #2980B9 55%,
-        #27AE60 75%,
-        #F39C12 90%,
-        #C0392B 100%
+        #7B1A1A 0%,
+        #9B2519 20%,
+        #B8291E 40%,
+        #C9922A 55%,
+        #B8291E 70%,
+        #9B2519 85%,
+        #7B1A1A 100%
     );
     background-size: 200% 100%;
-    animation: culturalStripFlow 10s linear infinite;
+    /* Oscillating ease-in-out (8s) gives a gentle shimmer vs the old linear marquee */
+    animation: culturalStripFlow 8s ease-in-out infinite;
     z-index: 10;
 }
 
 @keyframes culturalStripFlow {
-    0%   { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
+    0%   { background-position: 100% 50%; }
+    50%  { background-position: 0%   50%; }
+    100% { background-position: 100% 50%; }
 }
 
 .nepal-cultural-strip::before {
@@ -43,9 +45,9 @@
     background: repeating-linear-gradient(
         60deg,
         transparent           0px,
-        transparent           10px,
-        rgba(255,255,255,0.05) 10px,
-        rgba(255,255,255,0.05) 12px
+        transparent           18px,
+        rgba(255,255,255,0.04) 18px,
+        rgba(255,255,255,0.04) 20px
     );
     pointer-events: none;
 }
@@ -303,7 +305,7 @@
 .section-heading-wrap.nepal-rangoli .section-eyebrow::after {
     content: '❈';
     font-size: 0.9rem;
-    color: var(--accent-orange, #FFA726);
+    color: #C9922A;
     margin: 0 0.4rem;
     display: inline-block;
     animation: rangoliSpin 8s linear infinite;
@@ -358,7 +360,7 @@
     position: absolute;
     inset: -6px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,215,0,0.35) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(212,175,55,0.30) 0%, transparent 70%);
     animation: diyaHalo 2.8s ease-in-out infinite alternate;
     pointer-events: none;
 }
@@ -370,7 +372,7 @@
 
 /* ────────────────────────────────────────────────────────
    BOOKING CARD: Nepali cultural accent
-   Top color bar on the booking card using 5 sacred colors
+   Top color bar on the booking card using Nepal flag colours
 ───────────────────────────────────────────────────────── */
 .booking-card::before {
     content: '';
@@ -380,21 +382,21 @@
     border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
     background: linear-gradient(
         90deg,
-        #2980B9  0%,
-        #FFFFFF  20%,
-        #C0392B  40%,
-        #27AE60  60%,
-        #F1C40F  80%,
-        #2980B9 100%
+        #1B5E20  0%,
+        #4CAF50  35%,
+        #D4AF37  55%,
+        #C0392B  80%,
+        #1B5E20 100%
     );
     background-size: 200% 100%;
-    animation: sacredColorFlow 5s linear infinite;
+    animation: sacredColorFlow 6s ease-in-out infinite;
     margin-bottom: 0;
 }
 
 @keyframes sacredColorFlow {
-    0%   { background-position: 0%   50%; }
-    100% { background-position: 200% 50%; }
+    0%   { background-position: 100% 50%; }
+    50%  { background-position: 0%   50%; }
+    100% { background-position: 100% 50%; }
 }
 
 /* Ensure the booking card doesn't get double-border from existing ::before */

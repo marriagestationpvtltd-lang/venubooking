@@ -225,25 +225,25 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                 <div class="col-lg-6 order-lg-1 order-2 mt-4 mt-lg-0">
                     <div class="hero-eyebrow">
                         <span class="eyebrow-dot" aria-hidden="true"></span>
-                        <span>Premium Venue Booking</span>
+                        <span>Nepal's Premier Event Venue</span>
                         <span class="hero-eyebrow-sep" aria-hidden="true">|</span>
-                        <span class="hero-eyebrow-nepali">नेपाली संस्कृति</span>
+                        <span class="hero-eyebrow-nepali">सपनाको समारोह</span>
                     </div>
                     <h1 class="display-4 <?php echo !empty($banner_images) ? 'text-white' : 'hero-heading-dark'; ?> fw-bold mb-3">
-                        Book Your Perfect Venue
+                        Make Every Celebration Extraordinary
                     </h1>
                     <p class="lead <?php echo !empty($banner_images) ? 'text-white' : 'hero-lead-dark'; ?> mb-4">
-                        Find and book the ideal venue for your wedding, birthday party, corporate event, or any special occasion. Trusted by 1,000+ happy clients.
+                        Discover and book premium venues for weddings, birthday parties, receptions, and corporate events. Trusted by thousands of happy clients across Nepal.
                     </p>
                     <div class="d-flex flex-wrap gap-3 mb-2">
                         <div class="hero-trust-badge">
-                            <i class="fas fa-shield-alt"></i> Verified Venues
+                            <i class="fas fa-award"></i> Premium Venues
                         </div>
                         <div class="hero-trust-badge">
-                            <i class="fas fa-bolt"></i> Instant Confirmation
+                            <i class="fas fa-bolt"></i> Easy Booking
                         </div>
                         <div class="hero-trust-badge">
-                            <i class="fas fa-headset"></i> 24/7 Support
+                            <i class="fas fa-headset"></i> Expert Support
                         </div>
                     </div>
                 </div>
@@ -253,8 +253,8 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                             <div class="booking-card-icon mx-auto mb-2">
                                 <i class="fas fa-calendar-check"></i>
                             </div>
-                            <h4 class="booking-card-title mb-0">Start Your Booking</h4>
-                            <p class="text-muted small mt-1 mb-0">Fill in your event details to begin</p>
+                            <h4 class="booking-card-title mb-0">Reserve Your Venue</h4>
+                            <p class="text-muted small mt-1 mb-0">Enter your event details to find the perfect match</p>
                         </div>
                         <?php if (!empty($_SESSION['booking_error_flash'])): ?>
                             <div class="alert alert-warning alert-dismissible fade show" role="alert">
@@ -327,7 +327,7 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
                             </div>
 
                             <button type="submit" class="btn btn-success w-100 py-3" style="font-size:1rem;letter-spacing:0.05em;">
-                                <i class="fas fa-calendar-check me-2"></i> ONLINE BOOKING
+                                <i class="fas fa-calendar-check me-2"></i> FIND AVAILABLE VENUES
                             </button>
                         </form>
                         <?php if ($terms_policy): ?>
@@ -516,11 +516,11 @@ try {
     <div class="container">
         <div class="text-center mb-4 reveal section-heading-wrap nepal-rangoli">
             <span class="section-eyebrow">Service Packages</span>
-            <h2 class="section-title">Our Service Packages</h2>
+            <h2 class="section-title">Choose the Perfect Package</h2>
             <div class="nepal-lotus-dots" aria-hidden="true">
                 <span></span><span></span><span></span><span></span><span></span>
             </div>
-            <p class="section-subtitle mt-2">Find the perfect package for your celebration</p>
+            <p class="section-subtitle mt-2">All-inclusive packages designed for unforgettable events</p>
             <?php echo getSectionShareButton('section-packages', BASE_URL . '/packages.php'); ?>
         </div>
 
@@ -740,9 +740,6 @@ try {
     </div>
 </section>
 <?php endif; ?>
-
-<!-- Dhaka Pattern Divider (ढाका बुट्टा) -->
-<div class="dhaka-divider" aria-hidden="true"></div>
 
 <?php
 $gallery_cards = getImagesByCards('gallery');
@@ -1380,8 +1377,8 @@ if (!empty($gallery_cards)):
     <div class="container">
         <div class="text-center mb-5 reveal section-heading-wrap">
             <span class="section-eyebrow">Why Choose Us</span>
-            <h2 class="section-title">Why Choose Us?</h2>
-            <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">Our premium services make every celebration truly unforgettable.</p>
+            <h2 class="section-title">Everything Your Event Needs</h2>
+            <p class="text-muted mt-2" style="max-width:520px;margin:0 auto;">From intimate gatherings to grand celebrations, we make every event truly unforgettable.</p>
             <?php echo getSectionShareButton('section-features', BASE_URL . '/about.php'); ?>
         </div>
         <div class="row g-4 reveal-stagger">
@@ -1390,8 +1387,8 @@ if (!empty($gallery_cards)):
                     <div class="pro-feature-icon">
                         <i class="fas fa-building"></i>
                     </div>
-                    <h5>Multiple Venues</h5>
-                    <p>Choose from our premium venues across the city for every occasion</p>
+                    <h5>Premium Venues</h5>
+                    <p>Handpicked premium venues across the city, perfect for every occasion and budget</p>
                 </div>
             </div>
             <div class="col-6 col-md-3">
@@ -1400,7 +1397,7 @@ if (!empty($gallery_cards)):
                         <i class="fas fa-utensils"></i>
                     </div>
                     <h5>Delicious Menus</h5>
-                    <p>Wide variety of menu options to suit every taste and budget</p>
+                    <p>Wide variety of authentic and modern menu options to delight every guest</p>
                 </div>
             </div>
             <div class="col-6 col-md-3">
@@ -1408,8 +1405,8 @@ if (!empty($gallery_cards)):
                     <div class="pro-feature-icon">
                         <i class="fas fa-tags"></i>
                     </div>
-                    <h5>Transparent Pricing</h5>
-                    <p>No hidden charges — clear and upfront pricing for all services</p>
+                    <h5>Clear Pricing</h5>
+                    <p>No hidden charges — fully transparent pricing so you always know what you pay</p>
                 </div>
             </div>
             <div class="col-6 col-md-3">
@@ -1417,8 +1414,8 @@ if (!empty($gallery_cards)):
                     <div class="pro-feature-icon">
                         <i class="fas fa-headset"></i>
                     </div>
-                    <h5>24/7 Support</h5>
-                    <p>Our dedicated team is always here to help you at every step</p>
+                    <h5>Dedicated Support</h5>
+                    <p>Our expert team is always available to guide you at every step of the journey</p>
                 </div>
             </div>
         </div>
@@ -1435,11 +1432,11 @@ if (!empty($venues)):
     <div class="container">
         <div class="text-center mb-4 reveal section-heading-wrap nepal-rangoli">
             <span class="section-eyebrow">Our Venues</span>
-            <h2 class="section-title">Our Premium Venues</h2>
+            <h2 class="section-title">Explore Our Venues</h2>
             <div class="nepal-lotus-dots" aria-hidden="true">
                 <span></span><span></span><span></span><span></span><span></span>
             </div>
-            <p class="text-muted mt-2">Explore our premium venues and start your booking today</p>
+            <p class="text-muted mt-2">Stunning spaces for every celebration — browse and book in minutes</p>
             <?php echo getSectionShareButton('section-venues', BASE_URL . '/venues.php'); ?>
         </div>
 
@@ -1566,9 +1563,6 @@ if (!empty($venues)):
     </div>
 </section>
 <?php endif; ?>
-
-<!-- Dhaka Pattern Divider (ढाका बुट्टा) -->
-<div class="dhaka-divider" aria-hidden="true"></div>
 
 
 <?php
