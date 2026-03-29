@@ -21,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email             = trim($_POST['email']             ?? '');
     $address           = trim($_POST['address']           ?? '');
     $city_id           = intval($_POST['city_id']         ?? 0);
-    $service_city_ids  = isset($_POST['service_city_ids']) ? array_map('intval', (array)$_POST['service_city_ids']) : [];
     $notes             = trim($_POST['notes']             ?? '');
     $status            = in_array($_POST['status'] ?? '', ['active', 'inactive', 'unapproved']) ? $_POST['status'] : 'unapproved';
 
@@ -65,14 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $is_primary = ($idx === 0) ? 1 : 0;
                     $photo_stmt = $db->prepare("INSERT INTO vendor_photos (vendor_id, image_path, is_primary, display_order) VALUES (?, ?, ?, ?)");
                     $photo_stmt->execute([$vendor_id, $photo_filename, $is_primary, $idx]);
-                }
-
-                // Save service cities (junction table – supports multiple cities)
-                if (!empty($service_city_ids)) {
-                    setVendorServiceCities($vendor_id, $service_city_ids);
-                } elseif ($city_id > 0) {
-                    // Fall back: seed service cities from the primary city
-                    setVendorServiceCities($vendor_id, [$city_id]);
                 }
 
                 logActivity($current_user['id'], 'Added vendor', 'vendors', $vendor_id, "Added vendor: $name ($type)");
@@ -175,38 +166,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Service Cities <small class="text-muted">(cities where this vendor operates)</small></label>
-                            <?php
-                            $selected_service_city_ids = isset($_POST['service_city_ids'])
-                                ? array_map('intval', (array)$_POST['service_city_ids'])
-                                : [];
-                            ?>
-                            <div class="border rounded p-3 bg-light" style="max-height:180px;overflow-y:auto;">
-                                <?php if (empty($cities)): ?>
-                                    <span class="text-muted small">No cities available. Add cities first.</span>
-                                <?php else: ?>
-                                    <div class="row g-2">
-                                        <?php foreach ($cities as $city): ?>
-                                            <div class="col-md-4 col-sm-6">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox"
-                                                           name="service_city_ids[]"
-                                                           value="<?php echo $city['id']; ?>"
-                                                           id="svc_city_<?php echo $city['id']; ?>"
-                                                           <?php echo in_array((int)$city['id'], $selected_service_city_ids) ? 'checked' : ''; ?>>
-                                                    <label class="form-check-label" for="svc_city_<?php echo $city['id']; ?>">
-                                                        <?php echo htmlspecialchars($city['name']); ?>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <small class="text-muted">Select all cities this vendor provides services in. Multiple selections are allowed.</small>
                         </div>
 
                         <div class="col-md-4">

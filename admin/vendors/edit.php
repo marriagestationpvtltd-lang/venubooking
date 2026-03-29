@@ -34,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email             = trim($_POST['email']             ?? '');
     $address           = trim($_POST['address']           ?? '');
     $city_id           = intval($_POST['city_id']         ?? 0);
-    $service_city_ids  = isset($_POST['service_city_ids']) ? array_map('intval', (array)$_POST['service_city_ids']) : [];
     $notes             = trim($_POST['notes']             ?? '');
     $bank_details      = trim($_POST['bank_details']      ?? '');
     $status            = in_array($_POST['status'] ?? '', ['active', 'inactive', 'unapproved']) ? $_POST['status'] : 'active';
@@ -112,9 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($error_message)) {
                 $stmt = $db->prepare("UPDATE vendors SET name = ?, type = ?, short_description = ?, phone = ?, email = ?, address = ?, city_id = ?, photo = NULL, notes = ?, bank_details = ?, qr_code = ?, status = ? WHERE id = ?");
                 $stmt->execute([$name, $type, $short_description ?: null, $phone ?: null, $email ?: null, $address ?: null, $city_id ?: null, $notes ?: null, $bank_details ?: null, $qr_code, $status, $vendor_id]);
-
-                // Update service cities (replaces all existing entries with the new selection)
-                setVendorServiceCities($vendor_id, $service_city_ids);
 
                 logActivity($current_user['id'], 'Updated vendor', 'vendors', $vendor_id, "Updated vendor: $name ($type)");
 
@@ -211,41 +207,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Service Cities <small class="text-muted">(cities where this vendor operates)</small></label>
-                            <?php
-                            $existing_service_cities = getVendorServiceCities($vendor_id);
-                            $existing_service_city_ids = array_map('intval', array_column($existing_service_cities, 'city_id'));
-                            // On POST (validation error), prefer submitted values over DB values
-                            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['service_city_ids'])) {
-                                $existing_service_city_ids = array_map('intval', (array)$_POST['service_city_ids']);
-                            }
-                            ?>
-                            <div class="border rounded p-3 bg-light" style="max-height:180px;overflow-y:auto;">
-                                <?php if (empty($cities)): ?>
-                                    <span class="text-muted small">No cities available. Add cities first.</span>
-                                <?php else: ?>
-                                    <div class="row g-2">
-                                        <?php foreach ($cities as $city): ?>
-                                            <div class="col-md-4 col-sm-6">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox"
-                                                           name="service_city_ids[]"
-                                                           value="<?php echo $city['id']; ?>"
-                                                           id="svc_city_<?php echo $city['id']; ?>"
-                                                           <?php echo in_array((int)$city['id'], $existing_service_city_ids) ? 'checked' : ''; ?>>
-                                                    <label class="form-check-label" for="svc_city_<?php echo $city['id']; ?>">
-                                                        <?php echo htmlspecialchars($city['name']); ?>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <small class="text-muted">Select all cities this vendor provides services in. Multiple selections are allowed.</small>
                         </div>
 
                         <div class="col-md-4">
