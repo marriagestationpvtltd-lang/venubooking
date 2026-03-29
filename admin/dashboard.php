@@ -62,16 +62,10 @@ $stmt = $db->query("SELECT COALESCE(SUM(grand_total), 0) as total FROM bookings
                       AND booking_status != 'cancelled'");
 $stats['last_month_revenue'] = (float)$stmt->fetch()['total'];
 
-// Total venue provider payable (hall_price + menu_total for all non-cancelled bookings)
-$stmt = $db->query("SELECT COALESCE(SUM(hall_price + menu_total), 0) as total FROM bookings WHERE booking_status != 'cancelled'");
+// Venue provider still due: total (hall_price + menu_total) minus what has already been paid out
+$stmt = $db->query("SELECT COALESCE(SUM(GREATEST(hall_price + menu_total - COALESCE(venue_amount_paid, 0), 0)), 0) as total
+                    FROM bookings WHERE booking_status != 'cancelled'");
 $stats['total_venue_payable'] = (float)$stmt->fetch()['total'];
-
-// This month venue provider payable
-$stmt = $db->query("SELECT COALESCE(SUM(hall_price + menu_total), 0) as total FROM bookings
-                    WHERE YEAR(created_at)  = YEAR(CURRENT_DATE())
-                      AND MONTH(created_at) = MONTH(CURRENT_DATE())
-                      AND booking_status != 'cancelled'");
-$stats['month_venue_payable'] = (float)$stmt->fetch()['total'];
 
 // Total venues & halls
 $stmt = $db->query("SELECT COUNT(*) as count FROM venues WHERE status = 'active'");
@@ -732,36 +726,19 @@ function dashBadge($status) {
 ════════════════════════════════════════════════════════════ -->
 <div class="db-section-title">Venue Provider Payable</div>
 <div class="row g-3 mb-4">
-    <!-- Total Venue Provider Payable -->
+    <!-- Outstanding Venue Provider Payable (still due) -->
     <div class="col-xl-6 col-md-6">
         <div class="db-metric-card card-teal">
             <div class="d-flex align-items-start justify-content-between">
                 <div class="db-metric-icon icon-teal"><i class="fas fa-building"></i></div>
                 <div class="text-end">
                     <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['total_venue_payable']); ?></p>
-                    <p class="db-metric-label">Total Venue Provider Payable</p>
+                    <p class="db-metric-label">Venue Provider Payable (Due)</p>
                 </div>
             </div>
             <div class="db-metric-sub trend-flat">
                 <i class="fas fa-info-circle"></i>
-                Hall &amp; menu amounts owed to venues
-            </div>
-        </div>
-    </div>
-
-    <!-- This Month Venue Provider Payable -->
-    <div class="col-xl-6 col-md-6">
-        <div class="db-metric-card card-slate">
-            <div class="d-flex align-items-start justify-content-between">
-                <div class="db-metric-icon icon-slate"><i class="fas fa-calendar-check"></i></div>
-                <div class="text-end">
-                    <p class="db-metric-value db-metric-value-sm"><?php echo formatCurrency($stats['month_venue_payable']); ?></p>
-                    <p class="db-metric-label">This Month Venue Payable</p>
-                </div>
-            </div>
-            <div class="db-metric-sub trend-flat">
-                <i class="fas fa-calendar-month"></i>
-                Hall &amp; menu payable this month
+                Total outstanding amount still owed to venues
             </div>
         </div>
     </div>
