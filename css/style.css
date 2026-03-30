@@ -155,7 +155,7 @@ label, .form-label {
 
 /* Hero Section */
 .hero-section {
-    background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
+    background: linear-gradient(135deg, var(--light-green) 0%, var(--brand-xlight) 100%);
     position: relative;
     overflow: hidden;
     min-height: 600px;

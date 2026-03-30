@@ -114,11 +114,6 @@ function getSectionShareButton(string $sectionId, string $pageUrl = ''): string 
 
 <!-- Hero Section -->
 <section class="hero-section<?php if (!empty($banner_images)): ?> with-banner-image<?php endif; ?>" id="bookingSection">
-    <!-- Prayer Flags (लुङ्दर) – five sacred colors waving across the top -->
-    <div class="nepal-prayer-flags" aria-hidden="true">
-        <div class="prayer-flags-inner"></div>
-    </div>
-
     <!-- Falling Marigold Petals (गेंदाको पंखुडी) -->
     <div class="nepal-petals-container" aria-hidden="true"></div>
 
