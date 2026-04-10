@@ -935,9 +935,6 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
                                 <?php else: ?>
                                     <strong>Package</strong> - <?php echo htmlspecialchars(getValueOrDefault($service['service_name'], 'Package')); ?>
                                 <?php endif; ?>
-                                <?php if (!empty($service['description'])): ?>
-                                    <br><span class="service-description-print"><?php echo htmlspecialchars($service['description']); ?></span>
-                                <?php endif; ?>
                             </td>
                             <td class="text-center"><?php echo $svc_is_pkg_incl ? '—' : $service_qty; ?></td>
                             <td class="text-right"><?php echo $svc_is_pkg_incl ? 'Incl.' : number_format($service_price, 2); ?></td>
