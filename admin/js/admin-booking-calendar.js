@@ -53,12 +53,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateNepaliDisplay() {
         if (eventDateInput.value) {
             try {
-                const adDate = new Date(eventDateInput.value);
-                if (!isNaN(adDate)) {
+                // Parse YYYY-MM-DD as local date components to avoid UTC-midnight timezone issues.
+                // Using a regex match ensures the value is valid before passing to adToBS.
+                const dateMatch = eventDateInput.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (dateMatch) {
                     const bs = window.nepaliDateUtils.adToBS(
-                        adDate.getFullYear(),
-                        adDate.getMonth() + 1,
-                        adDate.getDate()
+                        parseInt(dateMatch[1], 10),
+                        parseInt(dateMatch[2], 10),
+                        parseInt(dateMatch[3], 10)
                     );
                     if (bs) {
                         const bsDateStr = window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day);
@@ -77,9 +79,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize with Nepali calendar as default
     function initializeNepaliAsDefault() {
-        // Change input to text and make readonly
-        eventDateInput.setAttribute('type', 'text');
-        eventDateInput.setAttribute('readonly', 'readonly');
+        // Input is already type="text" readonly from the HTML (same as booking step).
+        // No type conversion needed here; just initialize the Nepali picker.
         eventDateInput.setAttribute('placeholder', 'Select Nepali Date (BS)');
         
         // Initialize Nepali picker

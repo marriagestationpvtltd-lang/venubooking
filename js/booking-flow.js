@@ -305,12 +305,14 @@ function initNepaliCalendar() {
     function updateNepaliDisplay() {
         if (eventDateInput.value) {
             try {
-                const adDate = new Date(eventDateInput.value);
-                if (!isNaN(adDate)) {
+                // Parse YYYY-MM-DD as local date components to avoid UTC-midnight timezone issues.
+                // Using a regex match ensures the value is valid before passing to adToBS.
+                const dateMatch = eventDateInput.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (dateMatch) {
                     const bs = window.nepaliDateUtils.adToBS(
-                        adDate.getFullYear(),
-                        adDate.getMonth() + 1,
-                        adDate.getDate()
+                        parseInt(dateMatch[1], 10),
+                        parseInt(dateMatch[2], 10),
+                        parseInt(dateMatch[3], 10)
                     );
                     if (bs) {
                         const bsDateStr = window.nepaliDateUtils.formatBSDate(bs.year, bs.month, bs.day);
@@ -440,15 +442,18 @@ function initNepaliCalendar() {
             
             // Show current BS date in display
             if (eventDateInput.value) {
-                const adDate = new Date(eventDateInput.value);
-                const bs = window.nepaliDateUtils.adToBS(
-                    adDate.getFullYear(),
-                    adDate.getMonth() + 1,
-                    adDate.getDate()
-                );
-                if (bs) {
-                    eventDateInput.setAttribute('data-bs-date', 
-                        `${bs.year}-${String(bs.month).padStart(2, '0')}-${String(bs.day).padStart(2, '0')}`);
+                // Parse YYYY-MM-DD as local date components to avoid UTC-midnight timezone issues.
+                const dateMatch = eventDateInput.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (dateMatch) {
+                    const bs = window.nepaliDateUtils.adToBS(
+                        parseInt(dateMatch[1], 10),
+                        parseInt(dateMatch[2], 10),
+                        parseInt(dateMatch[3], 10)
+                    );
+                    if (bs) {
+                        eventDateInput.setAttribute('data-bs-date', 
+                            `${bs.year}-${String(bs.month).padStart(2, '0')}-${String(bs.day).padStart(2, '0')}`);
+                    }
                 }
             }
             

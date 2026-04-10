@@ -367,11 +367,15 @@
             
             // Set initial date from input if exists
             if (this.input.value) {
-                const adDate = new Date(this.input.value);
-                if (!isNaN(adDate)) {
-                    const bs = adToBS(adDate.getFullYear(), adDate.getMonth() + 1, adDate.getDate());
-                    this.selectedBSDate = bs;
-                    this.currentBSDate = bs;
+                // Parse YYYY-MM-DD as local date components to avoid UTC-midnight timezone issues.
+                // Using a regex match ensures the value is valid before passing to adToBS.
+                const dateMatch = this.input.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (dateMatch) {
+                    const bs = adToBS(parseInt(dateMatch[1], 10), parseInt(dateMatch[2], 10), parseInt(dateMatch[3], 10));
+                    if (bs) {
+                        this.selectedBSDate = bs;
+                        this.currentBSDate = bs;
+                    }
                 }
             }
             
@@ -433,9 +437,14 @@
             if (!this.currentBSDate) {
                 if (this.input.value) {
                     try {
-                        const adDate = new Date(this.input.value);
-                        if (!isNaN(adDate)) {
-                            this.currentBSDate = adToBS(adDate.getFullYear(), adDate.getMonth() + 1, adDate.getDate());
+                        // Parse YYYY-MM-DD as local date components to avoid UTC-midnight timezone issues.
+                        // Using a regex match ensures the value is valid before passing to adToBS.
+                        const dateMatch = this.input.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                        if (dateMatch) {
+                            const bs = adToBS(parseInt(dateMatch[1], 10), parseInt(dateMatch[2], 10), parseInt(dateMatch[3], 10));
+                            if (bs) {
+                                this.currentBSDate = bs;
+                            }
                         }
                     } catch (error) {
                         console.error('Error parsing date:', error);
