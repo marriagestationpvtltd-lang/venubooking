@@ -41,6 +41,7 @@ unset($_SESSION['error_message']);
                         <th>Phone</th>
                         <th>Email</th>
                         <th>City</th>
+                        <th>Type</th>
                         <th>Loyalty Points</th>
                         <th>Bookings</th>
                         <th>Actions</th>
@@ -54,6 +55,13 @@ unset($_SESSION['error_message']);
                             <td><?php echo htmlspecialchars($customer['phone']); ?></td>
                             <td><?php echo htmlspecialchars($customer['email']); ?></td>
                             <td><?php echo $customer['city'] ? htmlspecialchars($customer['city']) : '<em class="text-muted">N/A</em>'; ?></td>
+                            <td>
+                                <?php if (($customer['account_type'] ?? 'free') === 'premium'): ?>
+                                    <span class="badge bg-warning text-dark">⭐ Premium</span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">Free</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo (int)$customer['loyalty_points']; ?></td>
                             <td><?php echo $customer['booking_count']; ?></td>
                             <td>

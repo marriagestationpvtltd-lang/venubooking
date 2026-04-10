@@ -26,12 +26,13 @@ if (!$customer) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $full_name = trim($_POST['full_name']);
-    $phone = trim($_POST['phone']);
-    $email = trim($_POST['email']);
-    $address = trim($_POST['address']);
-    $city = trim($_POST['city']);
+    $full_name    = trim($_POST['full_name']);
+    $phone        = trim($_POST['phone']);
+    $email        = trim($_POST['email']);
+    $address      = trim($_POST['address']);
+    $city         = trim($_POST['city']);
     $loyalty_points = isset($_POST['loyalty_points']) ? max(0, intval($_POST['loyalty_points'])) : 0;
+    $account_type = in_array($_POST['account_type'] ?? '', ['free', 'premium']) ? $_POST['account_type'] : 'free';
 
     // Validation
     if (empty($full_name) || empty($phone)) {
@@ -50,7 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         email = ?,
                         address = ?,
                         city = ?,
-                        loyalty_points = ?
+                        loyalty_points = ?,
+                        account_type = ?
                         WHERE id = ?";
                 
                 $stmt = $db->prepare($sql);
@@ -61,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $address,
                     $city ?: null,
                     $loyalty_points,
+                    $account_type,
                     $customer_id
                 ]);
 
@@ -163,6 +166,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="number" class="form-control" id="loyalty_points" name="loyalty_points"
                                        value="<?php echo (int)($customer['loyalty_points'] ?? 0); ?>"
                                        min="0" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="account_type" class="form-label">Account Type</label>
+                                <select class="form-select" id="account_type" name="account_type">
+                                    <option value="free"    <?php echo ($customer['account_type'] ?? 'free') === 'free'    ? 'selected' : ''; ?>>Free</option>
+                                    <option value="premium" <?php echo ($customer['account_type'] ?? 'free') === 'premium' ? 'selected' : ''; ?>>⭐ Premium</option>
+                                </select>
+                                <div class="form-text">Used to identify caller tier when the customer calls admin.</div>
                             </div>
                         </div>
                     </div>
