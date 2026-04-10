@@ -4099,6 +4099,24 @@ function calculatePaymentSummary($booking_id) {
     // Calculate grand total
     $grand_total = floatval($booking['grand_total']);
 
+    // If grand_total is 0, the booking may have been created before package prices were
+    // properly included in the totals (e.g., package-only bookings from older code).
+    // Recalculate from booking_services so the advance/balance calculations are correct.
+    if ($grand_total <= 0) {
+        recalculateBookingTotals($booking_id);
+        // Re-fetch the updated totals
+        $refetchStmt = $db->prepare("SELECT hall_price, menu_total, services_total, subtotal, tax_amount, grand_total,
+                                            advance_payment_received, advance_amount_received,
+                                            COALESCE(venue_amount_paid, 0) as venue_amount_paid
+                                     FROM bookings WHERE id = ?");
+        $refetchStmt->execute([$booking_id]);
+        $refetchedBooking = $refetchStmt->fetch();
+        if ($refetchedBooking) {
+            $booking      = $refetchedBooking;
+            $grand_total  = floatval($booking['grand_total']);
+        }
+    }
+
     // Actual advance amount received (manually entered by admin)
     $advance_amount_received = floatval($booking['advance_amount_received'] ?? 0);
 
