@@ -71,6 +71,14 @@ if (!$booking) {
     exit;
 }
 
+// If grand_total is 0, this booking may have been created before package prices were
+// included in the total calculation (e.g., package-only bookings created with older code).
+// Recalculate from the actual booking_services rows so the payment summary is accurate.
+if (floatval($booking['grand_total'] ?? 0) <= 0) {
+    recalculateBookingTotals($booking_id);
+    $booking = getBookingDetails($booking_id);
+}
+
 // Helper variables for consistent status display formatting
 $status_vars = calculateBookingStatusVariables($booking);
 $booking_status_display = $status_vars['booking_status_display'];
@@ -1005,6 +1013,10 @@ $has_display_time     = !empty($display_start_time) && !empty($display_end_time)
         <!-- Payment Calculation Section -->
         <div class="payment-calculation-section">
             <table class="payment-table">
+                <tr>
+                    <td class="payment-label"><strong>Total Amount:</strong></td>
+                    <td class="payment-value"><strong><?php echo formatCurrency($booking['grand_total']); ?></strong></td>
+                </tr>
                 <tr>
                     <td class="payment-label">Venue Provider Payable (Hall + Menu):</td>
                     <td class="payment-value"><?php echo formatCurrency($venue_provider_payable); ?></td>
