@@ -230,13 +230,14 @@
         }
         
         const daysDiff = countBSDays(bsYear, bsMonth, bsDay);
-        const refDate = new Date(referenceAD.year, referenceAD.month - 1, referenceAD.day);
-        const targetDate = new Date(refDate.getTime() + daysDiff * 24 * 60 * 60 * 1000);
+        // Use Date.UTC so the arithmetic is timezone-neutral (no DST distortion).
+        const refMs      = Date.UTC(referenceAD.year, referenceAD.month - 1, referenceAD.day);
+        const targetDate = new Date(refMs + daysDiff * 24 * 60 * 60 * 1000);
         
         return {
-            year: targetDate.getFullYear(),
-            month: targetDate.getMonth() + 1,
-            day: targetDate.getDate()
+            year: targetDate.getUTCFullYear(),
+            month: targetDate.getUTCMonth() + 1,
+            day: targetDate.getUTCDate()
         };
     }
 
@@ -244,9 +245,11 @@
      * Convert AD date to BS date
      */
     function adToBS(adYear, adMonth, adDay) {
-        const targetDate = new Date(adYear, adMonth - 1, adDay);
-        const refDate = new Date(referenceAD.year, referenceAD.month - 1, referenceAD.day);
-        const daysDiff = Math.floor((targetDate - refDate) / (24 * 60 * 60 * 1000));
+        // Use Date.UTC so both dates are at UTC midnight, avoiding DST-related
+        // off-by-one errors that occur with local-midnight new Date(y,m,d).
+        const targetMs = Date.UTC(adYear, adMonth - 1, adDay);
+        const refMs    = Date.UTC(referenceAD.year, referenceAD.month - 1, referenceAD.day);
+        const daysDiff = Math.round((targetMs - refMs) / (24 * 60 * 60 * 1000));
         
         let bsYear = referenceBS.year;
         let bsMonth = referenceBS.month;
