@@ -4102,9 +4102,12 @@ function calculatePaymentSummary($booking_id) {
     // Actual advance amount received (manually entered by admin)
     $advance_amount_received = floatval($booking['advance_amount_received'] ?? 0);
 
-    // Due amount = grand total minus all verified payments recorded
-    // (advance is already included in total_paid if recorded via Record Payment)
-    $due_amount = max(0.0, $grand_total - $total_paid);
+    // Due amount = grand total minus the effective amount paid.
+    // Use the greater of total_paid (verified payments table) and advance_amount_received
+    // to handle the case where admin manually set the payment status to 'partial' without
+    // recording a corresponding payment in the payments table.
+    $effective_paid = max($total_paid, $advance_amount_received);
+    $due_amount = max(0.0, $grand_total - $effective_paid);
     
     // Calculate advance payment info (percentage-based, for reference display only)
     $advance = calculateAdvancePayment($grand_total);
