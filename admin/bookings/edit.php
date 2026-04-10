@@ -390,8 +390,9 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="event_date" class="form-label">Event Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="event_date" name="event_date" 
-                                       value="<?php echo $booking['event_date']; ?>" required>
+                                <input type="text" class="form-control" id="event_date" name="event_date"
+                                       value="<?php echo $booking['event_date']; ?>"
+                                       readonly placeholder="Select Nepali Date (BS)" required>
                             </div>
                         </div>
                         <div class="col-md-4">
