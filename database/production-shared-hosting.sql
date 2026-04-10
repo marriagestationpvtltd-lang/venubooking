@@ -395,6 +395,8 @@ CREATE TABLE IF NOT EXISTS customers (
     address TEXT,
     city VARCHAR(100) NULL,
     loyalty_points INT NOT NULL DEFAULT 0,
+    account_type ENUM('free', 'premium') NOT NULL DEFAULT 'free'
+                 COMMENT 'Customer subscription tier: free or premium',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_phone (phone),
@@ -2191,3 +2193,55 @@ DELIMITER ;
 
 CALL upgrade_vendor_service_cities_constraint();
 DROP PROCEDURE IF EXISTS upgrade_vendor_service_cities_constraint;
+
+-- ============================================================================
+-- UPGRADE: Add account_type to customers (free / premium)
+-- ============================================================================
+DROP PROCEDURE IF EXISTS upgrade_customers_account_type;
+DELIMITER $$
+CREATE PROCEDURE upgrade_customers_account_type()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name   = 'customers'
+          AND column_name  = 'account_type'
+    ) THEN
+        ALTER TABLE customers
+            ADD COLUMN account_type ENUM('free', 'premium') NOT NULL DEFAULT 'free'
+            COMMENT 'Customer subscription tier: free or premium'
+            AFTER loyalty_points;
+    END IF;
+END$$
+DELIMITER ;
+CALL upgrade_customers_account_type();
+DROP PROCEDURE IF EXISTS upgrade_customers_account_type;
+
+-- ============================================================================
+-- TABLE: call_sessions (WebRTC calling between customers and admin)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS call_sessions (
+    id           INT          PRIMARY KEY AUTO_INCREMENT,
+    session_token VARCHAR(64) UNIQUE NOT NULL COMMENT 'Random token shared with caller browser',
+    customer_id  INT          DEFAULT NULL COMMENT 'Matched customer record (NULL for unidentified callers)',
+    caller_name  VARCHAR(255) NOT NULL DEFAULT 'Guest',
+    caller_phone VARCHAR(20)  NOT NULL DEFAULT '',
+    account_type ENUM('free','premium') NOT NULL DEFAULT 'free',
+    last_booking_number VARCHAR(50) DEFAULT NULL,
+    last_package_name   VARCHAR(255) DEFAULT NULL,
+    status       ENUM('pending','active','ended','declined','missed') NOT NULL DEFAULT 'pending',
+    accepted_by  INT          DEFAULT NULL,
+    offer_sdp    MEDIUMTEXT   DEFAULT NULL,
+    answer_sdp   MEDIUMTEXT   DEFAULT NULL,
+    caller_ice   MEDIUMTEXT   DEFAULT NULL,
+    admin_ice    MEDIUMTEXT   DEFAULT NULL,
+    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    FOREIGN KEY (accepted_by) REFERENCES users(id)     ON DELETE SET NULL,
+    INDEX idx_status     (status),
+    INDEX idx_token      (session_token),
+    INDEX idx_customer   (customer_id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  COMMENT='WebRTC call sessions between customers and admin';

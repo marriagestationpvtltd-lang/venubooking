@@ -110,6 +110,17 @@ foreach ($bookings as $booking) {
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Account Type:</strong><br>
+                        <?php if (($customer['account_type'] ?? 'free') === 'premium'): ?>
+                            <span class="badge bg-warning text-dark px-3 py-1">⭐ Premium</span>
+                        <?php else: ?>
+                            <span class="badge bg-secondary px-3 py-1">Free</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <strong>Address:</strong><br>
                     <?php echo $customer['address'] ? nl2br(htmlspecialchars($customer['address'])) : '<em class="text-muted">Not provided</em>'; ?>

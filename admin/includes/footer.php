@@ -77,7 +77,24 @@
     
     <!-- Nepali Date Picker -->
     <script src="<?php echo BASE_URL; ?>/js/nepali-date-picker.js"></script>
-    
+
+    <!-- Incoming Call Notifications -->
+    <script src="<?php echo BASE_URL; ?>/admin/js/call-notification.js"></script>
+    <script>
+    // Close call queue panel when X is clicked
+    document.getElementById('closeCallQueuePanel')?.addEventListener('click', function() {
+        document.getElementById('callQueuePanel')?.classList.add('d-none');
+    });
+    // Close panel when clicking outside
+    document.addEventListener('click', function(e) {
+        var panel = document.getElementById('callQueuePanel');
+        var bell  = document.getElementById('callNotifBell');
+        if (panel && !panel.classList.contains('d-none') && !panel.contains(e.target) && e.target !== bell && !bell?.contains(e.target)) {
+            panel.classList.add('d-none');
+        }
+    });
+    </script>
+
     <?php if (isset($extra_js)) echo $extra_js; ?>
 </body>
 </html>

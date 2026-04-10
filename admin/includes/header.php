@@ -320,23 +320,114 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
                 </button>
                 <h5 class="mb-0 d-inline ms-2"><?php echo $page_title ?? 'Dashboard'; ?></h5>
             </div>
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-user"></i> <?php echo htmlspecialchars($current_user['full_name']); ?>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/admin/change-password.php">
-                        <i class="fas fa-key"></i> Change Password
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/index.php" target="_blank">
-                        <i class="fas fa-eye"></i> View Site
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/admin/logout.php">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a></li>
-                </ul>
+            <div class="d-flex align-items-center gap-2">
+
+                <!-- ── Call notification bell ── -->
+                <div class="position-relative me-1">
+                    <button class="btn btn-outline-secondary position-relative" id="callNotifBell"
+                            title="Incoming Calls" aria-label="Incoming call notifications">
+                        <i class="fas fa-phone-volume"></i>
+                        <span id="callNotifBadge"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                              style="font-size:.65rem;">0</span>
+                    </button>
+                    <!-- Call queue panel (toggle on bell click) -->
+                    <div id="callQueuePanel"
+                         class="d-none position-absolute end-0 bg-white border rounded shadow-lg"
+                         style="min-width:320px;max-width:380px;z-index:2000;top:calc(100% + 8px);">
+                        <div class="px-3 py-2 border-bottom bg-light d-flex align-items-center justify-content-between">
+                            <span class="fw-semibold small"><i class="fas fa-phone-volume me-1 text-success"></i>Incoming Calls</span>
+                            <button type="button" class="btn-close btn-sm" id="closeCallQueuePanel" aria-label="Close"></button>
+                        </div>
+                        <div id="callQueueList" class="list-group list-group-flush"
+                             style="max-height:300px;overflow-y:auto;">
+                            <div class="list-group-item text-muted small py-3 text-center">No active calls</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user"></i> <?php echo htmlspecialchars($current_user['full_name']); ?>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/admin/change-password.php">
+                            <i class="fas fa-key"></i> Change Password
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/index.php" target="_blank">
+                            <i class="fas fa-eye"></i> View Site
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/admin/logout.php">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Incoming Call Modal ─────────────────────────────────────────── -->
+        <div class="modal fade" id="incomingCallModal" tabindex="-1" aria-labelledby="incomingCallModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="incomingCallModalLabel">
+                            <i class="fas fa-phone-volume fa-shake me-2"></i>Incoming Call
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+
+                        <!-- Caller details (filled by JS) -->
+                        <div id="callerDetailsHTML" class="mb-3"></div>
+
+                        <!-- Ringing state: accept / decline -->
+                        <div id="callModalRinging">
+                            <div class="d-flex gap-2">
+                                <button type="button" id="acceptCallBtn"
+                                        class="btn btn-success flex-fill btn-lg"
+                                        data-call-id="">
+                                    <i class="fas fa-phone me-2"></i>Answer
+                                </button>
+                                <button type="button" id="declineCallBtn"
+                                        class="btn btn-danger flex-fill btn-lg"
+                                        data-call-id="">
+                                    <i class="fas fa-phone-slash me-2"></i>Decline
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Active-call state: mute / end -->
+                        <div id="callModalActive" class="d-none">
+                            <div class="alert alert-success py-2 mb-3 text-center">
+                                <i class="fas fa-circle text-success me-1" style="font-size:.6rem;"></i>
+                                Call connected &nbsp;
+                                <strong id="callAdminTimer">0:00</strong>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="muteCallAdminBtn" class="btn btn-outline-secondary flex-fill">
+                                    <i class="fas fa-microphone" id="muteCallAdminIcon"></i>
+                                    <span id="muteCallAdminText"> Mute</span>
+                                </button>
+                                <button type="button" id="endCallAdminBtn" class="btn btn-danger flex-fill">
+                                    <i class="fas fa-phone-slash me-1"></i>End Call
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Ended state -->
+                        <div id="callModalEnded" class="d-none text-center text-muted py-2">
+                            <i class="fas fa-phone-slash fa-2x mb-2 text-secondary"></i>
+                            <p class="mb-0">Call ended.</p>
+                            <button type="button" class="btn btn-secondary btn-sm mt-2"
+                                    data-bs-dismiss="modal">Close</button>
+                        </div>
+
+                        <!-- Hidden audio for remote stream -->
+                        <audio id="callAdminRemoteAudio" autoplay playsinline style="display:none;"></audio>
+                    </div>
+                </div>
             </div>
         </div>
         
