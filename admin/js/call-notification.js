@@ -178,6 +178,16 @@
         });
     }
 
+    // ── Helper: should we pop the incoming-call modal now? ──────────────────
+    // Returns true when this admin tab is free (not on an active call and
+    // modal is not already open).
+    function canShowIncomingModal() {
+        if (activeCallId) return false;                              // already on a call
+        if (!modalEl)     return false;                              // modal not in DOM
+        if (modalEl.classList.contains("show")) return false;        // modal already open
+        return true;
+    }
+
     // ── Open the incoming-call modal for a specific call ──────────────────
     function openAnswerModal(callId) {
         // Fetch full call details
@@ -396,11 +406,10 @@
                 pending.forEach(function (call) {
                     if (!knownCallIds[call.call_id]) {
                         knownCallIds[call.call_id] = true;
-                        // Only show modal if no call is currently active in this tab
-                        if (!activeCallId && !(modalInst && modalEl && !modalEl.classList.contains("show"))) {
+                        if (canShowIncomingModal()) {
                             openAnswerModal(call.call_id);
                         } else {
-                            playRingBeep(); // at least beep so admin knows
+                            playRingBeep(); // beep so admin knows another call arrived
                         }
                     }
                 });

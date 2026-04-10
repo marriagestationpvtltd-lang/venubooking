@@ -55,11 +55,12 @@ try {
         }
     }
 
-    // Determine which ICE column to update
-    $col = ($role === 'admin') ? 'admin_ice' : 'caller_ice';
-
-    // Read existing candidates, append new one, write back (JSON array)
-    $sel = $db->prepare("SELECT $col FROM call_sessions WHERE id = ?");
+    // Determine which ICE column to update – use explicit conditionals, never interpolate
+    if ($role === 'admin') {
+        $sel = $db->prepare("SELECT admin_ice FROM call_sessions WHERE id = ?");
+    } else {
+        $sel = $db->prepare("SELECT caller_ice FROM call_sessions WHERE id = ?");
+    }
     $sel->execute([$call_id]);
     $row = $sel->fetch();
 
@@ -68,7 +69,8 @@ try {
         exit;
     }
 
-    $existing = $row[$col] ? json_decode($row[$col], true) : [];
+    $colKey   = ($role === 'admin') ? 'admin_ice' : 'caller_ice';
+    $existing = $row[$colKey] ? json_decode($row[$colKey], true) : [];
     if (!is_array($existing)) {
         $existing = [];
     }
@@ -82,7 +84,11 @@ try {
     }
     $existing[] = $decoded;
 
-    $upd = $db->prepare("UPDATE call_sessions SET $col = ? WHERE id = ?");
+    if ($role === 'admin') {
+        $upd = $db->prepare("UPDATE call_sessions SET admin_ice = ? WHERE id = ?");
+    } else {
+        $upd = $db->prepare("UPDATE call_sessions SET caller_ice = ? WHERE id = ?");
+    }
     $upd->execute([json_encode($existing), $call_id]);
 
     echo json_encode(['success' => true]);

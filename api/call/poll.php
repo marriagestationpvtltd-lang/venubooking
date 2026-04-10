@@ -90,13 +90,18 @@ try {
     }
 
     // ── Fetch all pending + active calls for admin dashboard ───────────────
-    // Auto-expire calls older than 5 minutes that are still pending (missed)
-    $db->exec(
-        "UPDATE call_sessions
-         SET status = 'missed'
-         WHERE status = 'pending'
-           AND created_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)"
-    );
+    // Auto-expire calls older than 5 minutes that are still pending (missed).
+    // Limit frequency to once per 30 seconds per admin session to avoid
+    // running this UPDATE on every 3-second poll.
+    if (!isset($_SESSION['call_expire_last']) || (time() - (int)$_SESSION['call_expire_last']) >= 30) {
+        $db->exec(
+            "UPDATE call_sessions
+             SET status = 'missed'
+             WHERE status = 'pending'
+               AND created_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)"
+        );
+        $_SESSION['call_expire_last'] = time();
+    }
 
     $stmt = $db->query(
         "SELECT cs.id, cs.session_token, cs.caller_name, cs.caller_phone,
