@@ -627,7 +627,7 @@ const vendorsByType      = <?php echo json_encode($vendors_by_type); ?>;
                 }
                 labelEl.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>'
                     + (vendorName
-                        ? vendorName.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                        ? vendorName.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
                         : 'Vendor selected');
                 if (btn) {
                     btn.innerHTML = '<i class="fas fa-edit me-1"></i>Change';

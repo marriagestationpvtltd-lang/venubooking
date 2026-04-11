@@ -710,7 +710,7 @@ var pkgVendorForService = {}; // service_id → vendor_id
 var pkgVendorModalServiceId = null;
 
 function pkgEscapeHtml(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function pkgSyncVendorInputs() {
@@ -799,9 +799,10 @@ function pkgOpenVendorModal(serviceId, serviceName, vendorTypeSlug) {
             var phoneText = v.phone     ? '<small class="text-muted"><i class="fas fa-phone me-1"></i>' + pkgEscapeHtml(v.phone) + '</small>' : '';
             var infoLine  = [cityText, phoneText].filter(Boolean).join(' &bull; ');
 
+            var vendorId = parseInt(v.id) || 0;
             var card = document.createElement('div');
             card.className = 'col-12 col-md-6';
-            card.innerHTML = '<div class="card vendor-select-card h-100 ' + (isSelected ? 'border-success selected-vendor' : '') + '" style="cursor:pointer;" data-vendor-id="' + v.id + '">'
+            card.innerHTML = '<div class="card vendor-select-card h-100 ' + (isSelected ? 'border-success selected-vendor' : '') + '" style="cursor:pointer;" data-vendor-id="' + vendorId + '">'
                 + '<div class="card-body d-flex align-items-center py-2 px-3">'
                 + photoHtml
                 + '<div class="flex-grow-1 min-w-0">'
