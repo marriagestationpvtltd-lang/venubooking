@@ -394,8 +394,25 @@ if (isset($_POST['action'])) {
                 }
             }
         }
-        $_SESSION['flash_section'] = 'admin_services';
-        header('Location: view.php?id=' . urlencode($booking_id) . '#section-services');
+        // If the assignment targets a package-included service, redirect to the packages section
+        $redirect_to_packages = false;
+        if ($booking_service_id > 0) {
+            try {
+                $_pkg_check = getDB()->prepare("SELECT category FROM booking_services WHERE id = ? AND booking_id = ?");
+                $_pkg_check->execute([$booking_service_id, $booking_id]);
+                $_pkg_check_row = $_pkg_check->fetch();
+                if ($_pkg_check_row && ($_pkg_check_row['category'] ?? '') === PACKAGE_INCLUDED_CATEGORY) {
+                    $redirect_to_packages = true;
+                    $_SESSION['flash_section'] = 'packages';
+                }
+                unset($_pkg_check, $_pkg_check_row);
+            } catch (\Throwable $e) { /* non-fatal */ }
+        }
+        if (!$redirect_to_packages) {
+            $_SESSION['flash_section'] = 'admin_services';
+        }
+        $redirect_anchor = $redirect_to_packages ? '#packages' : '#section-services';
+        header('Location: view.php?id=' . urlencode($booking_id) . $redirect_anchor);
         exit;
     } elseif ($action === 'update_vendor_assignment_status') {
         $assignment_id     = intval($_POST['assignment_id'] ?? 0);
@@ -645,10 +662,11 @@ foreach (array_merge($user_services, $admin_services, $package_services) as $_sv
 }
 unset($_svc, $_bsvc_id, $_dsvc_id);
 
-// Batch-fetch vendor_type_slug for user services (join additional_services → vendor_types at once)
+// Batch-fetch vendor_type_slug for user services, admin services AND package-included services
 $service_vendor_type_slugs = []; // keyed by booking_services.id → vendor_type_slug
-if (!empty($user_services) || !empty($admin_services)) {
-    $_all_svc_rows = array_merge($user_services, $admin_services);
+$_pkg_incl_rows = array_filter($package_services, fn($s) => ($s['category'] ?? '') === PACKAGE_INCLUDED_CATEGORY);
+if (!empty($user_services) || !empty($admin_services) || !empty($_pkg_incl_rows)) {
+    $_all_svc_rows = array_merge($user_services, $admin_services, array_values($_pkg_incl_rows));
     $_svc_ids_for_vt = array_filter(array_unique(array_column($_all_svc_rows, 'service_id')), fn($id) => intval($id) > 0);
     if (!empty($_svc_ids_for_vt)) {
         try {
@@ -671,6 +689,7 @@ if (!empty($user_services) || !empty($admin_services)) {
     }
     unset($_all_svc_rows, $_svc_ids_for_vt, $_vt_stmt, $_vt_rows, $_vt_map, $_srow, $_vtr, $_ph, $_db_tmp);
 }
+unset($_pkg_incl_rows);
 
 // Compute "Send All" combo messaging data.
 // A service "requires a vendor" if its catalog entry has a vendor_type_id (non-empty slug).
@@ -1728,7 +1747,16 @@ unset($_avail_svc);
 
                     <?php if ($is_packages_flash && $success_message): ?>
                     <div class="alert alert-success alert-dismissible fade show py-2 px-3 small" role="alert">
-                        <i class="fas fa-check-circle me-1"></i><?php echo $success_message; ?>
+                        <i class="fas fa-check-circle me-1"></i><?php echo htmlspecialchars($success_message); ?>
+                        <?php if (!empty($new_vendor_wa_url)): ?>
+                            <a href="<?php echo htmlspecialchars($new_vendor_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-sm btn-success ms-2 py-0 px-2">
+                                <i class="fab fa-whatsapp me-1"></i>Notify
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($new_vendor_email_sent): ?>
+                            <span class="badge bg-info ms-1"><i class="fas fa-envelope me-1"></i>Email sent</span>
+                        <?php endif; ?>
                         <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
                     </div>
                     <?php endif; ?>
@@ -1765,6 +1793,10 @@ unset($_avail_svc);
                                     } else {
                                         $pkg_photo_url = ($service['service_id'] > 0) ? ($package_primary_photos[$service['service_id']] ?? '') : '';
                                     }
+                                    // Vendor info for package-included service rows
+                                    $pkg_incl_bsid     = (int)$service['id'];
+                                    $pkg_incl_vt_slug  = $pkg_is_included ? ($service_vendor_type_slugs[$pkg_incl_bsid] ?? '') : '';
+                                    $pkg_incl_vendors  = $pkg_is_included ? ($vendor_assignments_by_service[$pkg_incl_bsid] ?? []) : [];
                                 ?>
                                 <tr<?php echo $pkg_is_included ? ' class="table-success bg-opacity-10"' : ''; ?>>
                                     <td class="text-center align-middle">
@@ -1796,6 +1828,11 @@ unset($_avail_svc);
                                             <i class="fas fa-long-arrow-alt-right text-muted me-1" style="font-size:.8rem;" aria-hidden="true"></i>
                                             <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
                                             <span class="badge bg-success ms-1" style="font-size:.65rem;" title="Automatically included because it is part of a selected package"><i class="fas fa-box-open me-1"></i>Included</span>
+                                            <?php if (!empty($pkg_incl_vendors)): ?>
+                                                <span class="badge bg-primary ms-1" style="font-size:.6rem;" title="Vendor(s) assigned">
+                                                    <i class="fas fa-user-tie me-1"></i><?php echo count($pkg_incl_vendors); ?> vendor<?php echo count($pkg_incl_vendors) > 1 ? 's' : ''; ?>
+                                                </span>
+                                            <?php endif; ?>
                                         <?php else: ?>
                                             <span class="fw-semibold"><?php echo htmlspecialchars($service['service_name']); ?></span>
                                             <?php if (!$pkg_is_admin_added): ?>
@@ -1823,7 +1860,14 @@ unset($_avail_svc);
                                     </td>
                                     <td class="text-center">
                                         <?php if ($pkg_is_included): ?>
-                                        <span class="text-muted" title="Auto-included from package" style="font-size:.75rem;">—</span>
+                                        <button type="button"
+                                                class="btn btn-sm py-0 px-1 <?php echo empty($pkg_incl_vendors) ? 'btn-outline-primary' : 'btn-outline-secondary'; ?>"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#pkg-incl-va-<?php echo $pkg_incl_bsid; ?>"
+                                                title="<?php echo empty($pkg_incl_vendors) ? 'Assign vendor' : 'Manage vendors'; ?>"
+                                                style="font-size:.7rem;">
+                                            <i class="fas <?php echo empty($pkg_incl_vendors) ? 'fa-plus' : 'fa-user-tie'; ?>"></i>
+                                        </button>
                                         <?php elseif ($pkg_is_admin_added): ?>
                                         <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this package from the booking?');">
                                             <input type="hidden" name="action" value="delete_admin_service">
@@ -1838,6 +1882,147 @@ unset($_avail_svc);
                                         <?php endif; ?>
                                     </td>
                                 </tr>
+                                <?php if ($pkg_is_included): ?>
+                                <tr class="collapse" id="pkg-incl-va-<?php echo $pkg_incl_bsid; ?>">
+                                    <td colspan="6" class="p-2" style="background:#eef4ff;">
+                                        <?php if (!empty($pkg_incl_vendors)): ?>
+                                        <!-- Existing vendor assignments for this included service -->
+                                        <div class="mb-2">
+                                            <?php foreach ($pkg_incl_vendors as $pv_idx => $pv):
+                                                $pv_is_manual = empty($pv['vendor_id']);
+                                                $pv_photo_url = $pv_is_manual ? '' : ($vendor_primary_photos[$pv['vendor_id']] ?? '');
+                                                $pv_is_last   = ($pv_idx === count($pkg_incl_vendors) - 1);
+                                            ?>
+                                            <div class="d-flex align-items-center gap-2 py-1 flex-wrap<?php echo $pv_is_last ? '' : ' border-bottom'; ?>" style="font-size:.8rem;">
+                                                <?php if (!empty($pv_photo_url)): ?>
+                                                    <div class="photo-zoom-wrap vendor-zoom flex-shrink-0" style="width:28px;height:28px;">
+                                                        <img src="<?php echo htmlspecialchars($pv_photo_url); ?>"
+                                                             alt="<?php echo htmlspecialchars($pv['vendor_name']); ?>"
+                                                             class="rounded-circle"
+                                                             style="width:28px;height:28px;object-fit:cover;">
+                                                        <div class="photo-zoom-popup rounded-circle">
+                                                            <img src="<?php echo htmlspecialchars($pv_photo_url); ?>"
+                                                                 alt="<?php echo htmlspecialchars($pv['vendor_name']); ?>">
+                                                        </div>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="d-inline-flex align-items-center justify-content-center <?php echo $pv_is_manual ? 'bg-warning text-dark' : 'bg-secondary text-white'; ?> rounded-circle flex-shrink-0"
+                                                          style="width:28px;height:28px;font-size:.65rem;">
+                                                        <i class="fas <?php echo $pv_is_manual ? 'fa-pencil-alt' : 'fa-user'; ?>"></i>
+                                                    </span>
+                                                <?php endif; ?>
+                                                <span class="fw-semibold"><?php echo htmlspecialchars($pv['vendor_name']); ?></span>
+                                                <?php if ($pv_is_manual): ?>
+                                                    <span class="badge bg-warning text-dark border" style="font-size:.6rem;"><i class="fas fa-pencil-alt me-1"></i>Manual</span>
+                                                    <?php if (!empty($pv['manual_vendor_type'])): ?>
+                                                    <span class="badge bg-light text-secondary border" style="font-size:.6rem;"><?php echo htmlspecialchars(getVendorTypeLabel($pv['manual_vendor_type'])); ?></span>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <span class="badge bg-light text-secondary border" style="font-size:.6rem;"><?php echo htmlspecialchars(getVendorTypeLabel($pv['vendor_type'])); ?></span>
+                                                <?php endif; ?>
+                                                <div class="ms-auto d-flex align-items-center gap-1 flex-shrink-0">
+                                                    <form method="POST" style="display:inline-block;">
+                                                        <input type="hidden" name="action" value="update_vendor_assignment_status">
+                                                        <input type="hidden" name="assignment_id" value="<?php echo $pv['id']; ?>">
+                                                        <select name="assignment_status" class="form-select form-select-sm py-0 d-inline-block w-auto"
+                                                                style="font-size:.7rem;" onchange="this.form.submit()">
+                                                            <?php foreach (['assigned', 'confirmed', 'completed', 'cancelled'] as $_pvs): ?>
+                                                                <option value="<?php echo $_pvs; ?>" <?php echo ($pv['status'] === $_pvs) ? 'selected' : ''; ?>><?php echo ucfirst($_pvs); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </form>
+                                                    <?php if (!empty($pv['vendor_phone'])): ?>
+                                                        <?php $_pv_wa_url = buildVendorAssignmentWhatsAppUrl($pv['vendor_name'], $pv['vendor_phone'], $booking, $pv_is_manual ? ($pv['manual_vendor_type'] ?? '') : ($pv['vendor_type'] ?? ''), null); ?>
+                                                        <?php if (!empty($_pv_wa_url)): ?>
+                                                        <a href="<?php echo htmlspecialchars($_pv_wa_url); ?>" target="_blank" rel="noopener noreferrer"
+                                                           class="btn btn-sm btn-outline-success py-0 px-1" title="Notify via WhatsApp" style="font-size:.7rem;">
+                                                            <i class="fab fa-whatsapp"></i>
+                                                        </a>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                    <form method="POST" style="display:inline-block;"
+                                                          onsubmit="return confirm('Remove this vendor assignment?');">
+                                                        <input type="hidden" name="action" value="delete_vendor_assignment">
+                                                        <input type="hidden" name="assignment_id" value="<?php echo $pv['id']; ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Remove" style="font-size:.7rem;">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <?php endif; ?>
+                                        <!-- Vendor assignment form for this included service -->
+                                        <form method="POST" action="" class="inline-va-form">
+                                            <input type="hidden" name="action" value="add_vendor_assignment">
+                                            <input type="hidden" name="booking_service_id" value="<?php echo $pkg_incl_bsid; ?>">
+                                            <input type="hidden" name="task_description" value="<?php echo htmlspecialchars($service['service_name']); ?>">
+                                            <input type="hidden" name="is_manual_vendor" value="<?php echo empty($vendor_types_available) ? '1' : '0'; ?>" class="inline-va-is-manual-flag">
+                                            <div class="mb-2 d-flex align-items-center gap-2" style="font-size:.75rem;">
+                                                <?php if (!empty($vendor_types_available)): ?>
+                                                <button type="button" class="btn btn-sm py-0 px-2 btn-primary inline-va-mode-btn active"
+                                                        data-mode="system" style="font-size:.72rem;">
+                                                    <i class="fas fa-user-tie me-1"></i>System Vendor
+                                                </button>
+                                                <?php endif; ?>
+                                                <button type="button" class="btn btn-sm py-0 px-2 <?php echo empty($vendor_types_available) ? 'btn-primary active' : 'btn-outline-secondary'; ?> inline-va-mode-btn"
+                                                        data-mode="manual" style="font-size:.72rem;">
+                                                    <i class="fas fa-pencil-alt me-1"></i>Manual Vendor
+                                                </button>
+                                            </div>
+                                            <div class="row g-2 align-items-end">
+                                                <?php if (!empty($vendor_types_available)): ?>
+                                                <div class="col inline-va-vendor-wrap inline-va-system-fields">
+                                                    <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Vendor <span class="text-danger">*</span></label>
+                                                    <select name="vendor_id" class="form-select form-select-sm inline-va-vendor-select"
+                                                            data-vendor-type-slug="<?php echo htmlspecialchars($pkg_incl_vt_slug); ?>"
+                                                            data-service-category=""
+                                                            required style="font-size:.78rem;">
+                                                        <option value="">&#x2014; Select Vendor &#x2014;</option>
+                                                    </select>
+                                                    <div class="inline-va-vendor-photo-list mt-2"></div>
+                                                </div>
+                                                <?php endif; ?>
+                                                <div class="col inline-va-manual-fields<?php echo !empty($vendor_types_available) ? ' d-none' : ''; ?>">
+                                                    <div class="row g-2">
+                                                        <div class="col">
+                                                            <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Vendor Name <span class="text-danger">*</span></label>
+                                                            <input type="text" name="manual_vendor_name" class="form-control form-control-sm"
+                                                                   placeholder="Enter vendor name"
+                                                                   <?php echo empty($vendor_types_available) ? 'required' : ''; ?>
+                                                                   style="font-size:.78rem;">
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Phone</label>
+                                                            <input type="text" name="manual_vendor_phone" class="form-control form-control-sm"
+                                                                   placeholder="Phone number"
+                                                                   style="width:130px;font-size:.78rem;">
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <label class="form-label mb-1 small fw-semibold" style="font-size:.72rem;">Type</label>
+                                                            <select name="manual_vendor_type" class="form-select form-select-sm" style="font-size:.78rem;min-width:110px;">
+                                                                <option value="">&#x2014; Type &#x2014;</option>
+                                                                <?php foreach (getVendorTypes() as $_pvt): ?>
+                                                                <option value="<?php echo htmlspecialchars($_pvt['slug']); ?>"
+                                                                        <?php echo ($pkg_incl_vt_slug && $pkg_incl_vt_slug === $_pvt['slug']) ? 'selected' : ''; ?>>
+                                                                    <?php echo htmlspecialchars($_pvt['label']); ?>
+                                                                </option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-user-plus me-1"></i>Assign
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
                                 <?php endforeach; ?>
                             </tbody>
                             <?php if (count($package_services) > 1): ?>
