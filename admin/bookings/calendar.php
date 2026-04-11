@@ -325,6 +325,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let hasLoadedInitialDate = false;
     let selectedDate = null;
     let activeTooltip = null;
+    let currentFetchToken = null; // guards against stale out-of-order fetch responses
     
     // --- Hover tooltip functions ---
     function showBookingTooltip(cellEl, dateStr) {
@@ -466,10 +467,27 @@ document.addEventListener("DOMContentLoaded", function() {
             inner.appendChild(custSpan);
             return { domNodes: [inner] };
         },
+        // Reset counts and badges when the visible date range changes (e.g. navigating
+        // months) so stale data from the previous range is never briefly shown on the
+        // new grid.
+        datesSet: function() {
+            bookingCounts = {};
+            allEventsData = {};
+            document.querySelectorAll(".booking-count-badge").forEach(function(el) { el.remove(); });
+            document.querySelectorAll(".fc-daygrid-day").forEach(function(cell) {
+                cell.classList.remove("has-bookings-1", "has-bookings-2", "has-bookings-3", "has-bookings-many");
+            });
+        },
         events: function(info, successCallback, failureCallback) {
+            // Use a request token so that only the most-recently-started fetch
+            // updates bookingCounts (guards against slow out-of-order responses).
+            const token = {};
+            currentFetchToken = token;
+
             fetch("get-calendar-bookings.php?start=" + info.startStr + "&end=" + info.endStr)
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
+                    if (token !== currentFetchToken) return; // stale response – ignore
                     if (data.success) {
                         // Reset per-date data
                         bookingCounts = {};
@@ -492,10 +510,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
         },
         eventsSet: function() {
-            // Defer badge injection to after FullCalendar\'s current rendering
-            // frame so the day-top elements are guaranteed to be in the DOM
+            // Use a double requestAnimationFrame so our badge injection runs
+            // after FullCalendar has had two full rendering frames to commit its
+            // own DOM updates (event bars, overflow links, etc.).
             requestAnimationFrame(function() {
-                updateDateCellBadges();
+                requestAnimationFrame(function() {
+                    updateDateCellBadges();
+                });
             });
             
             // Auto-load today\'s bookings on the very first render
