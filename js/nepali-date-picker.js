@@ -595,9 +595,9 @@
                     (year === todayBS.year && month === todayBS.month && day < todayBS.day)
                 );
 
-                // Look up booking count for this date
+                // Look up booking count for this date (show for all dates, including past)
                 let bookingCount = 0;
-                if (!isPast && Object.keys(this.bookingCounts).length > 0) {
+                if (Object.keys(this.bookingCounts).length > 0) {
                     const adDate = bsToAD(year, month, day);
                     if (adDate) {
                         const adStr = adDate.year + '-' +
