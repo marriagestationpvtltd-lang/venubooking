@@ -13,11 +13,26 @@ if (!isset($_SESSION['booking_data']) || !isset($_SESSION['selected_hall'])) {
 
 // Save selected services (only when coming from the services step, not the final booking form)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['submit_booking'])) {
-    // If a package is selected, additional services must be ignored
+    // If a package is selected, additional services must be ignored.
+    // Vendor selections for package-included services are still processed.
     if (!empty($_SESSION['selected_packages'])) {
         $_SESSION['selected_services']  = [];
         $_SESSION['selected_designs']   = [];
-        $_SESSION['vendor_for_service'] = [];
+        // Process vendor selections for package-included services
+        if (!empty($_POST['vendor_for_service']) && is_array($_POST['vendor_for_service'])) {
+            $raw_vendors = $_POST['vendor_for_service'];
+            $clean_vendors = [];
+            foreach ($raw_vendors as $svc_id => $vendor_id) {
+                $svc_id_int    = intval($svc_id);
+                $vendor_id_int = intval($vendor_id);
+                if ($svc_id_int > 0 && $vendor_id_int > 0) {
+                    $clean_vendors[$svc_id_int] = $vendor_id_int;
+                }
+            }
+            $_SESSION['vendor_for_service'] = $clean_vendors;
+        } else {
+            $_SESSION['vendor_for_service'] = [];
+        }
     } else {
         $_SESSION['selected_services'] = $_POST['services'] ?? [];
         // packages are already saved in session from step 5 (booking-step5.php)
