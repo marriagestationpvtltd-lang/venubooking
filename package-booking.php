@@ -50,6 +50,47 @@ if (!$package) {
 // Package features
 $features = getPackageFeatures($package_id);
 
+// Package services: features that link to an additional_service (with vendor type info)
+// service_id → { feature_text, service_name, service_photo, vendor_type_slug }
+$pkg_services = [];
+try {
+    $psStmt = $db->prepare(
+        "SELECT spf.service_id, spf.feature_text,
+                s.name  AS service_name,
+                s.photo AS service_photo,
+                vt.slug AS vendor_type_slug
+           FROM service_package_features spf
+           LEFT JOIN additional_services s  ON s.id  = spf.service_id
+           LEFT JOIN vendor_types        vt ON vt.id = s.vendor_type_id
+          WHERE spf.package_id = ?
+            AND spf.service_id IS NOT NULL
+          ORDER BY spf.display_order, spf.id"
+    );
+    $psStmt->execute([$package_id]);
+    foreach ($psStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $pkg_services[(int)$row['service_id']] = $row;
+    }
+} catch (\Throwable $e) {
+    // service_id column may not exist on older installs; fall back gracefully
+    error_log('package-booking: failed to load package services: ' . $e->getMessage());
+    $pkg_services = [];
+}
+
+// Vendors grouped by type slug (for vendor selection modal)
+$vendors_by_type = [];
+try {
+    $all_vendors = getVendors();
+    foreach ($all_vendors as $v) {
+        $slug = $v['type'] ?? '';
+        if ($slug !== '') {
+            $vendors_by_type[$slug][] = $v;
+        }
+    }
+} catch (\Throwable $e) {
+    error_log('package-booking: failed to load vendors: ' . $e->getMessage());
+    $vendors_by_type = [];
+}
+
 // Package photos
 $photos = [];
 try {
@@ -236,7 +277,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_package_bookin
         $_SESSION['selected_packages']       = [$package_id];
         $_SESSION['selected_services']       = [];
         $_SESSION['selected_designs']        = [];
-        $_SESSION['vendor_for_service']      = [];
+
+        // Save vendor selections for package-included services
+        $raw_vendors   = $_POST['vendor_for_service'] ?? [];
+        $clean_vendors = [];
+        if (is_array($raw_vendors)) {
+            foreach ($raw_vendors as $svc_id => $vendor_id) {
+                $svc_id_int    = intval($svc_id);
+                $vendor_id_int = intval($vendor_id);
+                if ($svc_id_int > 0 && $vendor_id_int > 0) {
+                    $clean_vendors[$svc_id_int] = $vendor_id_int;
+                }
+            }
+        }
+        $_SESSION['vendor_for_service'] = $clean_vendors;
 
         header('Location: booking-step6.php');
         exit;
@@ -390,6 +444,53 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
                     </div>
 
+                    <?php if (!empty($pkg_services)): ?>
+                    <!-- Vendor selection for package-included services -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user-tie text-success me-2"></i>Select Service Providers
+                                <span class="text-muted fw-normal small">(Optional)</span>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                These services are included in your package. Optionally select a preferred vendor for each.
+                            </p>
+                            <div class="row g-2">
+                                <?php foreach ($pkg_services as $svc_id => $svc): ?>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center gap-2 p-2 border rounded">
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="fw-semibold small text-truncate">
+                                                <?php echo htmlspecialchars($svc['service_name'] ?: $svc['feature_text'], ENT_QUOTES, 'UTF-8'); ?>
+                                            </div>
+                                            <div id="pkgsvc-vendor-label-<?php echo $svc_id; ?>" class="small text-muted"></div>
+                                        </div>
+                                        <?php if (!empty($svc['vendor_type_slug'])): ?>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-success flex-shrink-0"
+                                                id="pkgsvc-vendor-btn-<?php echo $svc_id; ?>"
+                                                onclick="pkgOpenVendorModal(<?php echo $svc_id; ?>, <?php echo json_encode($svc['service_name'] ?: $svc['feature_text']); ?>, <?php echo json_encode($svc['vendor_type_slug']); ?>)"
+                                                title="Select vendor">
+                                            <i class="fas fa-plus me-1"></i>Add Vendor
+                                        </button>
+                                        <?php else: ?>
+                                        <span class="badge bg-success-subtle text-success flex-shrink-0">
+                                            <i class="fas fa-check me-1"></i>Included
+                                        </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <!-- Hidden inputs for selected vendor IDs (submitted with form) -->
+                            <div id="pkg-vendor-inputs"></div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="d-grid gap-2">
                         <button type="submit" name="submit_package_booking" class="btn btn-success btn-lg">
                             <i class="fas fa-arrow-right me-2"></i> Continue to Confirm Booking
@@ -451,9 +552,26 @@ require_once __DIR__ . '/includes/header.php';
                             <p class="fw-semibold small mb-1"><i class="fas fa-check-circle text-success me-1"></i> Included:</p>
                             <ul class="list-unstyled mb-0 small">
                                 <?php foreach ($features as $feat): ?>
-                                <li class="mb-1">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    <?php echo htmlspecialchars($feat['feature_text']); ?>
+                                <li class="mb-1 d-flex align-items-center justify-content-between gap-1">
+                                    <span>
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        <?php echo htmlspecialchars($feat['feature_text']); ?>
+                                    </span>
+                                    <?php
+                                    $feat_svc_id = !empty($feat['service_id']) ? (int)$feat['service_id'] : 0;
+                                    $feat_svc    = $feat_svc_id > 0 && isset($pkg_services[$feat_svc_id])
+                                                   ? $pkg_services[$feat_svc_id] : null;
+                                    if ($feat_svc && !empty($feat_svc['vendor_type_slug'])):
+                                    ?>
+                                    <button type="button"
+                                            class="btn btn-xs py-0 px-1 btn-outline-success flex-shrink-0"
+                                            style="font-size:0.7rem;"
+                                            onclick="pkgOpenVendorModal(<?php echo $feat_svc_id; ?>, <?php echo json_encode($feat_svc['service_name'] ?: $feat['feature_text']); ?>, <?php echo json_encode($feat_svc['vendor_type_slug']); ?>)"
+                                            id="pkgfeat-vendor-btn-<?php echo $feat_svc_id; ?>"
+                                            title="Select vendor">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <?php endif; ?>
                                 </li>
                                 <?php endforeach; ?>
                             </ul>
@@ -484,6 +602,52 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </section>
+
+<!-- Vendor Selection Modal (package services) -->
+<style>
+.vendor-select-card {
+    transition: border-color .2s, box-shadow .2s;
+    border: 2px solid #dee2e6;
+}
+.vendor-select-card:hover {
+    border-color: #198754;
+    box-shadow: 0 0 0 3px rgba(25,135,84,.15);
+}
+.vendor-select-card.selected-vendor {
+    border-color: #198754 !important;
+    box-shadow: 0 0 0 3px rgba(25,135,84,.2);
+    background-color: rgba(25,135,84,.04);
+}
+</style>
+<div class="modal fade" id="pkgVendorSelectModal" tabindex="-1" aria-labelledby="pkgVendorSelectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="pkgVendorSelectModalLabel">
+                    <i class="fas fa-user-tie me-2"></i>Select Vendor for <span id="pkgVendorModalServiceName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">
+                    <i class="fas fa-info-circle me-1 text-info"></i>
+                    Select a vendor for this service. You can also skip and let our team assign one for you.
+                </p>
+                <div id="pkgVendorModalList" class="row g-3">
+                    <!-- Populated by JS -->
+                </div>
+                <div id="pkgVendorModalEmpty" class="alert alert-info" style="display:none;">
+                    <i class="fas fa-info-circle me-1"></i>No vendors available for this service type. Our team will coordinate with you.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="pkgVendorSkipBtn" data-bs-dismiss="modal">
+                    <i class="fas fa-forward me-1"></i>Skip – assign later
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Time Slot Selection Modal -->
 <div class="modal fade" id="pkgTimeSlotModal" tabindex="-1" aria-labelledby="pkgTimeSlotModalLabel" aria-hidden="true">
@@ -536,6 +700,153 @@ require_once __DIR__ . '/includes/header.php';
         });
     }
 })();
+</script>
+
+<!-- Vendor data + selection logic for package-booking page -->
+<script>
+var pkgVendorsByType = <?php echo json_encode($vendors_by_type); ?>;
+var uploadUrl        = <?php echo json_encode(rtrim(UPLOAD_URL, '/')); ?>;
+var pkgVendorForService = {}; // service_id → vendor_id
+var pkgVendorModalServiceId = null;
+
+function pkgEscapeHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function pkgSyncVendorInputs() {
+    var container = document.getElementById('pkg-vendor-inputs');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.keys(pkgVendorForService).forEach(function (sid) {
+        var vid = pkgVendorForService[sid];
+        if (!vid) return;
+        var input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = 'vendor_for_service[' + sid + ']';
+        input.value = vid;
+        container.appendChild(input);
+    });
+}
+
+function pkgUpdateVendorLabels() {
+    Object.keys(pkgVendorForService).forEach(function (sid) {
+        var vid = pkgVendorForService[sid];
+        var labelEl = document.getElementById('pkgsvc-vendor-label-' + sid)
+                   || document.getElementById('pkgfeat-vendor-label-' + sid);
+        var btn1    = document.getElementById('pkgsvc-vendor-btn-' + sid);
+        var btn2    = document.getElementById('pkgfeat-vendor-btn-' + sid);
+
+        var vendorName = '';
+        if (vid) {
+            Object.values(pkgVendorsByType).forEach(function (list) {
+                list.forEach(function (v) {
+                    if (v.id === vid) vendorName = v.name;
+                });
+            });
+        }
+
+        if (labelEl) {
+            labelEl.innerHTML = vid
+                ? '<i class="fas fa-check-circle text-success me-1"></i>' + pkgEscapeHtml(vendorName || 'Vendor selected')
+                : '';
+        }
+        [btn1, btn2].forEach(function (btn) {
+            if (!btn) return;
+            if (vid) {
+                btn.innerHTML = '<i class="fas fa-edit me-1"></i>Change';
+                btn.classList.remove('btn-outline-success');
+                btn.classList.add('btn-success');
+            } else {
+                btn.innerHTML = btn.id && btn.id.indexOf('pkgfeat') === 0
+                    ? '<i class="fas fa-plus"></i>'
+                    : '<i class="fas fa-plus me-1"></i>Add Vendor';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+            }
+        });
+    });
+}
+
+function pkgOpenVendorModal(serviceId, serviceName, vendorTypeSlug) {
+    pkgVendorModalServiceId = serviceId;
+    var modalEl = document.getElementById('pkgVendorSelectModal');
+    if (!modalEl) return;
+
+    var nameEl = document.getElementById('pkgVendorModalServiceName');
+    if (nameEl) nameEl.textContent = serviceName;
+
+    var listEl  = document.getElementById('pkgVendorModalList');
+    var emptyEl = document.getElementById('pkgVendorModalEmpty');
+
+    var vendors = (pkgVendorsByType && pkgVendorsByType[vendorTypeSlug]) || [];
+
+    if (listEl)  listEl.innerHTML = '';
+    if (vendors.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        if (listEl)  listEl.style.display  = 'none';
+    } else {
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (listEl)  listEl.style.display  = '';
+
+        var currentVendorId = pkgVendorForService[serviceId] || 0;
+        vendors.forEach(function (v) {
+            var isSelected = (currentVendorId === v.id);
+            var photoHtml = v.photo
+                ? '<img src="' + pkgEscapeHtml(uploadUrl + '/' + v.photo) + '" alt="' + pkgEscapeHtml(v.name) + '" class="rounded-circle me-2" style="width:40px;height:40px;object-fit:cover;">'
+                : '<span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;font-size:1.1rem;"><i class="fas fa-user-tie"></i></span>';
+
+            var cityText  = v.city_name ? '<small class="text-muted">' + pkgEscapeHtml(v.city_name) + '</small>' : '';
+            var phoneText = v.phone     ? '<small class="text-muted"><i class="fas fa-phone me-1"></i>' + pkgEscapeHtml(v.phone) + '</small>' : '';
+            var infoLine  = [cityText, phoneText].filter(Boolean).join(' &bull; ');
+
+            var vendorId = parseInt(v.id) || 0;
+            var card = document.createElement('div');
+            card.className = 'col-12 col-md-6';
+            card.innerHTML = '<div class="card vendor-select-card h-100 ' + (isSelected ? 'border-success selected-vendor' : '') + '" style="cursor:pointer;" data-vendor-id="' + vendorId + '">'
+                + '<div class="card-body d-flex align-items-center py-2 px-3">'
+                + photoHtml
+                + '<div class="flex-grow-1 min-w-0">'
+                + '<div class="fw-semibold">' + pkgEscapeHtml(v.name) + (isSelected ? ' <i class="fas fa-check-circle text-success ms-1"></i>' : '') + '</div>'
+                + (infoLine ? '<div>' + infoLine + '</div>' : '')
+                + '</div>'
+                + '</div></div>';
+
+            card.querySelector('.vendor-select-card').addEventListener('click', function () {
+                pkgSelectVendor(serviceId, parseInt(this.dataset.vendorId));
+            });
+            listEl.appendChild(card);
+        });
+    }
+
+    var modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function pkgSelectVendor(serviceId, vendorId) {
+    pkgVendorForService[serviceId] = vendorId;
+    pkgSyncVendorInputs();
+    pkgUpdateVendorLabels();
+
+    var modalEl = document.getElementById('pkgVendorSelectModal');
+    if (modalEl) {
+        var inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var skipBtn = document.getElementById('pkgVendorSkipBtn');
+    if (skipBtn) {
+        skipBtn.addEventListener('click', function () {
+            if (pkgVendorModalServiceId !== null) {
+                delete pkgVendorForService[pkgVendorModalServiceId];
+                pkgSyncVendorInputs();
+                pkgUpdateVendorLabels();
+                pkgVendorModalServiceId = null;
+            }
+        });
+    }
+});
 </script>
 
 <?php

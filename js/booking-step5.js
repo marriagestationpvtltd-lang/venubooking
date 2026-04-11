@@ -500,4 +500,9 @@ document.addEventListener('DOMContentLoaded', function () {
             .replace(/'/g,  '&#39;');
     }
 
+    // Expose vendor modal function globally so package-included service buttons
+    // (rendered outside the IIFE) can trigger it directly via onclick.
+    window.openVendorModal      = openVendorModal;
+    window.selectVendorForService = selectVendorForService;
+
 });
