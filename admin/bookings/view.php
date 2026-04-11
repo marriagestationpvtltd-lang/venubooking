@@ -4740,7 +4740,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // When a collapse relevant to inline vendor assignment opens, populate its vendor select
     document.addEventListener('show.bs.collapse', function(e) {
-        if (!e.target || !e.target.id || e.target.id.indexOf('inline-va-') !== 0) return;
+        if (!e.target || !e.target.id) return;
+        var id = e.target.id;
+        if (id.indexOf('inline-va-') !== 0 && id.indexOf('pkg-incl-va-') !== 0) return;
         var selectEl = e.target.querySelector('.inline-va-vendor-select');
         if (!selectEl) return;
         var typeSlug = selectEl.dataset.vendorTypeSlug || '';
